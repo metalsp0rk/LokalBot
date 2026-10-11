@@ -172,7 +172,11 @@ struct ModelDownloadsView: View {
     }
 
     private func transcriptionRow(_ choice: TranscriptionModelChoice) -> some View {
-        let status = roles.transcriptionStatus(for: choice)
+        // Downloaded manages the in-flight candidate, while role readiness
+        // continues to describe the current model. Keep candidate cancellation available.
+        let status = roles.transcriptionPreparations[choice.id].map {
+            ModelRoleStatus.preparing(progress: $0.progress, label: $0.label)
+        } ?? roles.transcriptionStatus(for: choice)
         return HStack(spacing: 12) {
             Image(systemName: "waveform").settingsModelIcon().frame(width: 24)
             VStack(alignment: .leading, spacing: 5) {
@@ -229,6 +233,7 @@ struct ModelDownloadsView: View {
             return uses.isEmpty ? "You can download it again later."
                 : "\(uses.joined(separator: ", ")) will need this model downloaded again."
         case .transcription(let choice):
+            if choice == .funASRNano { return app.settings.appLanguage.localized("Only the saved folder selection is removed. Your model files stay on disk.") }
             return choice == app.settings.transcriptionModel
                 ? "Transcription will need this model downloaded again." : "You can download it again later."
         case .speech: return "Read aloud will need this model downloaded again."
@@ -245,6 +250,7 @@ struct ModelDownloadsView: View {
             if app.settings.cotypingBuiltInModelID == entry.id { affected.insert(.autocomplete) }
             app.modelChecks.invalidate(affected)
         case .transcription(let choice):
+            if choice == .funASRNano { app.settings.funASRNanoModelDirectory = "" }
             roles.deleteTranscriptionModel(choice)
             if app.settings.transcriptionModel == choice { app.modelChecks.invalidate([.transcribe]) }
         case .speech: speech.delete()

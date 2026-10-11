@@ -60,6 +60,82 @@ final class ModelRolesTests: XCTestCase {
         XCTAssertEqual(snapshot.primaryActionStatus, .ready)
     }
 
+    func testLocalFunASRIsLoadCheckedEvenWhenFilesArePresent() async throws {
+        let storage = temporaryStorage()
+        defer { try? FileManager.default.removeItem(at: storage.rootURL) }
+        var settings = isolatedSettings(transcription: .funASRNano)
+        settings.funASRNanoModelDirectory = "/tmp/selected-model"
+        var loadedPath: String?
+        let roles = ModelRoles(
+            settings: { settings }, storage: storage, downloads: ModelDownloadManager(),
+            prepareTranscription: { configuration, _, _ in loadedPath = configuration.funASRNanoModelDirectory },
+            downloadedTranscriptionModels: { _ in [TranscriptionModelChoice.funASRNano.id] },
+            onReadinessChanged: {})
+        try await roles.ensureTranscriptionAvailable(.funASRNano, configuration: settings)
+        XCTAssertEqual(loadedPath, settings.funASRNanoModelDirectory)
+    }
+
+    func testChangingFunASRDirectoryCancelsOldPreparation() async {
+        let storage = temporaryStorage()
+        defer { try? FileManager.default.removeItem(at: storage.rootURL) }
+        var settings = isolatedSettings(transcription: .funASRNano)
+        settings.funASRNanoModelDirectory = "/tmp/old-model"
+        let gate = PreparationGate()
+        let roles = ModelRoles(
+            settings: { settings }, storage: storage, downloads: ModelDownloadManager(),
+            prepareTranscription: { _, _, _ in await gate.run() },
+            downloadedTranscriptionModels: { _ in [] }, onReadinessChanged: {})
+        roles.prepareTranscriptionModel(.funASRNano)
+        await gate.waitUntilStarted()
+        let previous = settings
+        settings.funASRNanoModelDirectory = "/tmp/new-model"
+        roles.settingsDidChange(from: previous, to: settings)
+        XCTAssertFalse(roles.isPreparingTranscription)
+        await gate.release()
+        await gate.waitUntilCompleted()
+        XCTAssertNil(roles.transcriptionErrors[TranscriptionModelChoice.funASRNano.id])
+    }
+
+    func testFailedReplacementDoesNotPoisonWorkingFunASRReadiness() async throws {
+        let storage = temporaryStorage()
+        defer { try? FileManager.default.removeItem(at: storage.rootURL) }
+        let gate = PreparationGate()
+        var settings = isolatedSettings(transcription: .funASRNano)
+        settings.funASRNanoModelDirectory = "/models/working"
+        var draft = settings
+        draft.funASRNanoModelDirectory = "/models/incompatible"
+        let roles = ModelRoles(
+            settings: { settings }, storage: storage, downloads: ModelDownloadManager(),
+            prepareTranscription: { configuration, _, progress in
+                if configuration.funASRNanoModelDirectory == "/models/incompatible" {
+                    progress?(.init(fractionCompleted: 0.5, status: "Checking replacement"))
+                    await gate.run()
+                    throw TestPreparationError.failed
+                }
+            },
+            downloadedTranscriptionModels: { _ in [TranscriptionModelChoice.funASRNano.id] },
+            onReadinessChanged: {})
+
+        let preparation = Task { try await roles.ensureTranscriptionAvailable(.funASRNano, configuration: draft) }
+        await gate.waitUntilStarted()
+        XCTAssertEqual(roles.snapshot[.transcribe], .ready, "Draft progress must not disable the working model")
+        XCTAssertTrue(roles.isPreparingTranscription)
+        XCTAssertEqual(roles.transcriptionPreparations[TranscriptionModelChoice.funASRNano.id]?.progress, 0.5,
+                       "Downloaded must retain the candidate's progress and cancellation control")
+        await gate.release()
+        do {
+            try await preparation.value
+            XCTFail("The selection controller must receive the replacement failure")
+        } catch {
+            XCTAssertTrue(error.localizedDescription.contains("Expected preparation failure"))
+        }
+        XCTAssertEqual(settings.funASRNanoModelDirectory, "/models/working")
+        XCTAssertEqual(roles.snapshot[.transcribe], .ready, "The current model must remain eligible for model checks")
+        XCTAssertNil(roles.transcriptionErrors[TranscriptionModelChoice.funASRNano.id])
+        try await roles.ensureTranscriptionAvailable(.funASRNano, configuration: settings)
+        XCTAssertEqual(roles.snapshot[.transcribe], .ready)
+    }
+
     func testFailureStopsOnboardingSpinnerAndOffersRecovery() {
         let snapshot = makeSnapshot(statuses: [
             .transcribe: .ready,

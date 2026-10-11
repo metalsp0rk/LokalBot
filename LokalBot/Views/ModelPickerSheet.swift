@@ -14,6 +14,8 @@ struct ModelPickerSheet: View {
     @State private var backend: AppSettings.SummarizerBackend
     @State private var remoteModel: String
     @State private var ollamaModel: String
+    @State private var funASRNanoDirectory: String
+    @State private var folderError: String?
     @State private var granite: GraniteSpeechModelConfiguration
     @State private var query = ""
     @State private var installedOnly = false
@@ -33,6 +35,7 @@ struct ModelPickerSheet: View {
         _backend = State(initialValue: settings.summarizerBackend)
         _remoteModel = State(initialValue: settings.openAIModel)
         _ollamaModel = State(initialValue: settings.ollamaModel)
+        _funASRNanoDirectory = State(initialValue: settings.funASRNanoModelDirectory)
         _granite = State(initialValue: settings.graniteSpeechModel)
     }
 
@@ -57,12 +60,20 @@ struct ModelPickerSheet: View {
         ModelCatalog.entry(id: selectedID, custom: app.settings.customBuiltInModels)
     }
 
+    private var clearsFunASRSelection: Bool {
+        role == .transcription && transcription == .funASRNano
+            && funASRNanoDirectory.isEmpty && !app.settings.funASRNanoModelDirectory.isEmpty
+    }
+
     private var patch: ModelSelectionPatch {
         switch role {
         case .transcription:
             ModelSelectionPatch(
-                transcription: transcription,
+                transcription: clearsFunASRSelection ? nil : transcription,
                 granite: transcription == .graniteSpeech ? granite : nil,
+                funASRNanoDirectory: transcription == .funASRNano
+                    || (funASRNanoDirectory.isEmpty && !app.settings.funASRNanoModelDirectory.isEmpty)
+                    ? funASRNanoDirectory : nil,
                 language: transcription == .graniteTurbo ? .en : nil)
         case .assistant:
             ModelSelectionPatch(
@@ -77,7 +88,8 @@ struct ModelPickerSheet: View {
 
     private var needsDownload: Bool {
         if role == .transcription {
-            return !TranscriptionModelStore.isDownloaded(transcription, graniteConfiguration: granite)
+            if transcription == .funASRNano { return false }
+            return !TranscriptionModelStore.isDownloaded(transcription, graniteConfiguration: granite, funASRNanoDirectory: funASRNanoDirectory)
         }
         return patch.localModelIDs(in: app.settings).contains { id in
             guard let entry = ModelCatalog.entry(id: id, custom: app.settings.customBuiltInModels) else { return true }
@@ -94,6 +106,11 @@ struct ModelPickerSheet: View {
     }
 
     private var selectedBlocker: String? {
+        if clearsFunASRSelection { return nil }
+        if role == .transcription, transcription == .funASRNano {
+            do { _ = try FunASRNanoModel.load(directory: funASRNanoDirectory) } catch { return error.localizedDescription }
+            return nil
+        }
         guard role != .transcription, let selectedEntry else { return nil }
         return downloadBlocker(selectedEntry)
     }
@@ -152,7 +169,9 @@ struct ModelPickerSheet: View {
             Divider()
             HStack(spacing: 14) {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(needsDownload ? "Your current model stays active while this downloads." : "The change takes effect when you choose Use model.")
+                    Text(clearsFunASRSelection
+                         ? "Only the saved folder selection is removed. Your model files stay on disk."
+                         : needsDownload ? "Your current model stays active while this downloads." : "The change takes effect when you choose Use model.")
                         .font(.scaled(.callout)).foregroundStyle(.secondary)
                     if role == .assistant, app.settings.dictationCompositionBuiltInModelID.isEmpty {
                         Text("Dictation composition will also use this model.")
@@ -162,7 +181,7 @@ struct ModelPickerSheet: View {
                 Spacer(minLength: 0)
                 Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
                     .accessibilityIdentifier("models.picker.cancel")
-                Button(needsDownload ? "Download and use" : "Use model") {
+                Button(clearsFunASRSelection ? "Clear selection" : needsDownload ? "Download and use" : "Use model") {
                     setup.apply(patch, title: selectedName)
                     dismiss()
                 }
@@ -217,7 +236,7 @@ struct ModelPickerSheet: View {
                             title: choice == .graniteSpeech ? granite.displayName : choice.displayName,
                             detail: transcriptionSize(choice),
                             inUse: choice == app.settings.transcriptionModel,
-                            available: TranscriptionModelStore.isDownloaded(choice, graniteConfiguration: granite),
+                            available: TranscriptionModelStore.isDownloaded(choice, graniteConfiguration: granite, funASRNanoDirectory: funASRNanoDirectory),
                             progress: status.progress)
                         .tag(choice.id)
                     }
@@ -262,7 +281,7 @@ struct ModelPickerSheet: View {
 
     private var transcriptionChoices: [TranscriptionModelChoice] {
         TranscriptionModelChoice.allCases.filter { choice in
-            let downloaded = TranscriptionModelStore.isDownloaded(choice, graniteConfiguration: granite)
+            let downloaded = TranscriptionModelStore.isDownloaded(choice, graniteConfiguration: granite, funASRNanoDirectory: funASRNanoDirectory)
             return (!choice.isLegacy || downloaded || choice == app.settings.transcriptionModel)
                 && (!installedOnly || downloaded)
                 && (query.isEmpty || "\(choice.displayName) \(choice.blurb)".localizedCaseInsensitiveContains(query))
@@ -270,6 +289,7 @@ struct ModelPickerSheet: View {
     }
 
     private func transcriptionSize(_ choice: TranscriptionModelChoice) -> String {
+        if choice == .funASRNano { return app.settings.appLanguage.localized("Local model folder") }
         guard let bytes = ModelSettingsPresentation.estimatedTranscriptionBytes(choice, granite: granite) else {
             return "Download size varies"
         }
@@ -278,10 +298,11 @@ struct ModelPickerSheet: View {
 
     private var selectionDetails: some View {
         VStack(alignment: .leading, spacing: 9) {
-            Text(role == .transcription ? transcription.blurb
+            Text(role == .transcription ? app.settings.appLanguage.localized(transcription.blurb)
                  : selectedEntry?.blurb ?? "Uses the same model and processing destination as Think.")
                 .font(.scaled(.body)).foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
+            if role == .transcription, transcription == .funASRNano { funASRFolderPicker }
             if let entry = selectedEntry, role != .transcription {
                 let fit = ModelFit.evaluate(modelSizeGB: entry.sizeGB, capability: HardwareCapabilityProbe.current())
                 if let advisory = fit.advisory {
@@ -327,6 +348,46 @@ struct ModelPickerSheet: View {
         }
         .padding(.horizontal, 24).padding(.vertical, 14)
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var funASRFolderPicker: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Button("Choose model folder…") { chooseFunASRFolder() }
+                    .accessibilityIdentifier("models.funasr.chooseFolder")
+                if !funASRNanoDirectory.isEmpty {
+                    Button("Clear selection") { funASRNanoDirectory = ""; folderError = nil }
+                        .accessibilityIdentifier("models.funasr.clearFolder")
+                }
+                Link("Model format & downloads", destination: URL(string: "https://k2-fsa.github.io/sherpa/onnx/funasr-nano/pretrained.html")!)
+            }
+            if !funASRNanoDirectory.isEmpty {
+                Text(verbatim: funASRNanoDirectory).textSelection(.enabled).lineLimit(2)
+                    .accessibilityIdentifier("models.funasr.folder")
+            }
+            Text("Select the extracted sherpa-onnx model folder (int8, fp16, or fp32). The selected model stays in this folder and is never downloaded automatically.")
+                .fixedSize(horizontal: false, vertical: true)
+            if let error = folderError ?? selectedBlocker {
+                Text(verbatim: error).foregroundStyle(.orange).fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .font(.scaled(.callout))
+    }
+
+    private func chooseFunASRFolder() {
+        let panel = NSOpenPanel()
+        panel.title = app.settings.appLanguage.localized("Choose Fun-ASR-Nano model folder")
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = false
+        guard panel.runModal() == .OK, let directory = panel.url else { return }
+        do {
+            let model = try FunASRNanoModel.load(directory: directory.path)
+            funASRNanoDirectory = model.directory.path
+            folderError = nil
+        } catch {
+            folderError = error.localizedDescription
+        }
     }
 
     /// Only the list entry goes: the role assignments and downloaded file
