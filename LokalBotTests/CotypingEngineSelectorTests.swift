@@ -5,6 +5,60 @@ import XCTest
 final class CotypingEngineSelectorTests: XCTestCase {
     private let modelURL = URL(fileURLWithPath: "/models/gemma.gguf")
 
+    func testLegacyHybridPreferenceDoesNotRebuildTheSameModel() throws {
+        try XCTSkipUnless(CotypingEngineSelector.isAppleSilicon)
+        let env = try GGUFFixture()
+        defer { env.tearDown() }
+        var settings = env.settings
+        let local = RecordingLocalEngine()
+        var builds = 0
+        let selector = CotypingEngineSelector(
+            http: RecordingHTTPEngine(),
+            makeLocal: { path in
+                XCTAssertEqual(path, self.modelURL.path)
+                builds += 1
+                return local
+            }, settings: { settings }, storage: env.storage,
+            verifyModel: { _, _ in self.modelURL })
+        for legacyChoice in [false, true, false] {
+            let encoded = try JSONEncoder().encode(settings)
+            var legacy = try XCTUnwrap(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
+            legacy["cotypingSelectiveOneWordHybrid"] = legacyChoice
+            settings = try JSONDecoder().decode(AppSettings.self, from: JSONSerialization.data(withJSONObject: legacy))
+            _ = try awaitGenerate(selector, makeMinimalRequestExpectingNoServer())
+        }
+        XCTAssertEqual(builds, 1)
+        XCTAssertEqual(local.unloadCalls, 0)
+        awaitUnload(selector)
+    }
+
+    func testModelChangeInvalidatesSuspendedModelResolution() throws {
+        try XCTSkipUnless(CotypingEngineSelector.isAppleSilicon)
+        let env = try GGUFFixture()
+        defer { env.tearDown() }
+        var settings = env.settings
+        let entered = expectation(description: "verification suspended")
+        let verifier = SuspendedModelVerifier { entered.fulfill() }
+        let http = RecordingHTTPEngine()
+        let selector = CotypingEngineSelector(
+            http: http,
+            makeLocal: { _ in XCTFail("stale model must not be installed"); return RecordingLocalEngine() },
+            settings: { settings }, storage: env.storage,
+            verifyModel: { _, _ in await verifier.verify() })
+        let finished = expectation(description: "old request cancelled")
+        var failure: Error?
+        Task { @MainActor in
+            do { _ = try await selector.generate(makeMinimalRequestExpectingNoServer()) } catch { failure = error }
+            finished.fulfill()
+        }
+        wait(for: [entered], timeout: 5)
+        settings.cotypingBuiltInModelID = ModelCatalog.recommendedCotypingID
+        verifier.resumeAll(with: modelURL)
+        wait(for: [finished], timeout: 5)
+        XCTAssertTrue(failure is CancellationError)
+        XCTAssertEqual(http.generateCalls, 0)
+    }
+
     func testUsesLocalWhenFlagOnAppleSiliconAndModelResolves() {
         var s = AppSettings(); s.cotypingInProcessRuntime = true
         XCTAssertTrue(CotypingEngineSelector.shouldUseLocal(
@@ -419,7 +473,6 @@ final class CotypingEngineSelectorTests: XCTestCase {
         let storage: StorageManager
         let settings: AppSettings
         private let tempRoot: URL
-        private let previousDefault: String?
 
         init() throws {
             tempRoot = FileManager.default.temporaryDirectory
@@ -431,10 +484,9 @@ final class CotypingEngineSelectorTests: XCTestCase {
             let modelFile = modelsDir.appendingPathComponent(fileName)
             try Data("GGUF".utf8).write(to: modelFile)   // magic-only stub; not loaded
 
-            // Point StorageManager at the temp root via the UI-test override hook.
-            previousDefault = UserDefaults.standard.string(forKey: UITestRuntime.storageRootKey)
-            UserDefaults.standard.set(tempRoot.path, forKey: UITestRuntime.storageRootKey)
-            storage = StorageManager()
+            // Inject the fixture root directly: a suite-wide storage environment
+            // override takes priority over UserDefaults and otherwise hides this model.
+            storage = StorageManager(rootURL: tempRoot)
 
             let custom = ModelCatalog.Entry(
                 id: "selector-fixture", displayName: "Selector Fixture",
@@ -447,11 +499,6 @@ final class CotypingEngineSelectorTests: XCTestCase {
         }
 
         func tearDown() {
-            if let previousDefault {
-                UserDefaults.standard.set(previousDefault, forKey: UITestRuntime.storageRootKey)
-            } else {
-                UserDefaults.standard.removeObject(forKey: UITestRuntime.storageRootKey)
-            }
             try? FileManager.default.removeItem(at: tempRoot)
         }
     }

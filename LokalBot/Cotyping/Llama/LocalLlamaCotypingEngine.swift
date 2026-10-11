@@ -9,6 +9,11 @@ import Foundation
 final class LocalLlamaCotypingEngine: CotypingCompleting {
     private let runtime: LlamaCotypingRuntime
     private let modelPath: String
+    var healingMode: CotypingHealingMode
+    var replayHybridFallbackMinimum = CotypingConfidenceDecision.hybridMinimum
+    private(set) var lastRawText: String?
+    private(set) var lastHealingTrace: CotypingHealingTrace?
+    private(set) var lastReplayDiagnostics: CotypingReplayDiagnostics?
     private var memoryPressureSource: DispatchSourceMemoryPressure?
     private var inflightPrewarmTask: Task<Void, Never>?
     /// The confidence gate for suggestions at the start of a word; 0 turns it
@@ -18,6 +23,9 @@ final class LocalLlamaCotypingEngine: CotypingCompleting {
     init(runtime: LlamaCotypingRuntime, modelPath: String) {
         self.runtime = runtime
         self.modelPath = modelPath
+        // The app factory always enables hybrid healing. Replay can still
+        // select the legacy path for controlled comparisons.
+        self.healingMode = runtime.selectiveOneWordHybrid ? .prefixSearch : .wordBoundary
 
         let source = DispatchSource.makeMemoryPressureSource(
             eventMask: [.warning, .critical], queue: .global(qos: .utility))
@@ -77,8 +85,17 @@ final class LocalLlamaCotypingEngine: CotypingCompleting {
         await runtime.unload()
     }
 
+    func clearReplayCache() async { await runtime.clearReplayCache() }
+
     func generate(_ request: CotypingRequest) async throws -> CotypingNormalizationResult {
-        try await run(request, onPartial: nil)
+        do {
+            let result = try await run(request, onPartial: nil)
+            lastReplayDiagnostics = await runtime.lastReplayDiagnostics
+            return result
+        } catch {
+            lastReplayDiagnostics = await runtime.lastReplayDiagnostics
+            throw error
+        }
     }
 
     func generateStreaming(
@@ -94,6 +111,9 @@ final class LocalLlamaCotypingEngine: CotypingCompleting {
         _ request: CotypingRequest,
         onPartial: (@Sendable (CotypingNormalizationResult) -> Void)?
     ) async throws -> CotypingNormalizationResult {
+        lastRawText = nil
+        lastHealingTrace = nil
+        lastReplayDiagnostics = nil
         inflightPrewarmTask?.cancel()
         inflightPrewarmTask = nil
         try Task.checkCancellation()
@@ -116,6 +136,7 @@ final class LocalLlamaCotypingEngine: CotypingCompleting {
             seed: UInt32(truncatingIfNeeded: request.seed))
 
         let accumulator = TokenAccumulator()
+        let hybrid = runtime.selectiveOneWordHybrid
         // `try` (not silent `await`): a thrown LlamaRuntimeError.decodeFailed
         // propagates out of run() → the selector's `catch let error as
         // LlamaRuntimeError`, so a decode failure reaches the HTTP fallback
@@ -129,13 +150,18 @@ final class LocalLlamaCotypingEngine: CotypingCompleting {
                 // A fragment that is not a valid standalone word must keep
                 // being spelled across the caret, not merely reach it.
                 preferWordExtendingOvershoot: !request.wordPrefixIsValidWord,
+                prefixSearchWidth: !request.wordPrefixAtCaret.isEmpty && healingMode == .prefixSearch ? 4 : 1,
                 // Inside a word the first token is forced, so it is not weighed.
                 minimumFirstWordProbability: request.wordPrefixAtCaret.isEmpty ? minimumFirstWordProbability : 0,
-                onLowConfidence: { accumulator.markUnsure() }
+                hybridFallbackMinimum: replayHybridFallbackMinimum,
+                onLowConfidence: { accumulator.markUnsure() },
+                onHybridFallback: { accumulator.markHybridFallback() }
             ) { piece in
                 if Task.isCancelled { return false }
                 accumulator.append(piece)
-                onPartial?(CotypingTextNormalizer.normalizeDetailed(accumulator.raw, for: request))
+                // A fallback is capped only after full normalization, which can
+                // still suppress it (for example when a later question mark arrives).
+                if !hybrid { onPartial?(CotypingTextNormalizer.normalizeDetailed(accumulator.raw, for: request)) }
                 // Native decode-stop at the SAME boundary the HTTP path stops at.
                 if CotypingDecodeStopPolicy.verdict(
                     accumulated: accumulator.raw,
@@ -150,9 +176,31 @@ final class LocalLlamaCotypingEngine: CotypingCompleting {
 
         if Task.isCancelled { throw CancellationError() }
         if accumulator.isUnsure {
-            return CotypingNormalizationResult(text: "", suppression: .lowConfidence)
+            let result = CotypingNormalizationResult(text: "", suppression: .lowConfidence)
+            if hybrid { onPartial?(result) }
+            return result
         }
-        return CotypingTextNormalizer.normalizeDetailed(raw, for: request)
+        lastRawText = raw
+        if runtime.healingTraceEnabled {
+            var trace = await runtime.lastHealingTrace
+            trace?.canonicalTokens = await runtime.tokenize(request.prompt + raw, addBOS: true)
+            lastHealingTrace = trace
+        }
+        let normalized = CotypingTextNormalizer.normalizeDetailed(raw, for: request)
+        let result = accumulator.isHybridFallback ? Self.oneWordFallback(normalized) : normalized
+        if hybrid { onPartial?(result) }
+        return result
+    }
+
+    /// Cap only the completed normalization result, preserving its suppression.
+    /// Matches the offline policy's Unicode word/apostrophe/hyphen definition.
+    nonisolated static func oneWordFallback(_ normalized: CotypingNormalizationResult) -> CotypingNormalizationResult {
+        guard normalized.suppression == nil, !normalized.text.isEmpty else { return normalized }
+        guard let range = normalized.text.range(
+            of: #"^\s*[\p{L}\p{N}]+(?:['’\-][\p{L}\p{N}]+)*"#, options: .regularExpression) else {
+            return CotypingNormalizationResult(text: "", suppression: .normalizedToEmpty)
+        }
+        return CotypingNormalizationResult(text: String(normalized.text[range]), suppression: nil)
     }
 
     /// The healed (prompt, required-prefix) pair for a request. Healing applies
@@ -177,6 +225,8 @@ private final class TokenAccumulator: @unchecked Sendable {
     private(set) var raw = ""
     private(set) var count = 0
     private(set) var isUnsure = false
+    private(set) var isHybridFallback = false
+    func markHybridFallback() { isHybridFallback = true }
     func append(_ piece: String) { raw += piece; count += 1 }
     func markUnsure() { isUnsure = true }
 }

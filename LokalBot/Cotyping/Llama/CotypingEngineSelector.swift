@@ -22,6 +22,7 @@ final class CotypingEngineSelector: CotypingCompleting {
     private let verifyModel: ModelVerifier
     private var local: CotypingCompleting?
     private var localModelPath: String?
+    private var localIdentity: LocalRouteIdentity?
     /// Set after the first in-process failure so the HTTP fallback is logged
     /// once per failure episode (spec §13), not on every keystroke. Reset on a
     /// successful local generation or a model-path change.
@@ -186,8 +187,8 @@ final class CotypingEngineSelector: CotypingCompleting {
             try requireCurrentLocalRoute(generation: invalidation, identity: identity)
             return nil
         }
-        if let local, localModelPath == url.path { return local }
-        if local == nil || localModelPath != url.path {
+        if let local, localModelPath == url.path, localIdentity == identity { return local }
+        if local == nil || localModelPath != url.path || localIdentity != identity {
             // A model change must release the old in-process weights before a
             // replacement is built. The old implementation overwrote `local`
             // and leaked its runtime until deinit happened to run.
@@ -208,11 +209,12 @@ final class CotypingEngineSelector: CotypingCompleting {
             // this operation was suspended in `http.unload()`. Reuse it rather
             // than overwriting a live engine and orphaning its loaded weights.
             if let local {
-                guard localModelPath == url.path else { throw CancellationError() }
+                guard localModelPath == url.path, localIdentity == identity else { throw CancellationError() }
                 return local
             }
             local = makeLocal(url.path)
             localModelPath = url.path
+            localIdentity = identity
             didLogLocalFailure = false
         }
         return local
@@ -222,6 +224,7 @@ final class CotypingEngineSelector: CotypingCompleting {
         guard let engine = local else { return nil }
         local = nil
         localModelPath = nil
+        localIdentity = nil
         return engine
     }
 

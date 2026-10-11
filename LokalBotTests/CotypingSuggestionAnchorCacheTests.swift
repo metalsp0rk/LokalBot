@@ -138,6 +138,21 @@ final class CotypingSuggestionCacheFingerprintTests: XCTestCase {
             conditioningPreface: conditioningPreface)
     }
 
+    func testObsoleteHybridPreferenceDoesNotChangeCacheOrModelCheckIdentity() throws {
+        let settings = AppSettings()
+        let current = CotypingSuggestionCacheFingerprint.make(request: request(), settings: settings)
+        let modelCheck = ModelCheckIdentity(role: .autocomplete, settings: settings)
+        let encoded = try JSONEncoder().encode(settings)
+        var legacy = try XCTUnwrap(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
+        for oldChoice in [false, true] {
+            legacy["cotypingSelectiveOneWordHybrid"] = oldChoice
+            let saved = try JSONSerialization.data(withJSONObject: legacy)
+            let decoded = try JSONDecoder().decode(AppSettings.self, from: saved)
+            XCTAssertEqual(current, CotypingSuggestionCacheFingerprint.make(request: request(), settings: decoded))
+            XCTAssertEqual(modelCheck, ModelCheckIdentity(role: .autocomplete, settings: decoded))
+        }
+    }
+
     func testFingerprintChangesWithOutputAffectingSettingsAndRequestContext() {
         var settings = AppSettings()
         let baselineRequest = request()

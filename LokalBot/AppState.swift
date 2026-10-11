@@ -756,7 +756,7 @@ final class AppState: ObservableObject {
             },
             stopRuntime: { await LlamaServer.cotyping.stop() }),
         makeLocal: { modelPath in
-            LocalLlamaCotypingEngine(runtime: LlamaCotypingRuntime(), modelPath: modelPath)
+            LocalLlamaCotypingEngine(runtime: .forAutocomplete(), modelPath: modelPath)
         },
         settings: { [store = settingsStore] in store.current },
         storage: storage)

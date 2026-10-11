@@ -50,6 +50,17 @@ final class CotypingSettingsUITests: XCTestCase {
         XCTAssertFalse(app.descendants(matching: .any)["sidebar.type"].exists)
     }
 
+    func testAutocompleteHasNoExperimentalDecoderToggle() {
+        for _ in 0..<2 {
+            let enable = UITestHarness.toggle("Enable autocomplete", in: app)
+            UITestHarness.scrollTo(enable, in: app, within: app.scrollViews["settings.form"])
+            XCTAssertTrue(enable.waitForExistence(timeout: 5))
+            XCTAssertFalse(UITestHarness.toggle("Experimental hybrid suggestions", in: app).exists)
+            UITestHarness.selectSettingsCategory("General", in: app)
+            UITestHarness.selectSettingsCategory("Writing", in: app)
+        }
+    }
+
     func testAutocompleteTabPersistsAcrossNavigation() {
         UITestHarness.clickSidebar("sidebar.timeline", in: app)
         XCTAssertTrue(app.descendants(matching: .any)["timeline.dayPicker"]

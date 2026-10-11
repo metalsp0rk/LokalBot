@@ -1,0 +1,14 @@
+{
+  "archiveSHA256": "a2787d34502835a7ac29bfec2149b894e2f6eb44dc21b4f7453d926c04ab18b4",
+  "verifiedMembers": 567,
+  "byteIdenticalRecomputed": {
+    "summary.json": "6a1e74fa58a5e371323c7868d5ad3261efe630743c23fcd40675e0044c4f3708",
+    "validation.json": "4a3155adc2d3410eb42e98709de454127db7147deafaf328af646ab94764fbb4",
+    "TABLES.md": "03236f6ef5198cd3903341dcd528afc85b5561310c32a3932918b701c3d94a79",
+    "quality-examples.json": "52d546d1ea4ea75e085fa3c79424e5db2f50c52a46fcd0aacfd90ba37bf7b7e3",
+    "EXAMPLES.md": "3b7a7ea1e850062051df1581e3f5f1500736dc9ff5f16d8b3fb7f577806d2d8f",
+    "judged-example-selection.json": "61ddf715c8aac0b0bb8617fac4d2e4b893dfc18ac20be41276775b9d1e5d36f6"
+  },
+  "modelInference": false,
+  "contactedJudge": false
+}
