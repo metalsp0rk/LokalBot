@@ -379,6 +379,19 @@ final class RedesignUITests: XCTestCase {
         XCTAssertFalse(app.buttons["meeting.review.return"].exists, "Overview evidence must not retain the old Review origin")
     }
 
+    func testWorkspaceAccessibilityAuditDismissesHoverHelp() throws {
+        try launch(["LOKALBOT_INITIAL_SECTION": "meetings", "LOKALBOT_SELECT_INDEX": "0",
+                    "LOKALBOT_DETAIL_TAB": "review", "LOKALBOT_CAPTURE_APPEARANCE": "light"])
+        let citation = app.buttons["Jump to evidence at 00:00:24"]
+        UITestHarness.scrollTo(citation, in: app, within: app.scrollViews["meeting.content.scroll"])
+        XCTAssertTrue(citation.isHittable)
+        citation.hover()
+        let help = app.descendants(matching: .helpTag).firstMatch
+        XCTAssertTrue(help.waitForExistence(timeout: 6), "The regression must open the native evidence tooltip")
+        try auditWorkspaceAccessibility(includeContrast: true)
+        XCTAssertFalse(help.exists, "Workspace audits must measure the unobscured controls")
+    }
+
     func testReviewAndSearchAccessibilityInBothAppearances() throws {
         for appearance in ["light", "dark"] {
             try launch(["LOKALBOT_INITIAL_SECTION": "meetings", "LOKALBOT_SELECT_INDEX": "0",
@@ -745,7 +758,18 @@ final class RedesignUITests: XCTestCase {
         UITestHarness.scrollTo(session, in: app)
         session.click()
     }
+
+    private func dismissHoverHelpBeforeAuditing() {
+        // Scrolling can leave the pointer over an evidence link. Its native
+        // help tag obscures the text being measured and has no audit label.
+        // Hovering over the titlebar preserves the current focus and menus.
+        app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.01)).hover()
+        XCTAssertTrue(app.descendants(matching: .helpTag).firstMatch.waitForNonExistence(timeout: 3),
+                      "Dismiss native hover help before measuring workspace accessibility")
+    }
+
     private func auditWorkspaceAccessibility(includeContrast: Bool = false, contrastBounds: CGRect? = nil) throws {
+        dismissHoverHelpBeforeAuditing()
         // Report every app issue. The hosted virtual Mac also exposes a
         // system-generated Touch Bar and its Emoji picker outside our window;
         // neither is an app-owned control or a usable hosted input surface.
@@ -758,6 +782,7 @@ final class RedesignUITests: XCTestCase {
         var types: XCUIAccessibilityAuditType = [.sufficientElementDescription, .action]
         if includeContrast { types.insert(.contrast) }
         let verifiedText = includeContrast && contrastBounds == nil ? try verifyRecallExplanationContrast() : []
+        dismissHoverHelpBeforeAuditing()
         try app.performAccessibilityAudit(for: types) { issue in
             guard let affected = issue.element, affected.exists else { return false }
             if issue.auditType == .contrast {
