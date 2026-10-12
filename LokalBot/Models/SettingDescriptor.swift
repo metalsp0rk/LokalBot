@@ -89,6 +89,7 @@ struct SettingDescriptor: Identifiable {
         .init(id: "settings.appLanguage", title: "App language", category: .general, aliases: "interface language English Chinese 中文 简体中文 语言 界面"),
         .init(id: "settings.textSize", title: "Text size", category: .general, aliases: "font size larger text smaller text zoom readability"),
         .init(id: "settings.quickRecallEnabled", title: "Enable the system-wide Ask shortcut", category: .general, aliases: "quickRecallEnabled"),
+        .init(id: "settings.quickRecallShortcut", title: "Ask shortcut", category: .general, aliases: "quick recall hotkey keyboard key combination change"),
         .init(id: "settings.cotypingEnabled", title: "Enable autocomplete", category: .writing, aliases: "cotypingEnabled"),
         .init(id: "settings.cotypingMultiLine", title: "Allow multi-line suggestions", category: .writing, aliases: "cotypingMultiLine"),
         .init(id: "settings.cotypingAcceptKey", title: "Accept next", category: .writing, aliases: "cotypingAcceptKey"),

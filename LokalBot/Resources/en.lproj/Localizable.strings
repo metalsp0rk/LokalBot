@@ -82,6 +82,8 @@
 "Ask About This Day" = "Ask About This Day";
 "Ask About This…" = "Ask About This…";
 "Ask About Today" = "Ask About Today";
+"Ask already uses this shortcut. Choose another." = "Ask already uses this shortcut. Choose another.";
+"Ask shortcut" = "Ask shortcut";
 "Ask This Meeting" = "Ask This Meeting";
 "Ask about this activity" = "Ask about this activity";
 "Ask about this meeting" = "Ask about this meeting";
@@ -137,6 +139,7 @@
 "Captured" = "Captured";
 "Captured screen" = "Captured screen";
 "Captures encrypted visuals for day memory. Only used in Text + visual context mode; system-audio capture does not use this permission." = "Captures encrypted visuals for day memory. Only used in Text + visual context mode; system-audio capture does not use this permission.";
+"Change the Ask shortcut" = "Change the Ask shortcut";
 "Change the dictation shortcut" = "Change the dictation shortcut";
 "Changes the interface immediately. Transcription and notes languages are set separately." = "Changes the interface immediately. Transcription and notes languages are set separately.";
 "Change…" = "Change…";
@@ -175,6 +178,9 @@
 "Clear search" = "Clear search";
 "Clear search filters" = "Clear search filters";
 "Clear selection" = "Clear selection";
+"Dictation already uses this shortcut. Choose another." = "Dictation already uses this shortcut. Choose another.";
+"Hold the modifiers and press a key, like ⌃⇧ Space." = "Hold the modifiers and press a key, like ⌃⇧ Space.";
+"macOS already uses this shortcut. Choose another." = "macOS already uses this shortcut. Choose another.";
 "Model folder selection cleared" = "Model folder selection cleared";
 "Clear settings search" = "Clear settings search";
 "Clear the result-type filter" = "Clear the result-type filter";
@@ -983,6 +989,7 @@
 "This moment retained text context without screen pixels." = "This moment retained text context without screen pixels.";
 "This permanently deletes the audio, transcript and summary files." = "This permanently deletes the audio, transcript and summary files.";
 "This permanently removes its pixels, captured text, and metadata." = "This permanently removes its pixels, captured text, and metadata.";
+"This shortcut could not be registered. Another app may already use it." = "This shortcut could not be registered. Another app may already use it.";
 "This task’s access" = "This task’s access";
 "Threads" = "Threads";
 "Time allocation" = "Time allocation";

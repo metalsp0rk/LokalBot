@@ -189,9 +189,9 @@ final class DictationShortcutTests: XCTestCase {
     }
 
     func testRecorderReadsAppKitModifiers() {
-        XCTAssertEqual(DictationShortcutRecorder.eventFlags(from: [.control, .shift, .capsLock]),
+        XCTAssertEqual(ShortcutRecorder.eventFlags(from: [.control, .shift, .capsLock]),
                        [.maskControl, .maskShift])
-        XCTAssertEqual(DictationShortcutRecorder.eventFlags(from: [.option, .command]),
+        XCTAssertEqual(ShortcutRecorder.eventFlags(from: [.option, .command]),
                        [.maskAlternate, .maskCommand])
     }
 

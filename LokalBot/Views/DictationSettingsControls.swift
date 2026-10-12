@@ -13,9 +13,15 @@ struct DictationSettingsControls: View {
                 .accessibilityIdentifier("settings.dictationEnabled")
                 .settingTarget("settings.dictationEnabled", selected: app.focusedSettingID)
             LabeledContent("Shortcut") {
-                DictationShortcutRecorder(shortcut: $app.settings.dictationShortcut) { recording in
-                    app.dictation.setShortcutRecording(recording)
-                }
+                ShortcutRecorder(
+                    shortcut: $app.settings.dictationShortcut,
+                    defaultShortcut: .handyDefault,
+                    accessibilityIdentifier: "settings.dictationShortcut",
+                    changeHelp: "Change the dictation shortcut",
+                    validate: { candidate in
+                        candidate.problem ?? (candidate == app.settings.quickRecallShortcut ? .usedByAsk : nil)
+                    },
+                    onRecordingChanged: { app.setShortcutRecording($0) })
             }
             .settingTarget("settings.dictationShortcut", selected: app.focusedSettingID)
             Picker("Trigger", selection: $app.settings.dictationTriggerMode) {

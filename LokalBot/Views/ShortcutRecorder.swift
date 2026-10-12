@@ -1,13 +1,18 @@
 import AppKit
 import SwiftUI
 
-/// Click, then press the new dictation shortcut: a key with modifiers, or two
-/// or more modifiers pressed together and released (⌃⌥). Esc cancels. While
-/// recording, the global shortcut is suspended so the current one can be
-/// pressed too.
-struct DictationShortcutRecorder: View {
+/// Click, then press a new global shortcut: a key with modifiers, or two or
+/// more modifiers pressed together and released (⌃⌥) where `validate` allows
+/// it. Esc cancels. While recording, the global shortcuts are suspended so the
+/// current one can be pressed too.
+struct ShortcutRecorder: View {
     @Binding var shortcut: DictationShortcut
-    /// Suspends or resumes the global shortcut while recording.
+    let defaultShortcut: DictationShortcut
+    let accessibilityIdentifier: String
+    let changeHelp: LocalizedStringKey
+    /// Why a pressed combination cannot be the shortcut, or nil.
+    let validate: (DictationShortcut) -> DictationShortcut.Problem?
+    /// Suspends or resumes the global shortcuts while recording.
     var onRecordingChanged: (Bool) -> Void
 
     @State private var isRecording = false
@@ -21,10 +26,10 @@ struct DictationShortcutRecorder: View {
     var body: some View {
         VStack(alignment: .trailing, spacing: 4) {
             HStack(spacing: 8) {
-                if shortcut != .handyDefault, !isRecording {
-                    Button("Reset") { shortcut = .handyDefault }
+                if shortcut != defaultShortcut, !isRecording {
+                    Button("Reset") { reset() }
                         .buttonStyle(.borderless)
-                        .accessibilityIdentifier("settings.dictationShortcut.reset")
+                        .accessibilityIdentifier("\(accessibilityIdentifier).reset")
                 }
                 Button {
                     isRecording ? stopRecording() : startRecording()
@@ -40,10 +45,10 @@ struct DictationShortcutRecorder: View {
                     }
                     .frame(minWidth: 96)
                 }
-                .accessibilityIdentifier("settings.dictationShortcut")
+                .accessibilityIdentifier(accessibilityIdentifier)
                 .help(isRecording
                       ? LocalizedStringKey("Press the new shortcut, or Esc to cancel.")
-                      : LocalizedStringKey("Change the dictation shortcut"))
+                      : changeHelp)
             }
             if let problem {
                 Text(LocalizedStringKey(problem.message))
@@ -107,14 +112,25 @@ struct DictationShortcutRecorder: View {
     }
 
     private func accept(_ candidate: DictationShortcut) {
-        if let issue = candidate.problem {
+        if let issue = validate(candidate) {
             problem = issue
             return
         }
-        problem = nil
         heldModifiers = []
-        shortcut = candidate
+        // Resume the current shortcut first, so the new one replaces it.
         stopRecording()
+        commit(candidate)
+    }
+
+    private func reset() {
+        problem = validate(defaultShortcut)
+        if problem == nil { commit(defaultShortcut) }
+    }
+
+    /// The app keeps the previous shortcut when the system refuses a new one.
+    private func commit(_ candidate: DictationShortcut) {
+        shortcut = candidate
+        problem = shortcut == candidate ? nil : .unavailable
     }
 
     static func eventFlags(from flags: NSEvent.ModifierFlags) -> CGEventFlags {
