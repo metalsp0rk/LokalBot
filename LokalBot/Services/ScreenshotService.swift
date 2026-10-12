@@ -626,6 +626,9 @@ final class ScreenshotService: ObservableObject {
     var mutateEvidence: ([Date], () throws -> Void) throws -> Void = { _, mutation in
         try mutation()
     }
+    /// Called after a capture stored searchable text, so AppState can queue
+    /// it for semantic search.
+    var onTextStored: () -> Void = {}
 
     private let store: ActivityStore
     private let storage: StorageManager
@@ -932,6 +935,7 @@ final class ScreenshotService: ObservableObject {
         lastCapture = timestamp
         lastTextSource = source
         lokalbotLog("context ok: text-only (\(clipped.count) chars, app: \(frontApp), trigger: \(trigger.rawValue))")
+        onTextStored()
     }
 
     private func capture(frontApp: String, frontmostProcessID: pid_t,
@@ -1071,6 +1075,7 @@ final class ScreenshotService: ObservableObject {
         let payload = stored.hasPixels ? file.lastPathComponent : "text-only after redaction"
         lokalbotLog("context ok: \(payload) (\(stored.text.count) text chars, source: "
             + "\(stored.textSource), app: \(frontApp), trigger: \(trigger.rawValue))")
+        if !stored.text.isEmpty { onTextStored() }
     }
 
     private func captureIsAuthorized(_ consent: ScreenshotCaptureConsent) -> Bool {

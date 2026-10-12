@@ -151,6 +151,9 @@ final class AppState: ObservableObject {
             if settings.requireCalendarForBrowser != oldValue.requireCalendarForBrowser {
                 detector.requireCalendarForBrowser = settings.requireCalendarForBrowser
             }
+            if oldValue.semanticSearchEnabled, !settings.semanticSearchEnabled {
+                cachedEmbeddingIndex?.stopScreenBackfill()
+            }
             if interactive {
                 if Self.dictationLifecycleChanged(from: oldValue, to: settings) {
                     dictation.applySettings()
@@ -1259,9 +1262,16 @@ final class AppState: ObservableObject {
             guard self.embeddingBackfillTask?.token == token else { return }
             self.embeddingBackfillTask = nil
             self.embeddingBackfill = nil
-            await self.embeddingIndex.rebuildScreenVectorsAfterModelChange()
+            await self.embeddingIndex.resumeScreenBackfill()
         }
         embeddingBackfillTask = (token, task)
+    }
+
+    /// A capture stored text. Screens are searchable by keyword at once and
+    /// join semantic search with the next batched backfill pass.
+    private func screenTextDidArrive() {
+        guard settings.semanticSearchEnabled else { return }
+        embeddingIndex.screenTextDidArrive()
     }
 
     private func reindexEmbeddingInBackground(_ meeting: Meeting) {
@@ -1374,6 +1384,7 @@ final class AppState: ObservableObject {
             embeddingBackfillTask?.task.cancel()
             embeddingBackfillTask = nil
             embeddingBackfill = nil
+            cachedEmbeddingIndex?.stopScreenBackfill()
             for entry in embeddingIndexTasks.values { entry.task.cancel() }
             embeddingIndexTasks.removeAll()
             for entry in indexCleanupTasks.values { entry.task.cancel() }
@@ -1927,6 +1938,7 @@ final class AppState: ObservableObject {
             // deletions go through `withPrimaryEvidenceChange` directly.
             try self.withScheduledRetention(on: days, mutation)
         }
+        screenshots.onTextStored = { [weak self] in self?.screenTextDidArrive() }
         sampler.excludedApps = { [weak self] in self?.settings.excludedAppList ?? [] }
         sampler.excludedDomains = { [weak self] in self?.settings.excludedScreenDomainList ?? [] }
         if settings.trackingEnabled { sampler.start() } else { sampler.stop() }

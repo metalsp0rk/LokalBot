@@ -53,6 +53,64 @@ final class CaptureReplayTests: XCTestCase {
                       "the transient read must be retried and the text stored")
     }
 
+    /// 2026-10-12: screens captured after 2026-10-08 never got vectors. Only
+    /// a screen search started a backfill, and a pass that failed (another
+    /// embedder held port 17873) was never retried. A capture in a library
+    /// that searches screens by meaning must reach semantic search on its own.
+    func testCapturedTextIsEmbeddedWithoutASearchAfterAFailedPass() async throws {
+        let replay = try replay("chrome-focus-after-tree-read")
+        let databaseURL = DiagnosticsPaths.database(root: root)
+        let store = ActivityStore(databaseURL: databaseURL)
+        var failuresLeft = 1
+        var passes = 0
+        let index = EmbeddingIndex(
+            databaseURL: databaseURL, storage: StorageManager(rootURL: root),
+            embedder: { texts, _, _ in
+                passes += 1
+                if failuresLeft > 0 {
+                    failuresLeft -= 1
+                    throw LlamaServer.ServerError.failedToStart("port 17873 is already in use")
+                }
+                return texts.map { _ in [1, 0] }
+            },
+            screenBackfillSchedule: .init(newTextDelay: .milliseconds(20),
+                                          firstRetryDelay: .milliseconds(20),
+                                          maximumRetryDelay: .milliseconds(80)))
+        // An earlier screen already has a vector: this library searches screens.
+        let earlier = try store.insertScreenshot(
+            ts: Date(timeIntervalSince1970: 1_789_000_000), path: "", app: "Notes",
+            windowTitle: "Earlier", ocr: "Earlier screen")
+        let database = try XCTUnwrap(SQLiteDatabase(url: databaseURL))
+        XCTAssertTrue(database.run("""
+            INSERT INTO screen_embeddings (snapshot_id, ts, app, text, vec, model_id)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+            """, bind: [earlier, 1_789_000_000.0, "Notes", "Earlier screen",
+                         [Float(1), 0].withUnsafeBufferPointer { Data(buffer: $0) },
+                         EmbeddingIndex.indexVersion]))
+
+        var settings = AppSettings()
+        settings.trackingEnabled = true
+        settings.screenContextCaptureMode = .accessibleText
+        settings.screenshotsEnabled = false
+        let service = ScreenshotService(
+            store: store, storage: StorageManager(), sampler: ActivitySampler(store: store),
+            now: { replay.clock.now() }, settings: { settings })
+        service.onTextStored = { index.screenTextDidArrive() }
+        await service.captureIfAppropriate(trigger: .appSwitch)
+        let chrome = try XCTUnwrap(store.screenshots(in: nil, includingMissingFiles: true)
+            .first { $0.app == "Google Chrome" })
+
+        let deadline = Date().addingTimeInterval(5)
+        while !database.hasRow("SELECT 1 FROM screen_embeddings WHERE snapshot_id = ?1",
+                               bind: [chrome.id]) {
+            guard Date() < deadline else {
+                return XCTFail("the captured text never reached semantic search (\(passes) passes)")
+            }
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        XCTAssertEqual(passes, 2, "one failed pass, then its retry")
+    }
+
     private func captureFramedPage(excludingDomains domains: String) async throws -> [ActivityStore.Screenshot] {
         let replay = try replay("chrome-page-with-framed-site")
         let store = store()
