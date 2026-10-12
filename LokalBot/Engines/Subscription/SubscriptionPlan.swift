@@ -97,7 +97,7 @@ enum SubscriptionPlanError: LocalizedError, Equatable, Sendable {
     var errorDescription: String? {
         switch self {
         case .approvalRequired(let plan):
-            "Allow sending context to \(plan.providerName) with your \(plan.title) under Settings → Models → Connections before Think uses it."
+            "Allow sending context to \(plan.providerName) with your \(plan.title) under Settings → Models → Think before Think uses it."
         case .noModel(let plan):
             "Choose a model for your \(plan.title) under Settings → Models."
         }

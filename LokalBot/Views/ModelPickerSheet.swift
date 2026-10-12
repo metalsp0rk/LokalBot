@@ -16,6 +16,11 @@ struct ModelPickerSheet: View {
     @State private var ollamaModel: String
     @State private var chatGPTPlanModel: String
     @State private var claudePlanModel: String
+    /// Plan approvals apply with Use model, so Cancel changes nothing.
+    @State private var chatGPTConsent: Bool
+    @State private var claudeConsent: Bool
+    @State private var chatGPTReady = false
+    @State private var claudeReady = false
     @State private var funASRNanoDirectory: String
     @State private var folderError: String?
     @State private var granite: GraniteSpeechModelConfiguration
@@ -39,6 +44,8 @@ struct ModelPickerSheet: View {
         _ollamaModel = State(initialValue: settings.ollamaModel)
         _chatGPTPlanModel = State(initialValue: settings.chatGPTPlanModel)
         _claudePlanModel = State(initialValue: settings.claudePlanModel)
+        _chatGPTConsent = State(initialValue: SubscriptionPlan.chatGPT.isApproved(in: settings))
+        _claudeConsent = State(initialValue: SubscriptionPlan.claude.isApproved(in: settings))
         _funASRNanoDirectory = State(initialValue: settings.funASRNanoModelDirectory)
         _granite = State(initialValue: settings.graniteSpeechModel)
     }
@@ -125,6 +132,15 @@ struct ModelPickerSheet: View {
 
     private var canApply: Bool {
         guard setup.pending == nil, selectedBlocker == nil else { return false }
+        if role == .assistant, let plan = SubscriptionPlan(backend: backend) {
+            guard consent(for: plan).wrappedValue else { return false }
+            switch plan {
+            case .chatGPT:
+                return chatGPTReady && !chatGPTPlanModel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            // An empty model uses Claude Code's own default.
+            case .claude: return claudeReady
+            }
+        }
         if role == .assistant, backend != .builtIn {
             let target = patch.applying(to: app.settings)
             if InferencePresentation(settings: target).isBlocked { return false }
@@ -132,10 +148,7 @@ struct ModelPickerSheet: View {
             case .openAICompatible: return !remoteModel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             case .ollama: return !ollamaModel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             case .appleIntelligence: return FoundationModelAvailability.current().isAvailable
-            case .chatGPTPlan: return !chatGPTPlanModel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            // Empty uses Claude Code's own default model.
-            case .claudePlan: return true
-            case .builtIn: return false
+            case .builtIn, .chatGPTPlan, .claudePlan: return false
             }
         }
         return role == .transcription || (role == .dictation && selectedID.isEmpty) || selectedEntry != nil
@@ -160,21 +173,28 @@ struct ModelPickerSheet: View {
         VStack(alignment: .leading, spacing: 0) {
             ModelSheetHeading(title: "\(role.title) model", subtitle: role.detail)
             if role == .assistant {
-                // A segmented control wider than the sheet would push the
-                // whole sheet past its edges at larger text sizes.
-                ViewThatFits(in: .horizontal) {
-                    runWithPicker.pickerStyle(.segmented).tint(Brand.tealFill).fixedSize()
-                    runWithPicker.pickerStyle(.menu).fixedSize()
+                // Where Think runs, then that choice's own setup: one place
+                // to choose and configure, with no nested or segmented picks.
+                HStack(alignment: .top, spacing: 0) {
+                    providerList.frame(width: 200)
+                    Divider()
+                    VStack(alignment: .leading, spacing: 0) {
+                        if showsCatalog {
+                            catalog
+                            selectionDetails
+                        } else {
+                            ScrollView {
+                                providerSelection
+                                    .padding(.horizontal, 24).padding(.bottom, 16)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                        }
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 }
-                .padding(.horizontal, 24).padding(.bottom, 16)
-                .accessibilityIdentifier("models.picker.provider")
-            }
-            if showsCatalog {
+            } else if showsCatalog {
                 catalog
                 selectionDetails
-            } else {
-                providerSelection.padding(.horizontal, 24)
-                Spacer(minLength: 16)
             }
             Divider()
             HStack(spacing: 14) {
@@ -192,12 +212,13 @@ struct ModelPickerSheet: View {
                 Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
                     .accessibilityIdentifier("models.picker.cancel")
                 Button(clearsFunASRSelection ? "Clear selection" : needsDownload ? "Download and use" : "Use model") {
+                    approveSelectedPlan()
                     setup.apply(patch, title: selectedName)
                     dismiss()
                 }
                 .primaryActionButton()
                 .keyboardShortcut(.defaultAction)
-                .disabled(!canApply || (patch.matches(app.settings) && !needsDownload))
+                .disabled(!canApply || (patch.matches(app.settings) && !needsDownload && !approvesSelectedPlan))
                 .accessibilityIdentifier("models.picker.apply")
             }
             .padding(20)
@@ -434,97 +455,122 @@ struct ModelPickerSheet: View {
         .font(.scaled(.callout)).foregroundStyle(.secondary).padding(.top, 8)
     }
 
-    /// "Connected provider" covers an OpenAI-compatible server and both
-    /// subscription plans; which one is chosen below the segmented control.
-    private enum RunWith: Hashable {
-        case onDevice, appleIntelligence, ollama, provider
-    }
+    /// Where Think runs. Each choice is one backend; its setup appears beside
+    /// the list.
+    private enum ThinkProvider: String, CaseIterable, Identifiable {
+        case onDevice, appleIntelligence, chatGPTPlan, claudePlan, ollama, server
 
-    private var runWith: Binding<RunWith> {
-        Binding {
+        var id: String { rawValue }
+
+        init(_ backend: AppSettings.SummarizerBackend) {
             switch backend {
-            case .builtIn: .onDevice
+            case .builtIn: self = .onDevice
+            case .appleIntelligence: self = .appleIntelligence
+            case .chatGPTPlan: self = .chatGPTPlan
+            case .claudePlan: self = .claudePlan
+            case .ollama: self = .ollama
+            case .openAICompatible: self = .server
+            }
+        }
+
+        var backend: AppSettings.SummarizerBackend {
+            switch self {
+            case .onDevice: .builtIn
             case .appleIntelligence: .appleIntelligence
+            case .chatGPTPlan: .chatGPTPlan
+            case .claudePlan: .claudePlan
             case .ollama: .ollama
-            case .openAICompatible, .chatGPTPlan, .claudePlan: .provider
-            }
-        } set: { choice in
-            switch choice {
-            case .onDevice: backend = .builtIn
-            case .appleIntelligence: backend = .appleIntelligence
-            case .ollama: backend = .ollama
-            case .provider:
-                guard !Self.isConnectedProvider(backend) else { return }
-                let current = app.settings.summarizerBackend
-                backend = Self.isConnectedProvider(current) ? current : .openAICompatible
+            case .server: .openAICompatible
             }
         }
+
+        var title: LocalizedStringKey {
+            switch self {
+            case .onDevice: "On this Mac"
+            case .appleIntelligence: "Apple Intelligence"
+            case .chatGPTPlan: "ChatGPT plan"
+            case .claudePlan: "Claude plan"
+            case .ollama: "Ollama"
+            case .server: "OpenAI-compatible"
+            }
+        }
+
+        var icon: String {
+            switch self {
+            case .onDevice: "desktopcomputer"
+            case .appleIntelligence: "apple.intelligence"
+            case .chatGPTPlan: "bubble.left.and.bubble.right"
+            case .claudePlan: "terminal"
+            case .ollama: "server.rack"
+            case .server: "network"
+            }
+        }
+
+        static let groups: [(title: LocalizedStringKey, providers: [ThinkProvider])] = [
+            ("Local", [.onDevice, .appleIntelligence]),
+            ("Your subscription", [.chatGPTPlan, .claudePlan]),
+            ("Server", [.ollama, .server]),
+        ]
     }
 
-    private static func isConnectedProvider(_ backend: AppSettings.SummarizerBackend) -> Bool {
-        backend == .openAICompatible || SubscriptionPlan(backend: backend) != nil
+    private var providerList: some View {
+        List(selection: Binding<ThinkProvider?>(
+            get: { ThinkProvider(backend) },
+            set: { if let provider = $0 { backend = provider.backend } })) {
+            ForEach(ThinkProvider.groups, id: \.providers) { group in
+                Section(group.title) {
+                    ForEach(group.providers) { provider in
+                        HStack(spacing: 8) {
+                            Label(provider.title, systemImage: provider.icon)
+                            Spacer(minLength: 4)
+                            if provider.backend == app.settings.summarizerBackend {
+                                Image(systemName: "checkmark")
+                                    .font(.scaled(.caption).weight(.semibold))
+                                    .foregroundStyle(.secondary)
+                                    .accessibilityLabel("In use")
+                                    .help("In use")
+                            }
+                        }
+                        .tag(provider)
+                        .accessibilityIdentifier("models.picker.provider.\(provider.rawValue)")
+                    }
+                }
+            }
+        }
+        .listStyle(.sidebar)
+        .scrollContentBackground(.hidden)
+        .accessibilityIdentifier("models.picker.provider")
     }
 
-    private var runWithPicker: some View {
-        Picker("Run with", selection: runWith) {
-            Text("On this Mac").tag(RunWith.onDevice)
-            Text("Apple Intelligence").tag(RunWith.appleIntelligence)
-            Text("Ollama").tag(RunWith.ollama)
-            Text("Connected provider").tag(RunWith.provider)
-        }
+    private func consent(for plan: SubscriptionPlan) -> Binding<Bool> {
+        plan == .chatGPT ? $chatGPTConsent : $claudeConsent
     }
 
-    private var providerKindPicker: some View {
-        let picker = Picker("Provider", selection: $backend) {
-            Text("OpenAI-compatible").tag(AppSettings.SummarizerBackend.openAICompatible)
-            Text("ChatGPT plan").tag(AppSettings.SummarizerBackend.chatGPTPlan)
-            Text("Claude plan").tag(AppSettings.SummarizerBackend.claudePlan)
-        }
-        .pickerStyle(.radioGroup)
-        return ViewThatFits(in: .horizontal) {
-            picker.horizontalRadioGroupLayout().fixedSize()
-            picker
-        }
-        .accessibilityIdentifier("models.picker.providerKind")
+    /// The selected plan is approved in the sheet but not yet in settings.
+    private var approvesSelectedPlan: Bool {
+        guard role == .assistant, let plan = SubscriptionPlan(backend: backend) else { return false }
+        return consent(for: plan).wrappedValue && !plan.isApproved(in: app.settings)
+    }
+
+    private func approveSelectedPlan() {
+        guard approvesSelectedPlan, let plan = SubscriptionPlan(backend: backend) else { return }
+        app.settings.approvedRemoteInferenceOrigins.append(plan.consentKey)
     }
 
     private var planSelection: some View {
         let plan = SubscriptionPlan(backend: backend) ?? .chatGPT
-        let target = patch.applying(to: app.settings)
-        let presentation = InferencePresentation(settings: target)
-        return VStack(alignment: .leading, spacing: 20) {
-            providerKindPicker
-            if presentation.isBlocked {
-                // One setup prompt instead of a blocked chip, an empty model
-                // menu, and a warning that all say the same thing.
-                VStack(alignment: .leading, spacing: 12) {
-                    Text(plan == .chatGPT
-                         ? "Sign in with ChatGPT and allow LokalBot to send context before choosing a model."
-                         : "Check that Claude Code is signed in and allow LokalBot to send context before choosing a model.")
-                        .font(.scaled(.body)).foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Button("Set up \(plan.title)…") { openConnections() }
-                        .primaryActionButton()
-                        .accessibilityIdentifier("models.picker.connections")
-                }
-            } else {
-                Label(ModelSettingsPresentation.destination(target), systemImage: presentation.icon)
-                    .font(.scaled(.body).weight(.semibold))
-                    .settingsModelLocation(presentation)
-                HStack(spacing: 12) {
-                    Text("Model").font(.scaled(.body).weight(.medium))
-                    SubscriptionPlanModelPicker(plan: plan,
-                                                selection: plan == .chatGPT ? $chatGPTPlanModel : $claudePlanModel)
-                        .id(plan)
-                }
-                Text("Requests count toward your \(plan.title)'s usage. Agent Mode can't use a plan.")
-                    .font(.scaled(.body)).foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                Button("Manage connection…") { openConnections() }
-                    .accessibilityIdentifier("models.picker.connections")
-            }
+        return VStack(alignment: .leading, spacing: 16) {
+            SubscriptionPlanSetupView(
+                app: app, plan: plan,
+                model: plan == .chatGPT ? $chatGPTPlanModel : $claudePlanModel,
+                consent: consent(for: plan),
+                ready: plan == .chatGPT ? $chatGPTReady : $claudeReady)
+                .id(plan)
+            Text("Requests count toward your \(plan.title)'s usage. Agent Mode can't use a plan yet.")
+                .font(.scaled(.callout)).foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(.top, 12)
+        .padding(.top, 4)
     }
 
     @ViewBuilder
@@ -546,7 +592,6 @@ struct ModelPickerSheet: View {
                     .font(.system(size: 14)).foregroundStyle(.secondary)
             } else {
                 let target = patch.applying(to: app.settings)
-                if backend == .openAICompatible { providerKindPicker }
                 Label(ModelSettingsPresentation.destination(target), systemImage: InferencePresentation(settings: target).icon)
                     .font(.scaled(.body).weight(.semibold))
                     .settingsModelLocation(InferencePresentation(settings: target))

@@ -138,7 +138,7 @@ enum ClaudePlanError: LocalizedError, Equatable, Sendable {
     var errorDescription: String? {
         switch self {
         case .notInstalled:
-            "Claude Code isn't installed on this Mac. Install it, sign in by running claude in Terminal, then check again under Settings → Models → Connections."
+            "Claude Code isn't installed on this Mac. Install it, sign in by running claude in Terminal, then choose Claude plan again under Settings → Models → Think."
         case .signInRequired:
             "Claude Code isn't signed in. Open Terminal, run claude, and sign in with your Claude account. LokalBot never sees your Claude sign-in."
         case .usageLimitReached(let detail):

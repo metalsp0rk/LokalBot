@@ -232,9 +232,9 @@ enum ChatGPTPlanError: LocalizedError, Equatable, Sendable {
     var errorDescription: String? {
         switch self {
         case .signedOut:
-            "Sign in with ChatGPT under Settings → Models → Connections to use your ChatGPT plan."
+            "Sign in with ChatGPT under Settings → Models → Think to use your ChatGPT plan."
         case .signInRequired:
-            "Your ChatGPT sign-in expired or was disconnected. Sign in again under Settings → Models → Connections."
+            "Your ChatGPT sign-in expired or was disconnected. Sign in again under Settings → Models → Think."
         case .planUsageNotGranted:
             "This ChatGPT sign-in doesn't allow requests on your plan. Sign in again and allow plan usage, or use another provider."
         case .signInFailed(let detail):

@@ -210,9 +210,10 @@ The app may make these outbound connections:
   for at most the last seven days. Changing or revoking the server approval
   cancels pending scheduled work.
 - **Optional subscription plans:** Think can run on your own ChatGPT or Claude
-  plan instead of an API key. Each plan has its own approval in Settings →
-  Models → Connections, separate from any API-server approval for the same
-  company; signing in alone sends no content. Once approved, the plan receives
+  plan instead of an API key. Each plan is set up and approved where you
+  choose the Think model (Settings → Models → Think), separately from any
+  API-server approval for the same company; signing in alone sends no
+  content, and an approval takes effect only when you choose Use model. Once approved, the plan receives
   the same Think context described above, including scheduled daily summaries
   and Dream runs, and the provider's terms for your account apply to it.
   Requests count toward that plan's usage limits; when a limit is reached,

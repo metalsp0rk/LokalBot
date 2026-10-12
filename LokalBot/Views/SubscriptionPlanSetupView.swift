@@ -1,24 +1,28 @@
 import AppKit
 import SwiftUI
 
-/// Account, model, and consent for one subscription plan in Model
-/// connections. Signing in, approval, and the model are separate steps:
-/// a sign-in alone never lets context leave the Mac.
-struct SubscriptionPlanConnectionView: View {
+/// Account, model, and consent for one subscription plan, shown in the Think
+/// model sheet. Signing in, approval, and the model are separate steps: a
+/// sign-in alone never lets context leave the Mac, and the sheet applies the
+/// model and approval only when the user chooses Use model.
+struct SubscriptionPlanSetupView: View {
     @ObservedObject var app: AppState
     let plan: SubscriptionPlan
     @Binding var model: String
+    @Binding var consent: Bool
+    /// Signed in with plan usage (ChatGPT) or signed in to Claude Code.
+    @Binding var ready: Bool
     var chatGPTAccount: ChatGPTPlanAccount = .shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             switch plan {
             case .chatGPT:
-                ChatGPTPlanAccountSection(app: app, model: $model, account: chatGPTAccount)
+                ChatGPTPlanAccountSection(app: app, model: $model, ready: $ready, account: chatGPTAccount)
             case .claude:
-                ClaudePlanAccountSection(model: $model)
+                ClaudePlanAccountSection(model: $model, ready: $ready)
             }
-            SubscriptionPlanConsentSection(app: app, plan: plan)
+            SubscriptionPlanConsentSection(plan: plan, consent: $consent)
         }
     }
 }
@@ -126,6 +130,7 @@ struct SubscriptionPlanModelPicker: View {
 private struct ChatGPTPlanAccountSection: View {
     @ObservedObject var app: AppState
     @Binding var model: String
+    @Binding var ready: Bool
     let account: ChatGPTPlanAccount
     @State private var status: ChatGPTPlanStatus?
     @State private var signingIn = false
@@ -155,6 +160,7 @@ private struct ChatGPTPlanAccountSection: View {
             }
         }
         .task { status = await account.status() }
+        .onChange(of: status) { ready = status?.allowsPlanUsage == true }
         .onDisappear {
             signInTask?.cancel()
             Task { await account.cancelSignIn() }
@@ -284,6 +290,7 @@ private struct ChatGPTPlanAccountSection: View {
 
 private struct ClaudePlanAccountSection: View {
     @Binding var model: String
+    @Binding var ready: Bool
     @State private var executable: URL?
     @State private var authStatus: ClaudeCodeCLI.AuthStatus?
     @State private var version: String?
@@ -307,6 +314,7 @@ private struct ClaudePlanAccountSection: View {
             }
         }
         .task { await check(refresh: false) }
+        .onChange(of: authStatus) { ready = authStatus?.loggedIn == true }
     }
 
     @ViewBuilder
@@ -396,12 +404,12 @@ private struct ClaudePlanAccountSection: View {
 // MARK: - Consent
 
 private struct SubscriptionPlanConsentSection: View {
-    @ObservedObject var app: AppState
     let plan: SubscriptionPlan
+    @Binding var consent: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Toggle("Allow sending context to \(plan.providerName) with my \(plan.title)", isOn: approval)
+            Toggle("Allow sending context to \(plan.providerName) with my \(plan.title)", isOn: $consent)
                 .font(AppFont.scaled(.body).weight(.medium))
                 .accessibilityIdentifier("models.planConsent")
             Text("Think sends meeting transcripts, screen text, and dictation requests to "
@@ -415,14 +423,5 @@ private struct SubscriptionPlanConsentSection: View {
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.quaternary.opacity(0.3), in: RoundedRectangle(cornerRadius: Brand.Radius.row))
-    }
-
-    private var approval: Binding<Bool> {
-        Binding {
-            plan.isApproved(in: app.settings)
-        } set: { approved in
-            app.settings.approvedRemoteInferenceOrigins.removeAll { $0 == plan.consentKey }
-            if approved { app.settings.approvedRemoteInferenceOrigins.append(plan.consentKey) }
-        }
     }
 }

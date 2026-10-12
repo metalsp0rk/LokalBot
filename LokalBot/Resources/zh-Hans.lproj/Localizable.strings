@@ -1145,12 +1145,13 @@
 "How to install Claude Code" = "如何安装 Claude Code";
 "Claude Code default" = "Claude Code 默认模型";
 "Open Terminal, run claude, and sign in with your Claude account. Then check again." = "打开终端，运行 claude 并用你的 Claude 账户登录，然后重新检查。";
-"Provider" = "提供方";
 "Account" = "账户";
 "Usage" = "用量";
 "Loading models…" = "正在加载模型…";
 "Try again" = "重试";
 "Use your ChatGPT plan for Think instead of an API key." = "用你的 ChatGPT 订阅运行 Think，无需 API 密钥。";
 "Sign in to choose a model." = "登录后即可选择模型。";
-"Sign in with ChatGPT and allow LokalBot to send context before choosing a model." = "请先使用 ChatGPT 登录，并允许 LokalBot 发送上下文，然后再选择模型。";
-"Check that Claude Code is signed in and allow LokalBot to send context before choosing a model." = "请先确认 Claude Code 已登录，并允许 LokalBot 发送上下文，然后再选择模型。";
+"Local" = "本地";
+"Your subscription" = "你的订阅";
+"Server" = "服务器";
+"In use" = "使用中";
