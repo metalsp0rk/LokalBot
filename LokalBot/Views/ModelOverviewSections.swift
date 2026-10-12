@@ -60,10 +60,11 @@ struct ModelRemoteOverview: View {
                 ForEach(app.settings.approvedRemoteInferenceOrigins, id: \.self) { origin in
                     VStack(alignment: .leading, spacing: 10) {
                         HStack {
-                            Label(origin, systemImage: "network").textSelection(.enabled)
+                            Label(SubscriptionPlan.approvalDisplayName(origin), systemImage: "network")
+                                .textSelection(.enabled)
                             Spacer()
                             Button("Revoke…") { revokingOrigin = origin }
-                                .accessibilityLabel("Revoke access to \(origin)")
+                                .accessibilityLabel("Revoke access to \(SubscriptionPlan.approvalDisplayName(origin))")
                         }
                         Text("Includes scheduled daily summaries and overnight review, which can send activity titles, captured screen text, meeting evidence, and retained Dream memory to this origin without a prompt each time.")
                             .font(.scaled(.callout)).settingsSecondary()
@@ -73,7 +74,8 @@ struct ModelRemoteOverview: View {
             }
         }
         .padding(16).settingsPanel()
-        .confirmationDialog("Revoke access to \(revokingOrigin ?? "this server")?", isPresented: Binding(
+        .confirmationDialog("Revoke access to \(revokingOrigin.map(SubscriptionPlan.approvalDisplayName) ?? "this server")?",
+                            isPresented: Binding(
             get: { revokingOrigin != nil }, set: { if !$0 { revokingOrigin = nil } })) {
             Button("Revoke Access", role: .destructive) {
                 guard let origin = revokingOrigin else { return }

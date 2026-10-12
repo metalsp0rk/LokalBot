@@ -182,6 +182,10 @@ extension ReasoningSupport {
             guard let url = URL(string: settings.openAIBaseURL) else { return .unavailable }
             return known(provider: .init(dialect: .inferred(from: url), baseURL: url),
                          model: settings.openAIModel)
+        case .chatGPTPlan:
+            return ChatGPTPlanEngine(model: settings.chatGPTPlanModel).reasoningSupport
+        case .claudePlan:
+            return ClaudePlanEngine(model: settings.claudePlanModel).traits.support
         }
     }
 
@@ -204,7 +208,7 @@ extension ReasoningSupport {
             return await openRouter.reasoningSupport(
                 model: settings.openAIModel, baseURL: url,
                 approvedOrigins: settings.approvedRemoteInferenceOrigins) ?? known(for: settings)
-        case .builtIn, .appleIntelligence:
+        case .builtIn, .appleIntelligence, .chatGPTPlan, .claudePlan:
             return known(for: settings)
         }
     }
@@ -258,6 +262,8 @@ extension ReasoningSupport {
         case .appleIntelligence: "appleIntelligence"
         case .ollama: "ollama|\(settings.ollamaBaseURL)|\(settings.ollamaModel)|\(origins)"
         case .openAICompatible: "openAICompatible|\(settings.openAIBaseURL)|\(settings.openAIModel)|\(origins)"
+        case .chatGPTPlan: "chatGPTPlan|\(settings.chatGPTPlanModel)"
+        case .claudePlan: "claudePlan|\(settings.claudePlanModel)"
         }
     }
 }

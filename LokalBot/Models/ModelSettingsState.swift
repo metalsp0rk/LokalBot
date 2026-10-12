@@ -52,6 +52,8 @@ struct ModelSelectionPatch: Equatable {
     var assistantModelID: String?
     var ollamaModel: String?
     var remoteModel: String?
+    var chatGPTPlanModel: String?
+    var claudePlanModel: String?
     var autocompleteModelID: String?
     var dictationModelID: String?
 
@@ -73,6 +75,8 @@ struct ModelSelectionPatch: Equatable {
         if let assistantModelID { next.builtInModelID = assistantModelID }
         if let ollamaModel { next.ollamaModel = ollamaModel }
         if let remoteModel { next.openAIModel = remoteModel }
+        if let chatGPTPlanModel { next.chatGPTPlanModel = chatGPTPlanModel }
+        if let claudePlanModel { next.claudePlanModel = claudePlanModel }
         if let autocompleteModelID { next.cotypingBuiltInModelID = autocompleteModelID }
         if let dictationModelID { next.dictationCompositionBuiltInModelID = dictationModelID }
         return next
@@ -88,6 +92,8 @@ struct ModelSelectionPatch: Equatable {
             assistantModelID: assistantModelID.map { _ in settings.builtInModelID },
             ollamaModel: ollamaModel.map { _ in settings.ollamaModel },
             remoteModel: remoteModel.map { _ in settings.openAIModel },
+            chatGPTPlanModel: chatGPTPlanModel.map { _ in settings.chatGPTPlanModel },
+            claudePlanModel: claudePlanModel.map { _ in settings.claudePlanModel },
             autocompleteModelID: autocompleteModelID.map { _ in settings.cotypingBuiltInModelID },
             dictationModelID: dictationModelID.map { _ in settings.dictationCompositionBuiltInModelID })
     }
@@ -110,7 +116,7 @@ struct ModelSelectionPatch: Equatable {
             switch target.summarizerBackend {
             case .openAICompatible: return original.openAIBaseURL == latest.openAIBaseURL
             case .ollama: return original.ollamaBaseURL == latest.ollamaBaseURL
-            case .builtIn, .appleIntelligence: break
+            case .builtIn, .appleIntelligence, .chatGPTPlan, .claudePlan: break
             }
         }
         return true

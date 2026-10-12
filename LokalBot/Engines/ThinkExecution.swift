@@ -146,6 +146,24 @@ final class ThinkExecution {
                 origin: RemoteInferenceGate.origin(for: url),
                 priority: priority,
                 purpose: purpose)
+
+        case .chatGPTPlan, .claudePlan:
+            guard let plan = SubscriptionPlan(backend: settings.summarizerBackend) else {
+                throw ThinkExecutionError.invalidConfiguration
+            }
+            guard plan.isApproved(in: settings) else { throw SubscriptionPlanError.approvalRequired(plan) }
+            // Plan credentials are read per request (OpenAI) or never read at
+            // all (Claude Code keeps its own), so presentation-only engines
+            // need no special case.
+            let base: TextEngine = switch plan {
+            case .chatGPT:
+                ChatGPTPlanEngine(model: settings.chatGPTPlanModel,
+                                  reasoningLevel: settings.thinkReasoningLevel)
+            case .claude:
+                ClaudePlanEngine(model: settings.claudePlanModel,
+                                 reasoningLevel: settings.thinkReasoningLevel)
+            }
+            return GatedTextEngine(base: base, origin: plan.consentKey, priority: priority, purpose: purpose)
         }
     }
 
@@ -237,6 +255,13 @@ final class ThinkExecution {
         case .appleIntelligence:
             return .unsupported(
                 reason: "Apple Intelligence doesn't expose a local endpoint Agent Mode can use. Switch the Think model to Built-in (on-device), Ollama, or an OpenAI-compatible server under Settings → Models.")
+
+        case .chatGPTPlan, .claudePlan:
+            // Agent Mode's runtime speaks chat completions with a key it can
+            // hold; plan usage offers neither.
+            let title = SubscriptionPlan(backend: settings.summarizerBackend)?.title ?? "subscription plan"
+            return .unsupported(
+                reason: "Agent Mode can't run on your \(title) yet. Switch the Think model to Built-in (on-device), Ollama, or an OpenAI-compatible server under Settings → Models.")
 
         case .ollama:
             guard let base = URL(string: settings.ollamaBaseURL) else {

@@ -14,6 +14,8 @@ struct ModelPickerSheet: View {
     @State private var backend: AppSettings.SummarizerBackend
     @State private var remoteModel: String
     @State private var ollamaModel: String
+    @State private var chatGPTPlanModel: String
+    @State private var claudePlanModel: String
     @State private var funASRNanoDirectory: String
     @State private var folderError: String?
     @State private var granite: GraniteSpeechModelConfiguration
@@ -35,6 +37,8 @@ struct ModelPickerSheet: View {
         _backend = State(initialValue: settings.summarizerBackend)
         _remoteModel = State(initialValue: settings.openAIModel)
         _ollamaModel = State(initialValue: settings.ollamaModel)
+        _chatGPTPlanModel = State(initialValue: settings.chatGPTPlanModel)
+        _claudePlanModel = State(initialValue: settings.claudePlanModel)
         _funASRNanoDirectory = State(initialValue: settings.funASRNanoModelDirectory)
         _granite = State(initialValue: settings.graniteSpeechModel)
     }
@@ -80,7 +84,11 @@ struct ModelPickerSheet: View {
                 backend: backend,
                 assistantModelID: backend == .builtIn ? selectedID : nil,
                 ollamaModel: backend == .ollama ? ollamaModel.trimmingCharacters(in: .whitespacesAndNewlines) : nil,
-                remoteModel: backend == .openAICompatible ? remoteModel.trimmingCharacters(in: .whitespacesAndNewlines) : nil)
+                remoteModel: backend == .openAICompatible ? remoteModel.trimmingCharacters(in: .whitespacesAndNewlines) : nil,
+                chatGPTPlanModel: backend == .chatGPTPlan
+                    ? chatGPTPlanModel.trimmingCharacters(in: .whitespacesAndNewlines) : nil,
+                claudePlanModel: backend == .claudePlan
+                    ? claudePlanModel.trimmingCharacters(in: .whitespacesAndNewlines) : nil)
         case .autocomplete: ModelSelectionPatch(autocompleteModelID: selectedID)
         case .dictation: ModelSelectionPatch(dictationModelID: selectedID)
         }
@@ -124,6 +132,9 @@ struct ModelPickerSheet: View {
             case .openAICompatible: return !remoteModel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             case .ollama: return !ollamaModel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             case .appleIntelligence: return FoundationModelAvailability.current().isAvailable
+            case .chatGPTPlan: return !chatGPTPlanModel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            // Empty uses Claude Code's own default model.
+            case .claudePlan: return true
             case .builtIn: return false
             }
         }
@@ -149,11 +160,12 @@ struct ModelPickerSheet: View {
         VStack(alignment: .leading, spacing: 0) {
             ModelSheetHeading(title: "\(role.title) model", subtitle: role.detail)
             if role == .assistant {
-                Picker("Run with", selection: $backend) {
-                    Text("On this Mac").tag(AppSettings.SummarizerBackend.builtIn)
-                    Text("Apple Intelligence").tag(AppSettings.SummarizerBackend.appleIntelligence)
-                    Text("Ollama").tag(AppSettings.SummarizerBackend.ollama)
-                    Text("Connected provider").tag(AppSettings.SummarizerBackend.openAICompatible)
+                Picker("Run with", selection: runWith) {
+                    Text("On this Mac").tag(RunWith.onDevice)
+                    Text("Apple Intelligence").tag(RunWith.appleIntelligence)
+                    Text("Ollama").tag(RunWith.ollama)
+                    Text("Connected provider").tag(RunWith.server)
+                    Text("Your plan").tag(RunWith.plan)
                 }
                 .pickerStyle(.segmented).tint(Brand.tealFill)
                 .padding(.horizontal, 24).padding(.bottom, 16)
@@ -424,7 +436,85 @@ struct ModelPickerSheet: View {
         .font(.scaled(.callout)).foregroundStyle(.secondary).padding(.top, 8)
     }
 
+    /// "Your plan" covers both subscription backends; the plan itself is
+    /// chosen below the segmented control.
+    private enum RunWith: Hashable {
+        case onDevice, appleIntelligence, ollama, server, plan
+    }
+
+    private var runWith: Binding<RunWith> {
+        Binding {
+            switch backend {
+            case .builtIn: .onDevice
+            case .appleIntelligence: .appleIntelligence
+            case .ollama: .ollama
+            case .openAICompatible: .server
+            case .chatGPTPlan, .claudePlan: .plan
+            }
+        } set: { choice in
+            switch choice {
+            case .onDevice: backend = .builtIn
+            case .appleIntelligence: backend = .appleIntelligence
+            case .ollama: backend = .ollama
+            case .server: backend = .openAICompatible
+            case .plan:
+                guard SubscriptionPlan(backend: backend) == nil else { return }
+                backend = SubscriptionPlan(backend: app.settings.summarizerBackend)?.backend ?? .chatGPTPlan
+            }
+        }
+    }
+
+    private var planSelection: some View {
+        let plan = SubscriptionPlan(backend: backend) ?? .chatGPT
+        let target = patch.applying(to: app.settings)
+        return VStack(alignment: .leading, spacing: 20) {
+            Picker("Plan", selection: $backend) {
+                Text("ChatGPT plan").tag(AppSettings.SummarizerBackend.chatGPTPlan)
+                Text("Claude plan").tag(AppSettings.SummarizerBackend.claudePlan)
+            }
+            .pickerStyle(.radioGroup).horizontalRadioGroupLayout()
+            .accessibilityIdentifier("models.picker.plan")
+            Label(ModelSettingsPresentation.destination(target), systemImage: InferencePresentation(settings: target).icon)
+                .font(.scaled(.body).weight(.semibold))
+                .settingsModelLocation(InferencePresentation(settings: target))
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Model").font(.scaled(.body).weight(.medium))
+                if plan == .chatGPT {
+                    TextField("Model from your ChatGPT plan", text: $chatGPTPlanModel)
+                        .textFieldStyle(.roundedBorder).accessibilityIdentifier("models.picker.planModel")
+                    Text("Sign in under Manage connection to list the models your plan offers.")
+                        .font(.scaled(.callout)).foregroundStyle(.secondary)
+                } else {
+                    TextField("Claude Code default", text: $claudePlanModel)
+                        .textFieldStyle(.roundedBorder).accessibilityIdentifier("models.picker.planModel")
+                    Text("An alias such as sonnet or opus, or a full model ID. Leave empty for Claude Code's default.")
+                        .font(.scaled(.callout)).foregroundStyle(.secondary)
+                }
+            }
+            if case .blocked(let reason) = InferencePresentation(settings: target) {
+                Label(reason, systemImage: "exclamationmark.triangle")
+                    .font(.scaled(.body)).foregroundStyle(.orange)
+            } else {
+                Text("Summaries, Ask, and inherited dictation composition send approved context to \(plan.providerName) "
+                     + "and count toward your \(plan.title)'s usage limits. Agent Mode can't use a plan yet.")
+                    .font(.scaled(.body)).foregroundStyle(.secondary)
+            }
+            Button("Manage connection…") { openConnections() }
+                .accessibilityIdentifier("models.picker.connections")
+        }
+        .padding(.top, 12)
+    }
+
+    @ViewBuilder
     private var providerSelection: some View {
+        if SubscriptionPlan(backend: backend) != nil {
+            planSelection
+        } else {
+            serverSelection
+        }
+    }
+
+    private var serverSelection: some View {
         VStack(alignment: .leading, spacing: 20) {
             if backend == .appleIntelligence {
                 let availability = FoundationModelAvailability.current()

@@ -11,6 +11,14 @@ enum InferencePresentation: Equatable {
         switch settings.summarizerBackend {
         case .builtIn, .appleIntelligence:
             self = .onDevice
+        case .chatGPTPlan, .claudePlan:
+            guard let plan = SubscriptionPlan(backend: settings.summarizerBackend) else {
+                self = .blocked(reason: "Choose a Think model under Settings → Models.")
+                return
+            }
+            self = plan.isApproved(in: settings)
+                ? .remote(host: plan.title)
+                : .blocked(reason: SubscriptionPlanError.approvalRequired(plan).localizedDescription)
         case .ollama, .openAICompatible:
             let raw = settings.summarizerBackend == .ollama
                 ? settings.ollamaBaseURL : settings.openAIBaseURL

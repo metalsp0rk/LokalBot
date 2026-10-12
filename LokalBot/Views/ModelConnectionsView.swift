@@ -25,10 +25,17 @@ struct ModelConnectionsView: View {
         self.app = app
         _draft = State(initialValue: app.settings)
         let focusedOllama = app.focusedSettingID == "settings.ollamaBaseURL"
-        _connection = State(initialValue: focusedOllama || app.settings.summarizerBackend == .ollama ? .ollama : .openAICompatible)
+        let initial: AppSettings.SummarizerBackend = switch app.settings.summarizerBackend {
+        case _ where focusedOllama: .ollama
+        case .ollama, .chatGPTPlan, .claudePlan: app.settings.summarizerBackend
+        case .builtIn, .appleIntelligence, .openAICompatible: .openAICompatible
+        }
+        _connection = State(initialValue: initial)
     }
 
     private var hasChanges: Bool {
+        if connection == .chatGPTPlan { return draft.chatGPTPlanModel != app.settings.chatGPTPlanModel }
+        if connection == .claudePlan { return draft.claudePlanModel != app.settings.claudePlanModel }
         if connection == .ollama {
             return draft.ollamaBaseURL != app.settings.ollamaBaseURL || draft.ollamaModel != app.settings.ollamaModel
         }
@@ -46,8 +53,10 @@ struct ModelConnectionsView: View {
             Picker("Connection", selection: $connection) {
                 Text("OpenAI-compatible").tag(AppSettings.SummarizerBackend.openAICompatible)
                 Text("Ollama").tag(AppSettings.SummarizerBackend.ollama)
+                Text("ChatGPT plan").tag(AppSettings.SummarizerBackend.chatGPTPlan)
+                Text("Claude plan").tag(AppSettings.SummarizerBackend.claudePlan)
             }
-            .pickerStyle(.segmented).tint(Brand.tealFill).frame(maxWidth: 380)
+            .pickerStyle(.segmented).tint(Brand.tealFill).frame(maxWidth: 600)
             .accessibilityIdentifier("models.connections.provider")
             Label(connection == app.settings.summarizerBackend ? "Used by Think" : "Available for Think",
                   systemImage: connection == app.settings.summarizerBackend ? "checkmark.circle" : "network")
@@ -65,6 +74,11 @@ struct ModelConnectionsView: View {
                 }
                 apiKeyControl
                 remoteEndpointDisclosure(rawURL: draft.openAIBaseURL)
+            } else if let plan = SubscriptionPlan(backend: connection) {
+                SubscriptionPlanConnectionView(
+                    app: app, plan: plan,
+                    model: plan == .chatGPT ? $draft.chatGPTPlanModel : $draft.claudePlanModel)
+                    .id(plan)
             } else {
                 modelField("Server URL") {
                     TextField("http://localhost:11434", text: $draft.ollamaBaseURL)
@@ -108,6 +122,8 @@ struct ModelConnectionsView: View {
                 }
             }
             Text(hasChanges ? "Save changes before checking this connection."
+                 : SubscriptionPlan(backend: connection) != nil
+                 ? "Connection checks send a short sample prompt on your plan. No meeting or screen content is used."
                  : "Connection checks send a short sample prompt to this server. No meeting or screen content is used.")
                 .font(.scaled(.callout)).settingsSecondary()
             if let testResult { Text(testResult).font(.scaled(.body)).settingsSecondary().textSelection(.enabled) }
@@ -141,7 +157,11 @@ struct ModelConnectionsView: View {
 
     private func saveConnection() {
         var next = app.settings
-        if connection == .ollama {
+        if connection == .chatGPTPlan {
+            next.chatGPTPlanModel = draft.chatGPTPlanModel.trimmingCharacters(in: .whitespacesAndNewlines)
+        } else if connection == .claudePlan {
+            next.claudePlanModel = draft.claudePlanModel.trimmingCharacters(in: .whitespacesAndNewlines)
+        } else if connection == .ollama {
             next.ollamaBaseURL = draft.ollamaBaseURL.trimmingCharacters(in: .whitespacesAndNewlines)
             next.ollamaModel = draft.ollamaModel.trimmingCharacters(in: .whitespacesAndNewlines)
         } else {

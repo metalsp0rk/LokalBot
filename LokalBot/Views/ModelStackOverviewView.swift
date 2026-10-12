@@ -171,6 +171,14 @@ struct ModelStackOverviewView: View {
             Text(model).font(.scaled(.body).weight(.semibold)).textSelection(.enabled)
             Label(locationLabel(role, status: status), systemImage: destination.icon)
                 .font(.scaled(.callout)).settingsModelLocation(destination)
+            if role == .think, let plan = SubscriptionPlan(backend: app.settings.summarizerBackend),
+               plan.isApproved(in: app.settings) {
+                HStack(spacing: 8) {
+                    Text("Using \(plan.title)").font(.scaled(.callout))
+                    Link("Manage usage", destination: plan.manageUsageURL).font(.scaled(.callout))
+                }
+                .accessibilityIdentifier("models.stack.planUsage")
+            }
             if role == .think, app.settings.summarizerBackend != .appleIntelligence {
                 reasoningPicker.padding(.top, 2)
             }
@@ -238,7 +246,8 @@ struct ModelStackOverviewView: View {
             switch app.settings.summarizerBackend {
             case .builtIn: return status.isReady ? "On this Mac · Downloaded" : "On this Mac"
             case .appleIntelligence: return "On this Mac · System model"
-            case .ollama, .openAICompatible: return ModelSettingsPresentation.destination(app.settings)
+            case .ollama, .openAICompatible, .chatGPTPlan, .claudePlan:
+                return ModelSettingsPresentation.destination(app.settings)
             }
         }
         return status.isReady ? "On this Mac · Downloaded" : "On this Mac"
