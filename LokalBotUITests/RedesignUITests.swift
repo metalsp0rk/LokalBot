@@ -379,6 +379,19 @@ final class RedesignUITests: XCTestCase {
         XCTAssertFalse(app.buttons["meeting.review.return"].exists, "Overview evidence must not retain the old Review origin")
     }
 
+    func testWorkspaceAccessibilityAuditDismissesHoverHelp() throws {
+        try launch(["LOKALBOT_INITIAL_SECTION": "meetings", "LOKALBOT_SELECT_INDEX": "0",
+                    "LOKALBOT_DETAIL_TAB": "review", "LOKALBOT_CAPTURE_APPEARANCE": "light"])
+        let citation = app.buttons["Jump to evidence at 00:00:24"]
+        UITestHarness.scrollTo(citation, in: app, within: app.scrollViews["meeting.content.scroll"])
+        XCTAssertTrue(citation.isHittable)
+        citation.hover()
+        let help = app.descendants(matching: .helpTag).firstMatch
+        XCTAssertTrue(help.waitForExistence(timeout: 6), "The regression must open the native evidence tooltip")
+        try auditWorkspaceAccessibility(includeContrast: true)
+        XCTAssertFalse(help.exists, "Workspace audits must measure the unobscured controls")
+    }
+
     func testReviewAndSearchAccessibilityInBothAppearances() throws {
         for appearance in ["light", "dark"] {
             try launch(["LOKALBOT_INITIAL_SECTION": "meetings", "LOKALBOT_SELECT_INDEX": "0",
