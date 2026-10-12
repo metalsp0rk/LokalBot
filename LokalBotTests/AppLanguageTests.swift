@@ -48,6 +48,20 @@ final class AppLanguageTests: XCTestCase {
         XCTAssertEqual(descriptor.currentValue(in: settings, language: .simplifiedChinese), "Settings")
     }
 
+    /// SwiftUI resolves every label through the injected app-language locale,
+    /// and Foundation re-reads the table on each such lookup. UTF-16 text
+    /// tables made switching Settings categories take seconds.
+    func testBundledStringTablesAreBinary() throws {
+        for language in ["en", "zh-Hans"] {
+            let url = try XCTUnwrap(Bundle.main.url(
+                forResource: "Localizable", withExtension: "strings",
+                subdirectory: nil, localization: language))
+            var format = PropertyListSerialization.PropertyListFormat.xml
+            _ = try PropertyListSerialization.propertyList(from: Data(contentsOf: url), format: &format)
+            XCTAssertEqual(format, .binary, language)
+        }
+    }
+
     func testBundledChineseAndEnglishAndMissingKeyFallback() {
         XCTAssertEqual(AppLanguage.simplifiedChinese.localized("Settings"), "设置")
         XCTAssertEqual(AppLanguage.simplifiedChinese.localized("App language"), "界面语言")

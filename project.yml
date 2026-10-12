@@ -192,6 +192,10 @@ targetTemplates:
         # survive rebuilds — ad-hoc signing invalidates them every build.
         DEVELOPMENT_TEAM: 3N8B4562P4
         GENERATE_INFOPLIST_FILE: NO
+        # SwiftUI resolves every Text through the injected app-language locale,
+        # and Foundation re-reads the strings table on each such lookup instead
+        # of caching it. A binary table parses ~20x faster than UTF-16 text.
+        STRINGS_FILE_OUTPUT_ENCODING: binary
         # In-process libllama: link the vendored dylib (-lllama resolves the
         # libllama.dylib symlink in Vendor/llama-cpp) and make its @rpath install
         # name (@rpath/libllama.0.dylib) resolve at runtime against the copies the

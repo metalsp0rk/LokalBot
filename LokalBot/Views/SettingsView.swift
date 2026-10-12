@@ -1,5 +1,4 @@
 import SwiftUI
-import LaunchAtLogin
 import AppKit
 import UniformTypeIdentifiers
 
@@ -255,12 +254,9 @@ struct SettingsView: View {
                                  "window", "background", "tray", "quick recall", "shortcut",
                                  "hotkey", "global search"]) {
                 Section("General") {
-                    LaunchAtLogin.Toggle {
-                        SettingsLabel("Launch LokalBot at login",
-                                      help: "Start automatically so it's ready to catch meetings.")
-                    }
-                    .accessibilityLabel("Launch LokalBot at login")
-                    .accessibilityHint("Start automatically so it's ready to catch meetings.")
+                    LaunchAtLoginToggleRow(state: LaunchAtLoginState.shared)
+                        .accessibilityLabel("Launch LokalBot at login")
+                        .accessibilityHint("Start automatically so it's ready to catch meetings.")
 
                     Toggle(isOn: $app.settings.menuBarOnly) {
                         SettingsLabel("Menu bar only (hide Dock icon)",
@@ -1315,6 +1311,25 @@ private struct SettingsCategoryLabel: View {
                 .foregroundStyle(prominence == .increased ? AnyShapeStyle(.primary) : AnyShapeStyle(Brand.teal))
         }
         .font(.scaled(.body))
+    }
+}
+
+/// Binds the cached registration, never `SMAppService` itself: SwiftUI re-reads
+/// a toggle's binding on every update while it is visible.
+private struct LaunchAtLoginToggleRow: View {
+    @ObservedObject var state: LaunchAtLoginState
+
+    var body: some View {
+        Toggle(isOn: Binding(
+            get: { state.isEnabled },
+            set: { state.setEnabled($0) })) {
+            SettingsLabel("Launch LokalBot at login",
+                          help: "Start automatically so it's ready to catch meetings.")
+        }
+        .onAppear { state.refresh() }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            state.refresh()
+        }
     }
 }
 
