@@ -206,7 +206,8 @@ extension RecallSearch {
         onLexical?(result)
         guard app.settings.semanticSearchEnabled else { return result }
         if searchMeetings, state.facet == .all, app.embeddingIndex.hasEmbeddings {
-            let semantic = await app.embeddingIndex.search(query, limit: 200, meetingIDs: meetingIDs)
+            let semantic = await app.embeddingIndex.search(query, limit: 200, meetingIDs: meetingIDs,
+                                                           priority: .interactive)
             guard !Task.isCancelled else { return Result() }
             let passages = await ActivityStore.readInBackground(at: url) { _ in
                 let index = SearchIndex(databaseURL: url, readOnly: true)
@@ -219,7 +220,8 @@ extension RecallSearch {
                                              limit: displayLimit + 1))
         }
         if searchScreens {
-            let semantic = await app.embeddingIndex.searchScreen(query, filter: filter, limit: 200)
+            let semantic = await app.embeddingIndex.searchScreen(query, filter: filter, limit: 200,
+                                                                 priority: .interactive)
             guard !Task.isCancelled else { return Result() }
             let hits = result.screens.flatMap(\.matches)
             let keywordByID = Dictionary(hits.map { ($0.snapshotID, $0) }, uniquingKeysWith: { first, _ in first })

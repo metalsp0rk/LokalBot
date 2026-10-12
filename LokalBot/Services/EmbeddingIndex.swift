@@ -210,12 +210,26 @@ final class EmbeddingIndex {
     /// is otherwise lazy, but this library already used semantic screen search,
     /// so it is rebuilt after the meetings instead of waiting for a search.
     private(set) var screenVectorsNeedRebuild = false
+    /// Ask and Quick Recall search meetings and then screens with the same
+    /// query, and search again when only a filter or a trailing space changes.
+    /// The model is fixed for an index version, so the last vector stays valid.
+    private var lastQueryEmbedding: (input: String, vector: [Float])?
+
+    /// Turns texts into vectors. The app sends them to the embedder
+    /// llama-server; tests pass a recorder instead.
+    typealias Embedder = @MainActor (
+        _ texts: [String], _ prefix: String, _ priority: InferencePriority
+    ) async throws -> [[Float]]
+    private let embedder: Embedder
 
     private let databaseURL: URL
 
-    init(databaseURL: URL, storage: StorageManager) {
+    init(databaseURL: URL, storage: StorageManager, embedder: Embedder? = nil) {
         self.databaseURL = databaseURL
         self.storage = storage
+        self.embedder = embedder ?? { texts, prefix, priority in
+            try await Self.embed(texts, prefix: prefix, priority: priority, storage: storage)
+        }
         database = SQLiteDatabase(url: databaseURL)
         database?.exec("""
             CREATE TABLE IF NOT EXISTS embeddings (
@@ -435,8 +449,7 @@ final class EmbeddingIndex {
             return
         }
 
-        let vectors = try await Self.embed(chunks.map(\.text), prefix: Self.documentPrefix,
-                                           storage: storage)
+        let vectors = try await embedder(chunks.map(\.text), Self.documentPrefix, .background)
         try Task.checkCancellation()
         guard vectors.count == chunks.count else {
             throw TextEngineError.badResponse(
@@ -654,9 +667,8 @@ final class EmbeddingIndex {
             guard !batch.isEmpty else { return }
             guard !Task.isCancelled else { return }
             do {
-                let vectors = try await Self.embed(
-                    batch.map(\.text), prefix: Self.screenDocumentPrefix,
-                    storage: storage)
+                let vectors = try await embedder(
+                    batch.map(\.text), Self.screenDocumentPrefix, .background)
                 try Task.checkCancellation()
                 guard vectors.count == batch.count else {
                     throw TextEngineError.badResponse(
@@ -713,7 +725,8 @@ final class EmbeddingIndex {
     func searchScreen(
         _ query: String,
         filter: ScreenSearchFilter = .all,
-        limit: Int = 10
+        limit: Int = 10,
+        priority: InferencePriority = .background
     ) async -> [ScreenHit] {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard limit > 0, !trimmed.isEmpty, let database else { return [] }
@@ -722,8 +735,8 @@ final class EmbeddingIndex {
             Task { [weak self] in await self?.reindexScreenText() }
         }
         guard !Task.isCancelled, hasScreenEmbeddings,
-              let queryVector = try? await Self.embed(
-                [trimmed], prefix: Self.screenQueryPrefix, storage: storage).first
+              let queryVector = await embedQuery(
+                trimmed, prefix: Self.screenQueryPrefix, priority: priority)
         else { return [] }
 
         let url = databaseURL
@@ -793,11 +806,14 @@ final class EmbeddingIndex {
     }
 
     func search(_ query: String, limit: Int = 10,
-                meetingIDs: Set<UUID>? = nil) async -> [Hit] {
-        guard limit > 0, database != nil, hasEmbeddings else { return [] }
+                meetingIDs: Set<UUID>? = nil,
+                priority: InferencePriority = .background) async -> [Hit] {
+        // Trimmed like screen search, so both sources share one query vector.
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard limit > 0, !trimmed.isEmpty, database != nil, hasEmbeddings else { return [] }
         if let meetingIDs, meetingIDs.isEmpty { return [] }
-        guard let queryVector = try? await Self.embed([query], prefix: Self.queryPrefix,
-                                                      storage: storage).first else { return [] }
+        guard let queryVector = await embedQuery(
+            trimmed, prefix: Self.queryPrefix, priority: priority) else { return [] }
         let url = databaseURL
         let worker = Task.detached(priority: .userInitiated) {
             guard !Task.isCancelled, let database = SQLiteDatabase(url: url, readOnly: true) else { return [Hit]() }
@@ -969,11 +985,21 @@ final class EmbeddingIndex {
 
     // MARK: - Embedding via llama-server
 
-    private static func embed(_ texts: [String], prefix: String,
+    /// A failed or cancelled embedding is not kept, so the next search retries.
+    private func embedQuery(_ query: String, prefix: String,
+                            priority: InferencePriority) async -> [Float]? {
+        let input = prefix + query
+        if let last = lastQueryEmbedding, last.input == input { return last.vector }
+        guard let vector = try? await embedder([query], prefix, priority).first else { return nil }
+        lastQueryEmbedding = (input, vector)
+        return vector
+    }
+
+    private static func embed(_ texts: [String], prefix: String, priority: InferencePriority,
                               storage: StorageManager) async throws -> [[Float]] {
         let modelPath = try await ensureModel(storage: storage)
         return try await InferenceBroker.shared.withLease(
-            .embedder, model: modelPath, priority: .background,
+            .embedder, model: modelPath, priority: priority,
             purpose: "embeddings") { () async throws -> [[Float]] in
             var request = URLRequest(url: LlamaServer.embedder.baseURL
                 .appendingPathComponent("embeddings"))
