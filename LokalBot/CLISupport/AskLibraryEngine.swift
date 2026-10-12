@@ -21,7 +21,7 @@ struct LocalLlamaServerMarker: Codable {
 
 enum LocalLlamaServerAuthentication {
     static func markerURL(port: Int) -> URL {
-        AppDirectories.applicationSupport
+        AppDirectories.localServerSupport
             .appendingPathComponent("llama-server-\(port).pid.json")
     }
 
@@ -78,11 +78,14 @@ protocol LlamaChatClient {
 }
 
 struct URLSessionLlamaChatClient: LlamaChatClient {
-    static let mainServerBaseURL = URL(string: "http://127.0.0.1:17872")!
+    /// The enclosing app's Main LLM server: 127.0.0.1:17872 for the release app.
+    static var mainServerBaseURL: URL {
+        URL(string: "http://127.0.0.1:\(LlamaServerRole.main.port)")!
+    }
 
     var baseURL = URLSessionLlamaChatClient.mainServerBaseURL
     var authenticationToken: () -> String? = {
-        LocalLlamaServerAuthentication.validatedToken(port: 17872)
+        LocalLlamaServerAuthentication.validatedToken(port: LlamaServerRole.main.port)
     }
 
     func healthy() async -> Bool {

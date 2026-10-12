@@ -54,15 +54,16 @@ final class LlamaServerTests: XCTestCase {
     /// via loopback. A non-loopback base URL here would be a data-exfiltration
     /// bug, not a configuration choice.
     func testSharedServersAreLoopbackOnlyAndOnDistinctPorts() {
-        let servers: [(LlamaServer, Int)] = [
-            (.shared, 17872), (.embedder, 17873), (.cotyping, 17874),
+        let servers: [(LlamaServer, LlamaServerRole)] = [
+            (.shared, .main), (.embedder, .embedder), (.cotyping, .cotyping),
         ]
-        for (server, port) in servers {
-            XCTAssertEqual(server.port, port)
+        for (server, role) in servers {
+            XCTAssertEqual(server.role, role)
+            XCTAssertEqual(server.port, role.port)
             XCTAssertEqual(server.baseURL.host, "127.0.0.1")
-            XCTAssertEqual(server.baseURL.port, port)
+            XCTAssertEqual(server.baseURL.port, role.port)
         }
-        XCTAssertEqual(Set(servers.map(\.1)).count, 3, "roles must not share a port")
+        XCTAssertEqual(Set(servers.map(\.0.port)).count, 3, "roles must not share a port")
     }
 
     func testServedModelNamesParsesBothLlamaServerShapes() throws {
@@ -101,10 +102,10 @@ final class LlamaServerTests: XCTestCase {
 
     func testAuthenticationTokenIsStableAndHighEntropy() async {
         // A private instance on an unused port: the token path is derived from
-        // the port, so this never touches the three production token files.
+        // the port, so this never touches the production token files.
         // The persisted token file is removed on both ends of the test.
         let port = 59_871
-        let tokenFile = AppDirectories.applicationSupport
+        let tokenFile = AppDirectories.localServerSupport
             .appendingPathComponent("llama-server-\(port).auth-token")
         try? FileManager.default.removeItem(at: tokenFile)
         defer { try? FileManager.default.removeItem(at: tokenFile) }

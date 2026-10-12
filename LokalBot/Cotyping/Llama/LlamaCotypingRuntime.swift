@@ -286,7 +286,7 @@ actor LlamaCotypingRuntime {
     }
 
     /// One in-process runtime holds weights at a time, so a single ledger row.
-    private static let residencyID = "cotyping-in-process"
+    static let residencyID = "cotyping-in-process"
 
     /// Frees the llama context + model when the actor is deallocated. Without
     /// this the Metal backend's residency set is still live at process exit,

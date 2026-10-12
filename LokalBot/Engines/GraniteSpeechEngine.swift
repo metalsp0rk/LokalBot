@@ -15,7 +15,6 @@ actor GraniteSpeechEngine: TranscriptionEngine {
         GraniteSpeechModelConfiguration.defaultModel.localModelFileName
     private static let prompt = "transcribe the speech with proper punctuation and capitalization."
     private static let maxSegmentSeconds = 30.0
-    private static let serverPort = 17_875
 
     private var server: LlamaServer?
     private let preparation = AsyncSingleFlight()
@@ -33,7 +32,7 @@ actor GraniteSpeechEngine: TranscriptionEngine {
 
     func prepare(configuration: GraniteSpeechModelConfiguration,
                  progress: ModelPreparationProgressHandler? = nil) async throws {
-        let pin = await ModelResidency.shared.pin(id: "llama-server:\(Self.serverPort)")
+        let pin = await ModelResidency.shared.pin(id: LlamaServerRole.graniteASR.residencyID)
         defer { Task { @MainActor in ModelResidency.shared.unpin(pin) } }
         await acquire(configuration)
         defer { releaseConfigurationUse() }
@@ -81,7 +80,7 @@ actor GraniteSpeechEngine: TranscriptionEngine {
 
     func transcribe(configuration: GraniteSpeechModelConfiguration,
                     audio url: URL, language: String?) async throws -> Transcript {
-        let pin = await ModelResidency.shared.pin(id: "llama-server:\(Self.serverPort)")
+        let pin = await ModelResidency.shared.pin(id: LlamaServerRole.graniteASR.residencyID)
         defer { Task { @MainActor in ModelResidency.shared.unpin(pin) } }
         await acquire(configuration)
         defer { releaseConfigurationUse() }
@@ -113,7 +112,7 @@ actor GraniteSpeechEngine: TranscriptionEngine {
     private func server(for paths: PreparedPaths) -> LlamaServer {
         if let server { return server }
         let instance = LlamaServer(
-            port: Self.serverPort,
+            role: .graniteASR,
             contextTokens: 4_096,
             extraArgs: ["--mmproj", paths.projector.path,
                         "--parallel", "1", "--cache-ram", "256"],
