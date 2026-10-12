@@ -412,6 +412,34 @@ final class ChatGPTPlanTests: XCTestCase {
         XCTAssertEqual(ChatGPTPlanModel.parseList(Self.json(["data": [["id": "gpt-5.2"]]])).map(\.slug), ["gpt-5.2"])
     }
 
+    func testModelListIsSharedUntilItExpiresOrTheAccountChanges() async throws {
+        let log = RequestLog()
+        let clock = Box<Date>()
+        clock.value = Self.now
+        let store = MemoryStore(credentials: Self.credentials(expiresAt: Self.now.addingTimeInterval(86_400)))
+        let account = ChatGPTPlanAccount(store: store, transport: { request in
+            _ = await log.append(request)
+            return (Self.json(["models": [["slug": "gpt-5.2", "display_name": "GPT-5.2"]]]), Self.response(request, 200))
+        }, now: { clock.value ?? Self.now })
+
+        _ = try await account.models()
+        _ = try await account.models()
+        var fetches = await log.count(path: "/v1/models")
+        XCTAssertEqual(fetches, 1, "settings views share one fetch")
+
+        clock.value = Self.now.addingTimeInterval(ChatGPTPlanAccount.modelListLifetime + 1)
+        _ = try await account.models()
+        _ = try await account.models(refresh: true)
+        fetches = await log.count(path: "/v1/models")
+        XCTAssertEqual(fetches, 3)
+
+        store.setCredentials(nil)
+        do {
+            _ = try await account.models()
+            XCTFail("a signed-out account has no models")
+        } catch ChatGPTPlanError.signedOut {}
+    }
+
     /// The whole browser round trip: the authorize URL opens, the "browser"
     /// returns to the loopback listener, the code is exchanged, and the ID
     /// token is checked against OpenAI's published key before anything is

@@ -1132,7 +1132,6 @@
 "Manage usage" = "管理用量";
 "Sign out" = "退出登录";
 "Use a different account" = "使用其他账户";
-"List models" = "列出模型";
 "Allow plan usage…" = "允许使用订阅…";
 "Waiting for your browser…" = "正在等待浏览器…";
 "Finish signing in in your browser, then return here." = "请在浏览器中完成登录，然后返回这里。";
@@ -1145,7 +1144,13 @@
 "Claude Code isn't signed in." = "Claude Code 尚未登录。";
 "How to install Claude Code" = "如何安装 Claude Code";
 "Claude Code default" = "Claude Code 默认模型";
-"Model from your ChatGPT plan" = "ChatGPT 订阅中的模型";
 "Open Terminal, run claude, and sign in with your Claude account. Then check again." = "打开终端，运行 claude 并用你的 Claude 账户登录，然后重新检查。";
-"An alias follows Anthropic's newest model of that family. A full model ID also works." = "别名会跟随 Anthropic 该系列的最新模型，也可以填写完整的模型 ID。";
 "Provider" = "提供方";
+"Account" = "账户";
+"Usage" = "用量";
+"Loading models…" = "正在加载模型…";
+"Try again" = "重试";
+"Use your ChatGPT plan for Think instead of an API key." = "用你的 ChatGPT 订阅运行 Think，无需 API 密钥。";
+"Sign in to choose a model." = "登录后即可选择模型。";
+"Sign in with ChatGPT and allow LokalBot to send context before choosing a model." = "请先使用 ChatGPT 登录，并允许 LokalBot 发送上下文，然后再选择模型。";
+"Check that Claude Code is signed in and allow LokalBot to send context before choosing a model." = "请先确认 Claude Code 已登录，并允许 LokalBot 发送上下文，然后再选择模型。";

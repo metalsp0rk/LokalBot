@@ -1132,7 +1132,6 @@
 "Manage usage" = "Manage usage";
 "Sign out" = "Sign out";
 "Use a different account" = "Use a different account";
-"List models" = "List models";
 "Allow plan usage…" = "Allow plan usage…";
 "Waiting for your browser…" = "Waiting for your browser…";
 "Finish signing in in your browser, then return here." = "Finish signing in in your browser, then return here.";
@@ -1145,7 +1144,13 @@
 "Claude Code isn't signed in." = "Claude Code isn't signed in.";
 "How to install Claude Code" = "How to install Claude Code";
 "Claude Code default" = "Claude Code default";
-"Model from your ChatGPT plan" = "Model from your ChatGPT plan";
 "Open Terminal, run claude, and sign in with your Claude account. Then check again." = "Open Terminal, run claude, and sign in with your Claude account. Then check again.";
-"An alias follows Anthropic's newest model of that family. A full model ID also works." = "An alias follows Anthropic's newest model of that family. A full model ID also works.";
 "Provider" = "Provider";
+"Account" = "Account";
+"Usage" = "Usage";
+"Loading models…" = "Loading models…";
+"Try again" = "Try again";
+"Use your ChatGPT plan for Think instead of an API key." = "Use your ChatGPT plan for Think instead of an API key.";
+"Sign in to choose a model." = "Sign in to choose a model.";
+"Sign in with ChatGPT and allow LokalBot to send context before choosing a model." = "Sign in with ChatGPT and allow LokalBot to send context before choosing a model.";
+"Check that Claude Code is signed in and allow LokalBot to send context before choosing a model." = "Check that Claude Code is signed in and allow LokalBot to send context before choosing a model.";

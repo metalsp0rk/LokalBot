@@ -491,36 +491,38 @@ struct ModelPickerSheet: View {
     private var planSelection: some View {
         let plan = SubscriptionPlan(backend: backend) ?? .chatGPT
         let target = patch.applying(to: app.settings)
+        let presentation = InferencePresentation(settings: target)
         return VStack(alignment: .leading, spacing: 20) {
             providerKindPicker
-            Label(ModelSettingsPresentation.destination(target), systemImage: InferencePresentation(settings: target).icon)
-                .font(.scaled(.body).weight(.semibold))
-                .settingsModelLocation(InferencePresentation(settings: target))
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Model").font(.scaled(.body).weight(.medium))
-                if plan == .chatGPT {
-                    TextField("Model from your ChatGPT plan", text: $chatGPTPlanModel)
-                        .textFieldStyle(.roundedBorder).accessibilityIdentifier("models.picker.planModel")
-                    Text("Sign in under Manage connection to list the models your plan offers.")
-                        .font(.scaled(.callout)).foregroundStyle(.secondary)
-                } else {
-                    TextField("Claude Code default", text: $claudePlanModel)
-                        .textFieldStyle(.roundedBorder).accessibilityIdentifier("models.picker.planModel")
-                    Text("An alias such as sonnet or opus, or a full model ID. Leave empty for Claude Code's default.")
-                        .font(.scaled(.callout)).foregroundStyle(.secondary)
+            if presentation.isBlocked {
+                // One setup prompt instead of a blocked chip, an empty model
+                // menu, and a warning that all say the same thing.
+                VStack(alignment: .leading, spacing: 12) {
+                    Text(plan == .chatGPT
+                         ? "Sign in with ChatGPT and allow LokalBot to send context before choosing a model."
+                         : "Check that Claude Code is signed in and allow LokalBot to send context before choosing a model.")
+                        .font(.scaled(.body)).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Button("Set up \(plan.title)…") { openConnections() }
+                        .primaryActionButton()
+                        .accessibilityIdentifier("models.picker.connections")
                 }
-            }
-            if case .blocked(let reason) = InferencePresentation(settings: target) {
-                Label(reason, systemImage: "exclamationmark.triangle")
-                    .font(.scaled(.body)).foregroundStyle(.orange)
-                    .fixedSize(horizontal: false, vertical: true)
             } else {
-                Text("Summaries, Ask, and inherited dictation composition send approved context to \(plan.providerName) "
-                     + "and count toward your \(plan.title)'s usage limits. Agent Mode can't use a plan yet.")
+                Label(ModelSettingsPresentation.destination(target), systemImage: presentation.icon)
+                    .font(.scaled(.body).weight(.semibold))
+                    .settingsModelLocation(presentation)
+                HStack(spacing: 12) {
+                    Text("Model").font(.scaled(.body).weight(.medium))
+                    SubscriptionPlanModelPicker(plan: plan,
+                                                selection: plan == .chatGPT ? $chatGPTPlanModel : $claudePlanModel)
+                        .id(plan)
+                }
+                Text("Requests count toward your \(plan.title)'s usage. Agent Mode can't use a plan.")
                     .font(.scaled(.body)).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Button("Manage connection…") { openConnections() }
+                    .accessibilityIdentifier("models.picker.connections")
             }
-            Button("Manage connection…") { openConnections() }
-                .accessibilityIdentifier("models.picker.connections")
         }
         .padding(.top, 12)
     }

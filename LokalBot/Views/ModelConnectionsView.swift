@@ -34,8 +34,8 @@ struct ModelConnectionsView: View {
     }
 
     private var hasChanges: Bool {
-        if connection == .chatGPTPlan { return draft.chatGPTPlanModel != app.settings.chatGPTPlanModel }
-        if connection == .claudePlan { return draft.claudePlanModel != app.settings.claudePlanModel }
+        // A plan's model menu applies its choice directly.
+        if SubscriptionPlan(backend: connection) != nil { return false }
         if connection == .ollama {
             return draft.ollamaBaseURL != app.settings.ollamaBaseURL || draft.ollamaModel != app.settings.ollamaModel
         }
@@ -75,7 +75,7 @@ struct ModelConnectionsView: View {
             } else if let plan = SubscriptionPlan(backend: connection) {
                 SubscriptionPlanConnectionView(
                     app: app, plan: plan,
-                    model: plan == .chatGPT ? $draft.chatGPTPlanModel : $draft.claudePlanModel)
+                    model: plan == .chatGPT ? $app.settings.chatGPTPlanModel : $app.settings.claudePlanModel)
                     .id(plan)
             } else {
                 modelField("Server URL") {
@@ -103,10 +103,12 @@ struct ModelConnectionsView: View {
                 if let listError { Text(listError).font(.scaled(.callout)).foregroundStyle(.orange) }
             }
             HStack(spacing: 12) {
-                Button("Save connection") { saveConnection() }
-                    .primaryActionButton()
-                    .disabled(!hasChanges || testing)
-                    .accessibilityIdentifier("models.connection.save")
+                if SubscriptionPlan(backend: connection) == nil {
+                    Button("Save connection") { saveConnection() }
+                        .primaryActionButton()
+                        .disabled(!hasChanges || testing)
+                        .accessibilityIdentifier("models.connection.save")
+                }
                 Button(testing ? "Checking…" : "Check connection") {
                     checkTask = Task { await testGeneration() }
                 }
@@ -164,11 +166,7 @@ struct ModelConnectionsView: View {
 
     private func saveConnection() {
         var next = app.settings
-        if connection == .chatGPTPlan {
-            next.chatGPTPlanModel = draft.chatGPTPlanModel.trimmingCharacters(in: .whitespacesAndNewlines)
-        } else if connection == .claudePlan {
-            next.claudePlanModel = draft.claudePlanModel.trimmingCharacters(in: .whitespacesAndNewlines)
-        } else if connection == .ollama {
+        if connection == .ollama {
             next.ollamaBaseURL = draft.ollamaBaseURL.trimmingCharacters(in: .whitespacesAndNewlines)
             next.ollamaModel = draft.ollamaModel.trimmingCharacters(in: .whitespacesAndNewlines)
         } else {

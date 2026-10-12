@@ -133,6 +133,9 @@ actor ChatGPTPlanAccount {
     private let now: @Sendable () -> Date
     private var refreshTask: Task<ChatGPTPlanCredentials, Error>?
     private var signInListener: LoopbackRedirectListener?
+    private var cachedModels: (subject: String, models: [ChatGPTPlanModel], fetchedAt: Date)?
+    /// The model list changes rarely; settings views share one fetch.
+    static let modelListLifetime: TimeInterval = 600
 
     init(store: ChatGPTPlanStore = KeychainChatGPTPlanStore(),
          transport: @escaping Transport = { try await ChatGPTPlanAccount.liveTransport($0) },
@@ -238,6 +241,7 @@ actor ChatGPTPlanAccount {
             scopes: tokens.scopes)
         refreshTask?.cancel()
         refreshTask = nil
+        cachedModels = nil
         store.setCredentials(credentials)
         lokalbotLog("chatgpt plan signed in planUsage=\(credentials.allowsPlanUsage)")
         return status()
@@ -255,6 +259,7 @@ actor ChatGPTPlanAccount {
     func signOut() async -> Bool {
         refreshTask?.cancel()
         refreshTask = nil
+        cachedModels = nil
         guard let credentials = store.credentials() else { return true }
         store.setCredentials(nil)
         guard let refreshToken = credentials.refreshToken else { return true }
@@ -344,6 +349,19 @@ actor ChatGPTPlanAccount {
     }
 
     // MARK: Models
+
+    /// The signed-in account's models, fetched at most every ten minutes.
+    func models(refresh: Bool = false) async throws -> [ChatGPTPlanModel] {
+        guard let subject = store.credentials()?.subject else { throw ChatGPTPlanError.signedOut }
+        if !refresh, let cachedModels, cachedModels.subject == subject,
+           now().timeIntervalSince(cachedModels.fetchedAt) < Self.modelListLifetime {
+            return cachedModels.models
+        }
+        let models = try await listModels()
+        cachedModels = (subject, models, now())
+        lokalbotLog("chatgpt plan models count=\(models.count)")
+        return models
+    }
 
     func listModels() async throws -> [ChatGPTPlanModel] {
         var token = try await accessToken()
