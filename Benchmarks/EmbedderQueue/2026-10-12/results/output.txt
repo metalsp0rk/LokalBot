@@ -1,0 +1,65 @@
+llama.cpp: b11474-macos15.0-arm64-generic-loader-rpath
+model: embeddinggemma-2-Q8_0.gguf, sha256 matches the app
+screen row ≈ 884 tokens, meeting chunk ≈ 93 tokens
+
+== strategies
+
+query alone, with lease probes: median 5 ms
+lease probes behind 100 chunks: /health 0.3 ms, /v1/models 0.2 ms
+
+query sent 50 ms after background starts, 3 trials: median / max | background wall time
+  screen backfill 32     one request    query   2015 /   2024 ms | background   2070 ms
+  screen backfill 32     4 per request  query    177 /    184 ms | background   1890 ms
+  screen backfill 32     8 per request  query    414 /    435 ms | background   1886 ms
+  screen backfill 32     16 per request query    884 /    953 ms | background   1850 ms
+  screen backfill 32     app rule+gate  query     13 /     41 ms | background   1747 ms
+  meeting 100 chunks     one request    query   1119 /   1168 ms | background   1202 ms
+  meeting 100 chunks     4 per request  query     46 /     49 ms | background   1182 ms
+  meeting 100 chunks     8 per request  query     43 /     53 ms | background   1171 ms
+  meeting 100 chunks     16 per request query    138 /    140 ms | background   1178 ms
+  meeting 100 chunks     app rule+gate  query     45 /     51 ms | background   1190 ms
+  both at once           one request    query   2981 /   2998 ms | background   3056 ms
+  both at once           8 per request  query    443 /    507 ms | background   3108 ms
+  both at once           8 + gate       query     58 /     68 ms | background   3067 ms
+  both at once           app rule       query     57 /     62 ms | background   3037 ms
+  both at once           app rule+gate  query     56 /     56 ms | background   3189 ms
+
+vector identity, largest absolute difference:
+  32 screen rows, one request vs 4 × 8:            0.0
+  8 screen rows, one request vs one per request:  0.0
+  100 meeting chunks, one request vs app rule:    0.0
+  query alone vs behind a meeting:                0.0
+
+== overhead
+
+one tiny request with probes: median 6.7 ms; probes alone 0.20 ms
+
+total background time, no queries, 3 runs: median (min)
+  meeting 100 chunks     one request      1 requests    1161 ms (1157)
+  meeting 100 chunks     8 per request   13 requests    1183 ms (1178)
+  meeting 100 chunks     app rule        25 requests    1215 ms (1209)
+  meeting 100 chunks     4 per request   25 requests    1221 ms (1192)
+  meeting 100 chunks     1 per request  100 requests    1241 ms (1234)
+  screen backfill 32     one request      1 requests    1532 ms (1531)
+  screen backfill 32     8 per request    4 requests    1539 ms (1534)
+  screen backfill 32     app rule        32 requests    1548 ms (1536)
+  screen backfill 32     4 per request    8 requests    1534 ms (1531)
+  screen backfill 32     1 per request   32 requests    1558 ms (1558)
+
+== before-after
+
+app rule: screen backfill 32 -> 32 requests, meeting 100 chunks -> 25 requests
+
+query sent 50 ms after background starts, 3 trials: median / max | background wall time
+  screen backfill 32     before         query   1421 /   1442 ms | background   1475 ms
+  screen backfill 32     after          query     39 /     47 ms | background   1501 ms
+  meeting 100 chunks     before         query   1073 /   1088 ms | background   1147 ms
+  meeting 100 chunks     after          query     40 /     43 ms | background   1201 ms
+  both at once           before         query   2547 /   2599 ms | background   2622 ms
+  both at once           after          query     46 /     50 ms | background   2685 ms
+
+both at once, query sent at random 20–600 ms offsets, 8 trials: median / max
+  before query   2350 /   2534 ms
+  after  query     34 /     51 ms
+
+vectors, one request vs app rule: 132 and 132 inputs, largest absolute difference 0.0
