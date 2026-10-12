@@ -69,7 +69,7 @@ final class ThinkExecution {
                 reasoningLevel: settings.thinkReasoningLevel,
                 reasoningSupport: .known(provider: .builtIn, model: entry.id),
                 displayNameOverride: "Built-in — \(entry.displayName)")
-            guard let role = InferenceRole(serverPort: server.port) else {
+            guard let role = server.role.flatMap(InferenceRole.init(serverRole:)) else {
                 try await server.ensureRunning(modelAt: modelURL)
                 return engine
             }

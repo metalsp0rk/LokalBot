@@ -96,8 +96,8 @@ final class InferenceBrokerTests: XCTestCase {
 
         let ensures = await recorder.count(of: "ensure:mainLLM")
         XCTAssertEqual(ensures, 1)
-        XCTAssertEqual(sink.lastPinned, ["llama-server:17872"])
-        XCTAssertEqual(sink.lastDescriptions["llama-server:17872"], ["chat (interactive)"])
+        XCTAssertEqual(sink.lastPinned, ["llama-server:main"])
+        XCTAssertEqual(sink.lastDescriptions["llama-server:main"], ["chat (interactive)"])
         let active = await broker.activeLeaseCount(.mainLLM)
         XCTAssertEqual(active, 1)
         await broker.release(lease)
@@ -247,14 +247,14 @@ final class InferenceBrokerTests: XCTestCase {
                                           priority: .interactive, purpose: "chat")
         let summary = try await broker.lease(.mainLLM, model: modelURL,
                                              priority: .background, purpose: "summary")
-        XCTAssertEqual(sink.lastDescriptions["llama-server:17872"],
+        XCTAssertEqual(sink.lastDescriptions["llama-server:main"],
                        ["chat (interactive)", "summary (background)"])
 
         await broker.release(chat)
         try await Task.sleep(nanoseconds: 300_000_000)
         let stopsWhileHeld = await recorder.count(of: "stop:mainLLM")
         XCTAssertEqual(stopsWhileHeld, 0)
-        XCTAssertEqual(sink.lastPinned, ["llama-server:17872"])
+        XCTAssertEqual(sink.lastPinned, ["llama-server:main"])
 
         await broker.release(summary)
         let stopped = await waitUntil { await recorder.count(of: "stop:mainLLM") == 1 }

@@ -132,7 +132,7 @@ final class ResourceMonitorPresentationTests: XCTestCase {
     func testModelsMergeRolesAndMeasuredAndEstimatedMemory() {
         let gibibyte = UInt64(1_073_741_824)
         let residency = ModelResidency.Resident(
-            id: "llama-server:17872",
+            id: "llama-server:main",
             label: "main.gguf",
             bytes: Int64(2 * gibibyte),
             processIdentifier: 42,
@@ -169,9 +169,20 @@ final class ResourceMonitorPresentationTests: XCTestCase {
         )
     }
 
+    func testEveryServerRoleHasItsMonitorLabel() {
+        XCTAssertEqual(ResourceMonitorPresentation.role(for: LlamaServerRole.main.residencyID), "Think")
+        XCTAssertEqual(ResourceMonitorPresentation.role(for: LlamaServerRole.embedder.residencyID), "Embeddings")
+        XCTAssertEqual(ResourceMonitorPresentation.role(for: LlamaServerRole.cotyping.residencyID), "Autocomplete")
+        XCTAssertEqual(ResourceMonitorPresentation.role(for: LlamaServerRole.graniteASR.residencyID), "Transcribe")
+        XCTAssertEqual(ResourceMonitorPresentation.role(for: LlamaCotypingRuntime.residencyID), "Autocomplete")
+        // A port-keyed id names no role: labels must not depend on which app
+        // copy's ports are in use.
+        XCTAssertEqual(ResourceMonitorPresentation.role(for: "llama-server:17872"), "Local model")
+    }
+
     func testModelsDiscardAStaleReusedProcessIdentifier() {
         let resident = ModelResidency.Resident(
-            id: "llama-server:17873",
+            id: "llama-server:embedder",
             label: "embed.gguf",
             bytes: 100,
             processIdentifier: 42,
@@ -251,11 +262,11 @@ final class ResourceMonitorPresentationTests: XCTestCase {
 
     func testLeasedModelRowCarriesInUseNote() {
         let models = ResourceMonitorPresentation.models(
-            residency: [resident("llama-server:17872", label: "Qwen 4B")],
+            residency: [resident("llama-server:main", label: "Qwen 4B")],
             runtimes: [],
             snapshot: nil,
-            pinnedIDs: ["llama-server:17872"],
-            leaseDescriptions: ["llama-server:17872":
+            pinnedIDs: ["llama-server:main"],
+            leaseDescriptions: ["llama-server:main":
                 ["chat (interactive)", "summary (background)"]])
         XCTAssertEqual(models.count, 1)
         XCTAssertEqual(models[0].leaseNote,
@@ -264,7 +275,7 @@ final class ResourceMonitorPresentationTests: XCTestCase {
 
     func testUnleasedModelRowHasNoNote() {
         let models = ResourceMonitorPresentation.models(
-            residency: [resident("llama-server:17873", label: "EmbeddingGemma")],
+            residency: [resident("llama-server:embedder", label: "EmbeddingGemma")],
             runtimes: [],
             snapshot: nil,
             pinnedIDs: [],
@@ -275,10 +286,10 @@ final class ResourceMonitorPresentationTests: XCTestCase {
 
     func testPinWithoutDescriptionsStillReadsInUse() {
         let models = ResourceMonitorPresentation.models(
-            residency: [resident("llama-server:17872", label: "Qwen 4B")],
+            residency: [resident("llama-server:main", label: "Qwen 4B")],
             runtimes: [],
             snapshot: nil,
-            pinnedIDs: ["llama-server:17872"],
+            pinnedIDs: ["llama-server:main"],
             leaseDescriptions: [:])
         XCTAssertEqual(models[0].leaseNote, "in use")
     }

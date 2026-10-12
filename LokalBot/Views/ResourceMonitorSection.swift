@@ -279,13 +279,13 @@ enum ResourceMonitorPresentation {
         return String(format: "%.0f MB", Double(bytes) / 1_048_576)
     }
 
-    private static func role(for residencyID: String) -> String {
-        switch residencyID {
-        case "llama-server:17872": "Think"
-        case "llama-server:17873": "Embeddings"
-        case "llama-server:17874", "cotyping-in-process": "Autocomplete"
-        case "llama-server:17875": "Transcribe"
-        default: "Local model"
+    static func role(for residencyID: String) -> String {
+        switch LlamaServerRole(residencyID: residencyID) {
+        case .main: "Think"
+        case .embedder: "Embeddings"
+        case .cotyping: "Autocomplete"
+        case .graniteASR: "Transcribe"
+        case nil: residencyID == LlamaCotypingRuntime.residencyID ? "Autocomplete" : "Local model"
         }
     }
 }

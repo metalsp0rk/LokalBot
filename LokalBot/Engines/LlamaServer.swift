@@ -45,7 +45,7 @@ actor LlamaServer {
 
     /// Chat/completions instance (summaries, digests, Q&A).
     static let shared = LlamaServer(
-        port: 17872, contextTokens: MainLLMRuntimePolicy.contextTokens,
+        role: .main, contextTokens: MainLLMRuntimePolicy.contextTokens,
         extraArgs: MainLLMRuntimePolicy.serverExtraArguments,
         runtimeAllowanceBytes: 3 * 1_073_741_824)
     /// Embeddings instance (semantic search) — small model, second port.
@@ -53,7 +53,7 @@ actor LlamaServer {
     /// no pooling flag is passed (one would override them). As a bidirectional
     /// encoder it must see each input in a single micro-batch; real 1,500-
     /// character OCR reaches about 950 tokens, so batch at the full context.
-    static let embedder = LlamaServer(port: 17873, contextTokens: 2_048,
+    static let embedder = LlamaServer(role: .embedder, contextTokens: 2_048,
                                       extraArgs: ["--embeddings", "-b", "2048", "-ub", "2048",
                                                   "--parallel", "1"],
                                       runtimeAllowanceBytes: 384 * 1_048_576)
@@ -61,19 +61,35 @@ actor LlamaServer {
     /// model on a third port, so inline suggestions never contend with the
     /// summarizer for the shared server (no model-reload thrash).
     static let cotyping = LlamaServer(
-        port: 17874, contextTokens: 2_048,
+        role: .cotyping, contextTokens: 2_048,
         extraArgs: ["--parallel", "1", "--cache-ram", "512"],
         runtimeAllowanceBytes: 768 * 1_048_576)
 
     nonisolated let port: Int
+    /// Nil for a private instance on an explicit port (tests, replays).
+    nonisolated let role: LlamaServerRole?
     nonisolated let contextTokens: Int
     private let extraArgs: [String]
     private let runtimeAllowanceBytes: Int64
     nonisolated var baseURL: URL { URL(string: "http://127.0.0.1:\(port)/v1")! }
 
+    /// One of the app's servers, on this app copy's port for `role`.
+    init(role: LlamaServerRole, contextTokens: Int, extraArgs: [String],
+         runtimeAllowanceBytes: Int64 = 512 * 1_048_576) {
+        self.init(port: role.port, role: role, contextTokens: contextTokens,
+                  extraArgs: extraArgs, runtimeAllowanceBytes: runtimeAllowanceBytes)
+    }
+
     init(port: Int, contextTokens: Int, extraArgs: [String],
          runtimeAllowanceBytes: Int64 = 512 * 1_048_576) {
+        self.init(port: port, role: nil, contextTokens: contextTokens,
+                  extraArgs: extraArgs, runtimeAllowanceBytes: runtimeAllowanceBytes)
+    }
+
+    private init(port: Int, role: LlamaServerRole?, contextTokens: Int, extraArgs: [String],
+                 runtimeAllowanceBytes: Int64) {
         self.port = port
+        self.role = role
         self.contextTokens = contextTokens
         self.extraArgs = extraArgs
         self.runtimeAllowanceBytes = runtimeAllowanceBytes
@@ -158,7 +174,7 @@ actor LlamaServer {
 
     /// This server's row in the app-wide model-memory ledger. Adopted healthy
     /// servers register too — their weights are just as resident as ours.
-    private nonisolated var residencyID: String { "llama-server:\(port)" }
+    private nonisolated var residencyID: String { role?.residencyID ?? "llama-server:\(port)" }
 
     private func registerResidency(modelAt url: URL) async {
         // Diagnostics must never gate inference. When libproc cannot provide a
@@ -211,7 +227,11 @@ actor LlamaServer {
         if claimOrphanedMarker() {
             await stopRecordedServerIfOwned()
         }
-        guard Self.listeningPIDs(onPort: port).isEmpty else {
+        var listeners = Self.listeningPIDs(onPort: port)
+        if !listeners.isEmpty, !(await Self.stopOrphanedHelpers(listeners, port: port)).isEmpty {
+            listeners = Self.listeningPIDs(onPort: port)
+        }
+        guard listeners.isEmpty else {
             ownershipLock = nil
             throw ServerError.failedToStart(
                 "port \(port) is already in use. Close the other LokalBot instance or local server and try again")
@@ -474,7 +494,7 @@ actor LlamaServer {
     }
 
     private var authenticationTokenURL: URL {
-        AppDirectories.applicationSupport
+        AppDirectories.localServerSupport
             .appendingPathComponent("llama-server-\(port).auth-token")
     }
 
@@ -578,6 +598,101 @@ actor LlamaServer {
             .compactMap { pid_t($0) }
     }
 
+    /// Stops LokalBot llama-servers that hold `port` after their app died:
+    /// reparented to launchd, running from a LokalBot `llama-cpp` runtime,
+    /// and named by no PID marker with a live owner (an app that adopted it).
+    /// Another copy (Dev, UI Test Host, unit tests, an older release) can
+    /// leave one behind, and it would block this server until it is killed.
+    /// Returns the PIDs that are gone.
+    nonisolated static func stopOrphanedHelpers(
+        _ listeners: [pid_t], port: Int,
+        applicationSupport: URL = AppDirectories.userApplicationSupport
+    ) async -> [pid_t] {
+        var stopped: [pid_t] = []
+        for pid in Set(listeners).sorted() {
+            guard let orphan = orphanedHelper(pid: pid, applicationSupport: applicationSupport) else {
+                continue
+            }
+            let isGone = await terminate(pid, startTime: orphan.startTime)
+            lokalbotLog("llama-server: " + (isGone ? "stopped" : "could not stop")
+                        + " an orphaned helper holding port \(port) pid=\(pid) "
+                        + "runtime=\(orphan.folder.lastPathComponent)")
+            if isGone { stopped.append(pid) }
+        }
+        return stopped
+    }
+
+    /// The runtime folder and start time of `pid` when it is a LokalBot
+    /// llama-server whose owning app is gone; nil otherwise.
+    nonisolated static func orphanedHelper(
+        pid: pid_t, applicationSupport: URL
+    ) -> (folder: URL, startTime: UInt64)? {
+        let root = URL(fileURLWithPath: realPath(applicationSupport.path) ?? applicationSupport.path,
+                       isDirectory: true)
+        guard pid > 1, pid != getpid(),
+              parentProcessIdentifier(of: pid) == 1,
+              let executable = processPath(for: pid),
+              let folder = OrphanedLlamaServerPolicy.runtimeFolder(forExecutable: executable, under: root),
+              let startTime = SystemResourceSampler.processUsage(for: pid)?.startTime,
+              let markers = recordedMarkers(in: folder)
+        else { return nil }
+        let hasLiveOwner = markers.contains { marker in
+            guard marker.pid == pid else { return false }
+            let ownerPID = marker.ownerPID ?? 0
+            return OrphanedLlamaServerPolicy.markerShowsLiveOwner(
+                marker,
+                helperStartTime: startTime,
+                ownerExists: ownerPID > 0 && (kill(ownerPID, 0) == 0 || errno == EPERM),
+                liveOwnerStartTime: ownerPID > 0
+                    ? SystemResourceSampler.processUsage(for: ownerPID)?.startTime : nil)
+        }
+        return hasLiveOwner ? nil : (folder, startTime)
+    }
+
+    nonisolated static func parentProcessIdentifier(of pid: pid_t) -> pid_t? {
+        var info = proc_bsdinfo()
+        let size = Int32(MemoryLayout<proc_bsdinfo>.size)
+        guard proc_pidinfo(pid, PROC_PIDTBSDINFO, 0, &info, size) == size else { return nil }
+        return pid_t(info.pbi_ppid)
+    }
+
+    /// Every PID marker in a runtime folder; nil when the folder cannot be
+    /// read, which must not pass for "no live owner".
+    private nonisolated static func recordedMarkers(in folder: URL) -> [LocalLlamaServerMarker]? {
+        guard let files = try? FileManager.default.contentsOfDirectory(
+            at: folder, includingPropertiesForKeys: nil) else { return nil }
+        return files
+            .filter { $0.lastPathComponent.hasPrefix("llama-server-") && $0.lastPathComponent.hasSuffix(".pid.json") }
+            .compactMap { try? Data(contentsOf: $0) }
+            .compactMap { try? JSONDecoder().decode(LocalLlamaServerMarker.self, from: $0) }
+    }
+
+    /// SIGTERM, then SIGKILL after two seconds. The start time keeps a reused
+    /// PID from being signalled. Returns whether the process is gone.
+    private nonisolated static func terminate(_ pid: pid_t, startTime: UInt64) async -> Bool {
+        func isRunning() -> Bool {
+            SystemResourceSampler.processUsage(for: pid)?.startTime == startTime
+        }
+        guard isRunning() else { return true }
+        kill(pid, SIGTERM)
+        for _ in 0..<40 {
+            if !isRunning() { return true }
+            try? await Task.sleep(for: .milliseconds(50))
+        }
+        if isRunning() { kill(pid, SIGKILL) }
+        for _ in 0..<20 {
+            if !isRunning() { return true }
+            try? await Task.sleep(for: .milliseconds(50))
+        }
+        return !isRunning()
+    }
+
+    private nonisolated static func realPath(_ path: String) -> String? {
+        guard let resolved = realpath(path, nil) else { return nil }
+        defer { free(resolved) }
+        return String(cString: resolved)
+    }
+
     private nonisolated static func makeAuthenticationToken() -> String {
         (UUID().uuidString + UUID().uuidString)
             .replacingOccurrences(of: "-", with: "")
@@ -604,7 +719,7 @@ actor LlamaServer {
               FileManager.default.fileExists(atPath: bundled.appendingPathComponent("llama-server").path)
         else { throw ServerError.binaryMissing }
 
-        let installed = AppDirectories.applicationSupport
+        let installed = AppDirectories.localServerSupport
             .appendingPathComponent("llama-cpp", isDirectory: true)
         return try NativeRuntimeInstaller.install(
             bundled: bundled, root: installed, executables: ["llama-server"])
@@ -625,6 +740,39 @@ enum LocalRuntimeOwnershipPolicy {
             return liveOwnerStartTime != ownerStart
         }
         return true
+    }
+}
+
+/// Recognizes a llama-server that a LokalBot copy started and then lost. Its
+/// executable sits in a `llama-cpp` runtime under one of LokalBot's
+/// Application Support folders, next to the PID markers that copy writes.
+enum OrphanedLlamaServerPolicy {
+    /// `<applicationSupport>/me.dotenv.LokalBot[.<suffix>]` when `path` is
+    /// `<that folder>/llama-cpp/…/llama-server`; nil for anything else.
+    static func runtimeFolder(forExecutable path: String, under applicationSupport: URL) -> URL? {
+        let root = applicationSupport.standardizedFileURL.path
+        let executable = URL(fileURLWithPath: path).standardizedFileURL.path
+        guard executable.hasPrefix(root + "/") else { return nil }
+        let components = executable.dropFirst(root.count + 1).split(separator: "/").map(String.init)
+        guard components.count >= 3,
+              components[0] == AppIdentifiers.appBundleID
+                || components[0].hasPrefix(AppIdentifiers.appBundleID + "."),
+              components[1] == "llama-cpp",
+              components.last == "llama-server" else { return nil }
+        return applicationSupport.appendingPathComponent(components[0], isDirectory: true)
+    }
+
+    /// Whether `marker` shows a live app owning the helper that started at
+    /// `helperStartTime`. An owner whose identity cannot be confirmed counts
+    /// as alive: a helper an app may still be using is never stopped.
+    static func markerShowsLiveOwner(_ marker: LocalLlamaServerMarker, helperStartTime: UInt64,
+                                     ownerExists: Bool, liveOwnerStartTime: UInt64?) -> Bool {
+        // A marker left by an earlier process with this PID says nothing.
+        if let recorded = marker.processStartTime, recorded != helperStartTime { return false }
+        guard let ownerPID = marker.ownerPID, ownerPID > 0, ownerExists else { return false }
+        guard let recordedOwnerStart = marker.ownerStartTime,
+              let liveOwnerStartTime else { return true }
+        return recordedOwnerStart == liveOwnerStartTime
     }
 }
 

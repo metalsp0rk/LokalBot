@@ -28,30 +28,30 @@ enum InferencePriority: Int, Comparable, CaseIterable, Sendable {
 }
 
 /// The three shared llama-server runtimes the broker owns in step 1.
-/// Granite's private ASR server (17875) holds direct ModelResidency pins during
+/// Granite's private ASR server holds direct ModelResidency pins during
 /// preparation/transcription; it does not need a broker role.
 enum InferenceRole: String, CaseIterable, Sendable {
     case mainLLM
     case embedder
     case cotypingServer
 
-    var serverPort: Int {
+    var serverRole: LlamaServerRole {
         switch self {
-        case .mainLLM: 17872
-        case .embedder: 17873
-        case .cotypingServer: 17874
+        case .mainLLM: .main
+        case .embedder: .embedder
+        case .cotypingServer: .cotyping
         }
     }
 
-    init?(serverPort: Int) {
-        guard let role = Self.allCases.first(where: { $0.serverPort == serverPort }) else {
+    init?(serverRole: LlamaServerRole) {
+        guard let role = Self.allCases.first(where: { $0.serverRole == serverRole }) else {
             return nil
         }
         self = role
     }
 
-    /// Matches the ledger id `LlamaServer` registers under ("llama-server:<port>").
-    var residencyID: String { "llama-server:\(serverPort)" }
+    /// Matches the ledger id `LlamaServer` registers under.
+    var residencyID: String { serverRole.residencyID }
 
     /// How long the server stays resident after its last lease releases —
     /// long enough that bursty consumers (chat follow-ups, typing) don't pay

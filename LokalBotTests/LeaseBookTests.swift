@@ -4,12 +4,12 @@ import XCTest
 final class LeaseBookTests: XCTestCase {
 
     func testRoleVocabularyMatchesLlamaServerTrio() {
-        XCTAssertEqual(InferenceRole.mainLLM.serverPort, 17872)
-        XCTAssertEqual(InferenceRole.embedder.serverPort, 17873)
-        XCTAssertEqual(InferenceRole.cotypingServer.serverPort, 17874)
-        XCTAssertEqual(InferenceRole.mainLLM.residencyID, "llama-server:17872")
-        XCTAssertEqual(InferenceRole(serverPort: 17873), .embedder)
-        XCTAssertNil(InferenceRole(serverPort: 17875))
+        XCTAssertEqual(InferenceRole.mainLLM.serverRole, .main)
+        XCTAssertEqual(InferenceRole.embedder.serverRole, .embedder)
+        XCTAssertEqual(InferenceRole.cotypingServer.serverRole, .cotyping)
+        XCTAssertEqual(InferenceRole.mainLLM.residencyID, "llama-server:main")
+        XCTAssertEqual(InferenceRole(serverRole: .embedder), .embedder)
+        XCTAssertNil(InferenceRole(serverRole: .graniteASR))
         XCTAssertTrue(InferencePriority.interactive < .agent)
         XCTAssertTrue(InferencePriority.agent < .background)
         XCTAssertEqual(InferencePriority.interactive.label, "interactive")
@@ -39,9 +39,9 @@ final class LeaseBookTests: XCTestCase {
         XCTAssertTrue(book.pinnedResidencyIDs.isEmpty)
         let chat = book.acquire(role: .mainLLM, priority: .interactive, purpose: "chat")
         _ = book.acquire(role: .embedder, priority: .background, purpose: "embeddings")
-        XCTAssertEqual(book.pinnedResidencyIDs, ["llama-server:17872", "llama-server:17873"])
+        XCTAssertEqual(book.pinnedResidencyIDs, ["llama-server:main", "llama-server:embedder"])
         book.release(id: chat.id)
-        XCTAssertEqual(book.pinnedResidencyIDs, ["llama-server:17873"])
+        XCTAssertEqual(book.pinnedResidencyIDs, ["llama-server:embedder"])
     }
 
     func testDescriptionsOrderedByPriorityThenPurpose() {
@@ -51,8 +51,8 @@ final class LeaseBookTests: XCTestCase {
         _ = book.acquire(role: .embedder, priority: .background, purpose: "embeddings")
 
         XCTAssertEqual(book.descriptionsByResidencyID, [
-            "llama-server:17872": ["chat (interactive)", "summary (background)"],
-            "llama-server:17873": ["embeddings (background)"],
+            "llama-server:main": ["chat (interactive)", "summary (background)"],
+            "llama-server:embedder": ["embeddings (background)"],
         ])
     }
 

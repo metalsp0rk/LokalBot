@@ -17,10 +17,10 @@ enum AppDirectories {
     /// `me.dotenv.LokalBot.dev`; their retention settings cannot affect release
     /// data. Identity-scoped runtimes and mutable process markers are separate too.
     ///
-    /// Deliberately NOT redirected by the storage-root override: the installed
-    /// llama-server binary, its PID markers, transcription model stores, and
-    /// the agent runtime live here even under `LOKALBOT_STORAGE_ROOT`
-    /// isolation, so fixture runs share them only with their app identity.
+    /// Deliberately NOT redirected by the storage-root override: transcription
+    /// model stores and the agent runtime live here even under
+    /// `LOKALBOT_STORAGE_ROOT` isolation, so fixture runs share them only with
+    /// their app identity (llama-server state: `localServerSupport`).
     /// Catalog GGUFs are the exception — they download under the overridable
     /// library root (`ModelCatalog.localURL`); `Scripts/e2e.sh` symlinks the
     /// real models/ into its temp root to keep those shared too.
@@ -30,6 +30,25 @@ enum AppDirectories {
 
     static func applicationSupport(for identity: AppIdentifiers.Identity, under parent: URL) -> URL {
         parent.appendingPathComponent(identity.bundleID, isDirectory: true)
+    }
+
+    /// The installed llama-server binary, its PID markers, owner locks and
+    /// bearer tokens. This is the identity's Application Support home, except
+    /// in the unit-test host: it carries the release bundle id, so it gets its
+    /// own folder and never writes the installed app's markers or reads its
+    /// tokens. Not redirected by the storage-root override either.
+    static var localServerSupport: URL {
+        localServerSupport(for: LocalRuntimeOwner.current, under: userApplicationSupport)
+    }
+
+    static func localServerSupport(for owner: LocalRuntimeOwner, under parent: URL) -> URL {
+        switch owner {
+        case .release: applicationSupport(for: .release, under: parent)
+        case .development: applicationSupport(for: .development, under: parent)
+        case .uiTestHost: applicationSupport(for: .uiTestHost, under: parent)
+        case .unitTests:
+            parent.appendingPathComponent(AppIdentifiers.appBundleID + ".unit-tests", isDirectory: true)
+        }
     }
 
     /// FluidAudio's own cache root (`~/Library/Application Support/FluidAudio`)
