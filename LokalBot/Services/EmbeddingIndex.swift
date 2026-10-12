@@ -165,6 +165,31 @@ final class EmbeddingIndex {
         var id: Int64 { snapshotID }
     }
 
+    /// When background passes over screen text run. Tests shorten these.
+    struct ScreenBackfillSchedule: Sendable {
+        /// New captures wait this long, so one pass embeds a batch of them
+        /// instead of waking the embedder for every capture.
+        var newTextDelay: Duration
+        /// The wait after the first failed pass. Each further failure doubles
+        /// it, up to `maximumRetryDelay`; a successful pass resets it.
+        var firstRetryDelay: Duration
+        var maximumRetryDelay: Duration
+
+        static let standard = ScreenBackfillSchedule(
+            newTextDelay: .seconds(15 * 60),
+            firstRetryDelay: .seconds(60),
+            maximumRetryDelay: .seconds(30 * 60))
+
+        func retryDelay(afterFailures failures: Int) -> Duration {
+            var delay = firstRetryDelay
+            for _ in 1..<max(1, failures) {
+                delay = delay * 2
+                if delay >= maximumRetryDelay { return maximumRetryDelay }
+            }
+            return min(delay, maximumRetryDelay)
+        }
+    }
+
     nonisolated static let modelID = "embeddinggemma-2-q8"
     /// Persisted separately from the server-facing model name. Any change to
     /// pooling, prompting, or chunking must advance this value so vectors made
@@ -206,9 +231,18 @@ final class EmbeddingIndex {
     private let storage: StorageManager
     private var locallyDeletedMeetingIDs: Set<UUID> = []
     private var screenReindexFlight: (id: UUID, task: Task<Void, Never>)?
-    /// Startup discarded screen vectors an earlier model made. Screen backfill
-    /// is otherwise lazy, but this library already used semantic screen search,
-    /// so it is rebuilt after the meetings instead of waiting for a search.
+    /// The next automatic pass, set by new screen text or a failed pass.
+    private var scheduledScreenReindex: (id: UUID, task: Task<Void, Never>)?
+    private let screenBackfillSchedule: ScreenBackfillSchedule
+    /// Failed passes since the last one that finished; sets the retry delay.
+    private(set) var screenReindexFailures = 0
+    /// Set once this library has searched screens by meaning. Until then new
+    /// captures are not embedded, so people who never use the feature do not
+    /// download a model or spend background inference time on it.
+    private var screenSearchInUse = false
+    /// Startup discarded screen vectors an earlier model made. This library
+    /// already used semantic screen search, so they are rebuilt after the
+    /// meetings instead of waiting for a search.
     private(set) var screenVectorsNeedRebuild = false
     /// Ask and Quick Recall search meetings and then screens with the same
     /// query, and search again when only a filter or a trailing space changes.
@@ -224,9 +258,11 @@ final class EmbeddingIndex {
 
     private let databaseURL: URL
 
-    init(databaseURL: URL, storage: StorageManager, embedder: Embedder? = nil) {
+    init(databaseURL: URL, storage: StorageManager, embedder: Embedder? = nil,
+         screenBackfillSchedule: ScreenBackfillSchedule = .standard) {
         self.databaseURL = databaseURL
         self.storage = storage
+        self.screenBackfillSchedule = screenBackfillSchedule
         self.embedder = embedder ?? { texts, prefix, priority in
             try await Self.embed(texts, prefix: prefix, priority: priority, storage: storage)
         }
@@ -600,25 +636,69 @@ final class EmbeddingIndex {
             """, bind: [Self.indexVersion])
     }
 
-    /// Rebuilds screen vectors once after a model change discarded them.
-    func rebuildScreenVectorsAfterModelChange() async {
-        guard screenVectorsNeedRebuild else { return }
-        screenVectorsNeedRebuild = false
-        await reindexScreenText()
+    /// Called once the meetings are indexed at launch. Rebuilds screen vectors
+    /// a model change discarded; otherwise schedules a pass for captures made
+    /// before launch or left behind by passes that failed.
+    func resumeScreenBackfill() async {
+        if screenVectorsNeedRebuild {
+            screenVectorsNeedRebuild = false
+            screenSearchInUse = true
+            await reindexScreenText()
+        } else {
+            screenTextDidArrive()
+        }
     }
 
-    /// Backfills immutable OCR rows that do not yet have a vector. This is
-    /// invoked lazily by semantic screen search, so users who never enable that
-    /// feature do not download a model or spend background inference time.
+    /// New screen text was stored. Libraries that search screens by meaning
+    /// get it embedded by a batched background pass instead of waiting for
+    /// the next search; a pass already scheduled covers it too.
+    func screenTextDidArrive() {
+        guard scheduledScreenReindex == nil else { return }
+        if !screenSearchInUse { screenSearchInUse = hasScreenEmbeddings }
+        guard screenSearchInUse else { return }
+        scheduleScreenTextReindex(after: screenBackfillSchedule.newTextDelay)
+    }
+
+    /// Cancels the scheduled and running passes, for example when semantic
+    /// search is turned off. Rows already embedded stay.
+    func stopScreenBackfill() {
+        scheduledScreenReindex?.task.cancel()
+        scheduledScreenReindex = nil
+        screenReindexFlight?.task.cancel()
+        screenReindexFailures = 0
+    }
+
+    private func scheduleScreenTextReindex(after delay: Duration) {
+        scheduledScreenReindex?.task.cancel()
+        let id = UUID()
+        let task = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: delay)
+            guard !Task.isCancelled, let self,
+                  self.scheduledScreenReindex?.id == id else { return }
+            self.scheduledScreenReindex = nil
+            await self.reindexScreenText()
+        }
+        scheduledScreenReindex = (id, task)
+    }
+
+    /// Backfills immutable OCR rows that do not yet have a vector. Semantic
+    /// screen search starts a pass, new captures schedule one
+    /// (`screenTextDidArrive`), and a failed pass schedules a retry with
+    /// exponential backoff, so a temporary embedder failure never leaves new
+    /// screens out of semantic search until someone happens to search again.
     func reindexScreenText() async {
         if let flight = screenReindexFlight {
             await flight.task.value
             return
         }
+        // This pass covers every pending row, so it replaces a scheduled one.
+        scheduledScreenReindex?.task.cancel()
+        scheduledScreenReindex = nil
         let id = UUID()
         let task = Task { @MainActor [weak self] in
             guard let self else { return }
-            await self.performScreenTextReindex()
+            let outcome = await self.performScreenTextReindex()
+            self.screenTextReindexDidFinish(outcome)
         }
         screenReindexFlight = (id, task)
         await task.value
@@ -627,7 +707,31 @@ final class EmbeddingIndex {
         }
     }
 
-    private func performScreenTextReindex() async {
+    private enum ScreenReindexOutcome {
+        case finished
+        case cancelled
+        case failed(Error)
+    }
+
+    private func screenTextReindexDidFinish(_ outcome: ScreenReindexOutcome) {
+        switch outcome {
+        case .finished:
+            if screenReindexFailures > 0 {
+                lokalbotLog("screen embedding backfill recovered after \(screenReindexFailures) failed passes")
+            }
+            screenReindexFailures = 0
+        case .cancelled:
+            break
+        case .failed(let error):
+            screenReindexFailures += 1
+            let delay = screenBackfillSchedule.retryDelay(afterFailures: screenReindexFailures)
+            lokalbotLog("screen embedding backfill failed: \(error.localizedDescription); "
+                        + "retrying in \(Int(delay.components.seconds)) s")
+            scheduleScreenTextReindex(after: delay)
+        }
+    }
+
+    private func performScreenTextReindex() async -> ScreenReindexOutcome {
         guard let database,
               database.hasRow("""
                 SELECT 1 FROM sqlite_master
@@ -636,7 +740,7 @@ final class EmbeddingIndex {
               database.hasRow("""
                 SELECT 1 FROM sqlite_master
                 WHERE type = 'table' AND name = 'screenshots'
-                """) else { return }
+                """) else { return .finished }
 
         while !Task.isCancelled {
             let batch: [ScreenDocument] = database.query("""
@@ -664,8 +768,8 @@ final class EmbeddingIndex {
                     app: String(cString: app),
                     text: String(String(cString: text).prefix(1_500)))
             }
-            guard !batch.isEmpty else { return }
-            guard !Task.isCancelled else { return }
+            guard !batch.isEmpty else { return .finished }
+            guard !Task.isCancelled else { return .cancelled }
             do {
                 let vectors = try await embedder(
                     batch.map(\.text), Self.screenDocumentPrefix, .background)
@@ -710,13 +814,13 @@ final class EmbeddingIndex {
                             ])
                     }
                 }
-            } catch is CancellationError {
-                return
             } catch {
-                lokalbotLog("screen embedding backfill failed: \(error.localizedDescription)")
-                return
+                // Only this pass's own cancellation ends it quietly; anything
+                // else, including a stray CancellationError, is retried.
+                return Task.isCancelled ? .cancelled : .failed(error)
             }
         }
+        return .cancelled
     }
 
     /// Semantic retrieval over screen OCR, with the same date/app filter
@@ -730,6 +834,7 @@ final class EmbeddingIndex {
     ) async -> [ScreenHit] {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard limit > 0, !trimmed.isEmpty, let database else { return [] }
+        screenSearchInUse = true
         // Backfill is single-flight and independent of this interactive query.
         if screenReindexFlight == nil {
             Task { [weak self] in await self?.reindexScreenText() }
