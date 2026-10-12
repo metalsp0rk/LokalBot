@@ -50,13 +50,11 @@ struct ModelConnectionsView: View {
                 Text("Manage servers and credentials. Choose which provider to use from Active models.")
                     .font(.scaled(.body)).settingsSecondary()
             }
-            Picker("Connection", selection: $connection) {
-                Text("OpenAI-compatible").tag(AppSettings.SummarizerBackend.openAICompatible)
-                Text("Ollama").tag(AppSettings.SummarizerBackend.ollama)
-                Text("ChatGPT plan").tag(AppSettings.SummarizerBackend.chatGPTPlan)
-                Text("Claude plan").tag(AppSettings.SummarizerBackend.claudePlan)
+            // Larger text sizes can make four segments wider than the panel.
+            ViewThatFits(in: .horizontal) {
+                connectionPicker.pickerStyle(.segmented).tint(Brand.tealFill).fixedSize()
+                connectionPicker.pickerStyle(.menu).fixedSize()
             }
-            .pickerStyle(.segmented).tint(Brand.tealFill).frame(maxWidth: 600)
             .accessibilityIdentifier("models.connections.provider")
             Label(connection == app.settings.summarizerBackend ? "Used by Think" : "Available for Think",
                   systemImage: connection == app.settings.summarizerBackend ? "checkmark.circle" : "network")
@@ -153,6 +151,15 @@ struct ModelConnectionsView: View {
         }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("models.connections")
+    }
+
+    private var connectionPicker: some View {
+        Picker("Connection", selection: $connection) {
+            Text("OpenAI-compatible").tag(AppSettings.SummarizerBackend.openAICompatible)
+            Text("Ollama").tag(AppSettings.SummarizerBackend.ollama)
+            Text("ChatGPT plan").tag(AppSettings.SummarizerBackend.chatGPTPlan)
+            Text("Claude plan").tag(AppSettings.SummarizerBackend.claudePlan)
+        }
     }
 
     private func saveConnection() {

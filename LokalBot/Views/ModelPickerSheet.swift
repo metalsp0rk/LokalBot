@@ -160,14 +160,12 @@ struct ModelPickerSheet: View {
         VStack(alignment: .leading, spacing: 0) {
             ModelSheetHeading(title: "\(role.title) model", subtitle: role.detail)
             if role == .assistant {
-                Picker("Run with", selection: runWith) {
-                    Text("On this Mac").tag(RunWith.onDevice)
-                    Text("Apple Intelligence").tag(RunWith.appleIntelligence)
-                    Text("Ollama").tag(RunWith.ollama)
-                    Text("Connected provider").tag(RunWith.server)
-                    Text("Your plan").tag(RunWith.plan)
+                // A segmented control wider than the sheet would push the
+                // whole sheet past its edges at larger text sizes.
+                ViewThatFits(in: .horizontal) {
+                    runWithPicker.pickerStyle(.segmented).tint(Brand.tealFill).fixedSize()
+                    runWithPicker.pickerStyle(.menu).fixedSize()
                 }
-                .pickerStyle(.segmented).tint(Brand.tealFill)
                 .padding(.horizontal, 24).padding(.bottom, 16)
                 .accessibilityIdentifier("models.picker.provider")
             }
@@ -436,10 +434,10 @@ struct ModelPickerSheet: View {
         .font(.scaled(.callout)).foregroundStyle(.secondary).padding(.top, 8)
     }
 
-    /// "Your plan" covers both subscription backends; the plan itself is
-    /// chosen below the segmented control.
+    /// "Connected provider" covers an OpenAI-compatible server and both
+    /// subscription plans; which one is chosen below the segmented control.
     private enum RunWith: Hashable {
-        case onDevice, appleIntelligence, ollama, server, plan
+        case onDevice, appleIntelligence, ollama, provider
     }
 
     private var runWith: Binding<RunWith> {
@@ -448,32 +446,53 @@ struct ModelPickerSheet: View {
             case .builtIn: .onDevice
             case .appleIntelligence: .appleIntelligence
             case .ollama: .ollama
-            case .openAICompatible: .server
-            case .chatGPTPlan, .claudePlan: .plan
+            case .openAICompatible, .chatGPTPlan, .claudePlan: .provider
             }
         } set: { choice in
             switch choice {
             case .onDevice: backend = .builtIn
             case .appleIntelligence: backend = .appleIntelligence
             case .ollama: backend = .ollama
-            case .server: backend = .openAICompatible
-            case .plan:
-                guard SubscriptionPlan(backend: backend) == nil else { return }
-                backend = SubscriptionPlan(backend: app.settings.summarizerBackend)?.backend ?? .chatGPTPlan
+            case .provider:
+                guard !Self.isConnectedProvider(backend) else { return }
+                let current = app.settings.summarizerBackend
+                backend = Self.isConnectedProvider(current) ? current : .openAICompatible
             }
         }
+    }
+
+    private static func isConnectedProvider(_ backend: AppSettings.SummarizerBackend) -> Bool {
+        backend == .openAICompatible || SubscriptionPlan(backend: backend) != nil
+    }
+
+    private var runWithPicker: some View {
+        Picker("Run with", selection: runWith) {
+            Text("On this Mac").tag(RunWith.onDevice)
+            Text("Apple Intelligence").tag(RunWith.appleIntelligence)
+            Text("Ollama").tag(RunWith.ollama)
+            Text("Connected provider").tag(RunWith.provider)
+        }
+    }
+
+    private var providerKindPicker: some View {
+        let picker = Picker("Provider", selection: $backend) {
+            Text("OpenAI-compatible").tag(AppSettings.SummarizerBackend.openAICompatible)
+            Text("ChatGPT plan").tag(AppSettings.SummarizerBackend.chatGPTPlan)
+            Text("Claude plan").tag(AppSettings.SummarizerBackend.claudePlan)
+        }
+        .pickerStyle(.radioGroup)
+        return ViewThatFits(in: .horizontal) {
+            picker.horizontalRadioGroupLayout().fixedSize()
+            picker
+        }
+        .accessibilityIdentifier("models.picker.providerKind")
     }
 
     private var planSelection: some View {
         let plan = SubscriptionPlan(backend: backend) ?? .chatGPT
         let target = patch.applying(to: app.settings)
         return VStack(alignment: .leading, spacing: 20) {
-            Picker("Plan", selection: $backend) {
-                Text("ChatGPT plan").tag(AppSettings.SummarizerBackend.chatGPTPlan)
-                Text("Claude plan").tag(AppSettings.SummarizerBackend.claudePlan)
-            }
-            .pickerStyle(.radioGroup).horizontalRadioGroupLayout()
-            .accessibilityIdentifier("models.picker.plan")
+            providerKindPicker
             Label(ModelSettingsPresentation.destination(target), systemImage: InferencePresentation(settings: target).icon)
                 .font(.scaled(.body).weight(.semibold))
                 .settingsModelLocation(InferencePresentation(settings: target))
@@ -494,6 +513,7 @@ struct ModelPickerSheet: View {
             if case .blocked(let reason) = InferencePresentation(settings: target) {
                 Label(reason, systemImage: "exclamationmark.triangle")
                     .font(.scaled(.body)).foregroundStyle(.orange)
+                    .fixedSize(horizontal: false, vertical: true)
             } else {
                 Text("Summaries, Ask, and inherited dictation composition send approved context to \(plan.providerName) "
                      + "and count toward your \(plan.title)'s usage limits. Agent Mode can't use a plan yet.")
@@ -524,6 +544,7 @@ struct ModelPickerSheet: View {
                     .font(.system(size: 14)).foregroundStyle(.secondary)
             } else {
                 let target = patch.applying(to: app.settings)
+                if backend == .openAICompatible { providerKindPicker }
                 Label(ModelSettingsPresentation.destination(target), systemImage: InferencePresentation(settings: target).icon)
                     .font(.scaled(.body).weight(.semibold))
                     .settingsModelLocation(InferencePresentation(settings: target))
@@ -537,6 +558,7 @@ struct ModelPickerSheet: View {
                 if case .blocked(let reason) = InferencePresentation(settings: target) {
                     Label(reason, systemImage: "exclamationmark.triangle")
                         .font(.scaled(.body)).foregroundStyle(.orange)
+                        .fixedSize(horizontal: false, vertical: true)
                 } else {
                     Text(InferencePresentation(settings: target).detail(
                         local: "This provider runs on this Mac.",
