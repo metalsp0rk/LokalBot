@@ -758,7 +758,18 @@ final class RedesignUITests: XCTestCase {
         UITestHarness.scrollTo(session, in: app)
         session.click()
     }
+
+    private func dismissHoverHelpBeforeAuditing() {
+        // Scrolling can leave the pointer over an evidence link. Its native
+        // help tag obscures the text being measured and has no audit label.
+        // Hovering over the titlebar preserves the current focus and menus.
+        app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.01)).hover()
+        XCTAssertTrue(app.descendants(matching: .helpTag).firstMatch.waitForNonExistence(timeout: 3),
+                      "Dismiss native hover help before measuring workspace accessibility")
+    }
+
     private func auditWorkspaceAccessibility(includeContrast: Bool = false, contrastBounds: CGRect? = nil) throws {
+        dismissHoverHelpBeforeAuditing()
         // Report every app issue. The hosted virtual Mac also exposes a
         // system-generated Touch Bar and its Emoji picker outside our window;
         // neither is an app-owned control or a usable hosted input surface.
@@ -771,6 +782,7 @@ final class RedesignUITests: XCTestCase {
         var types: XCUIAccessibilityAuditType = [.sufficientElementDescription, .action]
         if includeContrast { types.insert(.contrast) }
         let verifiedText = includeContrast && contrastBounds == nil ? try verifyRecallExplanationContrast() : []
+        dismissHoverHelpBeforeAuditing()
         try app.performAccessibilityAudit(for: types) { issue in
             guard let affected = issue.element, affected.exists else { return false }
             if issue.auditType == .contrast {
