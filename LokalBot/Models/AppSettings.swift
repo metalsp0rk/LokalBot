@@ -239,6 +239,8 @@ struct AppSettings: Codable, Equatable {
     /// bringing the main app forward. Off by default because a global shortcut
     /// is an explicit automation choice.
     var quickRecallEnabled: Bool = false
+    /// The key combination that opens Ask from any app.
+    var quickRecallShortcut: DictationShortcut = .quickRecallDefault
 
     // MARK: - Day digest
 
@@ -763,6 +765,7 @@ struct AppSettings: Codable, Equatable {
         case retentionDays
         case keepOCRTextForever
         case quickRecallEnabled
+        case quickRecallShortcut
         case dayDigestAutoEnabled
         case dayDigestHour
         case dayDigestCustomPrompt
@@ -945,6 +948,7 @@ struct AppSettings: Codable, Equatable {
         try c.encode(retentionDays, forKey: .retentionDays)
         try c.encode(keepOCRTextForever, forKey: .keepOCRTextForever)
         try c.encode(quickRecallEnabled, forKey: .quickRecallEnabled)
+        try c.encode(quickRecallShortcut, forKey: .quickRecallShortcut)
         try c.encode(dayDigestAutoEnabled, forKey: .dayDigestAutoEnabled)
         try c.encode(min(23, max(0, dayDigestHour)), forKey: .dayDigestHour)
         try c.encode(dayDigestCustomPrompt, forKey: .dayDigestCustomPrompt)
@@ -1107,6 +1111,9 @@ struct AppSettings: Codable, Equatable {
         retentionDays = decode(.retentionDays, defaults.retentionDays)
         keepOCRTextForever = decode(.keepOCRTextForever, defaults.keepOCRTextForever)
         quickRecallEnabled = decode(.quickRecallEnabled, defaults.quickRecallEnabled)
+        let storedQuickRecallShortcut = decode(.quickRecallShortcut, defaults.quickRecallShortcut)
+        quickRecallShortcut = storedQuickRecallShortcut.quickRecallProblem == nil
+            ? storedQuickRecallShortcut : defaults.quickRecallShortcut
         dayDigestAutoEnabled = decode(.dayDigestAutoEnabled, defaults.dayDigestAutoEnabled)
         dayDigestHour = min(23, max(0, decode(.dayDigestHour, defaults.dayDigestHour)))
         dayDigestCustomPrompt = decode(.dayDigestCustomPrompt, defaults.dayDigestCustomPrompt)

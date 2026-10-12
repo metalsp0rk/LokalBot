@@ -251,7 +251,7 @@ struct SettingsView: View {
         if shows("General", ["launch", "login", "startup", "open at login", "auto start",
                                  "appearance", "theme", "dark", "light", "text size", "font",
                                  "menu bar", "menubar", "dock", "dock icon", "hide dock",
-                                 "window", "background", "tray", "quick recall", "shortcut",
+                                 "window", "background", "tray", "ask", "quick recall", "shortcut",
                                  "hotkey", "global search"]) {
                 Section("General") {
                     LaunchAtLoginToggleRow(state: LaunchAtLoginState.shared)
@@ -300,9 +300,22 @@ struct SettingsView: View {
                 Section("Shortcut") {
                     Toggle(isOn: $app.settings.quickRecallEnabled) {
                         SettingsLabel("Enable the system-wide Ask shortcut",
-                                      help: "Press \(QuickRecallHotKeyController.shortcutLabel) in any app to search your work memory or ask a question. LokalBot registers only this shortcut and never reads other keystrokes.")
+                                      help: "Press \(app.settings.quickRecallShortcut.displayLabel) in any app to search your work memory or ask a question. LokalBot registers only this shortcut and never reads other keystrokes.")
                     }
                     .settingTarget("settings.quickRecallEnabled", selected: app.focusedSettingID)
+                    LabeledContent("Ask shortcut") {
+                        ShortcutRecorder(
+                            shortcut: $app.settings.quickRecallShortcut,
+                            defaultShortcut: .quickRecallDefault,
+                            accessibilityIdentifier: "settings.quickRecallShortcut",
+                            changeHelp: "Change the Ask shortcut",
+                            validate: { candidate in
+                                QuickRecallHotKeyController.problem(
+                                    for: candidate, dictationShortcut: app.settings.dictationShortcut)
+                            },
+                            onRecordingChanged: { app.setShortcutRecording($0) })
+                    }
+                    .settingTarget("settings.quickRecallShortcut", selected: app.focusedSettingID)
                 }
             }
 

@@ -82,6 +82,8 @@
 "Ask About This Day" = "询问这一天的工作";
 "Ask About This…" = "询问此内容…";
 "Ask About Today" = "询问今天的工作";
+"Ask already uses this shortcut. Choose another." = "问答已在使用此快捷键。请选择其他快捷键。";
+"Ask shortcut" = "问答快捷键";
 "Ask This Meeting" = "询问此会议";
 "Ask about this activity" = "询问此活动";
 "Ask about this meeting" = "询问此会议";
@@ -137,6 +139,7 @@
 "Captured" = "已采集";
 "Captured screen" = "已采集的屏幕";
 "Captures encrypted visuals for day memory. Only used in Text + visual context mode; system-audio capture does not use this permission." = "为工作记忆采集加密图像。仅在“文字与视觉上下文”模式下使用；系统音频采集不使用此权限。";
+"Change the Ask shortcut" = "更改问答快捷键";
 "Change the dictation shortcut" = "更改听写快捷键";
 "Changes the interface immediately. Transcription and notes languages are set separately." = "立即切换界面语言。转写和笔记的语言需单独设置。";
 "Change…" = "更改…";
@@ -175,6 +178,9 @@
 "Clear search" = "清除搜索";
 "Clear search filters" = "清除搜索筛选";
 "Clear selection" = "清除选择";
+"Dictation already uses this shortcut. Choose another." = "听写已在使用此快捷键。请选择其他快捷键。";
+"Hold the modifiers and press a key, like ⌃⇧ Space." = "请按住修饰键再按一个按键，例如 ⌃⇧ Space。";
+"macOS already uses this shortcut. Choose another." = "macOS 已在使用此快捷键。请选择其他快捷键。";
 "Model folder selection cleared" = "已清除模型文件夹选择";
 "Clear settings search" = "清除设置搜索";
 "Clear the result-type filter" = "清除结果类型筛选";
@@ -983,6 +989,7 @@
 "This moment retained text context without screen pixels." = "此时刻仅保留了文字上下文，没有屏幕图像。";
 "This permanently deletes the audio, transcript and summary files." = "这会永久删除音频、转写和摘要文件。";
 "This permanently removes its pixels, captured text, and metadata." = "这会永久删除其图像、采集的文字和元数据。";
+"This shortcut could not be registered. Another app may already use it." = "无法注册此快捷键。其他应用可能已在使用它。";
 "This task’s access" = "此任务的访问权限";
 "Threads" = "串联";
 "Time allocation" = "时间分配";

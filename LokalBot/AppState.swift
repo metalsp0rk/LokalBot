@@ -164,8 +164,9 @@ final class AppState: ObservableObject {
                 if Self.cotypingRuntimeChanged(from: oldValue, to: settings) {
                     scheduleCotypingPrewarm()
                 }
-                if settings.quickRecallEnabled != oldValue.quickRecallEnabled {
-                    applyQuickRecallSetting()
+                if settings.quickRecallEnabled != oldValue.quickRecallEnabled
+                    || settings.quickRecallShortcut != oldValue.quickRecallShortcut {
+                    applyQuickRecallSetting(replacing: oldValue.quickRecallShortcut)
                 }
                 // UI retention reductions are reviewed and executed explicitly.
                 // Changing a preference must not trigger an unreviewed cleanup.
@@ -1932,12 +1933,31 @@ final class AppState: ObservableObject {
         screenshots.restart()
     }
 
-    func applyQuickRecallSetting() {
-        let registered = quickRecallHotKey.setEnabled(settings.quickRecallEnabled)
-        if settings.quickRecallEnabled, !registered {
-            settings.quickRecallEnabled = false
-            lastError = "The Ask shortcut could not register \(QuickRecallHotKeyController.shortcutLabel). Another app may already use it."
+    /// `previous` is the shortcut to fall back to when a newly chosen one is
+    /// refused; without one, a refused shortcut turns Ask's shortcut off.
+    func applyQuickRecallSetting(replacing previous: DictationShortcut? = nil) {
+        guard settings.quickRecallEnabled else {
+            quickRecallHotKey.setShortcut(nil)
+            return
         }
+        let shortcut = settings.quickRecallShortcut
+        guard !quickRecallHotKey.setShortcut(shortcut) else { return }
+        lastError = "The Ask shortcut could not register \(shortcut.displayLabel). Another app may already use it."
+        if let previous, previous != shortcut, quickRecallHotKey.setShortcut(previous) {
+            settings.quickRecallShortcut = previous
+        } else {
+            settings.quickRecallEnabled = false
+        }
+    }
+
+    /// Settings is recording a new shortcut. Pause the global ones so every
+    /// combination reaches the recorder, including one that is already taken.
+    func setShortcutRecording(_ recording: Bool) {
+        dictation.setShortcutRecording(recording)
+        // Ask's hot key is only registered on the interactive launch path.
+        guard interactive else { return }
+        quickRecallHotKey.isSuspended = recording
+        if !recording { applyQuickRecallSetting() }
     }
 
     func applyDailyMemoryExportSetting() {

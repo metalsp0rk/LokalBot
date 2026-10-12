@@ -532,6 +532,7 @@ enum DictationPreviewTextStitcher {
 /// (⌃⌥, the way Wispr Flow and similar apps are often set up). The event tap
 /// consumes a key shortcut system-wide, so it must not be something people
 /// type; a modifier-only shortcut is observed without consuming anything.
+/// The system-wide Ask shortcut uses the same type, but always with a key.
 struct DictationShortcut: Equatable, Sendable {
     /// Nil for a modifier-only shortcut.
     var keyCode: CGKeyCode?
@@ -543,6 +544,8 @@ struct DictationShortcut: Equatable, Sendable {
     }
 
     static let handyDefault = DictationShortcut(keyCode: 49, modifiers: .maskAlternate)
+    /// ⌃⇧ Space opens Ask.
+    static let quickRecallDefault = DictationShortcut(keyCode: 49, modifiers: [.maskControl, .maskShift])
 
     var isModifierOnly: Bool { keyCode == nil }
 
@@ -568,6 +571,11 @@ struct DictationShortcut: Equatable, Sendable {
         case needsModifier
         case commandOnly
         case needsTwoModifiers
+        case needsKey
+        case usedByDictation
+        case usedByAsk
+        case usedBySystem
+        case unavailable
 
         var message: String {
             switch self {
@@ -579,6 +587,16 @@ struct DictationShortcut: Equatable, Sendable {
                 "Apps use ⌘ with a single key. Add ⌃, ⌥ or ⇧."
             case .needsTwoModifiers:
                 "Hold at least two modifier keys, like ⌃⌥, or add a key."
+            case .needsKey:
+                "Hold the modifiers and press a key, like ⌃⇧ Space."
+            case .usedByDictation:
+                "Dictation already uses this shortcut. Choose another."
+            case .usedByAsk:
+                "Ask already uses this shortcut. Choose another."
+            case .usedBySystem:
+                "macOS already uses this shortcut. Choose another."
+            case .unavailable:
+                "This shortcut could not be registered. Another app may already use it."
             }
         }
     }
@@ -597,6 +615,13 @@ struct DictationShortcut: Equatable, Sendable {
             return .commandOnly
         }
         return nil
+    }
+
+    /// Why this combination cannot be the system-wide Ask shortcut, or nil.
+    /// Ask registers a Carbon hot key, which needs a key and never observes
+    /// modifiers alone.
+    var quickRecallProblem: Problem? {
+        isModifierOnly ? .needsKey : problem
     }
 
     static func modifierCount(_ modifiers: CGEventFlags) -> Int {

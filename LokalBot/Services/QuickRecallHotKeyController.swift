@@ -6,42 +6,99 @@ import Foundation
 /// or retain any other keyboard input.
 @MainActor
 final class QuickRecallHotKeyController {
-    static let shortcutLabel = "⌃⇧Space"
-
     var onInvoke: (() -> Void)?
+
+    /// True while Settings records a new shortcut, so the current one reaches
+    /// the recorder instead of opening Ask.
+    var isSuspended = false {
+        didSet { if isSuspended != oldValue { sync() } }
+    }
 
     private static let signature: OSType = 0x4C425152 // "LBQR"
     private static let identifier: UInt32 = 1
 
+    /// The shortcut Ask should answer to, or nil when it is off.
+    private var shortcut: DictationShortcut?
+    /// The shortcut `hotKey` was registered with.
+    private(set) var registeredShortcut: DictationShortcut?
     private var hotKey: EventHotKeyRef?
     private var eventHandler: EventHandlerRef?
 
+    /// Registers `shortcut`, replacing the previous one, or unregisters for
+    /// nil. Returns false when the system refuses the combination; Ask then
+    /// has no shortcut until a later call succeeds.
     @discardableResult
-    func setEnabled(_ enabled: Bool) -> Bool {
-        if !enabled {
-            unregister()
-            return true
-        }
-        guard hotKey == nil else { return true }
-        guard installHandlerIfNeeded() else { return false }
+    func setShortcut(_ shortcut: DictationShortcut?) -> Bool {
+        self.shortcut = shortcut
+        return sync()
+    }
+
+    @discardableResult
+    private func sync() -> Bool {
+        let wanted = isSuspended ? nil : shortcut
+        guard wanted != registeredShortcut else { return true }
+        unregister()
+        guard let wanted else { return true }
+        guard let keyCode = wanted.keyCode, installHandlerIfNeeded() else { return false }
 
         var reference: EventHotKeyRef?
         let hotKeyID = EventHotKeyID(
             signature: Self.signature,
             id: Self.identifier)
         let status = RegisterEventHotKey(
-            UInt32(kVK_Space),
-            UInt32(controlKey | shiftKey),
+            UInt32(keyCode),
+            Self.carbonModifiers(wanted.modifiers),
             hotKeyID,
             GetApplicationEventTarget(),
             0,
             &reference)
         guard status == noErr else { return false }
         hotKey = reference
+        registeredShortcut = wanted
         return true
     }
 
+    /// Why `candidate` cannot open Ask, or nil.
+    static func problem(
+        for candidate: DictationShortcut,
+        dictationShortcut: DictationShortcut
+    ) -> DictationShortcut.Problem? {
+        if let problem = candidate.quickRecallProblem { return problem }
+        if candidate == dictationShortcut { return .usedByDictation }
+        if isSystemShortcut(candidate) { return .usedBySystem }
+        return nil
+    }
+
+    /// Enabled macOS keyboard shortcuts, such as ⌘ Space for Spotlight, take
+    /// the keys before a hot key registered here would see them.
+    static func isSystemShortcut(_ shortcut: DictationShortcut) -> Bool {
+        guard let keyCode = shortcut.keyCode else { return false }
+        var unmanaged: Unmanaged<CFArray>?
+        guard CopySymbolicHotKeys(&unmanaged) == noErr,
+              let hotKeys = unmanaged?.takeRetainedValue() as? [[String: Any]] else { return false }
+        let relevantModifiers = controlKey | optionKey | shiftKey | cmdKey
+        let modifiers = Int(carbonModifiers(shortcut.modifiers))
+        return hotKeys.contains { hotKey in
+            guard (hotKey[kHISymbolicHotKeyEnabled as String] as? Bool) == true,
+                  let code = hotKey[kHISymbolicHotKeyCode as String] as? Int,
+                  let systemModifiers = hotKey[kHISymbolicHotKeyModifiers as String] as? Int else {
+                return false
+            }
+            return code == Int(keyCode) && systemModifiers & relevantModifiers == modifiers
+        }
+    }
+
+    nonisolated static func carbonModifiers(_ modifiers: CGEventFlags) -> UInt32 {
+        var result = 0
+        if modifiers.contains(.maskControl) { result |= controlKey }
+        if modifiers.contains(.maskAlternate) { result |= optionKey }
+        if modifiers.contains(.maskShift) { result |= shiftKey }
+        if modifiers.contains(.maskCommand) { result |= cmdKey }
+        return UInt32(result)
+    }
+
     func stop() {
+        shortcut = nil
         unregister()
         if let eventHandler {
             RemoveEventHandler(eventHandler)
@@ -92,6 +149,7 @@ final class QuickRecallHotKeyController {
             UnregisterEventHotKey(hotKey)
             self.hotKey = nil
         }
+        registeredShortcut = nil
     }
 }
 
