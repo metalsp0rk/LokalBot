@@ -87,6 +87,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 DispatchQueue.main.async { WindowAccess.shared.open("main") }
             }
         }
+        // Read off the main thread now so General's toggle opens on the real value.
+        LaunchAtLoginState.shared.refresh()
         let center = NotificationCenter.default
         for name: NSNotification.Name in [
             NSWindow.didBecomeKeyNotification,

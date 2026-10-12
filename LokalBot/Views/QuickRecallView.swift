@@ -34,16 +34,19 @@ private struct QuickRecallContent: View {
     @FocusState private var inputFocused: Bool
 
     var body: some View {
+        // Built once per update: rows clean every result snippet, and the
+        // window stays alive while hidden, redrawing on every AppState change.
+        let sections = sections
         VStack(spacing: 0) {
             searchField
             Divider()
-            content
+            content(sections)
             if !showingConversation {
                 Divider()
                 QuickRecallFooter(
                     query: trimmedQuery,
                     inference: InferencePresentation(settings: app.settings),
-                    hasResults: !rows.isEmpty,
+                    hasResults: sections.contains { !$0.rows.isEmpty },
                     isSearching: isSearching,
                     ask: { ask(trimmedQuery) })
             }
@@ -147,15 +150,17 @@ private struct QuickRecallContent: View {
         .padding(.vertical, 16)
     }
 
-    @ViewBuilder private var content: some View {
+    @ViewBuilder private func content(_ sections: [QuickRecallSection]) -> some View {
         if showingConversation {
             ChatTranscriptView(model: model)
         } else {
-            resultList
+            resultList(sections)
         }
     }
 
-    @ViewBuilder private var resultList: some View {
+    @ViewBuilder private func resultList(_ sections: [QuickRecallSection]) -> some View {
+        let rows = sections.flatMap(\.rows)
+        let indices = Dictionary(rows.enumerated().map { ($1.id, $0) }, uniquingKeysWith: { first, _ in first })
         if trimmedQuery.isEmpty, sections.isEmpty {
             ContentUnavailableView {
                 Label("Ask anything", systemImage: "sparkle.magnifyingglass")
@@ -209,7 +214,7 @@ private struct QuickRecallContent: View {
                                 .padding(.bottom, 6)
                                 .accessibilityAddTraits(.isHeader)
                             ForEach(section.rows) { row in
-                                displayedRow(row)
+                                displayedRow(row, index: indices[row.id] ?? 0)
                                     .id(row.id)
                                 Divider()
                                     .padding(.horizontal, 12)
@@ -221,7 +226,7 @@ private struct QuickRecallContent: View {
                     .padding(.horizontal, 10)
                     .padding(.bottom, 10)
                 }
-                .onChange(of: selectedRowID) { _, id in
+                .onChange(of: rows.indices.contains(selection) ? rows[selection].id : nil) { _, id in
                     if let id { proxy.scrollTo(id) }
                 }
             }
@@ -266,13 +271,8 @@ private struct QuickRecallContent: View {
         sections.flatMap(\.rows)
     }
 
-    private var selectedRowID: String? {
-        rows.indices.contains(selection) ? rows[selection].id : nil
-    }
-
-    private func displayedRow(_ row: QuickRecallRowModel) -> some View {
-        let index = rows.firstIndex(where: { $0.id == row.id }) ?? 0
-        return Button {
+    private func displayedRow(_ row: QuickRecallRowModel, index: Int) -> some View {
+        Button {
             run(row)
         } label: {
             QuickRecallRow(row: row, selected: selection == index)
