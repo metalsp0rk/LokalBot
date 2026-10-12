@@ -1,9 +1,11 @@
+import SQLite3
 import XCTest
 @testable import LokalBot
 
 /// Ask and Quick Recall search meetings and then screens on every debounced
 /// keystroke. The typed query is embedded once for both sources, at the
-/// caller's priority, while indexing stays background work.
+/// caller's priority, while indexing stays background work, sent in small
+/// requests so the query waits behind at most one of them.
 @MainActor
 final class EmbeddingIndexQueryTests: XCTestCase {
     private final class Recorder {
@@ -26,6 +28,44 @@ final class EmbeddingIndexQueryTests: XCTestCase {
                 throw URLError(.cannotConnectToHost)
             }
             return texts.map { _ in [1, 0] }
+        }
+    }
+
+    /// Holds each request until the test answers it, like a busy server.
+    @MainActor
+    private final class HeldEmbedder {
+        struct Request: Equatable {
+            let texts: [String]
+            let priority: InferencePriority
+        }
+
+        private(set) var posted: [Request] = []
+        private var held: [Int: CheckedContinuation<[[Float]], Error>] = [:]
+        private var answersImmediately = false
+
+        /// The vector says which text it belongs to, so stored rows can be
+        /// checked against their text.
+        static func vector(for text: String) -> [Float] { [Float(text.count), 0] }
+
+        func embed(_ texts: [String], priority: InferencePriority) async throws -> [[Float]] {
+            posted.append(Request(texts: texts, priority: priority))
+            if answersImmediately { return texts.map(Self.vector) }
+            let index = posted.count - 1
+            return try await withTaskCancellationHandler {
+                try await withCheckedThrowingContinuation { held[index] = $0 }
+            } onCancel: {
+                Task { @MainActor in self.held.removeValue(forKey: index)?.resume(throwing: CancellationError()) }
+            }
+        }
+
+        func answer(_ index: Int) {
+            held.removeValue(forKey: index)?.resume(returning: posted[index].texts.map(Self.vector))
+        }
+
+        /// Answers everything held so far and every later request.
+        func answerAll() {
+            answersImmediately = true
+            for index in held.keys.sorted() { answer(index) }
         }
     }
 
@@ -55,7 +95,7 @@ final class EmbeddingIndexQueryTests: XCTestCase {
 
     /// One embedded meeting chunk and one embedded screen, both matching the
     /// recorder's query vector exactly.
-    private func makeLibrary() throws -> Library {
+    private func makeLibrary(embedder: EmbeddingIndex.Embedder? = nil) throws -> Library {
         let root = FileManager.default.temporaryDirectory
             .appendingPathComponent("embedding-query-\(UUID().uuidString)", isDirectory: true)
         roots.append(root)
@@ -67,10 +107,10 @@ final class EmbeddingIndexQueryTests: XCTestCase {
             windowTitle: "Launch", ocr: "Launch budget review")
         let recorder = Recorder()
         let index = EmbeddingIndex(
-            databaseURL: databaseURL, storage: StorageManager(rootURL: root)
-        ) { texts, prefix, priority in
-            try recorder.embed(texts, prefix: prefix, priority: priority)
-        }
+            databaseURL: databaseURL, storage: StorageManager(rootURL: root),
+            embedder: embedder ?? { texts, prefix, priority in
+                try recorder.embed(texts, prefix: prefix, priority: priority)
+            })
         let database = try XCTUnwrap(SQLiteDatabase(url: databaseURL))
         let meetingID = UUID()
         let vector = vectorData([1, 0])
@@ -144,5 +184,128 @@ final class EmbeddingIndexQueryTests: XCTestCase {
         let database = try XCTUnwrap(SQLiteDatabase(url: library.databaseURL))
         XCTAssertTrue(database.hasRow(
             "SELECT 1 FROM screen_embeddings WHERE snapshot_id = ?1", bind: [unembeddedScreen]))
+    }
+
+    // MARK: - Background requests and typed queries
+
+    /// Lets queued main-actor work run until `condition` holds.
+    private func settle(until condition: () -> Bool,
+                        file: StaticString = #filePath, line: UInt = #line) async {
+        for _ in 0..<1_000 where !condition() { await Task.yield() }
+        XCTAssertTrue(condition(), "condition never held", file: file, line: line)
+    }
+
+    /// A meeting whose transcript makes one chunk per line, each line a
+    /// different length.
+    private func writeMeeting(in library: Library, lines: Int) throws -> Meeting {
+        let meetingID = UUID()
+        try MeetingFixture.write([
+            .init(id: meetingID, title: "Planning", startedAt: Date(),
+                  transcriptLines: (0..<lines).map { line in
+                      "Line \(line) " + String(repeating: "plan ", count: 110 + 2 * line)
+                  }),
+        ], under: library.root)
+        return try XCTUnwrap(StorageManager(rootURL: library.root).loadMeetings()
+            .first { $0.id == meetingID })
+    }
+
+    func testBackgroundRequestsStayWithinInputAndCharacterLimits() {
+        let screenRows = Array(repeating: String(repeating: "a", count: 1_500), count: 3)
+        XCTAssertEqual(EmbeddingIndex.backgroundRequestRanges(screenRows), [0..<1, 1..<2, 2..<3])
+        let chunks = Array(repeating: String(repeating: "b", count: 500), count: 10)
+        XCTAssertEqual(EmbeddingIndex.backgroundRequestRanges(chunks), [0..<4, 4..<8, 8..<10])
+        let shortTexts = Array(repeating: "c", count: 20)
+        XCTAssertEqual(EmbeddingIndex.backgroundRequestRanges(shortTexts), [0..<8, 8..<16, 16..<20])
+        let oversized = ["d", String(repeating: "e", count: 2_500), "f"]
+        XCTAssertEqual(EmbeddingIndex.backgroundRequestRanges(oversized), [0..<1, 1..<2, 2..<3])
+        XCTAssertEqual(EmbeddingIndex.backgroundRequestRanges([]), [])
+    }
+
+    func testTypedQueryWaitsForAtMostOneBackgroundRequest() async throws {
+        let held = HeldEmbedder()
+        let library = try makeLibrary { texts, _, priority in
+            try await held.embed(texts, priority: priority)
+        }
+        let meeting = try writeMeeting(in: library, lines: 9)
+
+        let indexing = Task { try await library.index.index(meeting) }
+        await settle { held.posted.count == 1 }
+        let searching = Task { await library.index.search("launch budget", priority: .interactive) }
+        // The query is posted while the background request is on the server.
+        await settle { held.posted.count == 2 }
+        XCTAssertEqual(held.posted[1], .init(texts: ["launch budget"], priority: .interactive))
+
+        held.answer(0)
+        for _ in 0..<100 { await Task.yield() }
+        // The next background request is held until the query has its vector.
+        XCTAssertEqual(held.posted.count, 2)
+
+        held.answerAll()
+        let hits = await searching.value
+        try await indexing.value
+
+        XCTAssertTrue(hits.map(\.meetingID).contains(library.meetingID))
+        let background = held.posted.filter { $0.priority == .background }
+        XCTAssertGreaterThan(background.count, 2)
+        var expectedPriorities: [InferencePriority] = [.background, .interactive]
+        for _ in background.dropFirst() { expectedPriorities.append(.background) }
+        XCTAssertEqual(held.posted.map(\.priority), expectedPriorities)
+        for request in background {
+            var characters = 0
+            for text in request.texts { characters += text.count }
+            XCTAssertLessThanOrEqual(request.texts.count, EmbeddingIndex.backgroundRequestMaximumInputs)
+            XCTAssertLessThanOrEqual(characters, EmbeddingIndex.backgroundRequestMaximumCharacters)
+        }
+        // Every chunk is stored once, in order, with its own vector.
+        let database = try XCTUnwrap(SQLiteDatabase(url: library.databaseURL))
+        let stored: [(text: String, vector: [Float])] = database.query(
+            "SELECT text, vec FROM embeddings WHERE meeting_id = ?1 ORDER BY rowid",
+            bind: [meeting.id.uuidString]
+        ) { statement in
+            guard let text = sqlite3_column_text(statement, 0),
+                  let blob = sqlite3_column_blob(statement, 1) else { return nil }
+            let count = Int(sqlite3_column_bytes(statement, 1)) / MemoryLayout<Float>.stride
+            let vector = Array(UnsafeBufferPointer(
+                start: blob.assumingMemoryBound(to: Float.self), count: count))
+            return (String(cString: text), vector)
+        }
+        XCTAssertEqual(stored.map(\.text), background.flatMap(\.texts))
+        XCTAssertEqual(stored.count, 9)
+        for row in stored { XCTAssertEqual(row.vector, HeldEmbedder.vector(for: row.text)) }
+    }
+
+    func testCancelledBackgroundWaiterLeavesTheGateUsable() async throws {
+        let held = HeldEmbedder()
+        let library = try makeLibrary { texts, _, priority in
+            try await held.embed(texts, priority: priority)
+        }
+        let meeting = try writeMeeting(in: library, lines: 2)
+
+        let searching = Task { await library.index.search("launch budget", priority: .interactive) }
+        await settle { held.posted.count == 1 }
+        let indexing = Task { try await library.index.index(meeting) }
+        for _ in 0..<100 { await Task.yield() }
+        XCTAssertEqual(held.posted.count, 1)
+
+        indexing.cancel()
+        do {
+            try await indexing.value
+            XCTFail("cancelled indexing finished")
+        } catch is CancellationError {}
+
+        held.answerAll()
+        _ = await searching.value
+        let screenID = try library.store.insertScreenshot(
+            ts: Date(), path: "/tmp/synthetic-screen-3.enc", app: "Editor",
+            windowTitle: "Roadmap", ocr: "Roadmap draft")
+        await library.index.reindexScreenText()
+
+        XCTAssertEqual(held.posted, [
+            .init(texts: ["launch budget"], priority: .interactive),
+            .init(texts: ["Roadmap draft"], priority: .background),
+        ])
+        let database = try XCTUnwrap(SQLiteDatabase(url: library.databaseURL))
+        XCTAssertTrue(database.hasRow(
+            "SELECT 1 FROM screen_embeddings WHERE snapshot_id = ?1", bind: [screenID]))
     }
 }
