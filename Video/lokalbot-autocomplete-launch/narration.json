@@ -18,9 +18,9 @@
     },
     {
       "id": "03-remember",
-      "caption": "I wanted it to remember. Yesterday Mila told me the beta ships on Thursday. So when I write to the team today, it already knows.",
-      "text": "I wanted it to remember. Yesterday, Mila told me the beta ships on Thursday. So when I write to the team today, it already knows.",
-      "eleven_text": "I wanted it to remember. Yesterday, Mila told me the beta ships on Thursday. So when I write to the team today, it already knows."
+      "caption": "I wanted it to remember. Yesterday John told me the beta goes out on Thursday. So when I write to the team today, it already knows.",
+      "text": "I wanted it to remember. Yesterday John told me the beta goes out on Thursday. So when I write to the team today, it already knows.",
+      "eleven_text": "I wanted it to remember. Yesterday, John told me the beta goes out on Thursday. So when I write to the team today, it already knows."
     },
     {
       "id": "04-local",
@@ -29,8 +29,9 @@
     },
     {
       "id": "05-open",
-      "caption": "And I wanted it open, so anyone can make it better in their own language. Here it's writing German, French, Italian and Spanish. Same small model, on your Mac.",
-      "text": "And I wanted it open, so anyone can make it better in their own language. Here it's writing German, French, Italian, and Spanish. Same small model, on your Mac."
+      "caption": "And I wanted it open, so anyone can make it better in their own language. Here it's writing German, French, Italian and Spanish. Same small model, Gemma 4 E2B, on your Mac.",
+      "text": "And I wanted it open, so anyone can make it better in their own language. Here it's writing German, French, Italian and Spanish. Same small model, Gemma 4 E2B, on your Mac.",
+      "eleven_text": "And I wanted it open, so anyone can make it better in their own language. Here it's writing German, French, Italian, and Spanish. Same small model, Gemma four E-two-B, on your Mac."
     },
     {
       "id": "06-quiet",

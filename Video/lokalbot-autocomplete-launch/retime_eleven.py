@@ -75,6 +75,8 @@ ws5 = words('05-open')
 for r, name in zip(lang['rows'], ['German', 'French', 'Italian', 'Spanish']):
     r['named'] = round(voice['05-open'] + find(ws5, name)[0], 3)
 
+E['overlays']['model_badge']['start'] = round(voice['05-open'] + find(ws5, 'Gemma')[0] - 0.1, 3)
+
 ws7 = words('07-credit')
 credit = next(s for s in E['scenes'] if s['id'] == 'credit')
 E['endcard'] = {

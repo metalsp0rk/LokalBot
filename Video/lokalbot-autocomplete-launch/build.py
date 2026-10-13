@@ -108,6 +108,11 @@ page = f'''<!doctype html>
         letter-spacing: 0.04em; color: var(--ink-soft); }}
       #counter .source {{ font-family: "Newsreader Italic", Georgia, serif; font-style: italic; font-size: 24px;
         color: var(--ink-soft); margin-top: 8px; }}
+      #model-badge {{ position: absolute; opacity: 0; font-family: "Hanken Grotesk", sans-serif; font-size: 24px;
+        font-weight: 500; color: var(--ink); background: #FBF8F2; border: 2px solid var(--accent);
+        padding: 9px 20px; border-radius: 999px; white-space: nowrap; }}
+      #model-badge b {{ font-weight: 700; color: var(--accent); }}
+      #endcard .model {{ font-family: "DM Mono", monospace; font-size: 28px; color: var(--ink-soft); margin-top: 14px; }}
       #memory-tag {{ position: absolute; opacity: 0; font-family: "Hanken Grotesk", sans-serif; font-size: 24px;
         font-weight: 650; letter-spacing: 0.03em; color: #F3EDE3; background: var(--accent);
         padding: 10px 18px; border-radius: 999px; white-space: nowrap; }}
@@ -147,15 +152,17 @@ page = f'''<!doctype html>
         <div class="label">TABS ACCEPTED IN COTYPIST SINCE MAY 28</div>
         <div class="source">counted by its own stats file</div>
       </div>
+      <div id="model-badge" style="left:{E['overlays']['model_badge']['pos'][0]}px;top:{E['overlays']['model_badge']['pos'][1]}px"><b>Gemma 4 E2B</b> base · Q6_K · on this Mac</div>
       <div id="memory-tag" style="left:{E['overlays']['memory_tag']['pos'][0]}px;top:{E['overlays']['memory_tag']['pos'][1]}px">from yesterday's call</div>
       <div id="memory-note" style="left:{E['overlays']['memory_note']['pos'][0]}px;top:{E['overlays']['memory_note']['pos'][1]}px">
         <div class="kicker">Meeting note · yesterday, 3:00 pm</div>
         <div class="title">Harbor beta check-in</div>
-        <div class="quote">“Mila confirmed the Harbor beta ships Thursday morning, right after Wednesday’s accessibility review.”</div>
+        <div class="quote">“John confirmed the Harbor beta ships Thursday morning, right after Wednesday’s accessibility review.”</div>
       </div>
       <div id="endcard">
         <div class="brand"><img src="assets/brand/lokalbot-mark-brand.svg" alt="" /><div class="word">LokalBot</div></div>
         <div class="line">Free and open source. Every model runs on your Mac.</div>
+        <div class="model">autocomplete: Gemma 4 E2B base · Q6_K · llama.cpp</div>
         <div class="thanks">Autocomplete built on Cotabby’s open loop, with Cotypist as the bar for how it should feel.</div>
         <div class="url" id="end-url">github.com/stevyhacker/lokalbot</div>
       </div>
@@ -195,6 +202,8 @@ page = f'''<!doctype html>
       tl.fromTo("#counter", {{ opacity: 0, y: 30 }}, {{ opacity: 1, y: 0, duration: 0.8, ease: "power3.out" }}, o.counter.start);
       tl.fromTo("#counter .rule", {{ scaleX: 0 }}, {{ scaleX: 1, duration: 0.9, ease: "expo.out" }}, o.counter.start + 0.4);
       tl.to("#counter", {{ opacity: 0, y: -12, duration: 0.5, ease: "power1.in" }}, o.counter.end - 0.5);
+      tl.fromTo("#model-badge", {{ opacity: 0, y: 10, scale: 0.96 }}, {{ opacity: 1, y: 0, scale: 1, duration: 0.6, ease: "back.out(1.5)" }}, o.model_badge.start);
+      tl.to("#model-badge", {{ opacity: 0, duration: 0.4 }}, o.model_badge.end);
       tl.fromTo("#memory-tag", {{ opacity: 0, y: 12, scale: 0.96 }}, {{ opacity: 1, y: 0, scale: 1, duration: 0.5, ease: "back.out(1.6)" }}, o.memory_tag.start);
       tl.to("#memory-tag", {{ opacity: 0, duration: 0.4 }}, o.memory_tag.end - 0.4);
       tl.fromTo("#memory-note", {{ opacity: 0, x: 40, rotation: 1.2 }}, {{ opacity: 1, x: 0, rotation: -0.6, duration: 0.9, ease: "power3.out" }}, o.memory_note.start);
@@ -203,6 +212,7 @@ page = f'''<!doctype html>
       tl.fromTo("#endcard", {{ opacity: 0 }}, {{ opacity: 1, duration: 0.9, ease: "sine.out" }}, credit.start + 0.2);
       tl.fromTo("#endcard .brand", {{ y: 24 }}, {{ y: 0, duration: 1.0, ease: "power3.out" }}, credit.start + 0.2);
       tl.fromTo("#endcard .line", {{ opacity: 0, y: 16 }}, {{ opacity: 1, y: 0, duration: 0.7, ease: "power2.out" }}, credit.start + C.endcard.line);
+      tl.fromTo("#endcard .model", {{ opacity: 0, y: 12 }}, {{ opacity: 1, y: 0, duration: 0.7, ease: "power2.out" }}, credit.start + C.endcard.line + 1.4);
       tl.fromTo("#endcard .thanks", {{ opacity: 0, y: 16 }}, {{ opacity: 1, y: 0, duration: 0.7, ease: "power2.out" }}, credit.start + C.endcard.thanks);
       tl.fromTo("#end-url", {{ opacity: 0, y: 14 }}, {{ opacity: 1, y: 0, duration: 0.8, ease: "power3.out" }}, credit.start + C.endcard.url);
       document.querySelectorAll(".cap").forEach(el => {{

@@ -44,12 +44,12 @@ harbor = seed.m(
         seed.seg(33, 45, "them", "The first fifty testers get their invites on Friday, together with the feedback form."),
         seed.seg(45, 54, "me", "Great. Then Friday is invite day."),
     ],
-    "## TL;DR\nMila confirmed the Harbor beta ships Thursday morning, right after Wednesday's accessibility review. "
+    "## TL;DR\nJohn confirmed the Harbor beta ships Thursday morning, right after Wednesday's accessibility review. "
     "The first fifty testers get their invites on Friday.\n\n"
     "## Decisions\n- The Harbor beta ships Thursday morning, after the accessibility review.\n"
     "- The first fifty testers get invites on Friday, with the feedback form.\n\n"
     "## Action items\n- [ ] Tell the team the beta date and update the release notes — Me\n"
-    "- [ ] Prepare the feedback form by Thursday — Mila\n")
+    "- [ ] Prepare the feedback form by Thursday — John\n")
 seed.write_meeting(str(root), harbor)
 (root / seed.OWNERSHIP_MARKER).write_text("filming\n")
 (root / "FILMING-CONTENT.json").write_text(json.dumps({
