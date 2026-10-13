@@ -16,14 +16,24 @@ First person, warm, one morning, a few notes: a thank-you, an update to the team
 
 ## 30-second cut
 
-`short/` is a faster cut from the same takes: five ElevenLabs lines at speed 1.08, footage at 1.6–2×, 0.3 s transitions and an 88 BPM bed. It runs 30.0 s, and its caption on line 1 rounds the count to 8,000 to match the spoken words, while the counter keeps the exact 8,176. It uses the same scripts with `CUT_DIR`:
+`short/` tells the same story in four ElevenLabs lines at speed 1.08. It opens on the 8,176 Tabs, then the two things I wanted (memory, then openness), then the credit. Footage plays at 1.6–1.75× with 0.3 s transitions over an 88 BPM bed, and the quiet scene is left out. It runs 29.0 s. The voice rounds the count to "over 8,000", while the counter shows the exact 8,176 from the first frame. It uses the same scripts with `CUT_DIR`:
 
 ```sh
 CUT_DIR="$PWD/short" python3 tts_elevenlabs.py --speed 1.08   # only if the lines change
 CUT_DIR="$PWD/short" python3 retime_eleven.py
-CUT_DIR="$PWD/short" uv run --no-project --with numpy --with scipy python compose_bed.py 31 88
+CUT_DIR="$PWD/short" uv run --no-project --with numpy --with scipy python compose_bed.py 30 88
 CUT_DIR="$PWD/short" python3 mix_audio.py && CUT_DIR="$PWD/short" python3 build.py
 cd short && npx --yes hyperframes@0.8.150 render --fps 30 --quality delivery --workers 4 --strict --output renders/lokalbot-autocomplete-launch-30s.mp4
+```
+
+## Vertical cut (X, TikTok)
+
+`vertical/` is the 30-second cut at 1080 × 1920, with the same voice, captions, music and timings. Footage plays at 1.2× in 900 px cards, which keeps it clear of TikTok's right-hand buttons. A camera follows the caret. `pan_track.py` measures where the typed and ghost text sits in each clip, ten times a second. `build_vertical.py` starts each camera stop on a word and holds it until the text no longer fits. Captions end 440 px above the bottom edge, clear of TikTok's caption area. The cut only pans across the same footage; nothing is redrawn.
+
+```sh
+CUT_DIR="$PWD/short" python3 pan_track.py   # only after re-cropping the footage
+python3 build_vertical.py                   # copies short/'s mix, footage, fonts and brand
+cd vertical && npx --yes hyperframes@0.8.150 render --fps 30 --quality delivery --workers 4 --strict --output renders/lokalbot-autocomplete-launch-vertical.mp4
 ```
 
 ## Rebuild
