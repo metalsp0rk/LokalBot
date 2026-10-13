@@ -1,6 +1,6 @@
 {
   "fps": 30,
-  "duration": 29.0,
+  "duration": 30.0,
   "fade": 0.3,
   "chip_cue": {
     "word": "language",
@@ -17,7 +17,7 @@
     ],
     "url": [
       "07-credit",
-      "Tell"
+      "I'd"
     ],
     "lead": {
       "line": -0.2,
@@ -71,14 +71,14 @@
     [
       "07-credit",
       0.0,
-      5.16,
+      5.12,
       "So I built it into LokalBot: free, open source, and local."
     ],
     [
       "07-credit",
-      5.24,
-      6.63,
-      "Tell me where it's wrong."
+      5.2,
+      7.51,
+      "I'd love to hear how it writes for you."
     ]
   ],
   "scenes": [
@@ -183,7 +183,7 @@
     {
       "id": "credit",
       "start": 20.4,
-      "end": 29.0
+      "end": 30.0
     }
   ],
   "overlays": {
@@ -221,8 +221,8 @@
     }
   },
   "endcard": {
-    "line": 2.4,
+    "line": 2.44,
     "thanks": 3.54,
-    "url": 5.24
+    "url": 5.2
   }
 }

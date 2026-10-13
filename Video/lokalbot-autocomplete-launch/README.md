@@ -2,7 +2,7 @@
 
 A 64-second film for the r/LocalLLaMA autocomplete post (the draft stays local; `Docs/reddit-*.md` is gitignored). The render, poster and SRT land in `renders/` (gitignored, like the voice and music stems); captions are also burned in.
 
-First person, warm, one morning, a few notes: a thank-you, an update to the team that autocomplete finishes from yesterday's meeting, four messages in German, French, Italian and Spanish shown together, and a greeting where it stays quiet. It closes with the credit to Cotabby and "tell me where it's wrong."
+First person, warm, one morning, a few notes: a thank-you, an update to the team that autocomplete finishes from yesterday's meeting, four messages in German, French, Italian and Spanish shown together, and a greeting where it stays quiet. It closes with the credit to Cotabby and "I'd love to hear how it writes for you."
 
 ## What is real
 
@@ -16,7 +16,7 @@ First person, warm, one morning, a few notes: a thank-you, an update to the team
 
 ## 30-second cut
 
-`short/` tells the same story in four ElevenLabs lines at speed 1.08. It opens on the 8,176 Tabs, then the two things I wanted (memory, then openness), then the credit. Footage plays at 1.6–1.75× with 0.3 s transitions over an 88 BPM bed, and the quiet scene is left out. It runs 29.0 s. The voice rounds the count to "over 8,000", while the counter shows the exact 8,176 from the first frame. It uses the same scripts with `CUT_DIR`:
+`short/` tells the same story in four ElevenLabs lines at speed 1.08. It opens on the 8,176 Tabs, then the two things I wanted (memory, then openness), then the credit. Footage plays at 1.6–1.75× with 0.3 s transitions over an 88 BPM bed, and the quiet scene is left out. It runs 30.0 s. The voice rounds the count to "over 8,000", while the counter shows the exact 8,176 from the first frame. It uses the same scripts with `CUT_DIR`:
 
 ```sh
 CUT_DIR="$PWD/short" python3 tts_elevenlabs.py --speed 1.08   # only if the lines change

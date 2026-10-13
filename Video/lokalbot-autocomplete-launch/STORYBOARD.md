@@ -28,9 +28,9 @@ status: outline · src: assets/footage/quiet.mp4 · rules: hold, no push during 
 ## Frame 5 — credit and close · 48.0–64.0
 status: outline · rules: end card with the brand mark and staggered lines, then the URL reveal
 - LokalBot mark and wordmark. "Free and open source. Every model runs on your Mac." "Autocomplete built on Cotabby's open loop, with Cotypist as the bar for how it should feel." At 58.1 s: github.com/stevyhacker/lokalbot.
-- VO 07 credit line; VO 08 "Try it, and tell me where it's wrong."
+- VO 07 credit line; VO 08 "I'd love to hear how it writes for you." (it replaced "Try it, and tell me where it's wrong.", which ended the film on "wrong")
 
-## 30-second cut — `short/` (29.0 s, 1920 × 1080)
+## 30-second cut — `short/` (30.0 s, 1920 × 1080)
 
 The same takes, told as one want: a Cotypist user who wanted two more things and built them. Four lines; the quiet scene is left out.
 
@@ -39,9 +39,9 @@ The same takes, told as one want: a Cotypist user who wanted two more things and
 | 0.0–6.4 | hook at 1.75×; the 8,176 counter is on screen from the first frame | "I've pressed Tab in Cotypist over 8,000 times, but I wanted two more things." |
 | 6.4–12.1 | remember at 1.6×; "from yesterday's call" pill, then the meeting-note card | "I wanted it to remember. Now it finishes my update with what John told me yesterday." |
 | 12.1–20.4 | the four language rows at 1.6×; chips turn teal from "language", then the Gemma badge | "And I wanted it open, so anyone can make it better in their own language. Same small model, Gemma 4 E2B." |
-| 20.4–29.0 | end card | "So I built it into LokalBot. Free, open source, and local. Tell me where it's wrong." |
+| 20.4–30.0 | end card; the URL appears with the last sentence | "So I built it into LokalBot. Free, open source, and local. I'd love to hear how it writes for you." |
 
-## Vertical cut — `vertical/` (29.0 s, 1080 × 1920)
+## Vertical cut — `vertical/` (30.0 s, 1080 × 1920)
 
 The 30-second cut for X and TikTok: same voice, captions, music and timings. Cards hold the footage at 1.2×, 900 px wide, with a camera that follows the caret. Each stop starts on a word and keeps the ghost in view (`pan_track.py`, `build_vertical.py`). The counter sits under the hook card, the meeting-note card under the update, and the four rows stack at 178 px. Captions are 60 px, ending 440 px above the bottom edge.
 
