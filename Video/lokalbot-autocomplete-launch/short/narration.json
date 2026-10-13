@@ -3,28 +3,23 @@
   "scenes": [
     {
       "id": "01-tabs",
-      "caption": "I've pressed Tab in Cotypist 8,000 times. So I built my own.",
-      "eleven_text": "I've pressed Tab in Co-typist eight thousand times. So I built my own."
+      "caption": "I've pressed Tab in Cotypist over 8,000 times, but I wanted two more things.",
+      "eleven_text": "I've pressed Tab in Co typist over eight thousand times, but I wanted two more things."
     },
     {
       "id": "03-remember",
-      "caption": "It remembers. John told me the beta goes out Thursday, so it already knows.",
-      "eleven_text": "It remembers. John told me the beta goes out Thursday, so it already knows."
+      "caption": "I wanted it to remember. Now it finishes my update with what John told me yesterday.",
+      "eleven_text": "I wanted it to remember. Now it finishes my update with what John told me yesterday."
     },
     {
       "id": "05-open",
-      "caption": "German, French, Italian, Spanish. One small model, Gemma 4 E2B, on your Mac.",
-      "eleven_text": "German, French, Italian, Spanish. One small model, Gemma four E-two-B, on your Mac."
-    },
-    {
-      "id": "06-quiet",
-      "caption": "Not sure? It stays quiet.",
-      "eleven_text": "Not sure? It stays quiet."
+      "caption": "And I wanted it open, so anyone can make it better in their own language. Same small model, Gemma 4 E2B.",
+      "eleven_text": "And I wanted it open, so anyone can make it better in their own language. Same small model, Gemma four E-two-B."
     },
     {
       "id": "07-credit",
-      "caption": "LokalBot. Free, open source, fully local. Tell me where it's wrong.",
-      "eleven_text": "LokalBot. Free, open source, fully local. Tell me where it's wrong."
+      "caption": "So I built it into LokalBot: free, open source, and local. Tell me where it's wrong.",
+      "eleven_text": "So I built it into LokalBot. Free, open source, and local. Tell me where it's wrong."
     }
   ]
 }

@@ -74,19 +74,31 @@ for vid, idxs in by_take.items():
 voice = E['voice']
 lang = next(s for s in E['scenes'] if s['id'] == 'languages')
 ws5 = words('05-open')
-for r, name in zip(lang['rows'], ['German', 'French', 'Italian', 'Spanish']):
-    r['named'] = round(voice['05-open'] + find(ws5, name)[0], 3)
+if E.get('chip_cue'):
+    cue = E['chip_cue']
+    at = voice['05-open'] + find(ws5, cue['word'])[0]
+    for i, r in enumerate(lang['rows']):
+        r['named'] = round(at + i * cue['stagger'], 3)
+else:
+    for r, name in zip(lang['rows'], ['German', 'French', 'Italian', 'Spanish']):
+        r['named'] = round(voice['05-open'] + find(ws5, name)[0], 3)
 
 E['overlays']['model_badge']['start'] = round(voice['05-open'] + find(ws5, 'Gemma')[0] - 0.1, 3)
 
 ws7 = words('07-credit')
 credit = next(s for s in E['scenes'] if s['id'] == 'credit')
-if not E.get('endcard_manual'):
-  E['endcard'] = {
-    'line': round(voice['07-credit'] + find(ws7, 'Free')[0] - credit['start'], 3),
-    'thanks': round(voice['07-credit'] + find(ws7, 'It', 4.0)[0] - credit['start'], 3),
-    'url': round(voice['08-close'] - 0.3 - credit['start'], 3),
-}
+if E.get('endcard_cues'):
+    # {"line": [take, word], ...} plus optional per-cue "lead" offsets in seconds.
+    cues = {k: v for k, v in E['endcard_cues'].items() if k != 'lead'}
+    lead = E['endcard_cues'].get('lead', {})
+    E['endcard'] = {k: round(voice[take] + find(words(take), word)[0] + lead.get(k, 0) - credit['start'], 3)
+                    for k, (take, word) in cues.items()}
+elif not E.get('endcard_manual'):
+    E['endcard'] = {
+        'line': round(voice['07-credit'] + find(ws7, 'Free')[0] - credit['start'], 3),
+        'thanks': round(voice['07-credit'] + find(ws7, 'It', 4.0)[0] - credit['start'], 3),
+        'url': round(voice['08-close'] - 0.3 - credit['start'], 3),
+    }
 (P / 'edit.json').write_text(json.dumps(E, indent=2, ensure_ascii=False) + '\n')
 (P / 'production/word-timings.json').write_text(json.dumps(timings, indent=1) + '\n')
 print('chips', [r['named'] for r in lang['rows']], 'endcard', E['endcard'])

@@ -1,73 +1,83 @@
 {
   "fps": 30,
-  "duration": 30.0,
+  "duration": 29.0,
   "fade": 0.3,
-  "endcard_manual": true,
-  "endcard": {
-    "line": 1.0,
-    "thanks": 2.3,
-    "url": 3.6
+  "chip_cue": {
+    "word": "language",
+    "stagger": 0.3
+  },
+  "endcard_cues": {
+    "line": [
+      "07-credit",
+      "Free"
+    ],
+    "thanks": [
+      "07-credit",
+      "open"
+    ],
+    "url": [
+      "07-credit",
+      "Tell"
+    ],
+    "lead": {
+      "line": -0.2,
+      "thanks": 0.3,
+      "url": -0.2
+    }
   },
   "voice": {
-    "01-tabs": 0.2,
-    "03-remember": 5.9,
-    "05-open": 11.8,
-    "06-quiet": 19.8,
-    "07-credit": 24.2
+    "01-tabs": 0.3,
+    "03-remember": 6.6,
+    "05-open": 12.3,
+    "07-credit": 20.6
   },
   "captions": [
     [
       "01-tabs",
       0.0,
-      4.08,
-      "I've pressed Tab in Cotypist 8,000 times."
+      4.32,
+      "I've pressed Tab in Cotypist over 8,000 times,"
     ],
     [
       "01-tabs",
-      4.16,
-      5.58,
-      "So I built my own."
-    ],
-    [
-      "03-remember",
-      0.0,
-      1.44,
-      "It remembers."
-    ],
-    [
-      "03-remember",
-      1.52,
-      5.78,
-      "John told me the beta goes out Thursday, so it already knows."
-    ],
-    [
-      "05-open",
-      0.0,
-      3.56,
-      "German, French, Italian, Spanish."
-    ],
-    [
-      "05-open",
-      3.64,
-      7.75,
-      "One small model, Gemma 4 E2B, on your Mac."
-    ],
-    [
-      "06-quiet",
-      0.0,
-      2.43,
-      "Not sure? It stays quiet."
-    ],
-    [
-      "07-credit",
-      0.0,
       4.4,
-      "LokalBot. Free, open source, fully local."
+      6.18,
+      "but I wanted two more things."
+    ],
+    [
+      "03-remember",
+      0.0,
+      1.92,
+      "I wanted it to remember."
+    ],
+    [
+      "03-remember",
+      2.0,
+      5.55,
+      "Now it finishes my update with what John told me yesterday."
+    ],
+    [
+      "05-open",
+      0.0,
+      4.8,
+      "And I wanted it open, so anyone can make it better in their own language."
+    ],
+    [
+      "05-open",
+      4.88,
+      7.71,
+      "Same small model, Gemma 4 E2B."
     ],
     [
       "07-credit",
-      4.48,
-      5.8,
+      0.0,
+      5.16,
+      "So I built it into LokalBot: free, open source, and local."
+    ],
+    [
+      "07-credit",
+      5.24,
+      6.63,
       "Tell me where it's wrong."
     ]
   ],
@@ -75,11 +85,11 @@
     {
       "id": "hook",
       "start": 0.0,
-      "end": 5.8,
+      "end": 6.4,
       "footage": "assets/footage/hook.mp4",
-      "media_start": 7.5,
-      "rate": 2.0,
-      "stamp": "A thank-you",
+      "media_start": 8.5,
+      "rate": 1.75,
+      "stamp": "Tuesday morning · a thank-you",
       "box": [
         96,
         300,
@@ -90,15 +100,14 @@
         0.0,
         0.5
       ],
-      "push": 1.04,
-      "scale": 1.0
+      "push": 1.04
     },
     {
       "id": "remember",
-      "start": 5.8,
-      "end": 11.6,
+      "start": 6.4,
+      "end": 12.1,
       "footage": "assets/footage/remember.mp4",
-      "media_start": 9.0,
+      "media_start": 9.45,
       "rate": 1.6,
       "stamp": "To the team",
       "box": [
@@ -111,13 +120,12 @@
         0.0,
         0.5
       ],
-      "push": 1.05,
-      "scale": 1.0
+      "push": 1.05
     },
     {
       "id": "languages",
-      "start": 11.6,
-      "end": 19.6,
+      "start": 12.1,
+      "end": 20.4,
       "type": "rows",
       "stamp": "Same model, four languages",
       "scale": 1.0,
@@ -128,8 +136,8 @@
           "footage": "assets/footage/lang-de.mp4",
           "media_start": 5.3,
           "rate": 1.6,
-          "enter": 11.7,
-          "named": 11.8
+          "enter": 12.2,
+          "named": 16.14
         },
         {
           "lang": "fr",
@@ -137,8 +145,8 @@
           "footage": "assets/footage/lang-fr.mp4",
           "media_start": 4.7,
           "rate": 1.6,
-          "enter": 11.95,
-          "named": 12.6
+          "enter": 12.45,
+          "named": 16.44
         },
         {
           "lang": "it",
@@ -146,91 +154,75 @@
           "footage": "assets/footage/lang-it.mp4",
           "media_start": 4.5,
           "rate": 1.6,
-          "enter": 12.2,
-          "named": 13.56
+          "enter": 12.7,
+          "named": 16.74
         },
         {
           "lang": "es",
           "label": "Español",
           "footage": "assets/footage/lang-es.mp4",
-          "enter": 12.45,
+          "enter": 12.95,
           "segments": [
             {
-              "start": 12.45,
-              "end": 14.29,
+              "start": 12.95,
+              "end": 14.79,
               "media_start": 4.3,
               "rate": 1.6
             },
             {
-              "start": 14.29,
-              "end": 19.6,
+              "start": 14.79,
+              "end": 20.4,
               "media_start": 12.0,
               "rate": 1.6
             }
           ],
-          "named": 14.44
+          "named": 17.04
         }
       ]
     },
     {
-      "id": "quiet",
-      "start": 19.6,
-      "end": 24.0,
-      "footage": "assets/footage/quiet.mp4",
-      "media_start": 6.0,
-      "rate": 2.0,
-      "stamp": "To Emma",
-      "box": [
-        96,
-        255,
-        1728,
-        250
-      ],
-      "focus": [
-        0.0,
-        0.6
-      ],
-      "push": 1.04,
-      "scale": 1.12
-    },
-    {
       "id": "credit",
-      "start": 24.0,
-      "end": 30.0
+      "start": 20.4,
+      "end": 29.0
     }
   ],
   "overlays": {
     "counter": {
-      "start": 0.5,
-      "end": 5.5,
+      "start": 0.0,
+      "end": 6.1,
       "pos": [
         1290,
         520
       ]
     },
     "memory_tag": {
-      "start": 6.4,
-      "end": 11.4,
+      "start": 6.9,
+      "end": 11.9,
       "pos": [
         1130,
         318
       ]
     },
     "memory_note": {
-      "start": 40.0,
-      "end": 41.0,
+      "start": 10.3,
+      "end": 12.0,
       "pos": [
         1230,
         580
       ]
     },
     "model_badge": {
-      "start": 16.62,
-      "end": 19.3,
+      "start": 18.36,
+      "end": 20.1,
       "pos": [
         520,
         150
       ]
     }
+  },
+  "endcard": {
+    "line": 2.4,
+    "thanks": 3.54,
+    "url": 5.24
   }
 }

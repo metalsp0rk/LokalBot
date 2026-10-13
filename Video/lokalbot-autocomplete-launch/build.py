@@ -180,10 +180,12 @@ page = f'''<!doctype html>
       for (const s of C.scenes) {{
         if (!s.footage) continue;
         const card = "#card-" + s.id, cam = "#cam-" + s.id, stamp = "#stamp-" + s.id;
-        const fadeIn = s.start === 0 ? 0.05 : C.fade;
-        tl.fromTo(card, {{ opacity: 0, y: 18 }}, {{ opacity: 1, y: 0, duration: fadeIn, ease: "power2.out" }}, s.start);
+        // A scene that starts the film is on screen from the first frame (the thumbnail).
+        if (s.start === 0) tl.set(card, {{ opacity: 1, y: 0 }}, 0);
+        else tl.fromTo(card, {{ opacity: 0, y: 18 }}, {{ opacity: 1, y: 0, duration: C.fade, ease: "power2.out" }}, s.start);
         tl.to(card, {{ opacity: 0, duration: C.fade, ease: "power1.in" }}, s.end - C.fade);
-        tl.fromTo(stamp, {{ opacity: 0, x: -10 }}, {{ opacity: 1, x: 0, duration: 0.7, ease: "sine.out" }}, s.start + 0.4);
+        if (s.start === 0) tl.set(stamp, {{ opacity: 1, x: 0 }}, 0);
+        else tl.fromTo(stamp, {{ opacity: 0, x: -10 }}, {{ opacity: 1, x: 0, duration: 0.7, ease: "sine.out" }}, s.start + 0.4);
         tl.to(stamp, {{ opacity: 0, duration: 0.5 }}, s.end - 0.6);
         const pushAt = s.push_at ?? s.start + 0.5, pushFor = s.push_for ?? (s.end - s.start - 1.2);
         tl.fromTo(cam, {{ scale: 1 }}, {{ scale: s.push, duration: pushFor, ease: "sine.inOut" }}, pushAt);
@@ -201,8 +203,11 @@ page = f'''<!doctype html>
         }});
       }}
       const o = C.overlays;
+      if (o.counter.start <= 0.05) {{ tl.set("#counter", {{ opacity: 1, y: 0 }}, 0); tl.set("#counter .rule", {{ scaleX: 1 }}, 0); }}
+      else {{
       tl.fromTo("#counter", {{ opacity: 0, y: 30 }}, {{ opacity: 1, y: 0, duration: 0.8, ease: "power3.out" }}, o.counter.start);
       tl.fromTo("#counter .rule", {{ scaleX: 0 }}, {{ scaleX: 1, duration: 0.9, ease: "expo.out" }}, o.counter.start + 0.4);
+      }}
       tl.to("#counter", {{ opacity: 0, y: -12, duration: 0.5, ease: "power1.in" }}, o.counter.end - 0.5);
       tl.fromTo("#model-badge", {{ opacity: 0, y: 10, scale: 0.96 }}, {{ opacity: 1, y: 0, scale: 1, duration: 0.6, ease: "back.out(1.5)" }}, o.model_badge.start);
       tl.to("#model-badge", {{ opacity: 0, duration: 0.4 }}, o.model_badge.end);
