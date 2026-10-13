@@ -1,0 +1,53 @@
+{
+  "engine": "Breeze TTS 2 Q8_0",
+  "voice_direction": "An adult male speaking in first person about something he made, warm and unhurried, natural American English with a quiet smile in the voice. Relaxed conversational pace, about 150 words per minute, soft consonants, gentle pauses between sentences, close to the microphone. Sincere and personal, like telling a friend at the kitchen table. Never salesy.",
+  "reference_text": "Good work moves quickly when the details are clear. Pick up the right thread, check the decision, and take the next step with confidence.",
+  "reference_voice": "Approved male Breeze reference from the September Juniper film (assets/voice/breeze-reference.wav)",
+  "scenes": [
+    {
+      "id": "01-tabs",
+      "caption": "Since May, I've pressed Tab in Cotypist 8,176 times.",
+      "text": "Since May, I've pressed Tab in Coe-typist eight thousand, one hundred and seventy-six times.",
+      "source": "Cotypist completionStats.json, single-word accepts 2026-05-28 to 2026-10-05: 8,176 (plus 58 longer accepts)",
+      "eleven_text": "Since May, I've pressed Tab in Co-typist 8,176 times."
+    },
+    {
+      "id": "02-wish",
+      "caption": "It changed how I write. But I wanted two more things.",
+      "text": "It changed how I write. But I wanted two more things."
+    },
+    {
+      "id": "03-remember",
+      "caption": "I wanted it to remember. Yesterday John told me the beta goes out on Thursday. So when I write to the team today, it already knows.",
+      "text": "I wanted it to remember. Yesterday John told me the beta goes out on Thursday. So when I write to the team today, it already knows.",
+      "eleven_text": "I wanted it to remember. Yesterday, John told me the beta goes out on Thursday. So when I write to the team today, it already knows."
+    },
+    {
+      "id": "04-local",
+      "caption": "That comes from my own meeting notes, and it never leaves my Mac.",
+      "text": "That comes from my own meeting notes, and it never leaves my Mac."
+    },
+    {
+      "id": "05-open",
+      "caption": "And I wanted it open, so anyone can make it better in their own language. Here it's writing German, French, Italian and Spanish. Same small model, Gemma 4 E2B, on your Mac.",
+      "text": "And I wanted it open, so anyone can make it better in their own language. Here it's writing German, French, Italian and Spanish. Same small model, Gemma 4 E2B, on your Mac.",
+      "eleven_text": "And I wanted it open, so anyone can make it better in their own language. Here it's writing German, French, Italian, and Spanish. Same small model, Gemma four E-two-B, on your Mac."
+    },
+    {
+      "id": "06-quiet",
+      "caption": "When it isn't sure, it stays quiet. When it is, it offers a few words. Tab takes one at a time.",
+      "text": "When it isn't sure, it stays quiet. When it is, it offers a few words. Tab takes one at a time."
+    },
+    {
+      "id": "07-credit",
+      "caption": "It's part of LokalBot now. Free, open source, every model on your Mac. It started from Cotabby's open code, so thank you for that.",
+      "text": "It's part of Local Bot now. Free, open source, every model on your Mac. It started from Coe-tabby's open code, so, thank you for that.",
+      "eleven_text": "It's part of LokalBot now. Free, open source, every model on your Mac. It started from Co-tabby's open code, so thank you for that."
+    },
+    {
+      "id": "08-close",
+      "caption": "I'd love to hear how it writes for you.",
+      "text": "I'd love to hear how it writes for you."
+    }
+  ]
+}

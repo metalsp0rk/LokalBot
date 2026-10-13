@@ -1,0 +1,21 @@
+{
+  "engine": "ElevenLabs eleven_v4, voice jBeSFLau956Zo30jykBV, speed 1.08",
+  "takes": [
+    {
+      "id": "01-tabs",
+      "file": "assets/voice/eleven/01-tabs-s47.mp3"
+    },
+    {
+      "id": "03-remember",
+      "file": "assets/voice/eleven/03-remember-s29.mp3"
+    },
+    {
+      "id": "05-open",
+      "file": "assets/voice/eleven/05-open-s29.mp3"
+    },
+    {
+      "id": "07-credit",
+      "file": "assets/voice/eleven/07-credit-s23.mp3"
+    }
+  ]
+}

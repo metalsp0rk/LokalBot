@@ -1,0 +1,4 @@
+**/assets/sound/
+assets/footage/placeholder-*
+production/*.log
+production/breeze-server.json

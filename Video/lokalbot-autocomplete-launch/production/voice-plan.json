@@ -1,0 +1,37 @@
+{
+  "engine": "ElevenLabs eleven_v4, voice jBeSFLau956Zo30jykBV",
+  "takes": [
+    {
+      "id": "01-tabs",
+      "file": "assets/voice/eleven/01-tabs-s11.mp3"
+    },
+    {
+      "id": "02-wish",
+      "file": "assets/voice/eleven/02-wish-s11.mp3"
+    },
+    {
+      "id": "03-remember",
+      "file": "assets/voice/eleven/03-remember-s11.mp3"
+    },
+    {
+      "id": "04-local",
+      "file": "assets/voice/eleven/04-local-s11.mp3"
+    },
+    {
+      "id": "05-open",
+      "file": "assets/voice/eleven/05-open-s11.mp3"
+    },
+    {
+      "id": "06-quiet",
+      "file": "assets/voice/eleven/06-quiet-s11.mp3"
+    },
+    {
+      "id": "07-credit",
+      "file": "assets/voice/eleven/07-credit-s29.mp3"
+    },
+    {
+      "id": "08-close",
+      "file": "assets/voice/eleven/08-close-s61.mp3"
+    }
+  ]
+}

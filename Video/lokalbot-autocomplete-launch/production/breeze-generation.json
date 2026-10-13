@@ -1,0 +1,260 @@
+{
+  "rows": [
+    {
+      "text": "It changed how I write. But I wanted two more things.",
+      "seed": 91,
+      "file": "assets/voice/takes/02-wish-s91.wav",
+      "duration": 3.28,
+      "generation_seconds": 3.3393457499914803,
+      "peak": 0.542449951171875,
+      "sha256": "e4c3f6f6f68a574e94ae7bd5d97e70d146e610fb4040db81605f70160c302c11",
+      "id": "02-wish"
+    },
+    {
+      "text": "It changed how I write. But I wanted two more things.",
+      "seed": 7,
+      "file": "assets/voice/takes/02-wish-s7.wav",
+      "duration": 3.92,
+      "generation_seconds": 4.054389666009229,
+      "peak": 0.5107421875,
+      "sha256": "77c33927ade6bdba31bb745ccd43bfd0a19c11661b6dd86d165f92013e838cf8",
+      "id": "02-wish"
+    },
+    {
+      "text": "It changed how I write. But I wanted two more things.",
+      "seed": 23,
+      "file": "assets/voice/takes/02-wish-s23.wav",
+      "duration": 3.6,
+      "generation_seconds": 3.5920260829734616,
+      "peak": 0.449249267578125,
+      "sha256": "5c6de2e276d95cadb5cb33a6fab0ccaa266a8e1012f54a957581fd7febaafdb2",
+      "id": "02-wish"
+    },
+    {
+      "text": "I wanted it to remember. Yesterday, Mila told me the beta ships on Thursday. So when I write to the team today, it already knows.",
+      "seed": 91,
+      "file": "assets/voice/takes/03-remember-s91.wav",
+      "duration": 8.32,
+      "generation_seconds": 11.243543291988317,
+      "peak": 0.4969482421875,
+      "sha256": "9b239ca72844a8a2cb3a58ae72f11102d7e05a00ecc84c1c542853d1537ecce6",
+      "id": "03-remember"
+    },
+    {
+      "text": "I wanted it to remember. Yesterday, Mila told me the beta ships on Thursday. So when I write to the team today, it already knows.",
+      "seed": 7,
+      "file": "assets/voice/takes/03-remember-s7.wav",
+      "duration": 8.16,
+      "generation_seconds": 10.220911167038139,
+      "peak": 0.464324951171875,
+      "sha256": "e7b9c95e765ae70985069e806b2ee257510d97d2d9dcf423d1414a4009ad0bee",
+      "id": "03-remember"
+    },
+    {
+      "text": "I wanted it to remember. Yesterday, Mila told me the beta ships on Thursday. So when I write to the team today, it already knows.",
+      "seed": 23,
+      "file": "assets/voice/takes/03-remember-s23.wav",
+      "duration": 8.32,
+      "generation_seconds": 8.61785904201679,
+      "peak": 0.50006103515625,
+      "sha256": "2c92cdebcf75dc1b17a9da1ccf5d4a836c43dc3fd694c4081ae4ed6f26b69d99",
+      "id": "03-remember"
+    },
+    {
+      "text": "That comes from my own meeting notes, and it never leaves my Mac.",
+      "seed": 91,
+      "file": "assets/voice/takes/04-local-s91.wav",
+      "duration": 4.01,
+      "generation_seconds": 4.365442999987863,
+      "peak": 0.575347900390625,
+      "sha256": "03d7a22c206059f35e2b098c0c67d8948d1ad8c2ce69bcd33449291d9e365deb",
+      "id": "04-local"
+    },
+    {
+      "text": "That comes from my own meeting notes, and it never leaves my Mac.",
+      "seed": 7,
+      "file": "assets/voice/takes/04-local-s7.wav",
+      "duration": 3.62,
+      "generation_seconds": 4.637780665943865,
+      "peak": 0.424346923828125,
+      "sha256": "81b04d4b83088c60f79842ef3080ffee364e043ccc3aabad5210960bad82cc6a",
+      "id": "04-local"
+    },
+    {
+      "text": "That comes from my own meeting notes, and it never leaves my Mac.",
+      "seed": 23,
+      "file": "assets/voice/takes/04-local-s23.wav",
+      "duration": 4.11,
+      "generation_seconds": 4.606040625018068,
+      "peak": 0.555938720703125,
+      "sha256": "11441ec3ee4b77449bba9442b9af8a286c362fd18c702bc9c04767ac142548aa",
+      "id": "04-local"
+    },
+    {
+      "text": "It's part of Local Bot now. Free, open source, every model on your Mac. It started from Coe-tabby's open code, so, thank you for that.",
+      "seed": 91,
+      "file": "assets/voice/takes/07-credit-s91.wav",
+      "duration": 9.12,
+      "generation_seconds": 10.192836583999451,
+      "peak": 0.55010986328125,
+      "sha256": "29db265b1896c0c80a4eacf6c7d30b211e390572b6cf2a3083137b0836f86e66",
+      "id": "07-credit"
+    },
+    {
+      "text": "It's part of Local Bot now. Free, open source, every model on your Mac. It started from Coe-tabby's open code, so, thank you for that.",
+      "seed": 7,
+      "file": "assets/voice/takes/07-credit-s7.wav",
+      "duration": 9.28,
+      "generation_seconds": 10.431934209016617,
+      "peak": 0.510772705078125,
+      "sha256": "6ebce1e795381696f69091dde2a52f95e3b1a72165d0b439dac7c868bfeee39e",
+      "id": "07-credit"
+    },
+    {
+      "text": "It's part of Local Bot now. Free, open source, every model on your Mac. It started from Coe-tabby's open code, so, thank you for that.",
+      "seed": 23,
+      "file": "assets/voice/takes/07-credit-s23.wav",
+      "duration": 9.28,
+      "generation_seconds": 10.814362125005573,
+      "peak": 0.61065673828125,
+      "sha256": "e87fd6e071999df2ca825ee48aebeef1161887bd854e09b96dd3915a758c6ca3",
+      "id": "07-credit"
+    },
+    {
+      "text": "Try it, and tell me where it's wrong.",
+      "seed": 91,
+      "file": "assets/voice/takes/08-close-s91.wav",
+      "duration": 2.56,
+      "generation_seconds": 3.0128999580047093,
+      "peak": 0.40814208984375,
+      "sha256": "f863217d8aaf4f4ad7b1f5797eddf84b6ed1ab848bf46d932e07d70f5f844fdc",
+      "id": "08-close"
+    },
+    {
+      "text": "Try it, and tell me where it's wrong.",
+      "seed": 7,
+      "file": "assets/voice/takes/08-close-s7.wav",
+      "duration": 2.64,
+      "generation_seconds": 3.2254852920304984,
+      "peak": 0.55072021484375,
+      "sha256": "a82f02aef2cd6c2e673bdf82cbaf02413619bfee0acbc4ad902ecacd0dfa9aa1",
+      "id": "08-close"
+    },
+    {
+      "text": "Try it, and tell me where it's wrong.",
+      "seed": 23,
+      "file": "assets/voice/takes/08-close-s23.wav",
+      "duration": 2.64,
+      "generation_seconds": 3.157513708982151,
+      "peak": 0.758697509765625,
+      "sha256": "b266180dc84e1bab8b168d3af61c411c86a28b8e1a0992b1ec3d1cedc82d97b5",
+      "id": "08-close"
+    },
+    {
+      "text": "Since May, I've pressed Tab in Coe-typist eight thousand, one hundred and seventy-six times.",
+      "seed": 91,
+      "file": "assets/voice/takes/01-tabs-s91.wav",
+      "duration": 5.6,
+      "generation_seconds": 23.13313808303792,
+      "peak": 0.53546142578125,
+      "sha256": "a03bd9e3c08862725135d7d7ab7b9d956334c0c517c45114305d7d98afd64c91",
+      "id": "01-tabs"
+    },
+    {
+      "text": "Since May, I've pressed Tab in Coe-typist eight thousand, one hundred and seventy-six times.",
+      "seed": 7,
+      "file": "assets/voice/takes/01-tabs-s7.wav",
+      "duration": 6.4,
+      "generation_seconds": 4.942403500026558,
+      "peak": 0.697174072265625,
+      "sha256": "f21f0ac0bc921b108f662bb12612ed12e276efc53719b89bb902ca1791de5d70",
+      "id": "01-tabs"
+    },
+    {
+      "text": "Since May, I've pressed Tab in Coe-typist eight thousand, one hundred and seventy-six times.",
+      "seed": 23,
+      "file": "assets/voice/takes/01-tabs-s23.wav",
+      "duration": 6.96,
+      "generation_seconds": 5.415765582991298,
+      "peak": 0.588287353515625,
+      "sha256": "7f4355de0b464cb30dddda11e9522eecc229ae7f7bb3cc5df47cf0a18e04c27d",
+      "id": "01-tabs"
+    },
+    {
+      "text": "Since May, I've pressed Tab in Coe-typist eight thousand, one hundred and seventy-six times.",
+      "seed": 41,
+      "file": "assets/voice/takes/01-tabs-s41.wav",
+      "duration": 6.56,
+      "generation_seconds": 5.07657570799347,
+      "peak": 0.585662841796875,
+      "sha256": "3ecf9b24521977889eb71e24550b9269f41e89c26903b5ac58a5989c6beb05bb",
+      "id": "01-tabs"
+    },
+    {
+      "text": "When it isn't sure, it stays quiet. When it is, it offers a few words. Tab takes one at a time.",
+      "seed": 91,
+      "file": "assets/voice/takes/06-quiet-s91.wav",
+      "duration": 6.4,
+      "generation_seconds": 15.881954415992368,
+      "peak": 0.540069580078125,
+      "sha256": "22b6876cf1d8f379330c074f9ca1c5e88964fe1f56280822ac4d5a3bf2a926eb",
+      "id": "06-quiet"
+    },
+    {
+      "text": "When it isn't sure, it stays quiet. When it is, it offers a few words. Tab takes one at a time.",
+      "seed": 7,
+      "file": "assets/voice/takes/06-quiet-s7.wav",
+      "duration": 6.88,
+      "generation_seconds": 5.385824666998815,
+      "peak": 0.598602294921875,
+      "sha256": "b1041152371543b853522cac985616d7c1ab69f89c1ffbb2f650dbd29b3cb08e",
+      "id": "06-quiet"
+    },
+    {
+      "text": "When it isn't sure, it stays quiet. When it is, it offers a few words. Tab takes one at a time.",
+      "seed": 23,
+      "file": "assets/voice/takes/06-quiet-s23.wav",
+      "duration": 6.88,
+      "generation_seconds": 5.384958208014723,
+      "peak": 0.4556884765625,
+      "sha256": "93354481be7b6f050922ade803ac2f4a3d3f18998d664782ae1e852ee8cc8358",
+      "id": "06-quiet"
+    },
+    {
+      "text": "And I wanted it open, so anyone can make it better in their own language. Here it's writing German, French, Italian, and Spanish. Same small model, on your Mac.",
+      "seed": 91,
+      "file": "assets/voice/takes/05-open-s91.wav",
+      "duration": 11.68,
+      "generation_seconds": 20.97212412499357,
+      "peak": 0.509857177734375,
+      "sha256": "ea5758436b33193f46cea2595c4f8732c3ccc920317c30af7dcc2d54180411f1",
+      "id": "05-open"
+    },
+    {
+      "text": "And I wanted it open, so anyone can make it better in their own language. Here it's writing German, French, Italian, and Spanish. Same small model, on your Mac.",
+      "seed": 7,
+      "file": "assets/voice/takes/05-open-s7.wav",
+      "duration": 10.72,
+      "generation_seconds": 8.274575208022725,
+      "peak": 0.627593994140625,
+      "sha256": "4947ca322cfa7b436f6c4aa6ac6365a08bb46f85b12606a40184e4d47c9b11a9",
+      "id": "05-open"
+    },
+    {
+      "text": "And I wanted it open, so anyone can make it better in their own language. Here it's writing German, French, Italian, and Spanish. Same small model, on your Mac.",
+      "seed": 23,
+      "file": "assets/voice/takes/05-open-s23.wav",
+      "duration": 11.84,
+      "generation_seconds": 9.132428041019011,
+      "peak": 0.5272216796875,
+      "sha256": "1be42c3ed971bd6b259b60228823fa13e5af62905710d951303ebeab2c0a4e99",
+      "id": "05-open"
+    }
+  ],
+  "engine": "Breeze TTS 2 Q8_0",
+  "runtime": "audio.cpp v0.7.3 Metal",
+  "model_sha256": "0de52d61560f9f6b2dfeca79f9100f8fce0c2b17c52ec30622e23e150df1ad88",
+  "runtime_sha256": "0bd28d822f6c1a9688c970eaa325f6568bdcbdc6e9ae02eff524ae6408685905",
+  "reference_sha256": "83be7cda91aca1dba3efe29fd59fe10e6b3012caaf3a8010b057763ee678f756",
+  "voice_direction": "An adult male speaking in first person about something he made, warm and unhurried, natural American English with a quiet smile in the voice. Relaxed conversational pace, about 150 words per minute, soft consonants, gentle pauses between sentences, close to the microphone. Sincere and personal, like telling a friend at the kitchen table. Never salesy."
+}
