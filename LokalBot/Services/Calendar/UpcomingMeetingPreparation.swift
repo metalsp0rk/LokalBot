@@ -518,7 +518,7 @@ enum UpcomingMeetingLocalGenerationPolicy {
                 custom: settings.customBuiltInModels)
                     ?? ModelCatalog.entry(id: settings.builtInModelID) else { return false }
             return ModelCatalog.localURL(for: entry, storage: storage) != nil
-        case .appleIntelligence, .ollama, .openAICompatible:
+        case .appleIntelligence, .ollama, .openAICompatible, .chatGPTPlan, .claudePlan:
             return true
         }
     }

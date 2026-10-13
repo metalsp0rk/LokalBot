@@ -32,6 +32,12 @@ struct ModelCheckIdentity: Equatable {
                 let digest = SHA256.hash(data: Data(apiKey.utf8)).map { String(format: "%02x", $0) }.joined()
                 parts = [settings.summarizerBackend.rawValue, settings.openAIBaseURL, settings.openAIModel,
                          settings.openRouterDataPolicy.rawValue, InferencePresentation(settings: settings).label, digest]
+            case .chatGPTPlan:
+                parts = [settings.summarizerBackend.rawValue, settings.chatGPTPlanModel,
+                         InferencePresentation(settings: settings).label]
+            case .claudePlan:
+                parts = [settings.summarizerBackend.rawValue, settings.claudePlanModel,
+                         InferencePresentation(settings: settings).label]
             }
         case .autocomplete:
             parts = [entryIdentity(settings.cotypingBuiltInModelID), String(settings.cotypingInProcessRuntime),

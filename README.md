@@ -165,7 +165,7 @@ Yes. Export meeting content or enable Markdown, Obsidian, or Logseq memory expor
 
 ## Local AI, your choice
 
-Start with the built-in models, then change them in **Settings → Models**. LokalBot supports its bundled llama.cpp runtime, Ollama, OpenAI-compatible servers, and Apple Intelligence on supported Macs running macOS 26 or later. Remote servers require approval before receiving context.
+Start with the built-in models, then change them in **Settings → Models**. LokalBot supports its bundled llama.cpp runtime, Ollama, OpenAI-compatible servers, and Apple Intelligence on supported Macs running macOS 26 or later. Think can also run on your own ChatGPT plan (Sign in with ChatGPT) or Claude plan (through your signed-in Claude Code), without an API key. Remote servers and plans require approval before receiving context.
 
 Different jobs use different models. These are the defaults on a fresh install, about 6.5 GB of model files if you use every role. They are not a RAM requirement:
 

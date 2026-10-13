@@ -209,6 +209,37 @@ The app may make these outbound connections:
   prompt each time. Missed runs catch up
   for at most the last seven days. Changing or revoking the server approval
   cancels pending scheduled work.
+- **Optional subscription plans:** Think can run on your own ChatGPT or Claude
+  plan instead of an API key. Each plan is set up and approved where you
+  choose the Think model (Settings → Models → Think), separately from any
+  API-server approval for the same company; signing in alone sends no
+  content, and an approval takes effect only when you choose Use model. Once approved, the plan receives
+  the same Think context described above, including scheduled daily summaries
+  and Dream runs, and the provider's terms for your account apply to it.
+  Requests count toward that plan's usage limits; when a limit is reached,
+  requests stop with a message and are never moved to another provider.
+  Agent Mode, follow-up drafts, and pre-meeting briefs don't use a plan.
+  - **ChatGPT plan** uses OpenAI's Sign in with ChatGPT for open-source apps.
+    Sign-in opens `auth.openai.com` in your browser and returns to a listener
+    on `127.0.0.1` that accepts only that redirect. LokalBot receives your
+    name, email, and an OpenAI account id, never your password or ChatGPT
+    conversations, and stores the session tokens, its app registration, and a
+    random per-Mac id in the Keychain. Think requests go to OpenAI's Responses
+    API at `api.openai.com` with storage turned off; listing your plan's models
+    sends only the token. Signing out asks OpenAI to revoke the session and
+    clears its tokens; you can also disconnect LokalBot in ChatGPT settings.
+  - **Claude plan** runs the Claude Code you installed and signed in to
+    yourself (`claude -p`), unmodified. LokalBot never reads, stores, or
+    forwards your Claude credentials and never offers a Claude login of its
+    own. Each request runs in an empty temporary folder with Claude Code's
+    tools, MCP servers, settings files, and customizations turned off, and
+    without saving a session, so the prompt is not written to
+    `~/.claude/projects`. Content goes to Claude Code over stdin and a
+    private temporary file, never in its command line; the folder is deleted
+    afterwards. Claude Code then sends the request to Anthropic. To show
+    whether it is signed in, LokalBot runs `claude auth status`, which reports
+    the account email and plan without credentials. Claude Code's own
+    telemetry and data settings apply to the requests it sends.
 - **Optional Agent Mode:** enabling Agent Mode downloads its pinned runtime.
   Commands you approve can read files or access the network with your macOS
   user permissions; their destinations and data handling are outside

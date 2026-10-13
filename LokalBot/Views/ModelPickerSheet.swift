@@ -9,11 +9,20 @@ struct ModelPickerSheet: View {
     @Environment(\.dismiss) private var dismiss
     let role: ModelPickerRole
     let openConnections: () -> Void
+    /// Previews and screenshots pass a signed-in sample account.
+    let chatGPTAccount: ChatGPTPlanAccount
 
     @State private var selectedID: String
     @State private var backend: AppSettings.SummarizerBackend
     @State private var remoteModel: String
     @State private var ollamaModel: String
+    @State private var chatGPTPlanModel: String
+    @State private var claudePlanModel: String
+    /// Plan approvals apply with Use model, so Cancel changes nothing.
+    @State private var chatGPTConsent: Bool
+    @State private var claudeConsent: Bool
+    @State private var chatGPTReady = false
+    @State private var claudeReady = false
     @State private var funASRNanoDirectory: String
     @State private var folderError: String?
     @State private var granite: GraniteSpeechModelConfiguration
@@ -24,7 +33,9 @@ struct ModelPickerSheet: View {
     @State private var showingGranite = false
     @State private var showingTranscriptionOptions = false
 
-    init(app: AppState, role: ModelPickerRole, openConnections: @escaping () -> Void) {
+    init(app: AppState, role: ModelPickerRole, openConnections: @escaping () -> Void,
+         chatGPTAccount: ChatGPTPlanAccount = .shared) {
+        self.chatGPTAccount = chatGPTAccount
         self.app = app
         self.role = role
         self.openConnections = openConnections
@@ -35,6 +46,10 @@ struct ModelPickerSheet: View {
         _backend = State(initialValue: settings.summarizerBackend)
         _remoteModel = State(initialValue: settings.openAIModel)
         _ollamaModel = State(initialValue: settings.ollamaModel)
+        _chatGPTPlanModel = State(initialValue: settings.chatGPTPlanModel)
+        _claudePlanModel = State(initialValue: settings.claudePlanModel)
+        _chatGPTConsent = State(initialValue: SubscriptionPlan.chatGPT.isApproved(in: settings))
+        _claudeConsent = State(initialValue: SubscriptionPlan.claude.isApproved(in: settings))
         _funASRNanoDirectory = State(initialValue: settings.funASRNanoModelDirectory)
         _granite = State(initialValue: settings.graniteSpeechModel)
     }
@@ -80,7 +95,11 @@ struct ModelPickerSheet: View {
                 backend: backend,
                 assistantModelID: backend == .builtIn ? selectedID : nil,
                 ollamaModel: backend == .ollama ? ollamaModel.trimmingCharacters(in: .whitespacesAndNewlines) : nil,
-                remoteModel: backend == .openAICompatible ? remoteModel.trimmingCharacters(in: .whitespacesAndNewlines) : nil)
+                remoteModel: backend == .openAICompatible ? remoteModel.trimmingCharacters(in: .whitespacesAndNewlines) : nil,
+                chatGPTPlanModel: backend == .chatGPTPlan
+                    ? chatGPTPlanModel.trimmingCharacters(in: .whitespacesAndNewlines) : nil,
+                claudePlanModel: backend == .claudePlan
+                    ? claudePlanModel.trimmingCharacters(in: .whitespacesAndNewlines) : nil)
         case .autocomplete: ModelSelectionPatch(autocompleteModelID: selectedID)
         case .dictation: ModelSelectionPatch(dictationModelID: selectedID)
         }
@@ -117,6 +136,15 @@ struct ModelPickerSheet: View {
 
     private var canApply: Bool {
         guard setup.pending == nil, selectedBlocker == nil else { return false }
+        if role == .assistant, let plan = SubscriptionPlan(backend: backend) {
+            guard consent(for: plan).wrappedValue else { return false }
+            switch plan {
+            case .chatGPT:
+                return chatGPTReady && !chatGPTPlanModel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            // An empty model uses Claude Code's own default.
+            case .claude: return claudeReady
+            }
+        }
         if role == .assistant, backend != .builtIn {
             let target = patch.applying(to: app.settings)
             if InferencePresentation(settings: target).isBlocked { return false }
@@ -124,7 +152,7 @@ struct ModelPickerSheet: View {
             case .openAICompatible: return !remoteModel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             case .ollama: return !ollamaModel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             case .appleIntelligence: return FoundationModelAvailability.current().isAvailable
-            case .builtIn: return false
+            case .builtIn, .chatGPTPlan, .claudePlan: return false
             }
         }
         return role == .transcription || (role == .dictation && selectedID.isEmpty) || selectedEntry != nil
@@ -149,22 +177,28 @@ struct ModelPickerSheet: View {
         VStack(alignment: .leading, spacing: 0) {
             ModelSheetHeading(title: "\(role.title) model", subtitle: role.detail)
             if role == .assistant {
-                Picker("Run with", selection: $backend) {
-                    Text("On this Mac").tag(AppSettings.SummarizerBackend.builtIn)
-                    Text("Apple Intelligence").tag(AppSettings.SummarizerBackend.appleIntelligence)
-                    Text("Ollama").tag(AppSettings.SummarizerBackend.ollama)
-                    Text("Connected provider").tag(AppSettings.SummarizerBackend.openAICompatible)
+                // Where Think runs, then that choice's own setup: one place
+                // to choose and configure, with no nested or segmented picks.
+                HStack(alignment: .top, spacing: 0) {
+                    providerList.frame(width: 228)
+                    Divider()
+                    VStack(alignment: .leading, spacing: 0) {
+                        if showsCatalog {
+                            catalog
+                            selectionDetails
+                        } else {
+                            ScrollView {
+                                providerSelection
+                                    .padding(.horizontal, 24).padding(.bottom, 16)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                        }
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 }
-                .pickerStyle(.segmented).tint(Brand.tealFill)
-                .padding(.horizontal, 24).padding(.bottom, 16)
-                .accessibilityIdentifier("models.picker.provider")
-            }
-            if showsCatalog {
+            } else if showsCatalog {
                 catalog
                 selectionDetails
-            } else {
-                providerSelection.padding(.horizontal, 24)
-                Spacer(minLength: 16)
             }
             Divider()
             HStack(spacing: 14) {
@@ -182,12 +216,13 @@ struct ModelPickerSheet: View {
                 Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
                     .accessibilityIdentifier("models.picker.cancel")
                 Button(clearsFunASRSelection ? "Clear selection" : needsDownload ? "Download and use" : "Use model") {
+                    approveSelectedPlan()
                     setup.apply(patch, title: selectedName)
                     dismiss()
                 }
                 .primaryActionButton()
                 .keyboardShortcut(.defaultAction)
-                .disabled(!canApply || (patch.matches(app.settings) && !needsDownload))
+                .disabled(!canApply || (patch.matches(app.settings) && !needsDownload && !approvesSelectedPlan))
                 .accessibilityIdentifier("models.picker.apply")
             }
             .padding(20)
@@ -424,7 +459,160 @@ struct ModelPickerSheet: View {
         .font(.scaled(.callout)).foregroundStyle(.secondary).padding(.top, 8)
     }
 
+    /// Where Think runs. Each choice is one backend; its setup appears beside
+    /// the list.
+    private enum ThinkProvider: String, CaseIterable, Identifiable {
+        case onDevice, appleIntelligence, chatGPTPlan, claudePlan, ollama, server
+
+        var id: String { rawValue }
+
+        init(_ backend: AppSettings.SummarizerBackend) {
+            switch backend {
+            case .builtIn: self = .onDevice
+            case .appleIntelligence: self = .appleIntelligence
+            case .chatGPTPlan: self = .chatGPTPlan
+            case .claudePlan: self = .claudePlan
+            case .ollama: self = .ollama
+            case .openAICompatible: self = .server
+            }
+        }
+
+        var backend: AppSettings.SummarizerBackend {
+            switch self {
+            case .onDevice: .builtIn
+            case .appleIntelligence: .appleIntelligence
+            case .chatGPTPlan: .chatGPTPlan
+            case .claudePlan: .claudePlan
+            case .ollama: .ollama
+            case .server: .openAICompatible
+            }
+        }
+
+        var title: LocalizedStringKey {
+            switch self {
+            case .onDevice: "On this Mac"
+            case .appleIntelligence: "Apple Intelligence"
+            case .chatGPTPlan: "ChatGPT plan"
+            case .claudePlan: "Claude plan"
+            case .ollama: "Ollama"
+            case .server: "OpenAI-compatible"
+            }
+        }
+
+        var icon: String {
+            switch self {
+            case .onDevice: "desktopcomputer"
+            case .appleIntelligence: "apple.intelligence"
+            case .chatGPTPlan: "bubble.left.and.bubble.right"
+            case .claudePlan: "terminal"
+            case .ollama: "server.rack"
+            case .server: "network"
+            }
+        }
+
+        static let groups: [(title: LocalizedStringKey, providers: [ThinkProvider])] = [
+            ("Local", [.onDevice, .appleIntelligence]),
+            ("Your subscription", [.chatGPTPlan, .claudePlan]),
+            ("Server", [.ollama, .server]),
+        ]
+    }
+
+    /// Plain rows with an explicit highlight: the selection reads the same in
+    /// a sheet whether or not its window is key.
+    private var providerList: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 14) {
+                ForEach(ThinkProvider.groups, id: \.providers) { group in
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(group.title)
+                            .font(.scaled(.caption).weight(.semibold))
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 10).padding(.bottom, 2)
+                        ForEach(group.providers) { provider in
+                            providerRow(provider)
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal, 12).padding(.vertical, 4)
+        }
+        .accessibilityIdentifier("models.picker.provider")
+    }
+
+    private func providerRow(_ provider: ThinkProvider) -> some View {
+        let selected = ThinkProvider(backend) == provider
+        return Button {
+            backend = provider.backend
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: provider.icon)
+                    .frame(width: 20)
+                    .foregroundStyle(selected ? AnyShapeStyle(Brand.teal) : AnyShapeStyle(.secondary))
+                Text(provider.title)
+                    .font(.scaled(.body).weight(selected ? .semibold : .regular))
+                    .lineLimit(1)
+                Spacer(minLength: 4)
+                if provider.backend == app.settings.summarizerBackend {
+                    Image(systemName: "checkmark")
+                        .font(.scaled(.caption).weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .accessibilityLabel("In use")
+                        .help("In use")
+                }
+            }
+            .padding(.horizontal, 10).padding(.vertical, 7)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(selected ? Brand.tealFill.opacity(0.16) : Color.clear,
+                        in: RoundedRectangle(cornerRadius: 7))
+            .contentShape(RoundedRectangle(cornerRadius: 7))
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(selected ? .isSelected : [])
+        .accessibilityIdentifier("models.picker.provider.\(provider.rawValue)")
+    }
+
+    private func consent(for plan: SubscriptionPlan) -> Binding<Bool> {
+        plan == .chatGPT ? $chatGPTConsent : $claudeConsent
+    }
+
+    /// The selected plan is approved in the sheet but not yet in settings.
+    private var approvesSelectedPlan: Bool {
+        guard role == .assistant, let plan = SubscriptionPlan(backend: backend) else { return false }
+        return consent(for: plan).wrappedValue && !plan.isApproved(in: app.settings)
+    }
+
+    private func approveSelectedPlan() {
+        guard approvesSelectedPlan, let plan = SubscriptionPlan(backend: backend) else { return }
+        app.settings.approvedRemoteInferenceOrigins.append(plan.consentKey)
+    }
+
+    private var planSelection: some View {
+        let plan = SubscriptionPlan(backend: backend) ?? .chatGPT
+        return VStack(alignment: .leading, spacing: 16) {
+            SubscriptionPlanSetupView(
+                app: app, plan: plan,
+                model: plan == .chatGPT ? $chatGPTPlanModel : $claudePlanModel,
+                consent: consent(for: plan),
+                ready: plan == .chatGPT ? $chatGPTReady : $claudeReady,
+                chatGPTAccount: chatGPTAccount)
+                .id(plan)
+            Text("Requests count toward your \(plan.title)'s usage. Agent Mode can't use a plan yet.")
+                .font(.scaled(.callout)).foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.top, 4)
+    }
+
+    @ViewBuilder
     private var providerSelection: some View {
+        if SubscriptionPlan(backend: backend) != nil {
+            planSelection
+        } else {
+            serverSelection
+        }
+    }
+
+    private var serverSelection: some View {
         VStack(alignment: .leading, spacing: 20) {
             if backend == .appleIntelligence {
                 let availability = FoundationModelAvailability.current()
@@ -447,6 +635,7 @@ struct ModelPickerSheet: View {
                 if case .blocked(let reason) = InferencePresentation(settings: target) {
                     Label(reason, systemImage: "exclamationmark.triangle")
                         .font(.scaled(.body)).foregroundStyle(.orange)
+                        .fixedSize(horizontal: false, vertical: true)
                 } else {
                     Text(InferencePresentation(settings: target).detail(
                         local: "This provider runs on this Mac.",

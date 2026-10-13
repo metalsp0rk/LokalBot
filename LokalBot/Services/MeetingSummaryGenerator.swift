@@ -79,6 +79,16 @@ enum MeetingSummaryGenerator {
     /// The selected provider's documented window for the model. Unknown
     /// servers and models retain 16K.
     static func contextTokenLimit(for config: AppSettings) -> Int {
+        switch config.summarizerBackend {
+        case .chatGPTPlan:
+            // Every model offered on a ChatGPT plan has at least 128K.
+            return openAIContextTokens(model: config.chatGPTPlanModel) ?? 128_000
+        case .claudePlan:
+            // Claude Code's default window on subscription plans.
+            return 200_000
+        case .builtIn, .appleIntelligence, .ollama, .openAICompatible:
+            break
+        }
         if config.summarizerBackend == .openAICompatible, let url = URL(string: config.openAIBaseURL),
            let documented = documentedContextTokens(
             provider: .init(dialect: .inferred(from: url), baseURL: url), model: config.openAIModel) {

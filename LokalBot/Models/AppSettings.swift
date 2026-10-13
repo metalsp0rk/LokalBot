@@ -29,11 +29,15 @@ struct AppSettings: Codable, Equatable {
         case appleIntelligence = "Apple Intelligence"
         case ollama = "Ollama"
         case openAICompatible = "OpenAI-compatible server"
+        /// The user's ChatGPT plan through Sign in with ChatGPT.
+        case chatGPTPlan = "ChatGPT plan"
+        /// The user's Claude plan through their own Claude Code installation.
+        case claudePlan = "Claude plan"
         var id: String { rawValue }
         var displayName: String {
             switch self {
             case .builtIn: "Built-in (on-device)"
-            case .appleIntelligence, .ollama, .openAICompatible: rawValue
+            case .appleIntelligence, .ollama, .openAICompatible, .chatGPTPlan, .claudePlan: rawValue
             }
         }
     }
@@ -353,6 +357,13 @@ struct AppSettings: Codable, Equatable {
     /// agent context off this Mac, including scheduled digest and Dream runs.
     /// Loopback endpoints never need approval.
     var approvedRemoteInferenceOrigins: [String] = []
+    /// Model slug for the ChatGPT plan, from the signed-in account's list.
+    var chatGPTPlanModel: String = ""
+    /// Model for the Claude plan: an alias Claude Code accepts ("sonnet") or a
+    /// full model id. Empty uses Claude Code's own default.
+    var claudePlanModel: String = ""
+    /// The one-time "You're using your ChatGPT plan" notice was dismissed.
+    var chatGPTPlanNoticeAcknowledged: Bool = false
     /// Processing budget for meeting-notes generation. Applies to every Think
     /// backend, not only the connection it is edited alongside.
     var generationBudgetPreset: GenerationBudgetPreset = .standard
@@ -374,6 +385,8 @@ struct AppSettings: Codable, Equatable {
         let base: String
         switch summarizerBackend {
         case .builtIn, .appleIntelligence: return false
+        case .chatGPTPlan, .claudePlan:
+            return SubscriptionPlan(backend: summarizerBackend)?.isApproved(in: self) == true
         case .ollama: base = ollamaBaseURL
         case .openAICompatible: base = openAIBaseURL
         }
@@ -389,6 +402,8 @@ struct AppSettings: Codable, Equatable {
         let base: String
         switch summarizerBackend {
         case .builtIn, .appleIntelligence: return true
+        case .chatGPTPlan, .claudePlan:
+            return SubscriptionPlan(backend: summarizerBackend)?.isApproved(in: self) == true
         case .ollama: base = ollamaBaseURL
         case .openAICompatible: base = openAIBaseURL
         }
@@ -413,6 +428,12 @@ struct AppSettings: Codable, Equatable {
         case .openAICompatible:
             let model = openAIModel.trimmingCharacters(in: .whitespacesAndNewlines)
             return model.isEmpty ? summarizerBackend.displayName : model
+        case .chatGPTPlan:
+            let model = chatGPTPlanModel.trimmingCharacters(in: .whitespacesAndNewlines)
+            return model.isEmpty ? summarizerBackend.displayName : "\(model) · ChatGPT plan"
+        case .claudePlan:
+            let model = claudePlanModel.trimmingCharacters(in: .whitespacesAndNewlines)
+            return model.isEmpty ? summarizerBackend.displayName : "\(model) · Claude plan"
         }
     }
     var openAIAPIKey: String {
@@ -795,6 +816,9 @@ struct AppSettings: Codable, Equatable {
         case openAIModel
         case openRouterDataPolicy
         case approvedRemoteInferenceOrigins
+        case chatGPTPlanModel
+        case claudePlanModel
+        case chatGPTPlanNoticeAcknowledged
         case generationBudgetPreset
         case thinkReasoningLevel
         case agentReasoningLevel
@@ -980,6 +1004,9 @@ struct AppSettings: Codable, Equatable {
         try c.encode(openAIModel, forKey: .openAIModel)
         try c.encode(openRouterDataPolicy, forKey: .openRouterDataPolicy)
         try c.encode(approvedRemoteInferenceOrigins, forKey: .approvedRemoteInferenceOrigins)
+        try c.encode(chatGPTPlanModel, forKey: .chatGPTPlanModel)
+        try c.encode(claudePlanModel, forKey: .claudePlanModel)
+        try c.encode(chatGPTPlanNoticeAcknowledged, forKey: .chatGPTPlanNoticeAcknowledged)
         try c.encode(generationBudgetPreset, forKey: .generationBudgetPreset)
         try c.encode(thinkReasoningLevel, forKey: .thinkReasoningLevel)
         try c.encodeIfPresent(agentReasoningLevel, forKey: .agentReasoningLevel)
@@ -1154,6 +1181,10 @@ struct AppSettings: Codable, Equatable {
             .openRouterDataPolicy, defaults.openRouterDataPolicy)
         approvedRemoteInferenceOrigins = decode(
             .approvedRemoteInferenceOrigins, defaults.approvedRemoteInferenceOrigins)
+        chatGPTPlanModel = decode(.chatGPTPlanModel, defaults.chatGPTPlanModel)
+        claudePlanModel = decode(.claudePlanModel, defaults.claudePlanModel)
+        chatGPTPlanNoticeAcknowledged = decode(
+            .chatGPTPlanNoticeAcknowledged, defaults.chatGPTPlanNoticeAcknowledged)
         generationBudgetPreset = decode(
             .generationBudgetPreset, defaults.generationBudgetPreset)
         thinkReasoningLevel = decode(.thinkReasoningLevel, defaults.thinkReasoningLevel)
