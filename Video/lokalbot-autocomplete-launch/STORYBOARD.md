@@ -1,4 +1,4 @@
-# Storyboard — "Since May" (62.6 s, 1920 × 1080)
+# Storyboard — "Since May" (62.8 s, 1920 × 1080)
 
 One person, one evening, a few messages. Real typing in TextEdit with the filming copy of LokalBot; the gray ghost is real model output. Narration is first person (Breeze TTS 2, male reference, warm direction). Times are global seconds from `edit.json`.
 
@@ -20,14 +20,14 @@ status: outline · src: assets/footage/lang-{de,fr,it,es}.mp4 · rules: staggere
 - The takes were typed one after another and are shown together; none is sped up beyond the stated rate.
 - VO 05 "And I wanted it open, so anyone can make it better in their own language. Here it's writing German, French, Italian and Spanish. Same small model, on your Mac."
 
-## Frame 4 — quiet · 38.6–46.2
+## Frame 4 — quiet · 38.6–47.0
 status: outline · src: assets/footage/quiet.mp4 · rules: hold, no push during the quiet beat
 - Footage: "Hi Mila," then a pause with no ghost. Then "…great to finally " and Tabs take "meet you in person."
 - VO 06 "When it isn't sure, it stays quiet. When it is, it offers a few words. Tab takes one at a time."
 
-## Frame 5 — credit and close · 46.2–62.6
+## Frame 5 — credit and close · 47.0–62.8
 status: outline · rules: end card with the brand mark and staggered lines, then the URL reveal
-- LokalBot mark and wordmark. "Free and open source. Every model runs on your Mac." "Autocomplete built on Cotabby's open loop, with Cotypist as the bar for how it should feel." At 56.8 s: github.com/stevyhacker/lokalbot.
+- LokalBot mark and wordmark. "Free and open source. Every model runs on your Mac." "Autocomplete built on Cotabby's open loop, with Cotypist as the bar for how it should feel." At 57.1 s: github.com/stevyhacker/lokalbot.
 - VO 07 credit line; VO 08 "Try it, and tell me where it's wrong."
 
 ## Filmed takes (2026-10-13, TextEdit 40 pt Helvetica, window centered on the LG at 1x)

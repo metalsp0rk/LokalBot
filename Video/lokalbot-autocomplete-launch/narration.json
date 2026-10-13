@@ -8,7 +8,8 @@
       "id": "01-tabs",
       "caption": "Since May, I've pressed Tab in Cotypist 8,176 times.",
       "text": "Since May, I've pressed Tab in Coe-typist eight thousand, one hundred and seventy-six times.",
-      "source": "Cotypist completionStats.json, single-word accepts 2026-05-28 to 2026-10-05: 8,176 (plus 58 longer accepts)"
+      "source": "Cotypist completionStats.json, single-word accepts 2026-05-28 to 2026-10-05: 8,176 (plus 58 longer accepts)",
+      "eleven_text": "Since May, I've pressed Tab in Co-typist 8,176 times."
     },
     {
       "id": "02-wish",
@@ -17,8 +18,9 @@
     },
     {
       "id": "03-remember",
-      "caption": "I wanted it to remember. Yesterday Mila told me the beta ships Thursday. So when I write to the team today, it already knows.",
-      "text": "I wanted it to remember. Yesterday, Mila told me the beta ships on Thursday. So when I write to the team today, it already knows."
+      "caption": "I wanted it to remember. Yesterday Mila told me the beta ships on Thursday. So when I write to the team today, it already knows.",
+      "text": "I wanted it to remember. Yesterday, Mila told me the beta ships on Thursday. So when I write to the team today, it already knows.",
+      "eleven_text": "I wanted it to remember. Yesterday, Mila told me the beta ships on Thursday. So when I write to the team today, it already knows."
     },
     {
       "id": "04-local",
@@ -38,7 +40,8 @@
     {
       "id": "07-credit",
       "caption": "It's part of LokalBot now. Free, open source, every model on your Mac. It started from Cotabby's open code, so thank you for that.",
-      "text": "It's part of Local Bot now. Free, open source, every model on your Mac. It started from Coe-tabby's open code, so, thank you for that."
+      "text": "It's part of Local Bot now. Free, open source, every model on your Mac. It started from Coe-tabby's open code, so, thank you for that.",
+      "eleven_text": "It's part of LokalBot now. Free, open source, every model on your Mac. It started from Co-tabby's open code, so thank you for that."
     },
     {
       "id": "08-close",

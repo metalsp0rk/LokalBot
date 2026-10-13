@@ -61,7 +61,8 @@ caps = '\n'.join(
     f'data-track-index="20"><span class="cap-text">{html.escape(c["text"])}</span></div>'
     for c in CAPTIONS)
 
-config = {'scenes': E['scenes'], 'overlays': E['overlays'], 'total': TOTAL}
+config = {'scenes': E['scenes'], 'overlays': E['overlays'], 'total': TOTAL,
+          'endcard': E.get('endcard', {'line': 1.6, 'thanks': 5.4, 'url': 10.6})}
 
 page = f'''<!doctype html>
 <html lang="en">
@@ -201,9 +202,9 @@ page = f'''<!doctype html>
       const credit = C.scenes.find(s => s.id === "credit");
       tl.fromTo("#endcard", {{ opacity: 0 }}, {{ opacity: 1, duration: 0.9, ease: "sine.out" }}, credit.start + 0.2);
       tl.fromTo("#endcard .brand", {{ y: 24 }}, {{ y: 0, duration: 1.0, ease: "power3.out" }}, credit.start + 0.2);
-      tl.fromTo("#endcard .line", {{ opacity: 0, y: 16 }}, {{ opacity: 1, y: 0, duration: 0.7, ease: "power2.out" }}, credit.start + 1.6);
-      tl.fromTo("#endcard .thanks", {{ opacity: 0, y: 16 }}, {{ opacity: 1, y: 0, duration: 0.7, ease: "power2.out" }}, credit.start + 5.4);
-      tl.fromTo("#end-url", {{ opacity: 0, y: 14 }}, {{ opacity: 1, y: 0, duration: 0.8, ease: "power3.out" }}, credit.start + 10.6);
+      tl.fromTo("#endcard .line", {{ opacity: 0, y: 16 }}, {{ opacity: 1, y: 0, duration: 0.7, ease: "power2.out" }}, credit.start + C.endcard.line);
+      tl.fromTo("#endcard .thanks", {{ opacity: 0, y: 16 }}, {{ opacity: 1, y: 0, duration: 0.7, ease: "power2.out" }}, credit.start + C.endcard.thanks);
+      tl.fromTo("#end-url", {{ opacity: 0, y: 14 }}, {{ opacity: 1, y: 0, duration: 0.8, ease: "power3.out" }}, credit.start + C.endcard.url);
       document.querySelectorAll(".cap").forEach(el => {{
         const start = parseFloat(el.dataset.start), dur = parseFloat(el.dataset.duration);
         const text = el.querySelector(".cap-text");

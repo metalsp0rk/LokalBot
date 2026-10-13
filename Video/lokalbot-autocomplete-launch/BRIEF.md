@@ -8,7 +8,7 @@
 - Canvas: 1920 × 1080, 30 fps, about 60 seconds. Captions are burned in because Reddit autoplays muted.
 - Footage: real screen recordings of typing in macOS apps with the filming build. The ghost text is real model output; nothing in the product UI is redrawn. Typing is driven by computer use, and the suggestions are whatever the model produced in that take.
 - Filming build: `filming/build_filming_app.sh` archives master, changes only the ghost panel's `sharingType` from `.none` to `.readOnly` so screen recording can see it, and re-signs to the installed app's designated requirement so its Accessibility and Input Monitoring grants apply. It runs against `filming/seed_library.py`'s fictional library and an isolated settings suite with clipboard, screen memory, learning, capture and recording off.
-- Voice: Breeze TTS 2 Q8_0 through audio.cpp v0.7.3 (Metal), with the approved male reference from the September film and a warmer, slower direction. Disclosed as synthetic in the post.
+- Voice: ElevenLabs eleven_v4, voice jBeSFLau956Zo30jykBV (user's choice, 2026-10-13; replaces the earlier Breeze TTS 2 narration). Disclosed as synthetic in the post.
 - Look: warm paper background, real footage in soft-shadowed cards, small handwritten-style time stamps, gentle piano bed. No mock UI.
 - Delivery: MP4 (H.264/AAC), SRT, poster; local only. Publishing needs separate approval.
-- Licensing note: Breeze TTS 2's license asks for a written license for commercial use of its outputs.
+- Licensing note: commercial use of the narration follows the ElevenLabs plan of the generating account.
