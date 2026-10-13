@@ -287,7 +287,8 @@ grant optional permissions until you approve them:
 - Screen Recording when visual screen context is selected. Meeting-speaker
   observation uses Accessibility only and does not require Screen Recording.
   When it is already granted, Autocomplete also uses it to place suggestions
-  in fields that report no caret position (see below); it never asks for it.
+  in fields that report no caret position and to read the focused window's
+  text (see below); it never asks for it.
 
 On a fresh install, LokalBot asks through a notification before it records a
 detected meeting. You can switch to automatic recording or turn auto-record
@@ -406,6 +407,29 @@ Tab performs no screen traversal.
 Apps that do not expose visible static text through Accessibility get ordinary
 autocomplete without this additional context.
 
+Autocomplete also has a **Use the focused window as context** setting. It is on
+for every install, including settings saved by earlier versions, and only takes
+effect while Autocomplete itself is on and Screen Recording is already granted;
+Autocomplete never asks for Screen Recording. Settings → Writing turns it off.
+While you type in a field, Autocomplete captures only the focused window,
+recognizes its text on this Mac with Apple's Vision framework, and drops the
+image. Text inside the field you are typing in is left out, since it is already
+your draft. Up to 2,000 characters enter the local completion prompt: lines in
+the field's column above it first, nearest the field first, then the rest of
+the window. Lines that look like credentials, payment card numbers or prompt
+instructions are omitted. Excluded apps and sites, private or incognito browser
+windows, and browser pages whose address is unknown are never captured; shared
+capture exclusions and autocomplete exclusions both apply. The window is read in
+the background, never on a keystroke or on Tab: when a field gets focus and at
+most every four seconds while you type in it, so a suggestion may use text that
+changed in the last few seconds, and lines that scrolled out of view can stay in
+use for up to a minute. The text is held in memory for the focused field only
+and forgotten when focus leaves it or moves to another field or window, or when
+this setting or an exclusion changes; a suggestion that used it is then
+discarded. It is never saved, sent, added to screen memory or used for local
+learning, and the completion model runs on this Mac. Once the window has been
+read, its text replaces the nearby Accessibility text above.
+
 Some fields, such as text areas in Chrome, do not report where the caret is.
 For those, when Screen Recording is already granted, Autocomplete captures the
 focused field's own frame, finds the line that ends at the caret with on-device
@@ -422,7 +446,8 @@ Autocomplete has separate, off-by-default **Use meeting and work memory** and
 two short, relevant facts from the last 90 days in its local completion prompt.
 Meeting sources include current notes, summaries, and outcomes with saved
 corrections. With both relevant settings enabled, selected visible excerpts can
-also supply project names for this local lookup. Visible-context permission
+also supply project names for this local lookup; of window text, only the 600
+characters nearest the field are searched. Visible-context permission
 alone does not authorize saved-memory retrieval. Work memory includes attributed
 projects and goals; screen-derived memory can include distilled screen/activity
 and daily-journal facts. These two settings are the whole permission to read

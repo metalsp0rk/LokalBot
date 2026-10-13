@@ -3,6 +3,7 @@ import ApplicationServices
 
 /// Used only on the serialized background focus worker. No pixels, OCR, saved
 /// screen history, whole document values, or reads on the consuming Tab path.
+/// Window text (`CotypingWindowTextCapture`) uses only its `target`.
 final class CotypingVisibleContextAXSource: CotypingVisibleContextSource {
     private let field: AXUIElement
     private let processID: pid_t
@@ -23,7 +24,13 @@ final class CotypingVisibleContextAXSource: CotypingVisibleContextSource {
 
     var withinBudget: Bool { started.duration(to: .now) < .milliseconds(70) }
 
-    func target() -> CotypingVisibleContext.Target? {
+    func target() -> CotypingVisibleContext.Target? { target(requiringScope: true) }
+
+    /// The focused field's window and the privacy facts about it. Window text
+    /// reads the whole window, so it does not need a pane with room above the
+    /// field and falls back to the window itself. It also climbs further:
+    /// fields in web apps often sit more than 16 levels below their window.
+    func target(requiringScope: Bool) -> CotypingVisibleContext.Target? {
         guard withinBudget, processID != ProcessInfo.processInfo.processIdentifier,
               NSWorkspace.shared.frontmostApplication?.processIdentifier == processID,
               focusIsCurrent(), let fieldFrame = frame(field),
@@ -39,7 +46,7 @@ final class CotypingVisibleContextAXSource: CotypingVisibleContextSource {
         var hasWeb = false
         var reachedWindow = false
         var visited = Set<String>()
-        for _ in 0..<16 {
+        for _ in 0..<(requiringScope ? 16 : 64) {
             guard withinBudget, let node = cursor, visited.insert(register(node)).inserted,
                   let role = string(node, kAXRoleAttribute), attribute(node, "AXHidden") as? Bool != true else { return nil }
             if role == "AXWebArea" {
@@ -47,7 +54,7 @@ final class CotypingVisibleContextAXSource: CotypingVisibleContextSource {
                 guard let url = ScreenContextPrivacy.sanitizedURL(string(node, kAXURLAttribute)) else { return nil }
                 urls.insert(url)
             }
-            if scope == nil, !CFEqual(node, field),
+            if requiringScope, scope == nil, !CFEqual(node, field),
                ["AXGroup", "AXScrollArea", "AXWebArea", "AXSplitGroup", "AXWindow"].contains(role),
                let rect = frame(node), rect.contains(fieldFrame), fieldFrame.minY - rect.minY >= 64 {
                 scope = node
@@ -55,6 +62,10 @@ final class CotypingVisibleContextAXSource: CotypingVisibleContextSource {
             }
             if CFEqual(node, window) { reachedWindow = true; break }
             cursor = element(node, kAXParentAttribute)
+        }
+        if !requiringScope, scope == nil {
+            scope = window
+            scopeFrame = windowFrame
         }
         guard reachedWindow, urls.count <= 1, let scope, let scopeFrame else { return nil }
         let documentURL = ScreenContextPrivacy.sanitizedURL(string(window, kAXDocumentAttribute))

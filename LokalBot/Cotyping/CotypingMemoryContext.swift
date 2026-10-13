@@ -173,6 +173,9 @@ enum CotypingMemoryContext {
         return (inside, opening)
     }
 
+    /// The part of the nearby text a lookup may search, nearest the field.
+    static let maxVisibleQueryCharacters = 600
+
     static func query(for field: CotypingField, includeTitle: Bool, includeVisibleContext: Bool = true) -> Query {
         guard !field.isSecure, field.selectionLength == 0,
               ![CotypingSurfaceClass.codeEditor, .terminal].contains(
@@ -182,7 +185,10 @@ enum CotypingMemoryContext {
         let title = includeTitle ? field.windowTitle ?? "" : ""
         // Only the already-authorized, spatially selected live excerpts can add
         // search terms. This connects a short reply to a project named above it.
-        let visible = includeVisibleContext ? field.visibleContext?.text ?? "" : ""
+        // Whole-window text ends with the lines nearest the field; the rest of
+        // the window (sidebars, lists) would name far too much.
+        let visible = includeVisibleContext
+            ? String((field.visibleContext?.text ?? "").suffix(maxVisibleQueryCharacters)) : ""
         guard ScreenContextPrivacy.redact([draft, title, visible].joined(separator: " ")).count == 0 else { return Query() }
         return Query(draft: draft, title: title, visible: visible, appName: field.appName)
     }

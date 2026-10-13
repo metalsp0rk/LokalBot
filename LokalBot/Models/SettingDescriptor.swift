@@ -99,6 +99,7 @@ struct SettingDescriptor: Identifiable {
         .init(id: "settings.cotypingUseAppContext", title: "Use app and window context", category: .writing, aliases: "cotypingUseAppContext"),
         .init(id: "settings.cotypingUseClipboard", title: "Use clipboard as temporary context", category: .writing, aliases: "cotypingUseClipboard"),
         .init(id: "settings.cotypingUseVisibleContext", title: "Use visible text above the field", category: .writing, aliases: "autocomplete screen context reply message email"),
+        .init(id: "settings.cotypingUseWindowText", title: "Use the focused window as context", category: .writing, aliases: "autocomplete window screen recording ocr text recognition whole screen conversation"),
         .init(id: "settings.cotypingUseMeetingMemory", title: "Use meeting and work memory", category: .writing, aliases: "autocomplete context notes decisions projects people"),
         .init(id: "settings.cotypingUseScreenMemory", title: "Use screen-derived work memory", category: .writing, aliases: "autocomplete saved context screen activity"),
         .init(id: "settings.cotypingUseLocalLearning", title: "Learn locally from accepted completions", category: .writing, aliases: "cotypingUseLocalLearning"),

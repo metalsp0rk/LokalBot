@@ -625,6 +625,7 @@ enum CotypingPromptLeakGuard {
         "notes the writer keeps in mind",
         "relevant saved facts",
         "current visible text above the field",
+        "visible in this window",
         "previously accepted completion",
         "on the clipboard",
     ].map(canonicalize)
@@ -665,10 +666,7 @@ enum CotypingPromptLeakGuard {
             return true
         }
 
-        let protectedLines = conditioningPreface
-            .split(whereSeparator: { $0.isNewline })
-            .map { canonicalize(String($0)) }
-            .filter { !$0.isEmpty }
+        let protectedLines = protectedPrefaceLines(conditioningPreface)
 
         for line in protectedLines where matchesProtectedText(candidate, protected: line) {
             return true
@@ -703,6 +701,27 @@ enum CotypingPromptLeakGuard {
             containsPhrase(candidate, phrase: marker)
                 || (candidate.count >= 8 && marker.hasPrefix(candidate))
         }
+    }
+
+    /// Preface lines a suggestion must not repeat. The focused window's own
+    /// lines are left out: continuing with a name or phrase that is on screen
+    /// is what that context is for. Its label stays protected, and the block
+    /// ends at the blank line the renderer puts after it.
+    private static func protectedPrefaceLines(_ preface: String) -> [String] {
+        var lines: [String] = []
+        var inWindow = false
+        for raw in preface.split(omittingEmptySubsequences: false, whereSeparator: { $0.isNewline }) {
+            let line = String(raw)
+            if line == CotypingPromptRenderer.windowLabel {
+                inWindow = true
+            } else if inWindow {
+                if line.trimmingCharacters(in: .whitespaces).isEmpty { inWindow = false }
+                continue
+            }
+            let canonical = canonicalize(line)
+            if !canonical.isEmpty { lines.append(canonical) }
+        }
+        return lines
     }
 
     private static func matchesProtectedText(_ candidate: String, protected: String) -> Bool {

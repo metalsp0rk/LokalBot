@@ -202,7 +202,7 @@ struct OnboardingView: View {
                 .accessibilityLabel("Also prepare Autocomplete (optional)")
             if includeAutocomplete {
                 modelRow("Autocomplete", model: app.settings.cotypingBuiltInModelID, role: .autocomplete)
-                Text("Autocomplete also reads the text just above where you type, such as the message you are answering, to fit its suggestions. It stays on this Mac and is never saved; turn it off in Settings → Writing.")
+                Text("Autocomplete also reads the window you are typing in, such as the conversation you are answering, to fit its suggestions: the text just above the field, and, once Screen Recording is allowed, the whole window with on-device text recognition. It stays on this Mac and is never saved; turn either off in Settings → Writing.")
                     .workspaceTextRole(.supporting)
             }
             Button("Prepare Selected Models") {

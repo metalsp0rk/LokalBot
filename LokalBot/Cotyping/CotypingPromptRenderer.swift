@@ -26,6 +26,8 @@ enum CotypingPromptRenderer {
     static let maxClipboardLineCharacters = 180
     /// Cap on each accepted-completion memory line.
     static let maxLearnedExampleCharacters = 120
+    /// Heads the focused window's recognized text, one screen line per line.
+    static let windowLabel = "Visible in this window:"
 
     /// - Parameters:
     ///   - prefixText: the windowed text immediately before the caret.
@@ -42,6 +44,7 @@ enum CotypingPromptRenderer {
         clipboardContext: String? = nil,
         memoryContext: String? = nil,
         visibleContext: String? = nil,
+        windowContext: String? = nil,
         learnedExamples: [String] = []
     ) -> String {
         render(
@@ -54,6 +57,7 @@ enum CotypingPromptRenderer {
             clipboardContext: clipboardContext,
             memoryContext: memoryContext,
             visibleContext: visibleContext,
+            windowContext: windowContext,
             learnedExamples: learnedExamples).prompt
     }
 
@@ -70,12 +74,24 @@ enum CotypingPromptRenderer {
         clipboardContext: String? = nil,
         memoryContext: String? = nil,
         visibleContext: String? = nil,
+        windowContext: String? = nil,
         learnedExamples: [String] = []
     ) -> RenderedPrompt {
         let prefix = prefixText
 
+        // Window text has its own budget, so a full window never crowds out
+        // the lines below it. It comes first: it changes least while typing,
+        // and the model keeps what it has read of an unchanged prompt start.
+        let window = nonEmpty(windowContext).map {
+            "\(windowLabel)\n\(PromptContextSanitizer.sanitize($0, maxCharacters: CotypingWindowText.maximumCharacters))"
+        }
         var preface: [String] = []
-        if let visible = nonEmpty(visibleContext) {
+        if window != nil {
+            preface = surfaceLines
+            if let memory = nonEmpty(memoryContext) {
+                preface.append("Relevant saved facts: \(PromptContextSanitizer.sanitize(memory, maxCharacters: 180))")
+            }
+        } else if let visible = nonEmpty(visibleContext) {
             preface.append("Current visible text above the field: \(PromptContextSanitizer.sanitize(visible, maxCharacters: 420))")
             preface.append(contentsOf: surfaceLines)
             if let memory = nonEmpty(memoryContext) {
@@ -102,7 +118,7 @@ enum CotypingPromptRenderer {
             preface.append("On the clipboard: \(String(clip.prefix(maxClipboardLineCharacters)))")
         }
 
-        guard !preface.isEmpty else {
+        guard window != nil || !preface.isEmpty else {
             // No context to condition on: hand the model the bare text.
             return RenderedPrompt(prompt: prefix, conditioningPreface: nil)
         }
@@ -110,6 +126,9 @@ enum CotypingPromptRenderer {
         var prefaceText = preface.joined(separator: "\n")
         if prefaceText.count > maxPrefaceCharacters {
             prefaceText = String(prefaceText.prefix(maxPrefaceCharacters))
+        }
+        if let window {
+            prefaceText = prefaceText.isEmpty ? window : window + "\n\n" + prefaceText
         }
         // Blank line separates the conditioning preface from the live text
         // without a label the model could echo. Prefix stays the final bytes.

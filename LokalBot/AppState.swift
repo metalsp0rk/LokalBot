@@ -207,6 +207,7 @@ final class AppState: ObservableObject {
             || old.cotypingExcludedApps != new.cotypingExcludedApps
             || old.cotypingExcludedDomains != new.cotypingExcludedDomains
             || old.cotypingUseVisibleContext != new.cotypingUseVisibleContext
+            || old.cotypingUseWindowText != new.cotypingUseWindowText
             || old.excludedApps != new.excludedApps
             || old.excludedScreenDomains != new.excludedScreenDomains
             || old.cotypingUseMeetingMemory != new.cotypingUseMeetingMemory

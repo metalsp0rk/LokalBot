@@ -7,7 +7,7 @@ extension CotypingCoordinator {
     func acceptFromTap(_ scope: CotypingAcceptScope) -> Bool {
         guard isRunning, !discardRevokedMemoryContext() else { return false }
         if let activeVisibleContext,
-           !CotypingVisibleContext.Policy(settings: settingsProvider()).permits(activeVisibleContext.target) {
+           !CotypingVisibleContext.Policy(settings: settingsProvider()).permits(activeVisibleContext) {
             clearSuggestion()
             state = .idle
             return false

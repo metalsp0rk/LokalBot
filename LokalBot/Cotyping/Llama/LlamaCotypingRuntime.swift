@@ -220,7 +220,10 @@ actor LlamaCotypingRuntime {
         }
 
         var cparams = llama_context_default_params()
-        cparams.n_ctx = 2048        // matches LlamaServer.cotyping.contextTokens
+        // Matches LlamaServer.cotyping.contextTokens. A long draft and a whole
+        // window of text must fit: a prompt cut at the front changes its start
+        // on every keystroke, and the model would read all of it each time.
+        cparams.n_ctx = 4096
         cparams.n_batch = 2048
         let threads = replayThreadCount ?? Int32(max(1, ProcessInfo.processInfo.activeProcessorCount - 2))
         cparams.n_threads = threads
