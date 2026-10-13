@@ -21,7 +21,8 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-P = Path(__file__).resolve().parent
+# CUT_DIR selects a cut (e.g. short/) that has the same layout as this folder.
+P = Path(os.environ.get('CUT_DIR') or Path(__file__).resolve().parent).resolve()
 SPEC = json.loads((P / 'narration.json').read_text())
 
 

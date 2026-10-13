@@ -7,9 +7,11 @@ times and scene windows stay as authored in edit.json.
 """
 import json
 import re
+import os
 from pathlib import Path
 
-P = Path(__file__).resolve().parent
+# CUT_DIR selects a cut (e.g. short/) that has the same layout as this folder.
+P = Path(os.environ.get('CUT_DIR') or Path(__file__).resolve().parent).resolve()
 E = json.loads((P / 'edit.json').read_text())
 plan = {t['id']: t['file'] for t in json.loads((P / 'production/voice-plan.json').read_text())['takes']}
 rows = {r['file']: r for r in json.loads((P / 'production/eleven-generation.json').read_text())['rows']}
@@ -79,7 +81,8 @@ E['overlays']['model_badge']['start'] = round(voice['05-open'] + find(ws5, 'Gemm
 
 ws7 = words('07-credit')
 credit = next(s for s in E['scenes'] if s['id'] == 'credit')
-E['endcard'] = {
+if not E.get('endcard_manual'):
+  E['endcard'] = {
     'line': round(voice['07-credit'] + find(ws7, 'Free')[0] - credit['start'], 3),
     'thanks': round(voice['07-credit'] + find(ws7, 'It', 4.0)[0] - credit['start'], 3),
     'url': round(voice['08-close'] - 0.3 - credit['start'], 3),

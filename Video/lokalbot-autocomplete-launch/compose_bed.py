@@ -8,15 +8,17 @@ Usage: uv run --no-project --with numpy --with scipy python compose_bed.py [seco
 """
 import sys
 import wave
+import os
 from pathlib import Path
 
 import numpy as np
 from scipy.signal import lfilter
 
 SR = 48_000
-P = Path(__file__).resolve().parent
+# CUT_DIR selects a cut (e.g. short/) that has the same layout as this folder.
+P = Path(os.environ.get('CUT_DIR') or Path(__file__).resolve().parent).resolve()
 LENGTH = float(sys.argv[1]) if len(sys.argv) > 1 else 60.0
-BPM = 72
+BPM = float(sys.argv[2]) if len(sys.argv) > 2 else 72
 BEAT = 60 / BPM
 rng = np.random.default_rng(20261012)
 

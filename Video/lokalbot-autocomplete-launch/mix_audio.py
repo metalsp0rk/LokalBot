@@ -5,9 +5,11 @@ rises between lines and over the end card. Deterministic ffmpeg graph.
 """
 import json
 import subprocess
+import os
 from pathlib import Path
 
-P = Path(__file__).resolve().parent
+# CUT_DIR selects a cut (e.g. short/) that has the same layout as this folder.
+P = Path(os.environ.get('CUT_DIR') or Path(__file__).resolve().parent).resolve()
 E = json.loads((P / 'edit.json').read_text())
 plan = {t['id']: t['file'] for t in json.loads((P / 'production/voice-plan.json').read_text())['takes']}
 total = E['duration']
@@ -37,6 +39,7 @@ f.append(''.join(f'[v{i}]' for i in range(n)) + f'amix=inputs={n}:normalize=0,lo
 f.append(f"[{n}:a]atrim=0:{total},volume='{expr}':eval=frame,afade=t=out:st={total - 3.5}:d=3.5[bed]")
 f.append(f'[vo][bed]amix=inputs=2:normalize=0,apad=pad_dur=2,atrim=0:{total},loudnorm=I=-16:TP=-1.5:LRA=11,aresample=48000,apad=whole_dur={total}[out]')
 out = P / 'assets/sound/final-mix.wav'
+out.parent.mkdir(parents=True, exist_ok=True)
 args += ['-filter_complex', ';'.join(f), '-map', '[out]', '-ar', '48000', '-ac', '2', '-c:a', 'pcm_s16le', '-t', str(total), str(out)]
 subprocess.run(args, check=True)
 r = subprocess.run(['ffmpeg', '-v', 'info', '-i', str(out), '-af', 'ebur128=peak=true', '-f', 'null', '-'],

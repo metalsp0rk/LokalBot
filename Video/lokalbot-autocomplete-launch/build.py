@@ -5,9 +5,11 @@ Run after editing edit.json, then mix_audio.py, then `npm run check`.
 """
 import html
 import json
+import os
 from pathlib import Path
 
-P = Path(__file__).resolve().parent
+# CUT_DIR selects a cut (e.g. short/) that has the same layout as this folder.
+P = Path(os.environ.get('CUT_DIR') or Path(__file__).resolve().parent).resolve()
 E = json.loads((P / 'edit.json').read_text())
 TOTAL = E['duration']
 import subprocess
@@ -43,13 +45,13 @@ for s in E['scenes']:
     sc = s.get('scale', 0.9)
     rows_html.append(f'    <div class="stamp" id="stamp-{s["id"]}" style="left:100px;top:{y0 - 56}px">{html.escape(s["stamp"])}</div>')
     for i, r in enumerate(s['rows']):
-        segments = r.get('segments') or [{"start": r['enter'], "end": s['end'], "media_start": r['media_start']}]
+        segments = r.get('segments') or [{"start": r['enter'], "end": s['end'], "media_start": r['media_start'], "rate": r.get('rate')}]
         videos = ''.join(
             f'''
         <video id="v-lang-{r['lang']}-{k}" class="clip footage" src="{r['footage']}" muted playsinline
           style="top:22px;width:{card_w - 22}px;height:{card_h - 22}px;object-fit:none;object-position:0 0"
           data-start="{g['start']}" data-duration="{round(g['end'] - g['start'], 3)}" data-media-start="{g['media_start']}"
-          data-track-index="{10 + i}"></video>''' for k, g in enumerate(segments))
+          data-track-index="{10 + i}"{f' data-playback-rate="{g["rate"]}"' if g.get('rate') else ''}></video>''' for k, g in enumerate(segments))
         rows_html.append(f'''    <div class="lang-row" id="row-{r['lang']}" style="top:{y0 + i * gap}px">
       <div class="lang-chip" id="chip-{r['lang']}">{html.escape(r['label'])}</div>
       <div class="lang-card" style="left:{card_x}px;width:{card_w}px;height:{card_h}px">{videos}
@@ -61,7 +63,7 @@ caps = '\n'.join(
     f'data-track-index="20"><span class="cap-text">{html.escape(c["text"])}</span></div>'
     for c in CAPTIONS)
 
-config = {'scenes': E['scenes'], 'overlays': E['overlays'], 'total': TOTAL,
+config = {'scenes': E['scenes'], 'overlays': E['overlays'], 'total': TOTAL, 'fade': E.get('fade', 0.6),
           'endcard': E.get('endcard', {'line': 1.6, 'thanks': 5.4, 'url': 10.6})}
 
 page = f'''<!doctype html>
@@ -178,9 +180,9 @@ page = f'''<!doctype html>
       for (const s of C.scenes) {{
         if (!s.footage) continue;
         const card = "#card-" + s.id, cam = "#cam-" + s.id, stamp = "#stamp-" + s.id;
-        const fadeIn = s.start === 0 ? 0.05 : 0.6;
+        const fadeIn = s.start === 0 ? 0.05 : C.fade;
         tl.fromTo(card, {{ opacity: 0, y: 18 }}, {{ opacity: 1, y: 0, duration: fadeIn, ease: "power2.out" }}, s.start);
-        tl.to(card, {{ opacity: 0, duration: 0.6, ease: "power1.in" }}, s.end - 0.6);
+        tl.to(card, {{ opacity: 0, duration: C.fade, ease: "power1.in" }}, s.end - C.fade);
         tl.fromTo(stamp, {{ opacity: 0, x: -10 }}, {{ opacity: 1, x: 0, duration: 0.7, ease: "sine.out" }}, s.start + 0.4);
         tl.to(stamp, {{ opacity: 0, duration: 0.5 }}, s.end - 0.6);
         const pushAt = s.push_at ?? s.start + 0.5, pushFor = s.push_for ?? (s.end - s.start - 1.2);
