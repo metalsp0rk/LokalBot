@@ -1,0 +1,44 @@
+{
+  "takes": [
+    {
+      "id": "01-tabs",
+      "file": "assets/voice/takes/01-tabs-s7.wav",
+      "start": 0.6
+    },
+    {
+      "id": "02-wish",
+      "file": "assets/voice/takes/02-wish-s23.wav",
+      "start": 7.9
+    },
+    {
+      "id": "03-remember",
+      "file": "assets/voice/takes/03-remember-s91.wav",
+      "start": 12.3
+    },
+    {
+      "id": "04-local",
+      "file": "assets/voice/takes/04-local-s7.wav",
+      "start": 21.2
+    },
+    {
+      "id": "05-open",
+      "file": "assets/voice/takes/05-open-s91.wav",
+      "start": 25.6
+    },
+    {
+      "id": "06-quiet",
+      "file": "assets/voice/takes/06-quiet-s91.wav",
+      "start": 32.8
+    },
+    {
+      "id": "07-credit",
+      "file": "assets/voice/takes/07-credit-s91.wav",
+      "start": 40.4
+    },
+    {
+      "id": "08-close",
+      "file": "assets/voice/takes/08-close-s23.wav",
+      "start": 50.6
+    }
+  ]
+}

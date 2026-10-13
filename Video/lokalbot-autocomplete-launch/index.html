@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>Since May — LokalBot autocomplete</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      @font-face { font-family: "Newsreader"; src: url("assets/fonts/Newsreader-VF.ttf"); font-weight: 200 800; }
+      @font-face { font-family: "Newsreader Italic"; src: url("assets/fonts/Newsreader-Italic-VF.ttf"); font-weight: 200 800; font-style: italic; }
+      @font-face { font-family: "Hanken Grotesk"; src: url("assets/fonts/HankenGrotesk-VF.ttf"); font-weight: 100 900; }
+      @font-face { font-family: "DM Mono"; src: url("assets/fonts/DMMono-Regular.ttf"); }
+      :root {
+        --paper: #F3EDE3; --paper-shade: #E8DFD1; --ink: #24211D; --ink-soft: #5B544B; --accent: #16786C;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--paper); }
+      #root { position: relative; width: 100%; height: 100%; overflow: hidden; background: var(--paper);
+        font-family: "Newsreader", Georgia, serif; color: var(--ink); }
+      #grain { position: absolute; inset: -60px; opacity: 0.16; pointer-events: none; }
+      #vignette { position: absolute; inset: 0; pointer-events: none;
+        background: radial-gradient(ellipse at 50% 45%, rgba(243,237,227,0) 55%, rgba(176,146,108,0.30) 100%); }
+      .card-wrap { position: absolute; border-radius: 14px; overflow: hidden; background: #FDFDFD; opacity: 0;
+        box-shadow: 0 46px 90px -36px rgba(74,48,20,0.55), 0 10px 26px -14px rgba(74,48,20,0.35); }
+      .card-cam { position: absolute; inset: 0; }
+      .footage { position: absolute; left: 22px; top: 26px; }
+      .lang-row { position: absolute; left: 96px; width: 1728px; height: 110px; opacity: 0; }
+      .lang-chip { position: absolute; left: 0; top: 34px; height: 42px; min-width: 150px; padding: 0 20px; border-radius: 999px;
+        display: flex; align-items: center; justify-content: center; font-family: "Hanken Grotesk", sans-serif;
+        font-size: 23px; font-weight: 650; letter-spacing: 0.03em; color: var(--ink); background: var(--paper-shade); }
+      .lang-card { position: absolute; top: 0; border-radius: 14px; overflow: hidden; background: #FDFDFD;
+        box-shadow: 0 30px 60px -30px rgba(74,48,20,0.5), 0 8px 20px -12px rgba(74,48,20,0.3); }
+      .stamp { position: absolute; font-family: "Newsreader Italic", Georgia, serif; font-style: italic;
+        font-size: 28px; color: var(--ink-soft); opacity: 0; white-space: nowrap; }
+      .cap { position: absolute; left: 160px; right: 160px; bottom: 74px; text-align: left; }
+      .cap-text { display: block; font-size: 46px; line-height: 1.22; font-weight: 420; color: var(--ink);
+        max-width: 1500px; }
+      #counter { position: absolute; opacity: 0; }
+      #counter .num { font-size: 160px; font-weight: 520; letter-spacing: -0.02em; line-height: 0.9; }
+      #counter .rule { height: 6px; width: 100%; background: var(--accent); margin: 18px 0 20px; transform-origin: left center; }
+      #counter .label { font-family: "Hanken Grotesk", sans-serif; font-size: 26px; font-weight: 600;
+        letter-spacing: 0.04em; color: var(--ink-soft); }
+      #counter .source { font-family: "Newsreader Italic", Georgia, serif; font-style: italic; font-size: 24px;
+        color: var(--ink-soft); margin-top: 8px; }
+      #memory-tag { position: absolute; opacity: 0; font-family: "Hanken Grotesk", sans-serif; font-size: 24px;
+        font-weight: 650; letter-spacing: 0.03em; color: #F3EDE3; background: var(--accent);
+        padding: 10px 18px; border-radius: 999px; white-space: nowrap; }
+      #memory-note { position: absolute; opacity: 0; width: 560px; padding: 30px 34px; background: #FBF8F2;
+        border: 2px solid var(--paper-shade); border-radius: 10px;
+        box-shadow: 0 30px 60px -34px rgba(74,48,20,0.5); }
+      #memory-note .kicker { font-family: "Hanken Grotesk", sans-serif; font-size: 20px; font-weight: 650;
+        letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
+      #memory-note .title { font-size: 32px; font-weight: 560; margin: 10px 0 12px; }
+      #memory-note .quote { font-family: "Newsreader Italic", Georgia, serif; font-style: italic; font-size: 27px;
+        line-height: 1.35; color: var(--ink); }
+      #endcard { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: flex-start;
+        justify-content: center; padding: 0 0 140px 220px; opacity: 0; }
+      #endcard .brand { display: flex; align-items: center; gap: 34px; }
+      #endcard .brand img { width: 150px; height: 150px; }
+      #endcard .word { font-size: 132px; font-weight: 560; letter-spacing: -0.02em; }
+      #endcard .line { font-family: "Hanken Grotesk", sans-serif; font-size: 36px; font-weight: 560;
+        color: var(--ink); margin-top: 34px; }
+      #endcard .thanks { font-family: "Newsreader Italic", Georgia, serif; font-style: italic; font-size: 32px;
+        color: var(--ink-soft); margin-top: 16px; }
+      #endcard .url { font-family: "DM Mono", monospace; font-size: 44px; color: var(--accent); margin-top: 54px; opacity: 0; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-width="1920" data-height="1080" data-duration="62.6">
+      <svg id="grain" width="2040" height="1200" aria-hidden="true">
+        <filter id="grain-filter"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" seed="7" stitchTiles="stitch"/>
+          <feColorMatrix type="matrix" values="0 0 0 0 0.36  0 0 0 0 0.29  0 0 0 0 0.2  0 0 0 0.55 0"/></filter>
+        <rect width="100%" height="100%" filter="url(#grain-filter)"/>
+      </svg>
+      <div id="vignette"></div>
+
+    <div class="card-wrap" id="card-hook" style="left:96px;top:310px;width:1728px;height:130px">
+      <div class="card-cam" data-layout-allow-overflow id="cam-hook" style="transform-origin:0.0% 50.0%">
+        <video id="v-hook" class="clip footage" src="assets/footage/hook.mp4" muted playsinline style="width:1692px;height:286px"
+          data-start="0.0" data-duration="11.8" data-media-start="7.4"
+          data-track-index="1"></video>
+      </div>
+    </div>
+    <div class="stamp" id="stamp-hook" style="left:100px;top:258px">Tuesday morning · a thank-you</div>
+    <div class="card-wrap" id="card-remember" style="left:96px;top:250px;width:1728px;height:270px">
+      <div class="card-cam" data-layout-allow-overflow id="cam-remember" style="transform-origin:0.0% 50.0%">
+        <video id="v-remember" class="clip footage" src="assets/footage/remember.mp4" muted playsinline style="width:1692px;height:286px"
+          data-start="11.8" data-duration="13.8" data-media-start="6.0"
+          data-track-index="2"></video>
+      </div>
+    </div>
+    <div class="stamp" id="stamp-remember" style="left:100px;top:198px">To the team</div>
+    <div class="card-wrap" id="card-quiet" style="left:96px;top:255px;width:1728px;height:250px">
+      <div class="card-cam" data-layout-allow-overflow id="cam-quiet" style="transform-origin:0.0% 50.0%">
+        <video id="v-quiet" class="clip footage" src="assets/footage/quiet.mp4" muted playsinline style="width:1895px;height:320px"
+          data-start="38.6" data-duration="7.6" data-media-start="5.2"
+          data-track-index="3" data-playback-rate="1.25"></video>
+      </div>
+    </div>
+    <div class="stamp" id="stamp-quiet" style="left:100px;top:203px">To Mila</div>
+    <div class="stamp" id="stamp-languages" style="left:100px;top:149px">Same model, four languages</div>
+    <div class="lang-row" id="row-de" style="top:205px">
+      <div class="lang-chip" id="chip-de">Deutsch</div>
+      <div class="lang-card" style="left:234px;width:1494px;height:110px">
+        <video id="v-lang-de-0" class="clip footage" src="assets/footage/lang-de.mp4" muted playsinline
+          style="top:22px;width:1472px;height:88px;object-fit:none;object-position:0 0"
+          data-start="25.9" data-duration="12.7" data-media-start="5.3"
+          data-track-index="10"></video>
+      </div>
+    </div>
+    <div class="lang-row" id="row-fr" style="top:345px">
+      <div class="lang-chip" id="chip-fr">Français</div>
+      <div class="lang-card" style="left:234px;width:1494px;height:110px">
+        <video id="v-lang-fr-0" class="clip footage" src="assets/footage/lang-fr.mp4" muted playsinline
+          style="top:22px;width:1472px;height:88px;object-fit:none;object-position:0 0"
+          data-start="26.35" data-duration="12.25" data-media-start="4.7"
+          data-track-index="11"></video>
+      </div>
+    </div>
+    <div class="lang-row" id="row-it" style="top:485px">
+      <div class="lang-chip" id="chip-it">Italiano</div>
+      <div class="lang-card" style="left:234px;width:1494px;height:110px">
+        <video id="v-lang-it-0" class="clip footage" src="assets/footage/lang-it.mp4" muted playsinline
+          style="top:22px;width:1472px;height:88px;object-fit:none;object-position:0 0"
+          data-start="26.8" data-duration="11.8" data-media-start="4.5"
+          data-track-index="12"></video>
+      </div>
+    </div>
+    <div class="lang-row" id="row-es" style="top:625px">
+      <div class="lang-chip" id="chip-es">Español</div>
+      <div class="lang-card" style="left:234px;width:1494px;height:110px">
+        <video id="v-lang-es-0" class="clip footage" src="assets/footage/lang-es.mp4" muted playsinline
+          style="top:22px;width:1472px;height:88px;object-fit:none;object-position:0 0"
+          data-start="27.25" data-duration="2.95" data-media-start="4.3"
+          data-track-index="13"></video>
+        <video id="v-lang-es-1" class="clip footage" src="assets/footage/lang-es.mp4" muted playsinline
+          style="top:22px;width:1472px;height:88px;object-fit:none;object-position:0 0"
+          data-start="30.2" data-duration="8.4" data-media-start="12.0"
+          data-track-index="13"></video>
+      </div>
+    </div>
+      <div id="counter" style="left:1290px;top:520px">
+        <div class="num">8,176</div>
+        <div class="rule"></div>
+        <div class="label">TABS ACCEPTED IN COTYPIST SINCE MAY 28</div>
+        <div class="source">counted by its own stats file</div>
+      </div>
+      <div id="memory-tag" style="left:1130px;top:318px">from yesterday's call</div>
+      <div id="memory-note" style="left:1230px;top:580px">
+        <div class="kicker">Meeting note · yesterday, 3:00 pm</div>
+        <div class="title">Harbor beta check-in</div>
+        <div class="quote">“Mila confirmed the Harbor beta ships Thursday morning, right after Wednesday’s accessibility review.”</div>
+      </div>
+      <div id="endcard">
+        <div class="brand"><img src="assets/brand/lokalbot-mark-brand.svg" alt="" /><div class="word">LokalBot</div></div>
+        <div class="line">Free and open source. Every model runs on your Mac.</div>
+        <div class="thanks">Autocomplete built on Cotabby’s open loop, with Cotypist as the bar for how it should feel.</div>
+        <div class="url" id="end-url">github.com/stevyhacker/lokalbot</div>
+      </div>
+    <div id="cap-01" class="clip cap" data-start="0.5" data-duration="6.4" data-track-index="20"><span class="cap-text">Since May, I&#x27;ve pressed Tab in Cotypist 8,176 times.</span></div>
+    <div id="cap-02" class="clip cap" data-start="7.4" data-duration="1.85" data-track-index="20"><span class="cap-text">It changed how I write.</span></div>
+    <div id="cap-03" class="clip cap" data-start="9.34" data-duration="1.96" data-track-index="20"><span class="cap-text">But I wanted two more things.</span></div>
+    <div id="cap-04" class="clip cap" data-start="12.2" data-duration="1.8" data-track-index="20"><span class="cap-text">I wanted it to remember.</span></div>
+    <div id="cap-05" class="clip cap" data-start="14.08" data-duration="3.22" data-track-index="20"><span class="cap-text">Yesterday Mila told me the beta ships Thursday.</span></div>
+    <div id="cap-06" class="clip cap" data-start="17.4" data-duration="3.1" data-track-index="20"><span class="cap-text">So when I write to the team today, it already knows.</span></div>
+    <div id="cap-07" class="clip cap" data-start="21.0" data-duration="1.95" data-track-index="20"><span class="cap-text">That comes from my own meeting notes,</span></div>
+    <div id="cap-08" class="clip cap" data-start="23.02" data-duration="1.58" data-track-index="20"><span class="cap-text">and it never leaves my Mac.</span></div>
+    <div id="cap-09" class="clip cap" data-start="26.0" data-duration="5.2" data-track-index="20"><span class="cap-text">And I wanted it open, so anyone can make it better in their own language.</span></div>
+    <div id="cap-10" class="clip cap" data-start="31.34" data-duration="6.34" data-track-index="20"><span class="cap-text">Here it&#x27;s writing German, French, Italian and Spanish. Same small model, on your Mac.</span></div>
+    <div id="cap-11" class="clip cap" data-start="38.9" data-duration="2.45" data-track-index="20"><span class="cap-text">When it isn&#x27;t sure, it stays quiet.</span></div>
+    <div id="cap-12" class="clip cap" data-start="41.44" data-duration="3.86" data-track-index="20"><span class="cap-text">When it is, it offers a few words. Tab takes one at a time.</span></div>
+    <div id="cap-13" class="clip cap" data-start="46.6" data-duration="4.9" data-track-index="20"><span class="cap-text">It&#x27;s part of LokalBot now. Free, open source, every model on your Mac.</span></div>
+    <div id="cap-14" class="clip cap" data-start="51.64" data-duration="4.06" data-track-index="20"><span class="cap-text">It started from Cotabby&#x27;s open code, so thank you for that.</span></div>
+    <div id="cap-15" class="clip cap" data-start="56.9" data-duration="2.64" data-track-index="20"><span class="cap-text">Try it, and tell me where it&#x27;s wrong.</span></div>
+      <audio id="mix" src="assets/sound/final-mix.wav" data-start="0" data-duration="62.48" data-track-index="30"></audio>
+    </div>
+    <script>
+      const C = {"scenes":[{"id":"hook","start":0.0,"end":11.8,"footage":"assets/footage/hook.mp4","media_start":7.4,"stamp":"Tuesday morning \u00b7 a thank-you","box":[96,310,1728,130],"focus":[0.0,0.5],"push":1.04,"scale":1.0},{"id":"remember","start":11.8,"end":25.6,"footage":"assets/footage/remember.mp4","media_start":6.0,"stamp":"To the team","box":[96,250,1728,270],"focus":[0.0,0.5],"push":1.05,"scale":1.0},{"id":"languages","start":25.6,"end":38.6,"type":"rows","stamp":"Same model, four languages","scale":1.0,"rows":[{"lang":"de","label":"Deutsch","footage":"assets/footage/lang-de.mp4","media_start":5.3,"enter":25.9,"named":31.94},{"lang":"fr","label":"Fran\u00e7ais","footage":"assets/footage/lang-fr.mp4","media_start":4.7,"enter":26.35,"named":32.76},{"lang":"it","label":"Italiano","footage":"assets/footage/lang-it.mp4","media_start":4.5,"enter":26.8,"named":33.38},{"lang":"es","label":"Espa\u00f1ol","footage":"assets/footage/lang-es.mp4","enter":27.25,"named":34.28,"segments":[{"start":27.25,"end":30.2,"media_start":4.3},{"start":30.2,"end":38.6,"media_start":12.0}]}]},{"id":"quiet","start":38.6,"end":46.2,"footage":"assets/footage/quiet.mp4","media_start":5.2,"rate":1.25,"stamp":"To Mila","box":[96,255,1728,250],"focus":[0.0,0.5],"push":1.05,"scale":1.12},{"id":"credit","start":46.2,"end":62.6}],"overlays":{"counter":{"start":1.3,"end":11.4,"pos":[1290,520]},"memory_tag":{"start":15.3,"end":25.2,"pos":[1130,318]},"memory_note":{"start":21.0,"end":25.2,"pos":[1230,580]}},"total":62.6};
+      const tl = gsap.timeline({ paused: true });
+      // Ambient: grain drifts, vignette breathes.
+      tl.fromTo("#grain", { x: 0, y: 0 }, { x: -40, y: -24, duration: C.total, ease: "none" }, 0);
+      tl.fromTo("#vignette", { opacity: 0.85 }, { opacity: 1, duration: C.total / 4, ease: "sine.inOut", repeat: 3, yoyo: true }, 0);
+      for (const s of C.scenes) {
+        if (!s.footage) continue;
+        const card = "#card-" + s.id, cam = "#cam-" + s.id, stamp = "#stamp-" + s.id;
+        const fadeIn = s.start === 0 ? 0.05 : 0.6;
+        tl.fromTo(card, { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: fadeIn, ease: "power2.out" }, s.start);
+        tl.to(card, { opacity: 0, duration: 0.6, ease: "power1.in" }, s.end - 0.6);
+        tl.fromTo(stamp, { opacity: 0, x: -10 }, { opacity: 1, x: 0, duration: 0.7, ease: "sine.out" }, s.start + 0.4);
+        tl.to(stamp, { opacity: 0, duration: 0.5 }, s.end - 0.6);
+        const pushAt = s.push_at ?? s.start + 0.5, pushFor = s.push_for ?? (s.end - s.start - 1.2);
+        tl.fromTo(cam, { scale: 1 }, { scale: s.push, duration: pushFor, ease: "sine.inOut" }, pushAt);
+      }
+      for (const s of C.scenes) {
+        if (s.type !== "rows") continue;
+        tl.fromTo("#stamp-" + s.id, { opacity: 0, x: -10 }, { opacity: 1, x: 0, duration: 0.7, ease: "sine.out" }, s.start + 0.2);
+        tl.to("#stamp-" + s.id, { opacity: 0, duration: 0.5 }, s.end - 0.6);
+        s.rows.forEach((r, i) => {
+          const row = "#row-" + r.lang, chip = "#chip-" + r.lang;
+          tl.fromTo(row, { opacity: 0, x: 80, rotation: 0.8 }, { opacity: 1, x: 0, rotation: 0, duration: 0.8, ease: "power3.out" }, r.enter);
+          tl.fromTo(chip, { backgroundColor: "#E8DFD1", color: "#24211D" }, { backgroundColor: "#16786C", color: "#F3EDE3", duration: 0.35, ease: "power2.out" }, r.named);
+          tl.fromTo(chip, { scale: 1 }, { scale: 1.1, duration: 0.18, ease: "sine.inOut", yoyo: true, repeat: 1 }, r.named);
+          tl.to(row, { opacity: 0, y: -14, duration: 0.5, ease: "power1.in" }, s.end - 0.7 + i * 0.05);
+        });
+      }
+      const o = C.overlays;
+      tl.fromTo("#counter", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.8, ease: "power3.out" }, o.counter.start);
+      tl.fromTo("#counter .rule", { scaleX: 0 }, { scaleX: 1, duration: 0.9, ease: "expo.out" }, o.counter.start + 0.4);
+      tl.to("#counter", { opacity: 0, y: -12, duration: 0.5, ease: "power1.in" }, o.counter.end - 0.5);
+      tl.fromTo("#memory-tag", { opacity: 0, y: 12, scale: 0.96 }, { opacity: 1, y: 0, scale: 1, duration: 0.5, ease: "back.out(1.6)" }, o.memory_tag.start);
+      tl.to("#memory-tag", { opacity: 0, duration: 0.4 }, o.memory_tag.end - 0.4);
+      tl.fromTo("#memory-note", { opacity: 0, x: 40, rotation: 1.2 }, { opacity: 1, x: 0, rotation: -0.6, duration: 0.9, ease: "power3.out" }, o.memory_note.start);
+      tl.to("#memory-note", { opacity: 0, x: 20, duration: 0.5, ease: "power1.in" }, o.memory_note.end - 0.5);
+      const credit = C.scenes.find(s => s.id === "credit");
+      tl.fromTo("#endcard", { opacity: 0 }, { opacity: 1, duration: 0.9, ease: "sine.out" }, credit.start + 0.2);
+      tl.fromTo("#endcard .brand", { y: 24 }, { y: 0, duration: 1.0, ease: "power3.out" }, credit.start + 0.2);
+      tl.fromTo("#endcard .line", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.7, ease: "power2.out" }, credit.start + 1.6);
+      tl.fromTo("#endcard .thanks", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.7, ease: "power2.out" }, credit.start + 5.4);
+      tl.fromTo("#end-url", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.8, ease: "power3.out" }, credit.start + 10.6);
+      document.querySelectorAll(".cap").forEach(el => {
+        const start = parseFloat(el.dataset.start), dur = parseFloat(el.dataset.duration);
+        const text = el.querySelector(".cap-text");
+        tl.fromTo(text, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.25, ease: "power1.out" }, start);
+        tl.to(text, { opacity: 0, duration: 0.2 }, start + dur - 0.2);
+      });
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

@@ -1,0 +1,253 @@
+{
+  "fps": 30,
+  "duration": 62.6,
+  "voice": {
+    "01-tabs": 0.5,
+    "02-wish": 7.4,
+    "03-remember": 12.2,
+    "04-local": 21.0,
+    "05-open": 26.0,
+    "06-quiet": 38.9,
+    "07-credit": 46.6,
+    "08-close": 56.9
+  },
+  "captions": [
+    [
+      "01-tabs",
+      0.0,
+      6.4,
+      "Since May, I've pressed Tab in Cotypist 8,176 times."
+    ],
+    [
+      "02-wish",
+      0.0,
+      1.85,
+      "It changed how I write."
+    ],
+    [
+      "02-wish",
+      1.94,
+      3.9,
+      "But I wanted two more things."
+    ],
+    [
+      "03-remember",
+      0.0,
+      1.8,
+      "I wanted it to remember."
+    ],
+    [
+      "03-remember",
+      1.88,
+      5.1,
+      "Yesterday Mila told me the beta ships Thursday."
+    ],
+    [
+      "03-remember",
+      5.2,
+      8.3,
+      "So when I write to the team today, it already knows."
+    ],
+    [
+      "04-local",
+      0.0,
+      1.95,
+      "That comes from my own meeting notes,"
+    ],
+    [
+      "04-local",
+      2.02,
+      3.6,
+      "and it never leaves my Mac."
+    ],
+    [
+      "05-open",
+      0.0,
+      5.2,
+      "And I wanted it open, so anyone can make it better in their own language."
+    ],
+    [
+      "05-open",
+      5.34,
+      11.68,
+      "Here it's writing German, French, Italian and Spanish. Same small model, on your Mac."
+    ],
+    [
+      "06-quiet",
+      0.0,
+      2.45,
+      "When it isn't sure, it stays quiet."
+    ],
+    [
+      "06-quiet",
+      2.54,
+      6.4,
+      "When it is, it offers a few words. Tab takes one at a time."
+    ],
+    [
+      "07-credit",
+      0.0,
+      4.9,
+      "It's part of LokalBot now. Free, open source, every model on your Mac."
+    ],
+    [
+      "07-credit",
+      5.04,
+      9.1,
+      "It started from Cotabby's open code, so thank you for that."
+    ],
+    [
+      "08-close",
+      0.0,
+      2.64,
+      "Try it, and tell me where it's wrong."
+    ]
+  ],
+  "scenes": [
+    {
+      "id": "hook",
+      "start": 0.0,
+      "end": 11.8,
+      "footage": "assets/footage/hook.mp4",
+      "media_start": 7.4,
+      "stamp": "Tuesday morning · a thank-you",
+      "box": [
+        96,
+        310,
+        1728,
+        130
+      ],
+      "focus": [
+        0.0,
+        0.5
+      ],
+      "push": 1.04,
+      "scale": 1.0
+    },
+    {
+      "id": "remember",
+      "start": 11.8,
+      "end": 25.6,
+      "footage": "assets/footage/remember.mp4",
+      "media_start": 6.0,
+      "stamp": "To the team",
+      "box": [
+        96,
+        250,
+        1728,
+        270
+      ],
+      "focus": [
+        0.0,
+        0.5
+      ],
+      "push": 1.05,
+      "scale": 1.0
+    },
+    {
+      "id": "languages",
+      "start": 25.6,
+      "end": 38.6,
+      "type": "rows",
+      "stamp": "Same model, four languages",
+      "scale": 1.0,
+      "rows": [
+        {
+          "lang": "de",
+          "label": "Deutsch",
+          "footage": "assets/footage/lang-de.mp4",
+          "media_start": 5.3,
+          "enter": 25.9,
+          "named": 31.94
+        },
+        {
+          "lang": "fr",
+          "label": "Français",
+          "footage": "assets/footage/lang-fr.mp4",
+          "media_start": 4.7,
+          "enter": 26.35,
+          "named": 32.76
+        },
+        {
+          "lang": "it",
+          "label": "Italiano",
+          "footage": "assets/footage/lang-it.mp4",
+          "media_start": 4.5,
+          "enter": 26.8,
+          "named": 33.38
+        },
+        {
+          "lang": "es",
+          "label": "Español",
+          "footage": "assets/footage/lang-es.mp4",
+          "enter": 27.25,
+          "named": 34.28,
+          "segments": [
+            {
+              "start": 27.25,
+              "end": 30.2,
+              "media_start": 4.3
+            },
+            {
+              "start": 30.2,
+              "end": 38.6,
+              "media_start": 12.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "quiet",
+      "start": 38.6,
+      "end": 46.2,
+      "footage": "assets/footage/quiet.mp4",
+      "media_start": 5.2,
+      "rate": 1.25,
+      "stamp": "To Mila",
+      "box": [
+        96,
+        255,
+        1728,
+        250
+      ],
+      "focus": [
+        0.0,
+        0.5
+      ],
+      "push": 1.05,
+      "scale": 1.12
+    },
+    {
+      "id": "credit",
+      "start": 46.2,
+      "end": 62.6
+    }
+  ],
+  "overlays": {
+    "counter": {
+      "start": 1.3,
+      "end": 11.4,
+      "pos": [
+        1290,
+        520
+      ]
+    },
+    "memory_tag": {
+      "start": 15.3,
+      "end": 25.2,
+      "pos": [
+        1130,
+        318
+      ]
+    },
+    "memory_note": {
+      "start": 21.0,
+      "end": 25.2,
+      "pos": [
+        1230,
+        580
+      ]
+    }
+  }
+}

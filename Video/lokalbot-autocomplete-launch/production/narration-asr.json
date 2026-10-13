@@ -1,0 +1,127 @@
+[
+  {
+    "take": "01-tabs-s23.wav",
+    "ratio": 0.538,
+    "heard": "Since May, I've pressed tab and code typist 8,176 times."
+  },
+  {
+    "take": "01-tabs-s41.wav",
+    "ratio": 0.538,
+    "heard": "Since May, I've pressed Tab in co-typist 8,176 times."
+  },
+  {
+    "take": "01-tabs-s7.wav",
+    "ratio": 0.538,
+    "heard": "Since May, I've pressed Tab in co-typist 8,176 times."
+  },
+  {
+    "take": "01-tabs-s91.wav",
+    "ratio": 0.538,
+    "heard": "Since May, I've pressed Tab in co-typist 8,176 times."
+  },
+  {
+    "take": "02-wish-s23.wav",
+    "ratio": 1.0,
+    "heard": "It changed how I write. But I wanted two more things."
+  },
+  {
+    "take": "02-wish-s7.wav",
+    "ratio": 1.0,
+    "heard": "It changed how I write, but I wanted two more things."
+  },
+  {
+    "take": "02-wish-s91.wav",
+    "ratio": 1.0,
+    "heard": "It changed how I write, but I wanted two more things."
+  },
+  {
+    "take": "03-remember-s23.wav",
+    "ratio": 1.0,
+    "heard": "I wanted it to remember. Yesterday, Mila told me the beta ships on Thursday, so when I write to the team today, it already knows."
+  },
+  {
+    "take": "03-remember-s7.wav",
+    "ratio": 1.0,
+    "heard": "I wanted it to remember. Yesterday Mila told me the beta ships on Thursday, so when I write to the team today, it already knows."
+  },
+  {
+    "take": "03-remember-s91.wav",
+    "ratio": 1.0,
+    "heard": "I wanted it to remember. Yesterday, Mila told me the beta ships on Thursday. So when I write to the team today, it already knows."
+  },
+  {
+    "take": "04-local-s23.wav",
+    "ratio": 1.0,
+    "heard": "that comes from my own meeting notes, and it never leaves my Mac."
+  },
+  {
+    "take": "04-local-s7.wav",
+    "ratio": 1.0,
+    "heard": "That comes from my own meeting notes, and it never leaves my Mac."
+  },
+  {
+    "take": "04-local-s91.wav",
+    "ratio": 1.0,
+    "heard": "That comes from my own meeting notes, and it never leaves my Mac."
+  },
+  {
+    "take": "05-open-s23.wav",
+    "ratio": 1.0,
+    "heard": "and I wanted it open, so anyone can make it better in their own language. Here it's writing German, French, Italian and Spanish, same small model on your Mac."
+  },
+  {
+    "take": "05-open-s7.wav",
+    "ratio": 1.0,
+    "heard": "And I wanted it open, so anyone can make it better in their own language. Here, it's writing German, French, Italian, and Spanish, same small model on your Mac."
+  },
+  {
+    "take": "05-open-s91.wav",
+    "ratio": 1.0,
+    "heard": "And I wanted it open, so anyone can make it better in their own language. Here it's writing German, French, Italian, and Spanish. Same small model on your Mac."
+  },
+  {
+    "take": "06-quiet-s23.wav",
+    "ratio": 1.0,
+    "heard": "When it isn't sure, it stays quiet. When it is, it offers a few words. Tab takes one at a time."
+  },
+  {
+    "take": "06-quiet-s7.wav",
+    "ratio": 1.0,
+    "heard": "When it isn't sure it stays quiet, when it is, it offers a few words. Tab takes one at a time."
+  },
+  {
+    "take": "06-quiet-s91.wav",
+    "ratio": 1.0,
+    "heard": "When it isn't sure, it stays quiet. When it is, it offers a few words. Tab takes one at a time."
+  },
+  {
+    "take": "07-credit-s23.wav",
+    "ratio": 0.875,
+    "heard": "It's part of Locobot now. Free, open-source, every model on your Mac has started from Kotabi's open code, so thank you for that."
+  },
+  {
+    "take": "07-credit-s7.wav",
+    "ratio": 0.939,
+    "heard": "It's part of local bot now. Free open source, every model on your Mac. It started from code tabby's open code, so thank you for that."
+  },
+  {
+    "take": "07-credit-s91.wav",
+    "ratio": 0.939,
+    "heard": "It's part of local bot now. Free open source, every model on your Mac. It started from Code Tabby's open code, so thank you for that."
+  },
+  {
+    "take": "08-close-s23.wav",
+    "ratio": 1.0,
+    "heard": "Try it, and tell me where it's wrong."
+  },
+  {
+    "take": "08-close-s7.wav",
+    "ratio": 1.0,
+    "heard": "Try it and tell me where it's wrong."
+  },
+  {
+    "take": "08-close-s91.wav",
+    "ratio": 1.0,
+    "heard": "try it. And tell me where it's wrong."
+  }
+]
