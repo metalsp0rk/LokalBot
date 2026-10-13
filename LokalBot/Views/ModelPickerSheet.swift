@@ -9,6 +9,8 @@ struct ModelPickerSheet: View {
     @Environment(\.dismiss) private var dismiss
     let role: ModelPickerRole
     let openConnections: () -> Void
+    /// Previews and screenshots pass a signed-in sample account.
+    let chatGPTAccount: ChatGPTPlanAccount
 
     @State private var selectedID: String
     @State private var backend: AppSettings.SummarizerBackend
@@ -31,7 +33,9 @@ struct ModelPickerSheet: View {
     @State private var showingGranite = false
     @State private var showingTranscriptionOptions = false
 
-    init(app: AppState, role: ModelPickerRole, openConnections: @escaping () -> Void) {
+    init(app: AppState, role: ModelPickerRole, openConnections: @escaping () -> Void,
+         chatGPTAccount: ChatGPTPlanAccount = .shared) {
+        self.chatGPTAccount = chatGPTAccount
         self.app = app
         self.role = role
         self.openConnections = openConnections
@@ -176,7 +180,7 @@ struct ModelPickerSheet: View {
                 // Where Think runs, then that choice's own setup: one place
                 // to choose and configure, with no nested or segmented picks.
                 HStack(alignment: .top, spacing: 0) {
-                    providerList.frame(width: 200)
+                    providerList.frame(width: 228)
                     Divider()
                     VStack(alignment: .leading, spacing: 0) {
                         if showsCatalog {
@@ -513,33 +517,58 @@ struct ModelPickerSheet: View {
         ]
     }
 
+    /// Plain rows with an explicit highlight: the selection reads the same in
+    /// a sheet whether or not its window is key.
     private var providerList: some View {
-        List(selection: Binding<ThinkProvider?>(
-            get: { ThinkProvider(backend) },
-            set: { if let provider = $0 { backend = provider.backend } })) {
-            ForEach(ThinkProvider.groups, id: \.providers) { group in
-                Section(group.title) {
-                    ForEach(group.providers) { provider in
-                        HStack(spacing: 8) {
-                            Label(provider.title, systemImage: provider.icon)
-                            Spacer(minLength: 4)
-                            if provider.backend == app.settings.summarizerBackend {
-                                Image(systemName: "checkmark")
-                                    .font(.scaled(.caption).weight(.semibold))
-                                    .foregroundStyle(.secondary)
-                                    .accessibilityLabel("In use")
-                                    .help("In use")
-                            }
+        ScrollView {
+            VStack(alignment: .leading, spacing: 14) {
+                ForEach(ThinkProvider.groups, id: \.providers) { group in
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(group.title)
+                            .font(.scaled(.caption).weight(.semibold))
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 10).padding(.bottom, 2)
+                        ForEach(group.providers) { provider in
+                            providerRow(provider)
                         }
-                        .tag(provider)
-                        .accessibilityIdentifier("models.picker.provider.\(provider.rawValue)")
                     }
                 }
             }
+            .padding(.horizontal, 12).padding(.vertical, 4)
         }
-        .listStyle(.sidebar)
-        .scrollContentBackground(.hidden)
         .accessibilityIdentifier("models.picker.provider")
+    }
+
+    private func providerRow(_ provider: ThinkProvider) -> some View {
+        let selected = ThinkProvider(backend) == provider
+        return Button {
+            backend = provider.backend
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: provider.icon)
+                    .frame(width: 20)
+                    .foregroundStyle(selected ? AnyShapeStyle(Brand.teal) : AnyShapeStyle(.secondary))
+                Text(provider.title)
+                    .font(.scaled(.body).weight(selected ? .semibold : .regular))
+                    .lineLimit(1)
+                Spacer(minLength: 4)
+                if provider.backend == app.settings.summarizerBackend {
+                    Image(systemName: "checkmark")
+                        .font(.scaled(.caption).weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .accessibilityLabel("In use")
+                        .help("In use")
+                }
+            }
+            .padding(.horizontal, 10).padding(.vertical, 7)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(selected ? Brand.tealFill.opacity(0.16) : Color.clear,
+                        in: RoundedRectangle(cornerRadius: 7))
+            .contentShape(RoundedRectangle(cornerRadius: 7))
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(selected ? .isSelected : [])
+        .accessibilityIdentifier("models.picker.provider.\(provider.rawValue)")
     }
 
     private func consent(for plan: SubscriptionPlan) -> Binding<Bool> {
@@ -564,7 +593,8 @@ struct ModelPickerSheet: View {
                 app: app, plan: plan,
                 model: plan == .chatGPT ? $chatGPTPlanModel : $claudePlanModel,
                 consent: consent(for: plan),
-                ready: plan == .chatGPT ? $chatGPTReady : $claudeReady)
+                ready: plan == .chatGPT ? $chatGPTReady : $claudeReady,
+                chatGPTAccount: chatGPTAccount)
                 .id(plan)
             Text("Requests count toward your \(plan.title)'s usage. Agent Mode can't use a plan yet.")
                 .font(.scaled(.callout)).foregroundStyle(.secondary)
