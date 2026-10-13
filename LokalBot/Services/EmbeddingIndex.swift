@@ -82,6 +82,66 @@ actor EmbeddingModelPreparationCoordinator {
     }
 }
 
+/// Orders requests to the embedder llama-server. It runs `--parallel 1` and
+/// encodes inputs first in, first out, so a typed query waits for every input
+/// posted before it. Background requests go one at a time and are held while
+/// a foreground request is in flight: a query waits for at most the one
+/// background request already on the server.
+@MainActor
+final class EmbeddingRequestGate {
+    private var foregroundCount = 0
+    private var backgroundRunning = false
+    private var backgroundWaiters: [(id: UUID, continuation: CheckedContinuation<Void, Error>)] = []
+
+    func foreground<T>(_ body: () async throws -> T) async rethrows -> T {
+        foregroundCount += 1
+        defer {
+            foregroundCount -= 1
+            resumeNextBackground()
+        }
+        return try await body()
+    }
+
+    func background<T>(_ body: () async throws -> T) async throws -> T {
+        try await waitForBackgroundTurn()
+        defer {
+            backgroundRunning = false
+            resumeNextBackground()
+        }
+        return try await body()
+    }
+
+    private func waitForBackgroundTurn() async throws {
+        if foregroundCount == 0, !backgroundRunning, backgroundWaiters.isEmpty {
+            backgroundRunning = true
+            return
+        }
+        let id = UUID()
+        try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+                if Task.isCancelled {
+                    continuation.resume(throwing: CancellationError())
+                    return
+                }
+                backgroundWaiters.append((id, continuation))
+            }
+        } onCancel: {
+            Task { @MainActor [weak self] in self?.cancelBackgroundWaiter(id) }
+        }
+    }
+
+    private func cancelBackgroundWaiter(_ id: UUID) {
+        guard let index = backgroundWaiters.firstIndex(where: { $0.id == id }) else { return }
+        backgroundWaiters.remove(at: index).continuation.resume(throwing: CancellationError())
+    }
+
+    private func resumeNextBackground() {
+        guard foregroundCount == 0, !backgroundRunning, !backgroundWaiters.isEmpty else { return }
+        backgroundRunning = true
+        backgroundWaiters.removeFirst().continuation.resume()
+    }
+}
+
 /// Deterministic reciprocal-rank fusion for lexical + semantic screen search.
 /// It intentionally consumes only stable snapshot IDs: metadata is resolved
 /// through `ActivityStore.screenshot(id:)`, avoiding stale duplicated rows.
@@ -225,6 +285,13 @@ final class EmbeddingIndex {
     /// Preserve the existing chunk shape for normal ASR output while keeping a
     /// single pathological segment safely below the embedder's 2K context.
     nonisolated static let transcriptChunkHardLimitCharacters = 1_800
+    /// Limits for one background embedding request, so a typed query waits
+    /// for at most about 100 ms (M4 Max): a 1,500-character OCR row is about
+    /// 900 tokens and 50 ms, a 500-character transcript chunk about 11 ms.
+    /// Splitting costs almost nothing (each input is encoded on its own) and
+    /// does not change the vectors.
+    nonisolated static let backgroundRequestMaximumInputs = 8
+    nonisolated static let backgroundRequestMaximumCharacters = 2_000
     private static let modelPreparation = EmbeddingModelPreparationCoordinator()
 
     private let database: SQLiteDatabase?
@@ -255,6 +322,7 @@ final class EmbeddingIndex {
         _ texts: [String], _ prefix: String, _ priority: InferencePriority
     ) async throws -> [[Float]]
     private let embedder: Embedder
+    private let requestGate = EmbeddingRequestGate()
 
     private let databaseURL: URL
 
@@ -485,12 +553,8 @@ final class EmbeddingIndex {
             return
         }
 
-        let vectors = try await embedder(chunks.map(\.text), Self.documentPrefix, .background)
+        let vectors = try await embedInBackground(chunks.map(\.text), prefix: Self.documentPrefix)
         try Task.checkCancellation()
-        guard vectors.count == chunks.count else {
-            throw TextEngineError.badResponse(
-                "embedding response contained \(vectors.count) vectors for \(chunks.count) chunks")
-        }
         let rows = zip(chunks, vectors).map { chunk, vector in
             let vectorData = vector.withUnsafeBufferPointer { buffer -> Data in
                 guard let baseAddress = buffer.baseAddress else { return Data() }
@@ -771,14 +835,9 @@ final class EmbeddingIndex {
             guard !batch.isEmpty else { return .finished }
             guard !Task.isCancelled else { return .cancelled }
             do {
-                let vectors = try await embedder(
-                    batch.map(\.text), Self.screenDocumentPrefix, .background)
+                let vectors = try await embedInBackground(
+                    batch.map(\.text), prefix: Self.screenDocumentPrefix)
                 try Task.checkCancellation()
-                guard vectors.count == batch.count else {
-                    throw TextEngineError.badResponse(
-                        "screen embedding response contained \(vectors.count) vectors "
-                        + "for \(batch.count) OCR rows")
-                }
                 try database.withTransaction {
                     for (document, vector) in zip(batch, vectors) {
                         let vectorData = Self.vectorData(vector)
@@ -1095,9 +1154,59 @@ final class EmbeddingIndex {
                             priority: InferencePriority) async -> [Float]? {
         let input = prefix + query
         if let last = lastQueryEmbedding, last.input == input { return last.vector }
-        guard let vector = try? await embedder([query], prefix, priority).first else { return nil }
+        guard let vector = try? await embedThroughGate([query], prefix: prefix, priority: priority).first
+        else { return nil }
         lastQueryEmbedding = (input, vector)
         return vector
+    }
+
+    /// Embeds documents for indexing in small requests, returning one vector
+    /// per text in input order.
+    private func embedInBackground(_ texts: [String], prefix: String) async throws -> [[Float]] {
+        var vectors: [[Float]] = []
+        vectors.reserveCapacity(texts.count)
+        for range in Self.backgroundRequestRanges(texts) {
+            try Task.checkCancellation()
+            let part = Array(texts[range])
+            let partVectors = try await embedThroughGate(part, prefix: prefix, priority: .background)
+            guard partVectors.count == part.count else {
+                throw TextEngineError.badResponse(
+                    "embedding response contained \(partVectors.count) vectors for \(part.count) texts")
+            }
+            vectors += partVectors
+        }
+        return vectors
+    }
+
+    /// Background work waits its turn; anything a person or an agent waits
+    /// for goes straight to the server and holds background work back.
+    private func embedThroughGate(_ texts: [String], prefix: String,
+                                  priority: InferencePriority) async throws -> [[Float]] {
+        if priority == .background {
+            return try await requestGate.background { try await embedder(texts, prefix, priority) }
+        }
+        return try await requestGate.foreground { try await embedder(texts, prefix, priority) }
+    }
+
+    /// Consecutive runs of texts within the background request limits. A text
+    /// longer than the character limit goes alone.
+    nonisolated static func backgroundRequestRanges(_ texts: [String]) -> [Range<Int>] {
+        var ranges: [Range<Int>] = []
+        var start = 0
+        var characters = 0
+        for (index, text) in texts.enumerated() {
+            let count = text.count
+            if index > start,
+               index - start == backgroundRequestMaximumInputs
+                || characters + count > backgroundRequestMaximumCharacters {
+                ranges.append(start..<index)
+                start = index
+                characters = 0
+            }
+            characters += count
+        }
+        if start < texts.count { ranges.append(start..<texts.count) }
+        return ranges
     }
 
     private static func embed(_ texts: [String], prefix: String, priority: InferencePriority,
