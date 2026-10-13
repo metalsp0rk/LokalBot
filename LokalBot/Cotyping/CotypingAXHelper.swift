@@ -718,12 +718,21 @@ enum CotypingAXHelper {
             fieldFrame: fieldFrame)
         let field = UncheckedElement(element: element)
         let snapshot = CotypingWindowTextCapture.shared.snapshot(forKey: key) {
-            guard CGPreflightScreenCaptureAccess() else { return nil }
+            guard CGPreflightScreenCaptureAccess() else {
+                CotypingWindowTextCapture.log("Screen Recording is not granted")
+                return nil
+            }
             let source = CotypingVisibleContextAXSource(
                 field: field.element, processID: processID, appName: appName, bundleID: bundleID,
                 focusIsCurrent: { focusedElement().map { CFEqual($0, field.element) } ?? false })
-            guard let target = source.target(requiringScope: false),
-                  policy.permits(target, source: .windowText) else { return nil }
+            guard let target = source.target(requiringScope: false) else {
+                CotypingWindowTextCapture.log("could not resolve the focused field's window")
+                return nil
+            }
+            guard policy.permits(target, source: .windowText) else {
+                CotypingWindowTextCapture.log("not read: excluded app or site, private window, or unknown page")
+                return nil
+            }
             return .init(key: key, processID: processID, target: target)
         }
         // Checked again for every use: the grant or an exclusion may have changed.

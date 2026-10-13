@@ -86,8 +86,11 @@ final class CotypingWindowTextCapture: @unchecked Sendable {
                 lock.withLock { reading = false }
                 return
             }
+            let started = ContinuousClock.now
             let lines = await reader(request)
-            finish(request, lines: lines, generation: generation)
+            let elapsed = started.duration(to: .now).components
+            let milliseconds = elapsed.seconds * 1_000 + elapsed.attoseconds / 1_000_000_000_000_000
+            finish(request, lines: lines, generation: generation, milliseconds: milliseconds)
         }
         return snapshot
     }
@@ -105,7 +108,8 @@ final class CotypingWindowTextCapture: @unchecked Sendable {
         lock.withLock { entry?.snapshot }
     }
 
-    private func finish(_ request: Request, lines: [CotypingWindowText.Line]?, generation: UInt64) {
+    private func finish(_ request: Request, lines: [CotypingWindowText.Line]?, generation: UInt64,
+                        milliseconds: Int64 = 0) {
         // Filtering runs a few expressions per line; keep it outside the lock
         // that a keystroke takes.
         let target = request.target
@@ -116,6 +120,7 @@ final class CotypingWindowTextCapture: @unchecked Sendable {
                     from: $0, fieldFrame: target.fieldFrame, windowFrame: target.windowFrame),
                 source: .windowText)
         }
+        var adopted = false
         let handler: (@Sendable () -> Void)? = lock.withLock {
             reading = false
             guard generation == self.generation, var current = entry, current.key == request.key,
@@ -123,13 +128,33 @@ final class CotypingWindowTextCapture: @unchecked Sendable {
             let now = clock()
             guard CotypingWindowText.shouldReplace(
                 current.snapshot, with: snapshot, heldFor: now - current.adoptedAt) else { return nil }
+            adopted = true
             let changed = current.snapshot?.text != snapshot.text
             current.snapshot = snapshot.excerpts.isEmpty ? nil : snapshot
             current.adoptedAt = now
             entry = current
             return changed ? updateHandler : nil
         }
+        if let lines, let snapshot {
+            Self.log("read \(lines.count) lines in \(milliseconds) ms, kept \(snapshot.excerpts.count) lines "
+                + "(\(snapshot.text?.count ?? 0) characters); \(adopted ? "using them" : "kept the text in use")")
+        }
         handler?()
+    }
+
+    // MARK: - Diagnostics
+
+    private static let logLock = NSLock()
+    private nonisolated(unsafe) static var lastLogged: String?
+
+    /// One debug-log line per change of outcome, with counts only: window
+    /// text never reaches the log.
+    static func log(_ message: String) {
+        let changed = logLock.withLock {
+            defer { lastLogged = message }
+            return lastLogged != message
+        }
+        if changed { lokalbotLog("cotyping window text: \(message)") }
     }
 
     // MARK: - Reading the screen
@@ -154,7 +179,10 @@ final class CotypingWindowTextCapture: @unchecked Sendable {
             }
             guard let index = CotypingWindowText.windowIndex(
                 in: candidates, processID: request.processID,
-                title: request.target.windowTitle, frame: request.target.windowFrame) else { return nil }
+                title: request.target.windowTitle, frame: request.target.windowFrame) else {
+                log("no single on-screen window matches the focused one")
+                return nil
+            }
             let window = content.windows[index]
             let filter = SCContentFilter(desktopIndependentWindow: window)
             guard let size = DictationCaptureSizing.pixels(
@@ -170,6 +198,7 @@ final class CotypingWindowTextCapture: @unchecked Sendable {
             guard NSWorkspace.shared.frontmostApplication?.processIdentifier == request.processID else { return nil }
             return await recognize(Image(image: image), windowFrame: window.frame)
         } catch {
+            log("capture failed (\((error as NSError).domain) \((error as NSError).code))")
             return nil
         }
     }
