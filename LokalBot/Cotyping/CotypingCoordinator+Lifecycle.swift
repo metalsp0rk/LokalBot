@@ -95,6 +95,9 @@ extension CotypingCoordinator {
             return
         }
         focusTracker.start()
+        CotypingWindowTextCapture.shared.setUpdateHandler { [weak self] in
+            Task { @MainActor in self?.windowTextDidChange() }
+        }
         workspaceObserver = NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main
         ) { [weak self] _ in
@@ -121,6 +124,7 @@ extension CotypingCoordinator {
         clearSuggestion()
         focusRefreshTask?.cancel()
         focusRefreshTask = nil
+        CotypingWindowTextCapture.shared.setUpdateHandler(nil)
         CotypingAXHelper.forgetVisibleContext()
         visualCaret.reset()
         if let workspaceObserver {

@@ -519,6 +519,10 @@ struct AppSettings: Codable, Equatable {
     /// Transient Accessibility text above the focused field. Separate from saved screen memory.
     /// On for new installs; settings saved before this default keep theirs (see the decoder).
     var cotypingUseVisibleContext: Bool = true
+    /// Read the whole focused window with on-device text recognition. On for
+    /// every install, including saved settings that predate it (see the
+    /// decoder). Needs Screen Recording; the image and text are held in memory only.
+    var cotypingUseWindowText: Bool = true
     var cotypingUseMeetingMemory: Bool = false
     var cotypingUseScreenMemory: Bool = false
     /// Match the host field's font and text color so ghost text reads as a
@@ -847,6 +851,7 @@ struct AppSettings: Codable, Equatable {
         case cotypingUseAppContext
         case cotypingUseClipboard
         case cotypingUseVisibleContext
+        case cotypingUseWindowText
         case cotypingUseMeetingMemory
         case cotypingUseScreenMemory
         case cotypingMatchHostStyle
@@ -1039,6 +1044,7 @@ struct AppSettings: Codable, Equatable {
         try c.encode(cotypingUseAppContext, forKey: .cotypingUseAppContext)
         try c.encode(cotypingUseClipboard, forKey: .cotypingUseClipboard)
         try c.encode(cotypingUseVisibleContext, forKey: .cotypingUseVisibleContext)
+        try c.encode(cotypingUseWindowText, forKey: .cotypingUseWindowText)
         try c.encode(cotypingUseMeetingMemory, forKey: .cotypingUseMeetingMemory)
         try c.encode(cotypingUseScreenMemory, forKey: .cotypingUseScreenMemory)
         try c.encode(cotypingMatchHostStyle, forKey: .cotypingMatchHostStyle)
@@ -1229,6 +1235,8 @@ struct AppSettings: Codable, Equatable {
         // Saved settings without the key predate it and keep it off: the
         // on-by-default applies to new installs only.
         cotypingUseVisibleContext = decode(.cotypingUseVisibleContext, false)
+        // On for everyone: saved settings without the key turn it on too.
+        cotypingUseWindowText = decode(.cotypingUseWindowText, true)
         cotypingUseMeetingMemory = decode(.cotypingUseMeetingMemory, defaults.cotypingUseMeetingMemory)
         cotypingUseScreenMemory = decode(.cotypingUseScreenMemory, defaults.cotypingUseScreenMemory)
         cotypingMatchHostStyle = decode(.cotypingMatchHostStyle, defaults.cotypingMatchHostStyle)

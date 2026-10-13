@@ -13,26 +13,37 @@ protocol CotypingVisibleContextSource {
 
 enum CotypingVisibleContext {
     struct Policy: Codable, Equatable, Sendable {
+        /// Accessibility labels and messages above the field.
         var enabled = false
+        /// The whole focused window, read from its pixels on device.
+        var windowText = false
         var excludedApps: [String] = []
         var excludedDomains: [String] = []
         var autocompleteExcludedDomains: [String] = []
 
-        init(enabled: Bool = false, excludedApps: [String] = [], excludedDomains: [String] = []) {
+        init(enabled: Bool = false, windowText: Bool = false, excludedApps: [String] = [],
+             excludedDomains: [String] = []) {
             self.enabled = enabled
+            self.windowText = windowText
             self.excludedApps = excludedApps
             self.excludedDomains = excludedDomains
         }
 
         init(settings: AppSettings) {
             enabled = settings.cotypingEnabled && settings.cotypingUseVisibleContext
+            windowText = settings.cotypingEnabled && settings.cotypingUseWindowText
             excludedApps = settings.excludedAppList + settings.cotypingExcludedAppList
             excludedDomains = settings.excludedScreenDomainList + settings.cotypingExcludedDomainList
             autocompleteExcludedDomains = settings.cotypingExcludedDomainList
         }
 
-        func permits(_ target: Target) -> Bool {
-            guard enabled, !CotypingBrowserDomain.isHostDisabled(
+        /// Whether `snapshot` may still be used, by the grant it was read under.
+        func permits(_ snapshot: Snapshot) -> Bool {
+            permits(snapshot.target, source: snapshot.source)
+        }
+
+        func permits(_ target: Target, source: Source = .accessibility) -> Bool {
+            guard source == .windowText ? windowText : enabled, !CotypingBrowserDomain.isHostDisabled(
                 target.sourceURL.flatMap(CotypingBrowserDomain.host(fromURLString:)),
                 excludedDomains: autocompleteExcludedDomains) else { return false }
             let observation = ScreenContextPrivacy.Observation(
@@ -81,10 +92,25 @@ enum CotypingVisibleContext {
         var text: String
     }
 
+    /// How the text was read; each needs its own grant.
+    enum Source: String, Codable, Equatable, Sendable {
+        /// Accessibility labels and messages in the field's column.
+        case accessibility
+        /// On-device text recognition over the whole focused window.
+        case windowText
+    }
+
     struct Snapshot: Equatable, Sendable {
         var target: Target
         var excerpts: [Excerpt]
-        var text: String? { excerpts.isEmpty ? nil : excerpts.map(\.text).joined(separator: " | ") }
+        var source: Source = .accessibility
+        /// Window text keeps its line breaks: a conversation reads line by line.
+        var text: String? {
+            excerpts.isEmpty ? nil : excerpts.map(\.text).joined(separator: source == .windowText ? "\n" : " | ")
+        }
+        /// The text for the prompt line of each source.
+        var nearbyText: String? { source == .accessibility ? text : nil }
+        var windowText: String? { source == .windowText ? text : nil }
     }
 
     static let maximumNodes = 180

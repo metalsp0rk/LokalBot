@@ -102,13 +102,19 @@ enum CotypingAXHelper {
             defer { cacheState.visibleContextPolicy = policy }
             return cacheState.visibleContextPolicy != policy
         }
-        if changed { cacheState.visibleContexts.removeAll() }
+        if changed {
+            cacheState.visibleContexts.removeAll()
+            CotypingWindowTextCapture.shared.removeAll()
+        }
     }
 
     /// Forgets nearby text read from the screen for any field but the
     /// focused one.
     static func forgetVisibleContext(exceptFor focusIdentityKey: String? = nil) {
         cacheState.visibleContexts.removeAll(except: focusIdentityKey)
+        // Window text is keyed by its window; a read for another field or
+        // window forgets it, and leaving every field forgets it here.
+        if focusIdentityKey == nil { CotypingWindowTextCapture.shared.removeAll() }
     }
 
     private static var appReadPolicy: CotypingAppReadPolicy {
@@ -440,8 +446,16 @@ enum CotypingAXHelper {
         if includeVisibleContext, !isIntegratedTerminal {
             let policy = cacheState.withLock { cacheState.visibleContextPolicy }
             field.visibleContextWasRequested = true
-            if policy.enabled, !ScreenContextPrivacy.isExcluded(
-                appName: appName, bundleIdentifier: bundleID, rules: policy.excludedApps) {
+            let excluded = ScreenContextPrivacy.isExcluded(
+                appName: appName, bundleIdentifier: bundleID, rules: policy.excludedApps)
+            // The whole window, once a background read of it exists, includes
+            // everything the column above the field would add.
+            if policy.windowText, !excluded {
+                field.visibleContext = windowTextSnapshot(
+                    element: element, processID: pid, appName: appName, bundleID: bundleID,
+                    role: role, policy: policy)
+            }
+            if field.visibleContext == nil, policy.enabled, !excluded {
                 // Walking the window takes tens of milliseconds, so it runs once
                 // per field and then in the background, never per keystroke.
                 field.visibleContext = cacheState.visibleContexts.value(forKey: focusIdentityKey) {
@@ -689,6 +703,45 @@ enum CotypingAXHelper {
             return CotypingTextColorCodec.hexString(from: nsColor)
         }
         return nil
+    }
+
+    /// Text recognized in the focused field's window, read in the background.
+    /// A keystroke reads only the field's frame and window title here; the
+    /// Accessibility walk for the privacy checks runs with the read itself.
+    private static func windowTextSnapshot(
+        element: AXUIElement, processID: pid_t, appName: String, bundleID: String?,
+        role: String, policy: CotypingVisibleContext.Policy
+    ) -> CotypingVisibleContext.Snapshot? {
+        guard let fieldFrame = CotypingAXGeometryResolver.elementFrame(element) else { return nil }
+        let key = CotypingWindowText.key(
+            processID: processID, role: role, windowTitle: windowTitle(near: element) ?? "",
+            fieldFrame: fieldFrame)
+        let field = UncheckedElement(element: element)
+        let snapshot = CotypingWindowTextCapture.shared.snapshot(forKey: key) {
+            guard CGPreflightScreenCaptureAccess() else {
+                CotypingWindowTextCapture.log("Screen Recording is not granted")
+                return nil
+            }
+            let source = CotypingVisibleContextAXSource(
+                field: field.element, processID: processID, appName: appName, bundleID: bundleID,
+                focusIsCurrent: { focusedElement().map { CFEqual($0, field.element) } ?? false })
+            guard let target = source.target(requiringScope: false) else {
+                CotypingWindowTextCapture.log("could not resolve the focused field's window")
+                return nil
+            }
+            guard policy.permits(target, source: .windowText) else {
+                CotypingWindowTextCapture.log("not read: excluded app or site, private window, or unknown page")
+                return nil
+            }
+            return .init(key: key, processID: processID, target: target)
+        }
+        // Checked again for every use: the grant or an exclusion may have changed.
+        return snapshot.flatMap { policy.permits($0) ? $0 : nil }
+    }
+
+    /// Accessibility elements are safe to read from any thread.
+    private struct UncheckedElement: @unchecked Sendable {
+        let element: AXUIElement
     }
 
     /// Best-effort title of the window containing `element`: `kAXWindowAttribute`

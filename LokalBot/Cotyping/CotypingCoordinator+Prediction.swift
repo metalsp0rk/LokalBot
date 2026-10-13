@@ -53,6 +53,15 @@ extension CotypingCoordinator {
         }
     }
 
+    /// A background read of the focused window changed the text the prompt
+    /// starts with. While nothing is pending, the model reads the new prompt
+    /// now, so the next keystroke does not wait for it.
+    func windowTextDidChange() {
+        guard isRunning, session == nil, state == .idle else { return }
+        focusPrewarmFieldIdentity = nil
+        scheduleFocusPrewarm(for: focusTracker.focus)
+    }
+
     func scheduleGeneration(consumedDelayMilliseconds: Int = 0) {
         debounceTask?.cancel()
         generationTask?.cancel()
@@ -272,7 +281,8 @@ extension CotypingCoordinator {
             personalization: settings.cotypingPersonalization, generation: generation,
             clipboardContext: clipboardSnippet,
             memoryContext: memoryContext,
-            visibleContext: field.visibleContext?.text,
+            visibleContext: field.visibleContext?.nearbyText,
+            windowContext: field.visibleContext?.windowText,
             learnedExamples: learnedExamples,
             wordPrefixIsValidWord: wordPrefixIsValidWord(for: field.precedingText),
             allowsBlankPrefix: allowsBlankPrefix)
@@ -305,7 +315,7 @@ extension CotypingCoordinator {
     }
 
     func refreshFocusForPrediction(settings: AppSettings) async -> CotypingFocus {
-        let includeVisibleContext = settings.cotypingUseVisibleContext
+        let includeVisibleContext = settings.cotypingUseVisibleContext || settings.cotypingUseWindowText
         let includeSurface = settings.cotypingUseAppContext
         let includeURL = !settings.cotypingExcludedDomainList.isEmpty
         let includeStyle = settings.cotypingMatchHostStyle
@@ -625,7 +635,8 @@ extension CotypingCoordinator {
             field: field, config: cfg,
             personalization: sampleOnly ? .none : settings.cotypingPersonalization, generation: 0,
             memoryContext: memory.selection.text,
-            visibleContext: field.visibleContext?.text,
+            visibleContext: field.visibleContext?.nearbyText,
+            windowContext: field.visibleContext?.windowText,
             learnedExamples: learnedExamples,
             wordPrefixIsValidWord: wordPrefixIsValidWord(for: precedingText)) else {
             return CotypingPreview()

@@ -61,7 +61,7 @@ actor LlamaServer {
     /// model on a third port, so inline suggestions never contend with the
     /// summarizer for the shared server (no model-reload thrash).
     static let cotyping = LlamaServer(
-        role: .cotyping, contextTokens: 2_048,
+        role: .cotyping, contextTokens: 4_096,
         extraArgs: ["--parallel", "1", "--cache-ram", "512"],
         runtimeAllowanceBytes: 768 * 1_048_576)
 

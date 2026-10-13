@@ -386,6 +386,14 @@ struct SettingsView: View {
                     }
                 }
                 .settingTarget("settings.cotypingUseVisibleContext", selected: app.focusedSettingID)
+                Toggle(isOn: $app.settings.cotypingUseWindowText) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        SettingsLabel("Use the focused window as context",
+                                      help: "Read the whole window you are typing in with on-device text recognition, so suggestions follow the full conversation or page. Needs Screen Recording. The image and text stay on this Mac and are never saved; capture exclusions apply and private browser windows are skipped.")
+                        CotypingContextStateLabel(state: context.windowText)
+                    }
+                }
+                .settingTarget("settings.cotypingUseWindowText", selected: app.focusedSettingID)
                 Toggle(isOn: $app.settings.cotypingUseMeetingMemory) {
                     VStack(alignment: .leading, spacing: 3) {
                         SettingsLabel("Use meeting and work memory",
@@ -473,7 +481,8 @@ struct SettingsView: View {
 
     /// What each optional autocomplete context source can do right now.
     private var cotypingContext: CotypingContextAvailability {
-        app.cotypingContextAvailability(accessibilityGranted: permissions.granted[.accessibility] ?? false)
+        app.cotypingContextAvailability(accessibilityGranted: permissions.granted[.accessibility] ?? false,
+                                        screenRecordingGranted: permissions.granted[.screenRecording] ?? false)
     }
 
     /// A labeled, visibly editable text field for optional profile values.

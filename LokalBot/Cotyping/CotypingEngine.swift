@@ -29,6 +29,7 @@ enum CotypingRequestBuilder {
         clipboardContext: String? = nil,
         memoryContext: String? = nil,
         visibleContext: String? = nil,
+        windowContext: String? = nil,
         learnedExamples: [String] = [],
         wordPrefixIsValidWord: Bool = true,
         allowsBlankPrefix: Bool = false
@@ -60,6 +61,7 @@ enum CotypingRequestBuilder {
             clipboardContext: clipboardContext,
             memoryContext: memoryContext,
             visibleContext: visibleContext,
+            windowContext: windowContext,
             learnedExamples: learnedExamples)
         return CotypingRequest(
             prompt: renderedPrompt.prompt,

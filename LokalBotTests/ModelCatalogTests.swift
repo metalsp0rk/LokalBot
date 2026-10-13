@@ -210,8 +210,8 @@ final class ModelCatalogTests: XCTestCase {
         XCTAssertTrue(names.contains("gemma-4-E4B-UD-Q5_K_XL.gguf"))
     }
 
-    func testCotypingServerUsesCotabbyContextWindow() {
-        XCTAssertEqual(LlamaServer.cotyping.contextTokens, 2_048)
+    func testCotypingServerContextFitsWindowTextAndDraft() {
+        XCTAssertEqual(LlamaServer.cotyping.contextTokens, 4_096)
     }
 
     func testDownloadURLsAreValid() {

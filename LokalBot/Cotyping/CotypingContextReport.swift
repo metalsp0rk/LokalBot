@@ -67,11 +67,16 @@ struct CotypingContextAvailability: Equatable, Sendable {
     }
 
     var visibleText: State
+    var windowText: State
     var meetingMemory: State
     var screenMemory: State
 
-    init(settings: AppSettings, accessibilityGranted: Bool, inventory: Inventory) {
+    init(settings: AppSettings, accessibilityGranted: Bool, screenRecordingGranted: Bool = false,
+         inventory: Inventory) {
         visibleText = Self.visibleTextState(settings: settings, accessibilityGranted: accessibilityGranted)
+        windowText = Self.windowTextState(
+            settings: settings, accessibilityGranted: accessibilityGranted,
+            screenRecordingGranted: screenRecordingGranted)
         meetingMemory = Self.meetingMemoryState(settings: settings, inventory: inventory)
         screenMemory = Self.screenMemoryState(settings: settings, inventory: inventory)
     }
@@ -85,6 +90,21 @@ struct CotypingContextAvailability: Equatable, Sendable {
             return .unavailable("Unavailable: Accessibility permission is needed to read nearby text.")
         }
         return .available("Available in apps that expose their text to Accessibility.")
+    }
+
+    private static func windowTextState(settings: AppSettings, accessibilityGranted: Bool,
+                                        screenRecordingGranted: Bool) -> State {
+        guard settings.cotypingUseWindowText else { return .off }
+        guard settings.cotypingEnabled else {
+            return .unavailable("Unavailable: autocomplete is off.")
+        }
+        guard accessibilityGranted else {
+            return .unavailable("Unavailable: Accessibility permission is needed to find the focused window.")
+        }
+        guard screenRecordingGranted else {
+            return .unavailable("Unavailable: Screen Recording permission is needed to read the window.")
+        }
+        return .available("Available in every app except excluded apps, sites and private windows.")
     }
 
     private static func meetingMemoryState(settings: AppSettings, inventory: Inventory) -> State {
@@ -274,10 +294,12 @@ enum CotypingRehearsalConversation {
 
 extension AppState {
     /// What each optional autocomplete context source can do right now.
-    func cotypingContextAvailability(accessibilityGranted: Bool) -> CotypingContextAvailability {
+    func cotypingContextAvailability(accessibilityGranted: Bool,
+                                     screenRecordingGranted: Bool = false) -> CotypingContextAvailability {
         CotypingContextAvailability(
             settings: settings,
             accessibilityGranted: accessibilityGranted,
+            screenRecordingGranted: screenRecordingGranted,
             inventory: .init(meetings: meetings, memory: dreamMemory, libraryReady: libraryReady,
                              overnightReviewOn: settings.dreamingEnabled))
     }
