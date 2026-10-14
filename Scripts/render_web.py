@@ -35,6 +35,7 @@ CHECK_ICON = '<i class="ph ph-check" aria-hidden="true"></i>'
 
 SITE = "https://www.lokalbot.com"
 OG_IMAGE = f"{SITE}/assets/og-image.png"
+# Publish date of the original guides; a guide added later sets "published".
 GUIDES_PUBLISHED = "2026-07-13"
 
 # Defined in full by the home page's structured data; other pages reference
@@ -241,7 +242,7 @@ def guide_structured_data(page: dict) -> str:
                 "@type": "Article",
                 "headline": page["h1"],
                 "description": page["description"],
-                "datePublished": GUIDES_PUBLISHED,
+                "datePublished": page.get("published", GUIDES_PUBLISHED),
                 "dateModified": page.get("updated", GUIDES_PUBLISHED),
                 "mainEntityOfPage": url,
                 "image": OG_IMAGE,
