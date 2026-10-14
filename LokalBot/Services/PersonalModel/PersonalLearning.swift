@@ -1,4 +1,5 @@
 import Foundation
+import NaturalLanguage
 
 /// The overnight learning pass (personal world model, Phase 3). After the
 /// day's review, it reads only the person's own lines from that day's
@@ -200,25 +201,41 @@ enum PersonalLearning {
         var items: [Item]
     }
 
-    /// Grounded candidates from the model's reply: the line must exist, the
-    /// kind must be fact, goal, or preference, and the text must share at least
-    /// a third of its content words with that line. At most `maxPerNight`.
-    static func candidates(from output: String, utterances: [Utterance],
-                           evidence: (Utterance) -> DreamEvidenceProvenance) -> [PersonalModel.LearningCandidate] {
+    /// An item the model proposed, tied to the line it cites.
+    struct Proposal: Equatable, Sendable {
+        var kind: PersonalClaimKind
+        var text: String
+        var utterance: Utterance
+    }
+
+    /// Every item that cites a real line with a learnable kind, in reply
+    /// order. Grounding happens after this.
+    static func proposals(from output: String, utterances: [Utterance]) -> [Proposal] {
         guard let start = output.firstIndex(of: "{"), let end = output.lastIndex(of: "}"),
               let reply = try? JSONDecoder().decode(Reply.self, from: Data(output[start...end].utf8)) else {
             return []
         }
-        let byHandle = Dictionary(utterances.map { ($0.handle.uppercased(), $0) }, uniquingKeysWith: { first, _ in first })
-        var result: [PersonalModel.LearningCandidate] = []
+        var byHandle: [String: Utterance] = [:]
+        for utterance in utterances where byHandle[utterance.handle.uppercased()] == nil {
+            byHandle[utterance.handle.uppercased()] = utterance
+        }
+        var result: [Proposal] = []
         for item in reply.items {
-            guard result.count < maxPerNight,
-                  let utterance = byHandle[item.line.trimmingCharacters(in: .whitespaces).uppercased()],
-                  let kind = PersonalClaimKind(rawValue: item.kind.lowercased()), kind != .principle,
-                  isGrounded(item.text, in: utterance.text) else { continue }
-            result.append(PersonalModel.LearningCandidate(
-                kind: kind, text: item.text, quote: utterance.text, meetingID: utterance.meetingID,
-                dayKey: utterance.dayKey, evidence: evidence(utterance)))
+            guard let utterance = byHandle[item.line.trimmingCharacters(in: .whitespaces).uppercased()],
+                  let kind = PersonalClaimKind(rawValue: item.kind.lowercased()), kind != .principle else { continue }
+            result.append(Proposal(kind: kind, text: item.text, utterance: utterance))
+        }
+        return result
+    }
+
+    /// Word-overlap grounding only: what `run` falls back to without an
+    /// embedder. At most `maxPerNight`.
+    static func candidates(from output: String, utterances: [Utterance],
+                           evidence: (Utterance) -> DreamEvidenceProvenance) -> [PersonalModel.LearningCandidate] {
+        var result: [PersonalModel.LearningCandidate] = []
+        for proposal in proposals(from: output, utterances: utterances) where result.count < maxPerNight {
+            guard isGrounded(proposal.text, in: proposal.utterance.text) else { continue }
+            result.append(candidate(proposal, needsReview: false, evidence: evidence))
         }
         return result
     }
@@ -230,12 +247,118 @@ enum PersonalLearning {
         return shared >= max(1, Int((Double(claimWords.count) / 3).rounded(.up)))
     }
 
+    // MARK: - Grounding across languages
+
+    /// Vectors for texts, L2-normalized, or nil when no embedder is available.
+    typealias Embed = ([String]) async -> [[Float]]?
+
+    /// EmbeddingGemma 2 with the sentence-similarity prompt, measured on
+    /// Serbian lines against English items (2026-10-14): correct
+    /// translations 0.83–0.95, unrelated claims 0.73–0.79, and a wrong
+    /// detail ("doctor" for engineer, the wrong city) 0.80–0.90. Below the
+    /// floor an item is dropped. Above it, a fact or goal is saved only with a
+    /// shared word root or a very high score; otherwise it waits for review,
+    /// because embeddings alone can't tell a wrong detail from a right one.
+    /// Recalibrate whenever the embedding model changes.
+    static let crossLanguageFloor: Float = 0.82
+    static let confidentSimilarity: Float = 0.90
+
+    enum Grounding: Equatable {
+        case grounded
+        case needsReview
+        case rejected
+    }
+
+    /// Word overlap for items in the line's language. An item the model
+    /// translated (the line is Serbian, the item English) can't share words,
+    /// so it is compared by meaning instead, when an embedder is available.
+    static func groundedCandidates(
+        from output: String, utterances: [Utterance], embed: Embed?,
+        evidence: (Utterance) -> DreamEvidenceProvenance
+    ) async -> [PersonalModel.LearningCandidate] {
+        let all = proposals(from: output, utterances: utterances)
+        var verdicts = all.map { proposal -> Grounding? in
+            if isGrounded(proposal.text, in: proposal.utterance.text) { return .grounded }
+            return isCrossLanguage(proposal.text, proposal.utterance.text) ? nil : .rejected
+        }
+        let pending = verdicts.indices.filter { verdicts[$0] == nil }
+        if !pending.isEmpty {
+            var texts: [String] = []
+            for index in pending {
+                texts.append(all[index].text)
+                texts.append(all[index].utterance.text)
+            }
+            let vectors = await embed?(texts)
+            for (offset, index) in pending.enumerated() {
+                guard let vectors, vectors.count == texts.count else {
+                    verdicts[index] = .rejected
+                    continue
+                }
+                let similarity = dot(vectors[offset * 2], vectors[offset * 2 + 1])
+                verdicts[index] = crossLanguageVerdict(
+                    similarity: similarity, claim: all[index].text, line: all[index].utterance.text)
+            }
+        }
+        var result: [PersonalModel.LearningCandidate] = []
+        for (proposal, verdict) in zip(all, verdicts) where result.count < maxPerNight {
+            switch verdict {
+            case .grounded: result.append(candidate(proposal, needsReview: false, evidence: evidence))
+            case .needsReview: result.append(candidate(proposal, needsReview: true, evidence: evidence))
+            case .rejected, nil: continue
+            }
+        }
+        return result
+    }
+
+    static func crossLanguageVerdict(similarity: Float, claim: String, line: String) -> Grounding {
+        guard similarity >= crossLanguageFloor else { return .rejected }
+        if similarity >= confidentSimilarity || sharesWordRoot(claim, line) { return .grounded }
+        return .needsReview
+    }
+
+    /// True when the two texts' dominant languages differ, so word overlap
+    /// can't apply. Unknown counts as the same language: the stricter path.
+    static func isCrossLanguage(_ claim: String, _ line: String) -> Bool {
+        guard let claimLanguage = NLLanguageRecognizer.dominantLanguage(for: claim),
+              let lineLanguage = NLLanguageRecognizer.dominantLanguage(for: line) else { return false }
+        return claimLanguage != lineLanguage
+    }
+
+    /// A content word of the item and of the line (Cyrillic transliterated)
+    /// start the same way: "platform" in "platformu", "marathon" in
+    /// "maraton", "sad" in "sadu".
+    static func sharesWordRoot(_ claim: String, _ line: String) -> Bool {
+        let latinLine = line.applyingTransform(.toLatin, reverse: false) ?? line
+        let lineWords = PersonalContextSelection.contentWords(latinLine)
+        for word in PersonalContextSelection.contentWords(claim) {
+            for other in lineWords {
+                let shared = zip(word, other).prefix { $0 == $1 }.count
+                if shared >= 4 || (shared >= 3 && shared == min(word.count, other.count)) { return true }
+            }
+        }
+        return false
+    }
+
+    private static func dot(_ lhs: [Float], _ rhs: [Float]) -> Float {
+        var sum: Float = 0
+        for index in 0..<min(lhs.count, rhs.count) { sum += lhs[index] * rhs[index] }
+        return sum
+    }
+
+    private static func candidate(_ proposal: Proposal, needsReview: Bool,
+                                  evidence: (Utterance) -> DreamEvidenceProvenance) -> PersonalModel.LearningCandidate {
+        PersonalModel.LearningCandidate(
+            kind: proposal.kind, text: proposal.text, quote: proposal.utterance.text,
+            meetingID: proposal.utterance.meetingID, dayKey: proposal.utterance.dayKey,
+            evidence: evidence(proposal.utterance), needsReview: needsReview)
+    }
+
     // MARK: - Run
 
     /// One night's pass. Returns no candidates without calling the model when
     /// the day has none of the person's own lines.
     static func run(day: Date, storageRoot: URL, known: [PersonalClaim], revision: UInt64,
-                    engine: TextEngine, calendar: Calendar = .current) async throws
+                    engine: TextEngine, embed: Embed? = nil, calendar: Calendar = .current) async throws
         -> [PersonalModel.LearningCandidate] {
         let lines = try utterances(day: day, storageRoot: storageRoot, calendar: calendar)
         guard !lines.isEmpty else { return [] }
@@ -243,7 +366,7 @@ enum PersonalLearning {
             system: system, prompt: prompt(utterances: lines, known: known), context: [],
             schema: schema,
             options: TextGenerationOptions(maxTokens: maxOutputTokens, reasoningBudgetTokens: 0, temperature: 0))
-        return candidates(from: output, utterances: lines) { utterance in
+        return await groundedCandidates(from: output, utterances: lines, embed: embed) { utterance in
             DreamEvidenceProvenance(
                 sources: [DreamEvidenceSource(kind: .meeting, id: utterance.meetingID.uuidString,
                                               dayKey: utterance.dayKey)],

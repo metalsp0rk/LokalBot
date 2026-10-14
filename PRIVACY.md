@@ -111,7 +111,12 @@ as the overnight review. Up to three
 facts or goals a night are saved and used without review; learned
 preferences wait for you to keep or dismiss them; principles and values are
 never learned. Each learned item must come from one of your lines, shows
-that line, and is labelled as learned wherever it is used. Deleting or
+that line, and is labelled as learned wherever it is used. When the model
+words an item in another language than your line (for example an English
+item from a Serbian line), LokalBot compares their meaning with its local
+embedding model, which needs semantic search. Nothing is downloaded for
+this, and nothing leaves your Mac. An item it isn't sure of waits for your
+review even if it is a fact or goal. Deleting or
 correcting the meeting it came from removes it unless you chose **Keep Even
 If the Meeting Is Deleted**. Forgetting a learned item, or dismissing a
 suggestion, keeps a one-way hash for 180 days so the same text isn't

@@ -316,10 +316,27 @@ agent access is the differentiator and is safe with stated claims alone.
      one. Until "shorten, don't rephrase" was added, it copied lines word for
      word. A Serbian example in the prompt made it translate English lines
      into Serbian, once reversing a meaning, so the example was removed. It
-     still translates Serbian lines into English, and the grounding check
-     then drops them. So Serbian facts are rarely learned with the built-in
-     model. Embedding-based grounding (EmbeddingGemma 2 handles Serbian well)
-     is the likely fix.
+     still translates Serbian lines into English when a day mixes the two
+     languages. Word overlap can't ground those items, which is why
+     embedding grounding was added (below).
+   - **Embedding grounding (added the same day):** this applies when an item
+     and its line are in different languages, by NaturalLanguage's dominant
+     language. Such an item is compared with EmbeddingGemma 2's
+     sentence-similarity prompt, through the local embedder, and only if the
+     model file is already present. On 17 measured Serbian-to-English pairs:
+     - Correct translations scored 0.83–0.95 and unrelated claims 0.73–0.79.
+     - A wrong detail scored 0.80–0.90 ("doctor" for engineer, the wrong city,
+       "calls" for written).
+     - So the rules are: below 0.82 an item is dropped. A fact or goal is
+       saved at 0.90 or above, or when an item word and a line word share a
+       root (Cyrillic transliterated). Otherwise it waits for review.
+     - End to end with Qwen3.5 4B and EmbeddingGemma 2 on mixed lines, "I lead
+       the platform team." (0.853) and "I want to run a marathon in 2027."
+       (0.875) from Serbian lines were saved. They were dropped before. All
+       traps were still skipped. With all-Serbian lines the model kept
+       Serbian, and word overlap saved them.
+     - Same-language items never reach the embedder. Without semantic search,
+       translated items are dropped as before.
 4. **Decision journal.** Extend existing `decisionRecords` with an optional
    expected outcome and a review date. Today's weekly review asks "How did this
    turn out?", and the answer becomes evidence for later proposals. This is

@@ -138,6 +138,106 @@ final class PersonalLearningReplyTests: XCTestCase {
     }
 }
 
+final class PersonalLearningCrossLanguageTests: XCTestCase {
+    private let meetingID = UUID()
+
+    private func line(_ handle: String, _ text: String) -> PersonalLearning.Utterance {
+        .init(handle: handle, meetingID: meetingID, meetingTitle: "Standup", dayKey: "2026-10-14", text: text)
+    }
+
+    private func evidence(_ utterance: PersonalLearning.Utterance) -> DreamEvidenceProvenance {
+        DreamEvidenceProvenance(
+            sources: [DreamEvidenceSource(kind: .meeting, id: utterance.meetingID.uuidString, dayKey: utterance.dayKey)],
+            revision: 1)
+    }
+
+    /// Two unit vectors whose dot product is `similarity`.
+    private func pair(_ similarity: Float) -> [[Float]] {
+        [[1, 0], [similarity, (1 - similarity * similarity).squareRoot()]]
+    }
+
+    func testWordRootsMatchAcrossScriptsAndInflection() {
+        XCTAssertTrue(PersonalLearning.sharesWordRoot("I lead the platform team.", "Ја водим тим за платформу."))
+        XCTAssertTrue(PersonalLearning.sharesWordRoot("I want to run a marathon in 2027.",
+                                                      "Cilj mi je da sledeće godine istrčim maraton."))
+        XCTAssertTrue(PersonalLearning.sharesWordRoot("I live in Novi Sad.", "Živim u Novom Sadu sa porodicom."))
+        XCTAssertFalse(PersonalLearning.sharesWordRoot("I work as a doctor in Belgrade.",
+                                                       "Radim kao inženjer u Beogradu, uglavnom od kuće."))
+    }
+
+    func testOnlyTranslatedItemsCountAsCrossLanguage() {
+        XCTAssertTrue(PersonalLearning.isCrossLanguage(
+            "I lead the platform team.", "Ja vodim tim za platformu već dve godine i to mi se baš sviđa."))
+        XCTAssertFalse(PersonalLearning.isCrossLanguage(
+            "I live in Belgrade.", "I live in Belgrade with my family and I work from home."))
+    }
+
+    func testVerdictTiers() {
+        let claim = "I lead the platform team."
+        let line = "Ja vodim tim za platformu već dve godine."
+        let unrelated = "Radim kao inženjer u Beogradu, uglavnom od kuće."
+        XCTAssertEqual(PersonalLearning.crossLanguageVerdict(similarity: 0.79, claim: claim, line: line), .rejected)
+        XCTAssertEqual(PersonalLearning.crossLanguageVerdict(similarity: 0.85, claim: claim, line: line), .grounded)
+        XCTAssertEqual(PersonalLearning.crossLanguageVerdict(similarity: 0.85, claim: "I am a doctor.", line: unrelated),
+                       .needsReview)
+        XCTAssertEqual(PersonalLearning.crossLanguageVerdict(similarity: 0.93, claim: "I am a doctor.", line: unrelated),
+                       .grounded)
+    }
+
+    func testTranslatedItemsAreCheckedByMeaningAndUncertainOnesWaitForReview() async {
+        let lines = [
+            line("U1", "Ja vodim tim za platformu već dve godine i to mi se baš sviđa."),
+            line("U2", "I live in Belgrade and I work from home most days."),
+            line("U3", "Radim kao inženjer u Beogradu, uglavnom od kuće."),
+        ]
+        let output = """
+            {"items": [
+              {"line": "U1", "kind": "fact", "text": "I lead the platform team."},
+              {"line": "U2", "kind": "fact", "text": "I am an excellent chess player."},
+              {"line": "U3", "kind": "fact", "text": "I work as a doctor in Belgrade."}
+            ]}
+            """
+        let recorder = EmbedRecorder(vectors: pair(0.86) + pair(0.85))
+        let candidates = await PersonalLearning.groundedCandidates(
+            from: output, utterances: lines, embed: { await recorder.embed($0) }, evidence: evidence)
+        XCTAssertEqual(candidates.map(\.text), ["I lead the platform team.", "I work as a doctor in Belgrade."])
+        XCTAssertEqual(candidates.map(\.needsReview), [false, true])
+        let sent = await recorder.calls
+        XCTAssertEqual(sent, [[
+            "I lead the platform team.", lines[0].text,
+            "I work as a doctor in Belgrade.", lines[2].text,
+        ]], "the same-language item never reaches the embedder")
+
+        let withoutEmbedder = await PersonalLearning.groundedCandidates(
+            from: output, utterances: lines, embed: nil, evidence: evidence)
+        XCTAssertTrue(withoutEmbedder.isEmpty)
+    }
+
+    func testUncertainFactsAreSuggestedNotSaved() {
+        var model = PersonalModel()
+        let outcome = model.learn([
+            PersonalModel.LearningCandidate(
+                kind: .fact, text: "I work as a doctor in Belgrade.", quote: "Radim kao inženjer u Beogradu.",
+                meetingID: meetingID, dayKey: "2026-10-14",
+                evidence: evidence(line("U1", "x")), needsReview: true),
+        ], now: Date())
+        XCTAssertTrue(outcome.saved.isEmpty)
+        XCTAssertEqual(outcome.proposed.first?.status, .proposed)
+    }
+}
+
+private actor EmbedRecorder {
+    private let vectors: [[Float]]
+    private(set) var calls: [[String]] = []
+
+    init(vectors: [[Float]]) { self.vectors = vectors }
+
+    func embed(_ texts: [String]) -> [[Float]]? {
+        calls.append(texts)
+        return vectors
+    }
+}
+
 final class PersonalModelLearningRulesTests: XCTestCase {
     private let now = Date(timeIntervalSince1970: 1_790_000_000)
     private let meetingID = UUID()

@@ -321,6 +321,9 @@ struct PersonalModel: Codable, Equatable, Sendable {
         var meetingID: UUID
         var dayKey: String
         var evidence: DreamEvidenceProvenance
+        /// Grounded only by meaning across languages: even a fact or goal
+        /// waits for the person's review.
+        var needsReview = false
     }
 
     struct LearningOutcome: Equatable, Sendable {
@@ -329,8 +332,9 @@ struct PersonalModel: Codable, Equatable, Sendable {
         var skipped = 0
     }
 
-    /// Facts and goals are saved and used at once; preferences wait for
-    /// review; principles are never learned. Duplicates, forgotten or
+    /// Facts and goals are saved and used at once; preferences, and items
+    /// grounded only by meaning across languages, wait for review;
+    /// principles are never learned. Duplicates, forgotten or
     /// dismissed text, invalid text, and anything past the limits are skipped.
     @discardableResult
     mutating func learn(_ candidates: [LearningCandidate], now: Date) -> LearningOutcome {
@@ -348,7 +352,7 @@ struct PersonalModel: Codable, Equatable, Sendable {
                 outcome.skipped += 1
                 continue
             }
-            let proposes = candidate.kind == .preference
+            let proposes = candidate.kind == .preference || candidate.needsReview
             let limitReached = proposes
                 ? claims.filter { $0.status == .proposed }.count >= Self.maxProposals
                 : claims.filter { $0.status == .confirmed }.count >= Self.maxClaims

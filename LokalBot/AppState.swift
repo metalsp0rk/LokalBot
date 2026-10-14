@@ -2343,9 +2343,14 @@ final class AppState: ObservableObject {
                 engineSettings, priority: .background, purpose: "personal learning")
             try Task.checkCancellation()
             let known = personalModel.usableClaims() + personalModel.suggestions
+            // The local embedder checks items the model translated (a Serbian
+            // line, an English item); without semantic search those are dropped.
+            let embed: PersonalLearning.Embed? = engineSettings.semanticSearchEnabled
+                ? { [weak self] texts in await self?.embeddingIndex.similarityVectors(texts) }
+                : nil
             let candidates = try await PersonalLearning.run(
                 day: target.day, storageRoot: storage.rootURL, known: known, revision: revision,
-                engine: engine, calendar: target.calendar)
+                engine: engine, embed: embed, calendar: target.calendar)
             guard !candidates.isEmpty else { return }
             let outcome = personalModel.learn(candidates)
             lokalbotLog("personal learning: day=\(target.dayKey) saved=\(outcome.saved.count) "
