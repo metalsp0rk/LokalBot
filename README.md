@@ -49,6 +49,21 @@ One search across your meeting transcripts and, if you turn it on, what you saw 
 
 <div align="center"><a href="Assets/screenshots/quick-recall.png"><img src="Assets/screenshots/quick-recall.png" alt="Quick Recall finding a delivery checklist seen in Pages and three meetings where captions came up" width="560" /></a></div>
 
+### Finish the sentence
+
+As you type in other apps, gray text suggests how your sentence ends. Press **Tab** to take the next word, **\`** to take the rest, or keep typing.
+
+<div align="center"><img src="Assets/screenshots/autocomplete-memory.gif" alt="Typing an update in TextEdit after a call with John: after &quot;the Harbor beta ships&quot;, autocomplete suggests &quot;Thursday morning, after the accessibility review.&quot; and Tab accepts it word by word" width="920" /></div>
+
+<div align="center"><sub>Live suggestions in TextEdit, in real time. The ship date and condition come from the meeting with John. Fictional demo meeting.</sub></div>
+
+- **Knows what you're answering.** It reads the message or page above the field, so a reply fits the thread.
+- **Remembers your meetings, if you let it.** Turn on meeting and work memory, and it can bring in what was decided, like the ship date above.
+- **Writes in your language.** The same small model keeps up in German, French, Italian, Spanish, and more.
+- **Stays on your Mac.** Gemma 4 E2B runs inside the app. What you type and the context it reads never leave your Mac.
+
+Turn it on in **Settings → Writing**, where you can try it on a sample conversation first and later see how much it wrote for you.
+
 ### Pick up where you left off
 
 Today brings your day digest and open meeting actions together. Timeline groups captured activity into work sessions, with the underlying context available to inspect. Correct actions, mark them done, and trace each one to its source.
@@ -64,11 +79,9 @@ Today brings your day digest and open meeting actions together. Timeline groups 
   </tr>
 </table>
 
-### Talk instead of typing. Finish the sentence.
+### Talk instead of typing
 
-Turn on Dictation in **Settings → Dictation**, then hold **⌥ Space** (or a shortcut you choose there), speak, and release to insert text at your cursor in any app. Turn on local Autocomplete in **Settings → Writing** for suggestions as you type: press **Tab** to accept, or keep typing. Transcription and suggestions run on your Mac, and you can rehearse Autocomplete in the app before using it everywhere.
-
-<div align="center"><a href="Assets/screenshots/cotyping.png"><img src="Assets/screenshots/cotyping.png" alt="Settings → Writing showing Autocomplete readiness and a local suggestion preview you can rehearse" width="920" /></a></div>
+Turn on Dictation in **Settings → Dictation**, then hold **⌥ Space** (or a shortcut you choose there), speak, and release to insert text at your cursor in any app. Transcription runs on your Mac.
 
 ### And more
 
@@ -76,7 +89,7 @@ Turn on Dictation in **Settings → Dictation**, then hold **⌥ Space** (or a s
 | --- | --- | --- |
 | Ask about your meeting library and follow the answer's citations back to the transcript or audio. Generated notes are a starting point, not a substitute for the discussion. | Export notes, or prepare local follow-up drafts, daily briefs, and weekly work logs in a folder you choose. You review and send them yourself. | Give Claude Code or any MCP client read-only access to your meeting library through the bundled `lokalbot-cli`. It stays off until you enable it. |
 
-<sub>Screenshots are unedited captures of the native app with fictional demo data. They show the interface, not a live inference benchmark. Click an image for full resolution; see the <a href="Assets/screenshots/README.md">capture notes</a> for provenance.</sub>
+<sub>Screenshots are unedited captures of the native app with fictional demo data. They show the interface, not a live inference benchmark. The Autocomplete clip is a cropped, real-time recording of live suggestions. Click an image for full resolution; see the <a href="Assets/screenshots/README.md">capture notes</a> for provenance.</sub>
 
 ## How it compares
 
@@ -167,17 +180,17 @@ Yes. Export meeting content or enable Markdown, Obsidian, or Logseq memory expor
 
 Start with the built-in models, then change them in **Settings → Models**. LokalBot supports its bundled llama.cpp runtime, Ollama, OpenAI-compatible servers, and Apple Intelligence on supported Macs running macOS 26 or later. Think can also run on your own ChatGPT plan (Sign in with ChatGPT) or Claude plan (through your signed-in Claude Code), without an API key. Remote servers and plans require approval before receiving context.
 
-Different jobs use different models. These are the defaults on a fresh install, about 6.5 GB of model files if you use every role. They are not a RAM requirement:
+Different jobs use different models. These are the defaults on a fresh install, about 9.6 GB of model files if you use every role. They are not a RAM requirement:
 
 | Role | Default model | Format | Approx. model files |
 | --- | --- | --- | ---: |
 | Transcription | Qwen3-ASR 1.7B | MLX 8-bit | 2.47 GB |
 | Summaries and chat | Qwen3.5 4B | `Q4_K_M` | 2.74 GB |
-| Autocomplete | LFM2.5 1.2B Instruct | `Q4_K_M` | 0.73 GB |
+| Autocomplete | Gemma 4 E2B Base | `Q6_K` | 3.85 GB |
 | Semantic search | EmbeddingGemma 2 | `Q8_0` | 0.31 GB |
 | Speaker diarization | Nemotron 3 (preview) via FluidAudio | Core ML | ~0.20 GB |
 
-Qwen3-ASR covers 52 languages and dialects. Transcription alternatives include Parakeet, Granite Speech, Whisper large-v3 turbo, SenseVoice for Chinese, Japanese, and Korean, and GigaAM for Russian; Pyannote Community-1 remains available for diarization. Model choices can vary by release; Settings shows the active selections and available presets. Speed and memory use depend on your Mac, model, context length, and other workloads.
+Qwen3-ASR covers 52 languages and dialects. Transcription alternatives include Parakeet, Granite Speech, Whisper large-v3 turbo, SenseVoice for Chinese, Japanese, and Korean, and GigaAM for Russian; Pyannote Community-1 remains available for diarization. The Lightweight preset swaps in smaller models, including LFM2.5 1.2B Instruct (0.73 GB) for autocomplete. Model choices can vary by release; Settings shows the active selections and available presets. Speed and memory use depend on your Mac, model, context length, and other workloads.
 
 [Project benchmarks](Benchmarks/README.md) · [Model catalog](LokalBot/Engines/ModelCatalog.swift) · [Search implementation](LokalBot/Services/EmbeddingIndex.swift) · [Model and runtime details](DEVELOPMENT.md#built-in-llm-runtime--llamacpp--model-catalog)
 
