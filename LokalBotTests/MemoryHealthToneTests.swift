@@ -20,4 +20,11 @@ final class MemoryHealthToneTests: XCTestCase {
             XCTAssertEqual(MemoryHealthTone.audio(fault), .attention, fault)
         }
     }
+
+    func testTextSourcesReadAsStatusWords() {
+        XCTAssertEqual(MemoryHealthSection.textSourceLabel("hybrid"), "Hybrid")
+        XCTAssertEqual(MemoryHealthSection.textSourceLabel("ocr_redacted"), "OCR, redacted")
+        XCTAssertEqual(MemoryHealthSection.textSourceLabel("accessibility"), "Accessibility")
+        XCTAssertEqual(MemoryHealthSection.textSourceLabel("future_source"), "Future_source")
+    }
 }

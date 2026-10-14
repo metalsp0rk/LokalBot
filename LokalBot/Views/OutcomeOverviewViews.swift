@@ -219,7 +219,7 @@ struct ActionThreadRow: View {
 
     private func apply(_ status: OutcomeStatus) {
         // A completed thread leaves open-only lists; animate the change so
-        // the rows below close the gap and Undo arrives in the same motion.
+        // the rows below close the gap.
         let updated = withAnimation(WorkspaceMotion.animation(.selection, reduceMotion: reduceMotion)) {
             app.outcomeIndex.setStatus(status, thread: thread)
         }

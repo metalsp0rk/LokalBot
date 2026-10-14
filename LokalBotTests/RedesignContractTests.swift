@@ -97,14 +97,14 @@ final class RedesignContractTests: XCTestCase {
         XCTAssertNil(ActionDuePresentation.date("once the budget lands", spokenAt: tuesday))
     }
 
-    func testActionListsOfZeroFortyAndFourHundredPersistCorrectionsAndUndo() throws {
+    func testActionListsOfZeroFortyAndFourHundredPersistCorrectionsAndStatus() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent("redesign-actions-\(UUID())")
         defer { try? FileManager.default.removeItem(at: root) }
         let storage = StorageManager(rootURL: root)
-        let meeting = Meeting(id: UUID(), title: "Synthetic review", appName: "Meet", startedAt: Date(), endedAt: Date(), relativePath: "meetings/synthetic")
-        let folder = meeting.folderURL(in: storage)
-        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         for count in [0, 40, 400] {
+            let meeting = Meeting(id: UUID(), title: "Synthetic review", appName: "Meet", startedAt: Date(), endedAt: Date(), relativePath: "meetings/synthetic-\(count)")
+            let folder = meeting.folderURL(in: storage)
+            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
             let outcomes = MeetingOutcomes(actionItems: (0..<count).map { .init(text: "Synthetic commitment \($0)", owner: "Me") })
             try outcomes.write(to: folder)
             let index = OutcomeIndex(storage: storage)
@@ -114,10 +114,10 @@ final class RedesignContractTests: XCTestCase {
             XCTAssertTrue(index.correctAction(actionID: first.action.id, meetingID: meeting.id, text: "Reviewed wording", owner: "Me", due: "2026-09-03"))
             XCTAssertTrue(index.setStatus(.done, for: index.openUserActions).isEmpty)
             XCTAssertEqual(index.openUserActions.count, 0)
-            index.undoStatusChange()
             let restarted = OutcomeIndex(storage: storage)
             restarted.refresh(meetings: [meeting])
-            XCTAssertEqual(restarted.openUserActions.count, count)
+            XCTAssertEqual(restarted.openUserActions.count, 0)
+            XCTAssertEqual(restarted.projection(for: meeting.id)?.actionReferences.filter { $0.status == .done }.count, count)
             XCTAssertEqual(restarted.projection(for: meeting.id)?.actionReferences.first { $0.action.id == first.action.id }?.text, "Reviewed wording")
             XCTAssertEqual(MeetingOutcomes.load(from: folder)?.actionItems.first { $0.id == first.action.id }?.text, first.action.text)
         }
@@ -158,7 +158,7 @@ final class RedesignContractTests: XCTestCase {
         XCTAssertTrue(store.searchOCR("retained", filter: filter, groupResults: false).isEmpty)
     }
 
-    func testBatchFailurePreservesSuccessfulUpdatesAndUndo() throws {
+    func testBatchFailurePreservesSuccessfulUpdates() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent("redesign-partial-\(UUID())")
         defer { try? FileManager.default.removeItem(at: root) }
         let storage = StorageManager(rootURL: root)
@@ -178,44 +178,9 @@ final class RedesignContractTests: XCTestCase {
         try Data("fixture blocks directory writes".utf8).write(to: blocked)
         let failures = index.setStatus(.done, for: index.openUserActions)
         XCTAssertEqual(failures, ["blocked commitment"])
-        XCTAssertEqual(index.statusUndo.count, 1)
-        XCTAssertEqual(index.projection(for: meetings[0].id)?.actionReferences.first?.status, .done)
-        index.undoStatusChange()
-        XCTAssertEqual(index.projection(for: meetings[0].id)?.actionReferences.first?.status, .open)
-        XCTAssertEqual(index.projection(for: meetings[1].id)?.actionReferences.first?.status, .open)
-    }
-
-    func testPartialUndoKeepsFailureVisibleAfterSuccessfulRestoresAndCanRetry() throws {
-        let root = FileManager.default.temporaryDirectory.appendingPathComponent("redesign-undo-\(UUID())")
-        defer { try? FileManager.default.removeItem(at: root) }
-        let storage = StorageManager(rootURL: root)
-        let meetings = ["blocked", "good"].map { name in
-            Meeting(id: UUID(), title: name, appName: "Meet", startedAt: Date(), endedAt: Date(), relativePath: "meetings/\(name)")
-        }
-        for meeting in meetings {
-            let folder = meeting.folderURL(in: storage)
-            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-            try MeetingOutcomes(actionItems: [.init(text: meeting.title + " commitment", owner: "Me")]).write(to: folder)
-        }
-        let index = OutcomeIndex(storage: storage)
-        index.refresh(meetings: meetings)
-        let actions = meetings.compactMap { index.projection(for: $0.id)?.actionReferences.first }
-        XCTAssertTrue(index.setStatus(.done, for: actions).isEmpty)
-        let state = meetings[0].folderURL(in: storage).appendingPathComponent(MeetingOutcomeState.fileName)
-        let savedState = try Data(contentsOf: state)
-        try FileManager.default.removeItem(at: state)
-        try FileManager.default.createDirectory(at: state, withIntermediateDirectories: true)
-        index.undoStatusChange()
-        XCTAssertEqual(index.lastError, "Could not undo: blocked commitment")
-        XCTAssertEqual(index.statusUndo.map(\.meetingID), [meetings[0].id])
+        XCTAssertEqual(index.lastError, "Could not update: blocked commitment")
         XCTAssertEqual(index.projection(for: meetings[0].id)?.actionReferences.first?.status, .done)
         XCTAssertEqual(index.projection(for: meetings[1].id)?.actionReferences.first?.status, .open)
-        try FileManager.default.removeItem(at: state)
-        try savedState.write(to: state)
-        index.undoStatusChange()
-        XCTAssertNil(index.lastError)
-        XCTAssertTrue(index.statusUndo.isEmpty)
-        XCTAssertEqual(index.projection(for: meetings[0].id)?.actionReferences.first?.status, .open)
     }
 
     func testOptionalWritingModelDoesNotBlockMeetingReadiness() {

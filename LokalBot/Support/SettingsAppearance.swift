@@ -140,3 +140,101 @@ struct SettingsDetails: View {
         }
     }
 }
+
+// MARK: - Readouts
+
+/// One headline number in a settings readout: what it measures, the value,
+/// and a line of context. Writing → Statistics and Advanced → Resource
+/// Monitor share it, so their rows read alike.
+struct SettingsMetricTile: View {
+    let icon: String
+    let title: String
+    let value: String
+    var detail: String?
+    let identifier: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Label {
+                Text(LocalizedStringKey(title))
+            } icon: {
+                Image(systemName: icon).foregroundStyle(Brand.teal)
+            }
+            .font(AppFont.scaled(.callout))
+            .settingsSecondary()
+            .lineLimit(1)
+            Text(value)
+                .font(AppFont.scaled(.title2).weight(.semibold).monospacedDigit())
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+            if let detail, !detail.isEmpty {
+                Text(detail)
+                    .font(AppFont.scaled(.callout))
+                    .settingsSecondary()
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .padding(12)
+        .background(.quaternary.opacity(0.25), in: RoundedRectangle(cornerRadius: Brand.Radius.control))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text(LocalizedStringKey(title)))
+        .accessibilityValue(Text(verbatim: spokenValue))
+        .accessibilityIdentifier(identifier)
+    }
+
+    private var spokenValue: String {
+        let value = value.replacingOccurrences(of: "≈ ", with: "≈")
+            .replacingOccurrences(of: "≈", with: "approximately ")
+        guard let detail, !detail.isEmpty else { return value }
+        return value + ", " + detail
+    }
+}
+
+/// Lays tiles out in equal columns: all in one row when each gets at least
+/// `minimumWidth`, otherwise in rows of two. Tiles in a row share its height.
+struct SettingsTileLayout: Layout {
+    var minimumWidth: CGFloat = 150
+    var spacing: CGFloat = 8
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let count = CGFloat(subviews.count)
+        let width = proposal.width ?? minimumWidth * count + spacing * max(count - 1, 0)
+        let rows = rows(width: width, subviews: subviews)
+        let height = rows.reduce(0) { $0 + $1.height } + spacing * CGFloat(max(rows.count - 1, 0))
+        return CGSize(width: width, height: height)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        var y = bounds.minY
+        for row in rows(width: bounds.width, subviews: subviews) {
+            for (column, index) in row.indices.enumerated() {
+                let x = bounds.minX + CGFloat(column) * (row.columnWidth + spacing)
+                subviews[index].place(at: CGPoint(x: x, y: y),
+                                      proposal: ProposedViewSize(width: row.columnWidth, height: row.height))
+            }
+            y += row.height + spacing
+        }
+    }
+
+    private struct Row {
+        var indices: Range<Int>
+        var columnWidth: CGFloat
+        var height: CGFloat
+    }
+
+    private func rows(width: CGFloat, subviews: Subviews) -> [Row] {
+        let count = subviews.count
+        guard count > 0 else { return [] }
+        let oneRow = (width - spacing * CGFloat(count - 1)) / CGFloat(count)
+        let columns = count <= 2 || oneRow >= minimumWidth ? count : 2
+        let columnWidth = max(0, (width - spacing * CGFloat(columns - 1)) / CGFloat(columns))
+        return stride(from: 0, to: count, by: columns).map { start in
+            let indices = start..<min(start + columns, count)
+            let height = indices.map {
+                subviews[$0].sizeThatFits(ProposedViewSize(width: columnWidth, height: nil)).height
+            }.max() ?? 0
+            return Row(indices: indices, columnWidth: columnWidth, height: height)
+        }
+    }
+}

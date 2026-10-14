@@ -1208,3 +1208,11 @@
 "Learn about me from my meetings" = "从我的会议中了解我";
 "Keep" = "保留";
 "Keep Even If the Meeting Is Deleted" = "即使删除会议也保留";
+"CPU" = "CPU";
+"Memory" = "内存";
+"Models loaded" = "已加载模型";
+"Model memory" = "模型内存";
+"Across all cores" = "所有核心合计";
+"%@ of RAM" = "占内存的 %@";
+"Updates every 2 seconds and counts LokalBot and its helpers. External Ollama and Apple Intelligence models aren't counted." = "每 2 秒更新，统计 LokalBot 及其辅助进程。外部 Ollama 和 Apple Intelligence 模型不计入。";
+"Diagnostics include logs, health reports, settings without secrets, and library counts. Never meeting audio, transcripts, notes, or screenshots." = "诊断信息包含日志、健康报告、不含密钥的设置和资料库数量统计。绝不包含会议音频、转写、笔记或屏幕截图。";

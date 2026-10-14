@@ -1208,3 +1208,11 @@
 "Learn about me from my meetings" = "Learn about me from my meetings";
 "Keep" = "Keep";
 "Keep Even If the Meeting Is Deleted" = "Keep Even If the Meeting Is Deleted";
+"CPU" = "CPU";
+"Memory" = "Memory";
+"Models loaded" = "Models loaded";
+"Model memory" = "Model memory";
+"Across all cores" = "Across all cores";
+"%@ of RAM" = "%@ of RAM";
+"Updates every 2 seconds and counts LokalBot and its helpers. External Ollama and Apple Intelligence models aren't counted." = "Updates every 2 seconds and counts LokalBot and its helpers. External Ollama and Apple Intelligence models aren't counted.";
+"Diagnostics include logs, health reports, settings without secrets, and library counts. Never meeting audio, transcripts, notes, or screenshots." = "Diagnostics include logs, health reports, settings without secrets, and library counts. Never meeting audio, transcripts, notes, or screenshots.";

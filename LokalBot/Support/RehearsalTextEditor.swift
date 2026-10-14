@@ -20,6 +20,7 @@ struct RehearsalTextEditor: NSViewRepresentable {
     func makeNSView(context: Context) -> NSScrollView {
         let scroll = NSScrollView()
         scroll.hasVerticalScroller = true
+        scroll.autohidesScrollers = true
         scroll.drawsBackground = false
         let editor = RehearsalNativeTextView()
         editor.isRichText = false
