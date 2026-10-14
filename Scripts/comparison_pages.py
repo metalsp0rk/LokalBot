@@ -523,9 +523,9 @@ PAGES = [
     },
     {
         "slug": "lokalbot-vs-rewind",
-        "title": "LokalBot vs Rewind: a local timeline that's still alive",
+        "title": "Rewind alternative for Mac: LokalBot vs Rewind",
         "description": "Compare discontinued Rewind with LokalBot's local day timeline, searchable meeting notes, encrypted screenshots, and open-source Mac app.",
-        "og_title": "LokalBot vs Rewind — a local timeline that's still alive",
+        "og_title": "A Rewind alternative for Mac — LokalBot vs Rewind",
         "og_description": "Rewind is gone. LokalBot's day timeline carries the idea forward: activity, opt-in screen text, and meetings — on your Mac, open source.",
         "h1": "LokalBot vs Rewind",
         "competitor_name": "Rewind",
