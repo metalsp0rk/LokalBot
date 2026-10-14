@@ -124,6 +124,7 @@ enum ChatPrompt {
     }
 
     static func systemPrompt(tools: [ChatToolSpec], libraryOverview: String,
+                             personalContext: String = "",
                              workMemory: String = "",
                              inferencePrivacy: String = "Inference uses the selected backend, which may be local or remote. Do not claim that all processing stays on this Mac.",
                              currentTime: String = "") -> String {
@@ -179,6 +180,10 @@ enum ChatPrompt {
             lines.append("")
             lines.append("Current meeting library (navigation metadata only; call a tool before citing or describing meeting contents):")
             lines.append(libraryOverview)
+        }
+        if !personalContext.isEmpty {
+            lines.append("")
+            lines.append(personalContext)
         }
         if !workMemory.isEmpty {
             lines.append("")
@@ -546,6 +551,9 @@ struct ChatAgent {
     /// Ambient work-memory context (see `ChatPrompt.workMemoryContext`);
     /// empty when dreaming is off or has nothing yet.
     var workMemory = ""
+    /// What the person told LokalBot about themselves, already selected for
+    /// this question (see `PersonalContextBuilder`); empty when none applies.
+    var personalContext = ""
     var initialEvidence = ChatEvidence()
 
     struct Turn: Equatable {
@@ -589,6 +597,7 @@ struct ChatAgent {
         let toolNames = Set(runner.specs.map(\.name))
         let system = ChatPrompt.systemPrompt(tools: runner.specs,
                                              libraryOverview: runner.libraryOverview(),
+                                             personalContext: personalContext,
                                              workMemory: workMemory,
                                              inferencePrivacy: ChatPrompt.inferencePrivacy(for: engine),
                                              currentTime: ChatPrompt.currentTimeLine())

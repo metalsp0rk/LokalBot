@@ -973,7 +973,7 @@
 "These are captured window titles. Expand a title to inspect the activity behind it." = "这些是采集的窗口标题。展开标题可查看背后的活动。";
 "These choices are applied on the final Review step." = "这些选择将在最后的确认步骤生效。";
 "Think" = "思考";
-"Think may send meeting transcripts, screen text, Agent context, and inherited dictation requests to this server when you use those features. Scheduled daily summaries and overnight review also run here and can send activity titles, captured screen text, meeting evidence, and retained Dream memory without a prompt each time." = "使用相关功能时，思考模型可能向此服务器发送会议转写、屏幕文字、智能体上下文和沿用其配置的听写请求。定时每日摘要和夜间回顾也在此运行，可发送活动标题、采集的屏幕文字、会议证据和保留的回顾记忆，而不会每次询问。";
+"Think may send meeting transcripts, screen text, what you told Ask to remember about you, Agent context, and inherited dictation requests to this server when you use those features. Scheduled daily summaries and overnight review also run here and can send activity titles, captured screen text, meeting evidence, and retained Dream memory without a prompt each time." = "使用相关功能时，思考模型可能向此服务器发送会议转写、屏幕文字、你让 Ask 记住的关于你的信息、智能体上下文和沿用其配置的听写请求。定时每日摘要和夜间回顾也在此运行，可发送活动标题、采集的屏幕文字、会议证据和保留的回顾记忆，而不会每次询问。";
 "Think model" = "思考模型";
 "Think model backend" = "思考模型后端";
 "Think processing budget" = "思考模型处理预算";
@@ -1155,3 +1155,7 @@
 "Your subscription" = "你的订阅";
 "Server" = "服务器";
 "In use" = "使用中";
+"About you" = "关于你";
+"Remember what I tell Ask" = "记住我告诉 Ask 的内容";
+"Remembered" = "已记住";
+"Not remembered" = "未记住";

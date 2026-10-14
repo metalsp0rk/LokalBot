@@ -134,6 +134,7 @@ Models auto-download on first use (Hugging Face; the ONNX specialists fetch sher
 - **Limits:** the system prompt ends with the current local time so relative dates resolve. Each turn replays up to 16 recent messages within 12,000 characters, never starting with an answer whose question was cut, and allows six tool calls before a forced answer that must say what it could not check. Apple Intelligence keeps four tool calls and eight messages within 4,000 characters for its small window.
 - **Robust protocol:** tools are advertised in the system prompt with the recent-meeting list as ambient context; a tool call is parsed from a JSON object **or** a model's native `name(arg=…)` function-call form (smaller Qwen models emit the latter), with a tolerant fallback to a plain answer so a sloppy reply never hard-fails.
 - **Reuses the configured backend:** built-in llama-server by default, or Ollama / OpenAI-compatible / Apple Intelligence — the same Settings → Models choice.
+- **About you (personal world model, phase 1):** a message starting with "Remember …" (`RememberIntent`) is saved as a `PersonalClaim` by `PersonalModelController` without a model call; the reply is a receipt turn that stays out of model history. Each question gets a `PersonalContextBuilder` selection (Always use, principles and preferences, then facts and goals sharing words with the question or the previous two user turns, within 2,000 characters) placed after the library overview and before work memory, and the answer records `usedClaimIDs`. Stated claims carry no evidence, so scoped questions get them too. Settings → Day Memory → About you edits them; `AppSettings.askMemoryEnabled` gates saving and use. Headless `--chat` builds the same block. See `Docs/personal-world-model-rfc-2026-10-14.md`.
 
 ## Day tracking — Today, Timeline, and Ask
 
@@ -356,6 +357,9 @@ Debug builds add test-only flags (`LOKALBOT_TEST_HOOKS`; Release never compiles 
 ~/Library/Application Support/me.dotenv.LokalBot/
 ├── meetings/YYYY/MM/dd-slug/   # mic.m4a, system.m4a, meta.json, transcript.{json,md}, summary.md
 ├── journal/YYYY-MM-DD.md       # day digests
+├── chats/<uuid>.json.enc       # saved Ask conversations (AES-GCM, chat-key)
+├── dreams/ · memory/           # overnight reviews and Dream work memory (memory.json)
+├── memory/personal-model.json.enc  # About you claims (AES-GCM, chat-key)
 ├── activity/YYYY-MM-DD/shots/  # <epoch>.heic.enc  (AES-GCM sealed)
 ├── models/                     # downloaded GGUFs
 ├── qwen3-asr-models/           # downloaded Qwen3-ASR MLX weights

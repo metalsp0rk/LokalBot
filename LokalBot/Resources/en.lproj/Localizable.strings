@@ -973,7 +973,7 @@
 "These are captured window titles. Expand a title to inspect the activity behind it." = "These are captured window titles. Expand a title to inspect the activity behind it.";
 "These choices are applied on the final Review step." = "These choices are applied on the final Review step.";
 "Think" = "Think";
-"Think may send meeting transcripts, screen text, Agent context, and inherited dictation requests to this server when you use those features. Scheduled daily summaries and overnight review also run here and can send activity titles, captured screen text, meeting evidence, and retained Dream memory without a prompt each time." = "Think may send meeting transcripts, screen text, Agent context, and inherited dictation requests to this server when you use those features. Scheduled daily summaries and overnight review also run here and can send activity titles, captured screen text, meeting evidence, and retained Dream memory without a prompt each time.";
+"Think may send meeting transcripts, screen text, what you told Ask to remember about you, Agent context, and inherited dictation requests to this server when you use those features. Scheduled daily summaries and overnight review also run here and can send activity titles, captured screen text, meeting evidence, and retained Dream memory without a prompt each time." = "Think may send meeting transcripts, screen text, what you told Ask to remember about you, Agent context, and inherited dictation requests to this server when you use those features. Scheduled daily summaries and overnight review also run here and can send activity titles, captured screen text, meeting evidence, and retained Dream memory without a prompt each time.";
 "Think model" = "Think model";
 "Think model backend" = "Think model backend";
 "Think processing budget" = "Think processing budget";
@@ -1155,3 +1155,7 @@
 "Your subscription" = "Your subscription";
 "Server" = "Server";
 "In use" = "In use";
+"About you" = "About you";
+"Remember what I tell Ask" = "Remember what I tell Ask";
+"Remembered" = "Remembered";
+"Not remembered" = "Not remembered";

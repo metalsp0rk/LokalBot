@@ -321,6 +321,11 @@ struct AppSettings: Codable, Equatable {
     /// silently skipping the last workday, without backfilling history from
     /// before the user opted in.
     var dreamingFirstEligibleDayKey: String?
+    /// Ask saves "Remember …" statements and gives the selected ones to the
+    /// Think model with each question. On by default; nothing is saved until
+    /// the person asks. Turning it off stops saving and use but keeps what is
+    /// already remembered until the person forgets it.
+    var askMemoryEnabled: Bool = true
 
     // MARK: - Safe routines
 
@@ -805,6 +810,7 @@ struct AppSettings: Codable, Equatable {
         case dreamingEnabled
         case dreamingHour
         case dreamingFirstEligibleDayKey
+        case askMemoryEnabled
         case memoryRoutinesEnabled
         case memoryRoutineFolder
         case enabledMemoryRoutines
@@ -994,6 +1000,7 @@ struct AppSettings: Codable, Equatable {
         try c.encodeIfPresent(
             dreamingFirstEligibleDayKey,
             forKey: .dreamingFirstEligibleDayKey)
+        try c.encode(askMemoryEnabled, forKey: .askMemoryEnabled)
         try c.encode(memoryRoutinesEnabled, forKey: .memoryRoutinesEnabled)
         try c.encode(memoryRoutineFolder, forKey: .memoryRoutineFolder)
         try c.encode(enabledMemoryRoutines, forKey: .enabledMemoryRoutines)
@@ -1168,6 +1175,7 @@ struct AppSettings: Codable, Equatable {
         dreamingEnabled = decode(.dreamingEnabled, defaults.dreamingEnabled)
         dreamingHour = min(23, max(0, decode(.dreamingHour, defaults.dreamingHour)))
         dreamingFirstEligibleDayKey = decode(.dreamingFirstEligibleDayKey, String?.none)
+        askMemoryEnabled = decode(.askMemoryEnabled, defaults.askMemoryEnabled)
         memoryRoutinesEnabled = decode(.memoryRoutinesEnabled, defaults.memoryRoutinesEnabled)
         memoryRoutineFolder = decode(.memoryRoutineFolder, defaults.memoryRoutineFolder)
         enabledMemoryRoutines = decode(.enabledMemoryRoutines, defaults.enabledMemoryRoutines)

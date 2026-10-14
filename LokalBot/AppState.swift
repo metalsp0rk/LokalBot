@@ -820,7 +820,15 @@ final class AppState: ObservableObject {
             return ChatPrompt.workMemoryContext(
                 memory: (try? self.dreamStore.loadMemory()) ?? nil,
                 dreamingEnabled: self.settings.dreamingEnabled)
-        }, deferHistoryLoading: true)
+        },
+        personalModel: personalModel,
+        askMemoryEnabled: { [weak self] in self?.settings.askMemoryEnabled ?? false },
+        deferHistoryLoading: true)
+
+    /// What the person told LokalBot about themselves: Ask and Quick Recall
+    /// read and add to it, Settings → Day Memory → About you edits it.
+    private(set) lazy var personalModel = PersonalModelController(
+        store: PersonalModelStore(root: storage.rootURL))
 
     // Agent Mode (pi). Installer and tab manager are cheap; each tab lazily
     // spawns its own controller/process when AgentView mounts it.

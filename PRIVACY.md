@@ -26,7 +26,9 @@ LokalBot can store the following under its Application Support directory:
   routine drafts at folders you choose;
 - records of local coding-agent sessions (Claude Code and Codex), on by
   default;
-- opt-in Agent Mode sessions and the agent runtime; and
+- opt-in Agent Mode sessions and the agent runtime;
+- facts, preferences, goals, and principles you ask Ask to remember about
+  you, encrypted; and
 - preferences, diagnostic logs, and encryption keys.
 
 Fresh installs select activity-only day tracking. Visible text and encrypted
@@ -94,7 +96,23 @@ either: like Dream reports, a day's journal outlasts the screen text, titles,
 and agent sessions it was written from, so it can hold text that has since
 expired. Delete a day's journal from the library's `journal` folder to remove
 it. Edited and legacy unsigned journals are user-owned files and remain there
-until you remove them. Saved Ask conversations and Agent history also
+until you remove them.
+
+**About you** (Settings → Day Memory) holds what you tell Ask to remember
+about yourself: messages that start with "Remember …" in Ask or Quick Recall,
+and items you add there. Nothing is inferred or extracted from your meetings
+or screen. The items are AES-GCM encrypted with the same per-install key as
+saved Ask conversations, in the library's `memory` folder. Each Ask question,
+including one limited to some sources or days, includes the relevant items
+in its prompt to your Think model, which may be an approved remote server.
+The answer lists the items it was given. They are never given to MCP
+clients, the CLI, Agent Mode, Autocomplete, notes, exports, or diagnostics.
+Turning off **Remember what I tell Ask** stops saving and using them and
+keeps what is saved; **Forget**, **Forget everything…**, or Undo on the Ask
+reply deletes them. Deleting the conversation a "Remember …" message came
+from keeps the item. Like conversations, they have an independent lifetime.
+
+Saved Ask conversations and Agent history also
 have independent lifetimes: delete conversations in Ask or use **Clear saved
 Agent history**. Source expiry does not erase text already copied into those
 conversations. Daily-memory exports and routine outputs remain in your chosen
@@ -170,8 +188,8 @@ The app may make these outbound connections:
   also run a manual check.
 - **Optional remote inference:** an Ollama or OpenAI-compatible URL that you
   configure. Loopback URLs stay on your Mac. Before a non-loopback server can
-  receive meeting, workday, or agent context, LokalBot requires approval for
-  that exact origin. Native inference requests may redirect only within that
+  receive meeting, workday, About you, or agent context, LokalBot requires
+  approval for that exact origin. Native inference requests may redirect only within that
   origin; Agent inference rejects redirects entirely. Configure the final
   endpoint URL when a server redirects. The operator of that server controls
   its privacy terms.
