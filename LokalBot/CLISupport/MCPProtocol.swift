@@ -122,6 +122,22 @@ struct MCPStdioLineReader {
         self.chunkBytes = max(1, chunkBytes)
     }
 
+    /// Whatever is available now, up to `chunkBytes`; empty only at EOF.
+    /// `FileHandle.read(upToCount:)` waits for the full count on a pipe, so a
+    /// client that keeps stdin open and sends one short request never got a
+    /// reply.
+    private func readAvailable() throws -> Data {
+        var buffer = [UInt8](repeating: 0, count: chunkBytes)
+        while true {
+            let count = buffer.withUnsafeMutableBytes { bytes in
+                Darwin.read(input.fileDescriptor, bytes.baseAddress, bytes.count)
+            }
+            if count >= 0 { return Data(buffer.prefix(count)) }
+            if errno == EINTR { continue }
+            throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)
+        }
+    }
+
     mutating func next() throws -> Record {
         while true {
             if discardingOversizedRecord {
@@ -163,7 +179,7 @@ struct MCPStdioLineReader {
                 }
             }
 
-            let chunk = try input.read(upToCount: chunkBytes) ?? Data()
+            let chunk = try readAvailable()
             if chunk.isEmpty {
                 reachedEOF = true
             } else {

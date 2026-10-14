@@ -101,6 +101,25 @@ final class MCPProtocolTests: XCTestCase {
         }
     }
 
+    /// Clients keep stdin open and send one short line at a time; the reader
+    /// must hand that line over without waiting for a full chunk or EOF.
+    func testReaderReturnsALineWhileThePipeStaysOpen() {
+        let pipe = Pipe()
+        pipe.fileHandleForWriting.write(Data("{\"jsonrpc\":\"2.0\",\"id\":1}\n".utf8))
+        let done = DispatchSemaphore(value: 0)
+        var record: MCPStdioLineReader.Record?
+        DispatchQueue.global().async {
+            var reader = MCPStdioLineReader(input: pipe.fileHandleForReading)
+            record = try? reader.next()
+            done.signal()
+        }
+        let answeredWhileOpen = done.wait(timeout: .now() + 2) == .success
+        pipe.fileHandleForWriting.closeFile()
+        if !answeredWhileOpen { _ = done.wait(timeout: .now() + 2) }
+        XCTAssertTrue(answeredWhileOpen, "the reader waited for EOF")
+        XCTAssertEqual(record, .line("{\"jsonrpc\":\"2.0\",\"id\":1}"))
+    }
+
     func testOversizedRequestIsRejectedBeforeJSONDecoding() {
         let line = #"{"jsonrpc":"2.0","id":1,"method":"ping","padding":""#
             + String(repeating: "x", count: 1_048_576) + #""}"#

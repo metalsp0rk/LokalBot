@@ -59,6 +59,39 @@ final class MCPServerIntegrationTests: XCTestCase {
             .map(String.init)
     }
 
+    /// Real clients (Claude Code, Claude Desktop) keep stdin open; the server
+    /// must answer initialize before the client sends anything else.
+    func testAnswersInitializeWhileStdinStaysOpen() throws {
+        let process = Process()
+        process.executableURL = helperURL
+        process.arguments = ["mcp"]
+        var environment = ProcessInfo.processInfo.environment
+        environment["LOKALBOT_STORAGE_ROOT"] = root.path
+        process.environment = environment
+        let stdin = Pipe()
+        let stdout = Pipe()
+        process.standardInput = stdin
+        process.standardOutput = stdout
+        process.standardError = Pipe()
+        try process.run()
+        defer {
+            stdin.fileHandleForWriting.closeFile()
+            process.waitUntilExit()
+        }
+
+        stdin.fileHandleForWriting.write(Data((#"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"xctest","version":"1"}}}"# + "\n").utf8))
+        let answered = expectation(description: "initialize answered")
+        let reader = stdout.fileHandleForReading
+        reader.readabilityHandler = { handle in
+            if !handle.availableData.isEmpty {
+                handle.readabilityHandler = nil
+                answered.fulfill()
+            }
+        }
+        wait(for: [answered], timeout: 5)
+        reader.readabilityHandler = nil
+    }
+
     func testGoldenSessionInitializeListCall() throws {
         let output = try runSession([
             #"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"xctest","version":"1"}}}"#,
