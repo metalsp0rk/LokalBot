@@ -1,0 +1,266 @@
+{
+  "gemma4-e2b-base-q6": {
+    "manifest": {
+      "appSHA256": "aa0dcffe30c992551a3f30f19245f591d489a084c62d53aedf563d4c7717a433",
+      "modelFile": "gemma-4-E2B.i1-Q6_K.gguf",
+      "modelSHA256": "20f49b221691c71d955e1d5a840b6e26329db4a5e1626f702fa4226e80a9c629",
+      "settings": {
+        "cotypingBuiltInModelID": "gemma4-e2b-base-q6",
+        "cotypingInProcessRuntime": true,
+        "cotypingEnabled": false,
+        "cotypingMaxWords": 3,
+        "cotypingUseLocalLearning": false,
+        "cotypingUseClipboard": false,
+        "cotypingUseAppContext": true
+      },
+      "repetitions": 4,
+      "boundary": "Engine only; excludes input monitoring, debounce, AX validation, and overlay"
+    },
+    "runs": [
+      {
+        "run": "run-1",
+        "safetyPassed": 25,
+        "total": 28,
+        "wordCompletionPassed": 12,
+        "wordCompletionTotal": 13,
+        "keywordHits": 11,
+        "keywordTotal": 64,
+        "averageLatencyMs": 1665,
+        "p95LatencyMs": 851,
+        "firstRequestMs": 43951,
+        "averageAfterFirstMs": 99,
+        "medianAfterFirstMs": 75,
+        "missed": [
+          "comma-clause:lowConfidence",
+          "mid-word:unsafeToInsert",
+          "notes-list:lowConfidence",
+          "sentence-start:lowConfidence"
+        ]
+      },
+      {
+        "run": "run-2",
+        "safetyPassed": 25,
+        "total": 28,
+        "wordCompletionPassed": 12,
+        "wordCompletionTotal": 13,
+        "keywordHits": 11,
+        "keywordTotal": 64,
+        "averageLatencyMs": 1540,
+        "p95LatencyMs": 989,
+        "firstRequestMs": 40116,
+        "averageAfterFirstMs": 112,
+        "medianAfterFirstMs": 81,
+        "missed": [
+          "comma-clause:lowConfidence",
+          "mid-word:unsafeToInsert",
+          "notes-list:lowConfidence",
+          "sentence-start:lowConfidence"
+        ]
+      },
+      {
+        "run": "run-3",
+        "safetyPassed": 25,
+        "total": 28,
+        "wordCompletionPassed": 12,
+        "wordCompletionTotal": 13,
+        "keywordHits": 11,
+        "keywordTotal": 64,
+        "averageLatencyMs": 1586,
+        "p95LatencyMs": 903,
+        "firstRequestMs": 41348,
+        "averageAfterFirstMs": 114,
+        "medianAfterFirstMs": 80,
+        "missed": [
+          "comma-clause:lowConfidence",
+          "mid-word:unsafeToInsert",
+          "notes-list:lowConfidence",
+          "sentence-start:lowConfidence"
+        ]
+      },
+      {
+        "run": "run-4",
+        "safetyPassed": 25,
+        "total": 28,
+        "wordCompletionPassed": 12,
+        "wordCompletionTotal": 13,
+        "keywordHits": 11,
+        "keywordTotal": 64,
+        "averageLatencyMs": 1581,
+        "p95LatencyMs": 890,
+        "firstRequestMs": 41541,
+        "averageAfterFirstMs": 102,
+        "medianAfterFirstMs": 77,
+        "missed": [
+          "comma-clause:lowConfidence",
+          "mid-word:unsafeToInsert",
+          "notes-list:lowConfidence",
+          "sentence-start:lowConfidence"
+        ]
+      }
+    ]
+  },
+  "gemma4-e2b-base-q6-marker": {
+    "manifest": {
+      "appSHA256": "aa0dcffe30c992551a3f30f19245f591d489a084c62d53aedf563d4c7717a433",
+      "modelFile": "gemma-4-E2B.i1-Q6_K.gguf",
+      "modelSHA256": "20f49b221691c71d955e1d5a840b6e26329db4a5e1626f702fa4226e80a9c629",
+      "settings": {
+        "cotypingBuiltInModelID": "gemma4-e2b-base-q6",
+        "cotypingInProcessRuntime": true,
+        "cotypingEnabled": false,
+        "cotypingMaxWords": 3,
+        "cotypingUseLocalLearning": false,
+        "cotypingUseClipboard": false,
+        "cotypingUseAppContext": true
+      },
+      "repetitions": 4,
+      "boundary": "Engine only; excludes input monitoring, debounce, AX validation, and overlay"
+    },
+    "runs": [
+      {
+        "run": "run-1",
+        "safetyPassed": 25,
+        "total": 28,
+        "wordCompletionPassed": 12,
+        "wordCompletionTotal": 13,
+        "keywordHits": 11,
+        "keywordTotal": 64,
+        "averageLatencyMs": 1617,
+        "p95LatencyMs": 934,
+        "firstRequestMs": 42411,
+        "averageAfterFirstMs": 106,
+        "medianAfterFirstMs": 80,
+        "missed": [
+          "comma-clause:lowConfidence",
+          "mid-word:unsafeToInsert",
+          "notes-list:lowConfidence",
+          "sentence-start:lowConfidence"
+        ]
+      },
+      {
+        "run": "run-2",
+        "safetyPassed": 25,
+        "total": 28,
+        "wordCompletionPassed": 12,
+        "wordCompletionTotal": 13,
+        "keywordHits": 11,
+        "keywordTotal": 64,
+        "averageLatencyMs": 1518,
+        "p95LatencyMs": 1054,
+        "firstRequestMs": 39398,
+        "averageAfterFirstMs": 116,
+        "medianAfterFirstMs": 79,
+        "missed": [
+          "comma-clause:lowConfidence",
+          "mid-word:unsafeToInsert",
+          "notes-list:lowConfidence",
+          "sentence-start:lowConfidence"
+        ]
+      }
+    ]
+  },
+  "lfm2.5-1.2b-instruct": {
+    "manifest": {
+      "appSHA256": "aa0dcffe30c992551a3f30f19245f591d489a084c62d53aedf563d4c7717a433",
+      "modelFile": "LFM2.5-1.2B-Instruct-Q4_K_M.gguf",
+      "modelSHA256": "856aeee6d85ac684b1db8dee48795b44fc06731ecda03aee36ece682413a9b9a",
+      "settings": {
+        "cotypingBuiltInModelID": "lfm2.5-1.2b-instruct",
+        "cotypingInProcessRuntime": true,
+        "cotypingEnabled": false,
+        "cotypingMaxWords": 3,
+        "cotypingUseLocalLearning": false,
+        "cotypingUseClipboard": false,
+        "cotypingUseAppContext": true
+      },
+      "repetitions": 4,
+      "boundary": "Engine only; excludes input monitoring, debounce, AX validation, and overlay"
+    },
+    "runs": [
+      {
+        "run": "run-1",
+        "safetyPassed": 24,
+        "total": 28,
+        "wordCompletionPassed": 11,
+        "wordCompletionTotal": 13,
+        "keywordHits": 8,
+        "keywordTotal": 64,
+        "averageLatencyMs": 521,
+        "p95LatencyMs": 292,
+        "firstRequestMs": 13342,
+        "averageAfterFirstMs": 46,
+        "medianAfterFirstMs": 35,
+        "missed": [
+          "comma-clause:lowConfidence",
+          "mid-word:unsafeToInsert",
+          "notes-list:lowConfidence",
+          "sentence-start:lowConfidence",
+          "wc-schedule:'ling.'"
+        ]
+      },
+      {
+        "run": "run-2",
+        "safetyPassed": 24,
+        "total": 28,
+        "wordCompletionPassed": 11,
+        "wordCompletionTotal": 13,
+        "keywordHits": 8,
+        "keywordTotal": 64,
+        "averageLatencyMs": 387,
+        "p95LatencyMs": 221,
+        "firstRequestMs": 9725,
+        "averageAfterFirstMs": 41,
+        "medianAfterFirstMs": 33,
+        "missed": [
+          "comma-clause:lowConfidence",
+          "mid-word:unsafeToInsert",
+          "notes-list:lowConfidence",
+          "sentence-start:lowConfidence",
+          "wc-schedule:'ling.'"
+        ]
+      },
+      {
+        "run": "run-3",
+        "safetyPassed": 24,
+        "total": 28,
+        "wordCompletionPassed": 11,
+        "wordCompletionTotal": 13,
+        "keywordHits": 8,
+        "keywordTotal": 64,
+        "averageLatencyMs": 396,
+        "p95LatencyMs": 217,
+        "firstRequestMs": 10004,
+        "averageAfterFirstMs": 41,
+        "medianAfterFirstMs": 32,
+        "missed": [
+          "comma-clause:lowConfidence",
+          "mid-word:unsafeToInsert",
+          "notes-list:lowConfidence",
+          "sentence-start:lowConfidence",
+          "wc-schedule:'ling.'"
+        ]
+      },
+      {
+        "run": "run-4",
+        "safetyPassed": 24,
+        "total": 28,
+        "wordCompletionPassed": 11,
+        "wordCompletionTotal": 13,
+        "keywordHits": 8,
+        "keywordTotal": 64,
+        "averageLatencyMs": 381,
+        "p95LatencyMs": 223,
+        "firstRequestMs": 9559,
+        "averageAfterFirstMs": 42,
+        "medianAfterFirstMs": 34,
+        "missed": [
+          "comma-clause:lowConfidence",
+          "mid-word:unsafeToInsert",
+          "notes-list:lowConfidence",
+          "sentence-start:lowConfidence",
+          "wc-schedule:'ling.'"
+        ]
+      }
+    ]
+  }
+}

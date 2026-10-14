@@ -37,7 +37,6 @@ def main():
         "cotypingInProcessRuntime": True,
         "cotypingEnabled": False,
         "cotypingMaxWords": 3,
-        "cotypingStreamSuggestionsWhileGenerating": True,
         "cotypingUseLocalLearning": False,
         "cotypingUseClipboard": False,
         "cotypingUseAppContext": True,
@@ -67,6 +66,9 @@ def main():
             models = root / "storage/models"
             models.mkdir(parents=True)
             (models / model.name).symlink_to(model)
+            # A download leaves this integrity marker, so the app trusts the
+            # file as it would an installed model instead of re-hashing it.
+            (models / (model.name + ".sha256")).write_text(model_sha)
             env = dict(os.environ, CFFIXED_USER_HOME=str(root / "home"),
                        LOKALBOT_STORAGE_ROOT=str(root / "storage"),
                        LOKALBOT_DEFAULTS_SUITE=suite)
@@ -89,12 +91,15 @@ def main():
             except json.JSONDecodeError:
                 raise SystemExit(f"No benchmark JSON (exit {result.returncode}); inspect {stderr_path}") from None
             (args.output / f"run-{index + 1}.json").write_text(json.dumps(report, indent=2) + "\n")
-            if report.get("averageFirstVisibleLatencyMs") is None:
-                raise SystemExit("Streaming timing was not enabled; isolated settings were not applied")
+            # llama.cpp names the file it loads (temp paths may be printed
+            # with /private); any other model means the isolated settings
+            # were not applied.
+            if f"/storage/models/{model.name}" not in stderr_path.read_text(errors="replace"):
+                raise SystemExit(f"{model.name} was not loaded; isolated settings were not applied")
+            # Exit 1 only means a scenario missed its contract: that is a
+            # result to record, not a reason to stop the remaining runs.
             print(json.dumps({"run": index + 1, "exitCode": result.returncode,
                               **{key: value for key, value in report.items() if key != "scenarios"}}), flush=True)
-            if result.returncode:
-                raise SystemExit(result.returncode)
 
 
 if __name__ == "__main__":
