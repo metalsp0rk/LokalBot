@@ -16,22 +16,39 @@ extension CotypingCoordinator {
             isIntegratedTerminal: field.isIntegratedTerminal).rawValue
     }
 
-    /// A continuation became visible. Records the wait since the keystroke
-    /// that asked for it, once per keystroke.
+    /// A continuation became visible. Counts it for the statistics, and
+    /// records the wait since the keystroke that asked for it, once per
+    /// keystroke.
     func noteSuggestionShown(_ session: CotypingSession) {
-        guard case .continuation = session.kind, let started = pendingKeystrokeUptime else { return }
+        guard case .continuation = session.kind else { return }
+        let surface = surfaceKey(for: session.field)
+        let shown = ShownSuggestion(surface: surface, model: settingsProvider().cotypingBuiltInModelID)
+        shownSuggestion = shown
+        stats.recordSuggestionShown(surface: shown.surface, model: shown.model)
+        guard let started = pendingKeystrokeUptime else { return }
         pendingKeystrokeUptime = nil
         let elapsed = Self.measuredMilliseconds(since: started)
         guard elapsed <= Self.maxMeasuredVisibleMilliseconds else { return }
-        stats.recordShown(latencyMs: elapsed, surface: surfaceKey(for: session.field))
+        stats.recordShown(latencyMs: elapsed, surface: surface)
     }
 
-    /// An accept keypress posted `inserted` into `field`.
-    func noteAcceptance(field: CotypingField, inserted: String, charsAccepted: Int) {
+    /// An accept keypress posted `inserted` into `field`; `words` of the
+    /// suggestion's text went with it.
+    func noteAcceptance(field: CotypingField, inserted: String, charsAccepted: Int, words: Int = 0) {
         let surface = surfaceKey(for: field)
         let now = DispatchTime.now().uptimeNanoseconds
         stats.recordAccept(charsAccepted: charsAccepted, surface: surface)
-        acceptAwaitingNextKey = (surface, now)
+        // The first accept from a suggestion makes it a used one. Without a
+        // shown suggestion nothing is marked used, so the share used never
+        // counts a suggestion it did not see.
+        let shown = shownSuggestion
+            ?? ShownSuggestion(surface: surface, model: settingsProvider().cotypingBuiltInModelID, used: true)
+        stats.recordSuggestionAccept(
+            words: words, characters: charsAccepted, firstOfSuggestion: !shown.used,
+            surface: shown.surface, model: shown.model)
+        shownSuggestion?.used = true
+        lastTypedKeyUptime = nil
+        acceptAwaitingNextKey = (shown.surface, shown.model, now)
         guard !inserted.isEmpty else { return }
         // `field` is a fresh read, so it can settle the previous accept first.
         resolveInsertionCheck(live: field)
@@ -87,6 +104,7 @@ extension CotypingCoordinator {
     /// Every observed key, with the field as last read.
     func noteKey(_ event: CotypingInputEvent, live: CotypingField?) {
         noteKeyAfterAcceptance(event)
+        noteTyping(event, in: focusTracker.focus)
         resolveInsertionCheck(live: live)
         // A key that takes text back or moves the caret changes what is before
         // the caret, so an accept that is still unread can no longer be read
@@ -116,10 +134,43 @@ extension CotypingCoordinator {
               Self.measuredMilliseconds(since: accepted.uptimeNanoseconds) <= Self.correctionWindowMilliseconds
         else { return }
         stats.recordCorrection(surface: accepted.surface)
+        stats.recordTakenBack(surface: accepted.surface, model: accepted.model)
+    }
+
+    /// Counts characters you type yourself, and the short gaps between them
+    /// for your typing speed, where autocomplete could suggest. Any other key
+    /// breaks the run, so a deletion or an accept is not timed as typing.
+    func noteTyping(_ event: CotypingInputEvent, in focus: CotypingFocus) {
+        guard event.kind == .textMutation, !event.characters.isEmpty, !event.isCorrection,
+              typingCounts(in: focus) else {
+            lastTypedKeyUptime = nil
+            return
+        }
+        let now = DispatchTime.now().uptimeNanoseconds
+        let gap = lastTypedKeyUptime.map { Self.measuredMilliseconds(since: $0) }
+        lastTypedKeyUptime = now
+        stats.recordTyped(
+            characters: event.characters.count,
+            gapMilliseconds: gap.flatMap { $0 <= CotypingUsageHistory.maxTypingGapMilliseconds ? $0 : nil })
+    }
+
+    /// Whether autocomplete could suggest in `focus`, so typing there is part
+    /// of the text it could have helped with. Password fields never count.
+    func typingCounts(in focus: CotypingFocus) -> Bool {
+        guard let field = focus.field, !field.isSecure, !isMeetingRecordingActive() else { return false }
+        let settings = settingsProvider()
+        return CotypingAvailability.disabledReason(
+            enabled: settings.cotypingEnabled,
+            excludedApps: settings.cotypingExcludedAppList,
+            excludedDomains: settings.cotypingExcludedDomainList,
+            suggestInIntegratedTerminals: settings.cotypingSuggestInIntegratedTerminals,
+            selfBundleID: selfBundleID, focus: focus) == nil
     }
 
     func resetMeasurementState() {
         pendingKeystrokeUptime = nil
+        shownSuggestion = nil
+        lastTypedKeyUptime = nil
         pendingInsertionCheck = nil
         insertionCheckExpiryTask?.cancel()
         insertionCheckExpiryTask = nil

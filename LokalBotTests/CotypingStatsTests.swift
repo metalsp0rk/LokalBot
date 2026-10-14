@@ -299,5 +299,8 @@ private actor RecordingCotypingStatsPersistence: CotypingStatsPersisting {
         removeCount += 1
     }
 
+    func persistUsage(_ usage: CotypingUsageHistory) {}
+    func removeUsage() {}
+
     func recordedStats() -> [CotypingStats] { snapshots }
 }

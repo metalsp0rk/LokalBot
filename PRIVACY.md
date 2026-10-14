@@ -383,6 +383,21 @@ discarded; only the outcome is counted. No typed text, app name, or window title
 is stored. **Reset** clears the counters, and **Copy measurements** puts the
 counts on the clipboard only when you click it.
 
+Settings → Writing → **Statistics** shows how much autocomplete wrote for you.
+For each local day and month it counts the suggestions shown and used, the
+words and characters accepted, and accepts deleted or undone at once, each also
+by kind of app and by autocomplete model, plus accepted typo corrections. To
+work out the share of your text and the time saved, it also counts the
+characters you type yourself while the focused field, as last read, is one
+where autocomplete could suggest, and the total and number of pauses of up to a
+second between them. Password fields, excluded apps and sites, terminals,
+LokalBot itself, and typing while autocomplete is off or a meeting records are
+left out; because the focused field is read periodically, the first few keys
+after moving into such a field can still be counted, as numbers only. No typed
+text, app name, site, or window title is stored. Daily counts are kept for 92
+days and monthly counts until you clear them; **Clear statistics** deletes
+both, and **Reset** under Usage and timing leaves them alone.
+
 Autocomplete also has a separate **Use visible text above the field** setting.
 It is on for new installs and only takes effect while Autocomplete itself is on;
 settings saved by earlier versions keep their choice, which was off unless you

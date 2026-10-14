@@ -175,6 +175,7 @@ struct SettingsView: View {
             dayTrackingSection; routinesSection; dreamingSection
         case .writing:
             AutocompleteExperienceView()
+            AutocompleteStatisticsView()
             cotypingSection
         case .dictation:
             Section("Dictation") { DictationSettingsControls() }

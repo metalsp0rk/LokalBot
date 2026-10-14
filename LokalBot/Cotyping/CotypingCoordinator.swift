@@ -80,7 +80,13 @@ final class CotypingCoordinator: ObservableObject {
     /// How long an accept may wait to be read back. Tests shorten it.
     var insertionCheckExpiryMilliseconds = CotypingInsertionCheck.timeoutMilliseconds
     /// The latest accept while the next key could still take it back.
-    var acceptAwaitingNextKey: (surface: String, uptimeNanoseconds: UInt64)?
+    var acceptAwaitingNextKey: (surface: String, model: String, uptimeNanoseconds: UInt64)?
+    /// The suggestion on screen, for the statistics: where it was shown, by
+    /// which model, and whether any of it has been accepted yet.
+    var shownSuggestion: ShownSuggestion?
+    /// When the last character was typed where autocomplete works, so the
+    /// gap to the next one measures typing speed.
+    var lastTypedKeyUptime: UInt64?
     var pendingInsertionConsumedCount: Int?
     /// Tops up the visible suggestion while it is accepted or typed through.
     var extensionTask: Task<Void, Never>?
@@ -142,6 +148,12 @@ final class CotypingCoordinator: ObservableObject {
     struct AcceptedSuggestionTail {
         var text: String
         var precedingText: String
+    }
+
+    struct ShownSuggestion: Equatable {
+        var surface: String
+        var model: String
+        var used = false
     }
 
 }
