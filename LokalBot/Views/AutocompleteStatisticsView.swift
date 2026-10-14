@@ -34,29 +34,39 @@ struct AutocompleteStatisticsView: View {
         // Nothing to show and nothing coming: autocomplete was never used and is off.
         if app.settings.cotypingEnabled || !store.usage.isEmpty {
             let summary = store.usage.summary(range)
-            Section("Statistics") {
-                Picker("Period", selection: $range) {
-                    ForEach(CotypingUsageRange.allCases) { Text(LocalizedStringKey($0.label)).tag($0) }
+            Section {
+                Group {
+                    if summary.total.isEmpty {
+                        Label(store.usage.isEmpty
+                              ? "Statistics appear here once you use autocomplete in other apps."
+                              : "Autocomplete was not used in this period.",
+                              systemImage: "chart.bar")
+                            .font(AppFont.scaled(.callout))
+                            .settingsSecondary()
+                            .accessibilityIdentifier("autocomplete.statistics.empty")
+                    } else {
+                        tiles(summary)
+                    }
                 }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-                .accessibilityIdentifier("autocomplete.statistics.range")
                 .settingTarget("settings.autocompleteStatistics", selected: app.focusedSettingID)
-
-                if summary.total.isEmpty {
-                    Label(store.usage.isEmpty
-                          ? "Statistics appear here once you use autocomplete in other apps."
-                          : "Autocomplete was not used in this period.",
-                          systemImage: "chart.bar")
-                        .font(AppFont.scaled(.callout))
-                        .settingsSecondary()
-                        .accessibilityIdentifier("autocomplete.statistics.empty")
-                } else {
-                    tiles(summary)
+                if !summary.total.isEmpty {
                     chart(summary)
                     breakdowns(summary)
                 }
                 footer
+            } header: {
+                // The period applies to everything below, so it sits with the title.
+                HStack {
+                    Text("Statistics")
+                    Spacer()
+                    Picker("Period", selection: $range) {
+                        ForEach(CotypingUsageRange.allCases) { Text(LocalizedStringKey($0.label)).tag($0) }
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                    .fixedSize()
+                    .accessibilityIdentifier("autocomplete.statistics.range")
+                }
             }
         }
     }
@@ -65,62 +75,26 @@ struct AutocompleteStatisticsView: View {
 
     private var language: AppLanguage { app.settings.appLanguage }
 
-    private struct Tile: Identifiable {
-        var id: String
-        var icon: String
-        var title: String
-        var value: String
-        var detail: String
-    }
-
     /// Four across when they fit, otherwise two by two; tiles in a row share its height.
     private func tiles(_ summary: CotypingUsageSummary) -> some View {
         let counts = summary.total.suggestions
         let format = AutocompleteStatisticsPresentation.self
-        let tiles = [
-            Tile(id: "words", icon: "text.badge.checkmark", title: "Words accepted",
-                 value: counts.words.formatted(), detail: format.wordsDetail(counts, language)),
-            Tile(id: "used", icon: "checkmark.circle", title: "Suggestions used",
-                 value: format.percent(counts.acceptanceRate), detail: format.usedDetail(counts, language)),
-            Tile(id: "share", icon: "character.cursor.ibeam", title: "Of your text",
-                 value: format.percent(summary.total.shareOfText), detail: format.shareDetail(summary.total, language)),
-            Tile(id: "timeSaved", icon: "clock", title: "Time saved",
-                 value: format.timeSaved(summary.timeSavedSeconds), detail: format.timeSavedDetail(summary, language)),
-        ]
-        return ViewThatFits(in: .horizontal) {
-            Grid(horizontalSpacing: 8, verticalSpacing: 8) {
-                GridRow { ForEach(tiles) { tile($0) } }
-            }
-            Grid(horizontalSpacing: 8, verticalSpacing: 8) {
-                GridRow { ForEach(tiles.prefix(2)) { tile($0) } }
-                GridRow { ForEach(tiles.suffix(2)) { tile($0) } }
-            }
+        return SettingsTileLayout {
+            SettingsMetricTile(icon: "text.badge.checkmark", title: "Words accepted",
+                               value: counts.words.formatted(), detail: format.wordsDetail(counts, language),
+                               identifier: "autocomplete.statistics.words")
+            SettingsMetricTile(icon: "checkmark.circle", title: "Suggestions used",
+                               value: format.percent(counts.acceptanceRate), detail: format.usedDetail(counts, language),
+                               identifier: "autocomplete.statistics.used")
+            SettingsMetricTile(icon: "character.cursor.ibeam", title: "Of your text",
+                               value: format.percent(summary.total.shareOfText),
+                               detail: format.shareDetail(summary.total, language),
+                               identifier: "autocomplete.statistics.share")
+            SettingsMetricTile(icon: "clock", title: "Time saved",
+                               value: format.timeSaved(summary.timeSavedSeconds),
+                               detail: format.timeSavedDetail(summary, language),
+                               identifier: "autocomplete.statistics.timeSaved")
         }
-    }
-
-    private func tile(_ tile: Tile) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Label {
-                Text(LocalizedStringKey(tile.title))
-            } icon: {
-                Image(systemName: tile.icon).foregroundStyle(Brand.teal)
-            }
-            .font(AppFont.scaled(.callout))
-            .settingsSecondary()
-            Text(tile.value)
-                .font(AppFont.scaled(.title2).weight(.semibold).monospacedDigit())
-            Text(tile.detail)
-                .font(AppFont.scaled(.callout))
-                .settingsSecondary()
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(minWidth: 150, idealWidth: 150, maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .padding(10)
-        .background(.quaternary.opacity(0.25), in: RoundedRectangle(cornerRadius: Brand.Radius.control))
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Text(LocalizedStringKey(tile.title)))
-        .accessibilityValue(Text("\(tile.value), \(tile.detail)"))
-        .accessibilityIdentifier("autocomplete.statistics.\(tile.id)")
     }
 
     // MARK: - Chart

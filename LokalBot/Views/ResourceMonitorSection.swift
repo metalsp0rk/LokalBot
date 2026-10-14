@@ -4,61 +4,44 @@ import SwiftUI
 /// native process accounting for LokalBot and its helpers; model rows merge
 /// subprocess-backed GGUF/ONNX runtimes with retained CoreML/MLX models.
 struct ResourceMonitorSection: View {
+    @EnvironmentObject private var app: AppState
     @ObservedObject private var residency = ModelResidency.shared
     @ObservedObject private var modelRuntimes = ModelRuntimeRegistry.shared
     @StateObject private var monitor = ResourceMonitorViewModel()
 
-    /// Two even columns keep the four metrics in a balanced 2×2 grid.
-    private let columns = [
-        GridItem(.flexible(), spacing: 8, alignment: .leading),
-        GridItem(.flexible(), spacing: 8, alignment: .leading),
-    ]
-
     var body: some View {
         Section("Resource Monitor") {
-            LazyVGrid(columns: columns, alignment: .leading, spacing: 8) {
-                metricTile(
-                    icon: "cpu",
+            SettingsTileLayout {
+                SettingsMetricTile(
+                    icon: "cpu", title: "CPU",
                     value: ResourceMonitorPresentation.percent(monitor.cpuUsagePercent),
-                    label: "CPU",
-                    identifier: "settings.resourceMonitor.cpu"
-                )
-                metricTile(
-                    icon: "memorychip",
-                    value: ResourceMonitorPresentation.memory(
-                        monitor.snapshot?.totalPhysicalFootprintBytes
-                    ),
-                    label: memoryLabel,
-                    identifier: "settings.resourceMonitor.memory"
-                )
-                metricTile(
-                    icon: "square.stack.3d.up",
+                    detail: app.settings.appLanguage.localized("Across all cores"),
+                    identifier: "settings.resourceMonitor.cpu")
+                SettingsMetricTile(
+                    icon: "memorychip", title: "Memory",
+                    value: ResourceMonitorPresentation.memory(monitor.snapshot?.totalPhysicalFootprintBytes),
+                    detail: memoryDetail,
+                    identifier: "settings.resourceMonitor.memory")
+                SettingsMetricTile(
+                    icon: "square.stack.3d.up", title: "Models loaded",
                     value: String(loadedModels.count),
-                    label: "models loaded",
-                    identifier: "settings.resourceMonitor.models"
-                )
-                metricTile(
-                    icon: "shippingbox",
+                    identifier: "settings.resourceMonitor.models")
+                SettingsMetricTile(
+                    icon: "shippingbox", title: "Model memory",
                     value: ResourceMonitorPresentation.modelMemorySummary(
-                        models: loadedModels,
-                        snapshot: monitor.snapshot
-                    ),
-                    label: "model memory",
-                    identifier: "settings.resourceMonitor.modelMemory"
-                )
+                        models: loadedModels, snapshot: monitor.snapshot),
+                    identifier: "settings.resourceMonitor.modelMemory")
             }
 
             if loadedModels.isEmpty {
                 Label("No LokalBot model runtimes are loaded.", systemImage: "moon.zzz")
-                    .font(.scaledSystem(size: 12))
+                    .font(AppFont.scaled(.callout))
                     .settingsSecondary()
             } else {
-                ForEach(loadedModels) { model in
-                    modelRow(model)
-                }
+                modelTable
             }
 
-            SettingsHelp("Updates every 2 seconds. Includes LokalBot and its helpers, so multi-core CPU can exceed 100%. External Ollama and Apple Intelligence models aren't counted.")
+            SettingsHelp("Updates every 2 seconds and counts LokalBot and its helpers. External Ollama and Apple Intelligence models aren't counted.")
         }
         .task(id: trackedProcessIdentities) {
             await monitor.poll(additionalProcessIdentities: trackedProcessIdentities)
@@ -96,64 +79,47 @@ struct ResourceMonitorSection: View {
         )
     }
 
-    private var memoryLabel: String {
+    /// "4% of RAM"; nil until the first sample.
+    private var memoryDetail: String? {
         guard let bytes = monitor.snapshot?.totalPhysicalFootprintBytes,
-              ProcessInfo.processInfo.physicalMemory > 0 else { return "memory" }
-        let percentage = Double(bytes) / Double(ProcessInfo.processInfo.physicalMemory) * 100
-        return "memory · " + String(format: "%.0f", percentage) + "% RAM"
+              ProcessInfo.processInfo.physicalMemory > 0 else { return nil }
+        let share = Double(bytes) / Double(ProcessInfo.processInfo.physicalMemory)
+        return String(format: app.settings.appLanguage.localized("%@ of RAM"),
+                      share.formatted(.percent.precision(.fractionLength(0))))
     }
 
-    private func modelRow(_ model: ResourceMonitorPresentation.Model) -> some View {
-        let reading = ResourceMonitorPresentation.memoryReading(
-            for: model,
-            snapshot: monitor.snapshot
-        )
-        let value = ResourceMonitorPresentation.modelMemoryValue(reading)
-        return LabeledContent {
-            Text(value)
-                .font(.scaled(.callout).monospacedDigit())
-                .settingsSecondary()
-        } label: {
-            VStack(alignment: .leading, spacing: 1) {
-                Text(model.role)
-                Text(model.label)
-                    .font(AppFont.scaled(.callout))
-                    .settingsSecondary()
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-                    .help(model.label)
-                if let note = model.leaseNote {
-                    Text(note)
+    /// Loaded runtimes in the same aligned columns as the health rows: role,
+    /// model file, and memory.
+    private var modelTable: some View {
+        Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 9) {
+            ForEach(Array(loadedModels.enumerated()), id: \.element.id) { index, model in
+                if index > 0 {
+                    Divider().gridCellUnsizedAxes(.horizontal)
+                }
+                let reading = ResourceMonitorPresentation.memoryReading(for: model, snapshot: monitor.snapshot)
+                GridRow(alignment: .firstTextBaseline) {
+                    Text(model.role)
+                        .fixedSize()
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel(model.role + ", " + model.label)
+                        .accessibilityValue(ResourceMonitorPresentation.spokenMemoryValue(reading))
+                    Text([model.label, model.leaseNote].compactMap { $0 }.joined(separator: " · "))
                         .font(AppFont.scaled(.callout))
                         .settingsSecondary()
                         .lineLimit(1)
+                        .truncationMode(.middle)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .help(model.label)
+                        .accessibilityHidden(true)
+                    Text(ResourceMonitorPresentation.modelMemoryValue(reading))
+                        .font(AppFont.scaled(.callout).weight(.medium).monospacedDigit())
+                        .settingsSecondary()
+                        .gridColumnAlignment(.trailing)
+                        .accessibilityHidden(true)
                 }
             }
         }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(model.role + ", " + model.label)
-        .accessibilityValue(ResourceMonitorPresentation.spokenMemoryValue(reading))
-    }
-
-    private func metricTile(icon: String, value: String, label: String,
-                            identifier: String) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Label {
-                Text(value)
-            } icon: {
-                Image(systemName: icon).foregroundStyle(Brand.teal)
-            }
-                .font(AppFont.scaled(.body).weight(.semibold).monospacedDigit())
-            Text(label).font(AppFont.scaled(.body)).settingsSecondary()
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(10)
-        .background(.quaternary.opacity(0.25), in: RoundedRectangle(cornerRadius: Brand.Radius.control))
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel(label)
-            .accessibilityValue(value.replacingOccurrences(of: "≈", with: "approximately "))
-            .accessibilityIdentifier(identifier)
+        .padding(.vertical, 2)
     }
 }
 

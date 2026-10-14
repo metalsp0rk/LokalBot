@@ -327,9 +327,6 @@ struct SettingsView: View {
                               "length", "words", "max words", "ghost", "inline",
                               "completion", "typing"]) {
             Section("Autocomplete") {
-                Toggle("Enable autocomplete", isOn: $app.settings.cotypingEnabled)
-                    .accessibilityLabel("Enable autocomplete")
-                    .settingTarget("settings.cotypingEnabled", selected: app.focusedSettingID)
                 LabeledContent("Autocomplete model") {
                     Button("Manage in Models…") { app.openSettings(tab: .models) }
                 }
@@ -373,7 +370,7 @@ struct SettingsView: View {
                 }
                     .settingTarget("settings.cotypingEscapeBehavior", selected: app.focusedSettingID)
             }
-            Section("Context and profile") {
+            Section("Context") {
                 let context = cotypingContext
                 Toggle("Use app and window context", isOn: $app.settings.cotypingUseAppContext)
                     .settingTarget("settings.cotypingUseAppContext", selected: app.focusedSettingID)
@@ -418,6 +415,8 @@ struct SettingsView: View {
                     Text("Last suggestion: no relevant memory found.")
                         .settingsSecondary()
                 }
+            }
+            Section("Writing profile") {
                 Toggle(isOn: $app.settings.cotypingUseLocalLearning) {
                     SettingsLabel("Learn locally from accepted completions",
                                   help: "Kept for 30 days and reused only in the same identified document. Mail, chat, unknown documents, and preview runs are excluded.")
@@ -1132,13 +1131,17 @@ struct SettingsView: View {
                             }
                         }
                     }
-                    Button("Export Diagnostics…") { exportDiagnostics() }
-                        .accessibilityIdentifier("settings.exportDiagnostics")
-                    SettingsHelp("Logs, health reports, settings without secrets, and library counts. Never meeting audio, transcripts, notes, or screenshots.")
-                    Button("Run Health Check Now") {
-                        if let url = app.runHealthCheckNow(notify: false) { NSWorkspace.shared.open(url) }
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Button("Export Diagnostics…") { exportDiagnostics() }
+                                .accessibilityIdentifier("settings.exportDiagnostics")
+                            Button("Run Health Check Now") {
+                                if let url = app.runHealthCheckNow(notify: false) { NSWorkspace.shared.open(url) }
+                            }
+                            .accessibilityIdentifier("settings.runHealthCheck")
+                        }
+                        SettingsHelp("Diagnostics include logs, health reports, settings without secrets, and library counts. Never meeting audio, transcripts, notes, or screenshots.")
                     }
-                    .accessibilityIdentifier("settings.runHealthCheck")
                 }
             }
 

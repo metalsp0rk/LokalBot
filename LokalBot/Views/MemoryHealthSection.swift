@@ -16,14 +16,18 @@ struct MemoryHealthSection: View {
         let background = backgroundItems
         Group {
         Section("Memory health") {
-            MemoryHealthSummary(attention: (capture + meetingAudio + background).filter { $0.tone == .attention })
-            ForEach(capture) { MemoryHealthRow(item: $0) }
+            HStack(alignment: .center, spacing: 12) {
+                MemoryHealthSummary(attention: (capture + meetingAudio + background).filter { $0.tone == .attention })
+                Spacer(minLength: 12)
+                Button("Restart memory capture") { app.restartMemoryCapture() }
+            }
+            MemoryHealthTable(items: capture)
         }
         Section("Meeting audio") {
-            ForEach(meetingAudio) { MemoryHealthRow(item: $0) }
+            MemoryHealthTable(items: meetingAudio)
         }
         Section("Background work") {
-            ForEach(background) { MemoryHealthRow(item: $0) }
+            MemoryHealthTable(items: background)
 
             if let error = activeError {
                 Label(error, systemImage: "exclamationmark.triangle.fill")
@@ -32,15 +36,11 @@ struct MemoryHealthSection: View {
                     .textSelection(.enabled)
             }
 
-            HStack {
-                Button("Restart memory capture") { app.restartMemoryCapture() }
+            HStack(alignment: .center, spacing: 16) {
+                SettingsHelp("Meeting recording and autocomplete take priority over OCR, embeddings, and routines, which catch up when those tasks are idle.")
+                Spacer(minLength: 0)
                 Button("Run retention now") { app.screenshots.pruneOldScreenshots() }
-                Spacer()
-                Text("Updates every 2 seconds")
-                    .font(AppFont.scaled(.callout))
-                    .settingsSecondary()
             }
-            SettingsHelp("Meeting recording and autocomplete take priority over OCR, embeddings, and routines, which catch up when those tasks are idle.")
         }
         }
         .task {
@@ -140,7 +140,7 @@ struct MemoryHealthSection: View {
             MemoryHealthItem(
                 title: "Local OCR",
                 icon: "doc.text.viewfinder",
-                value: app.screenshots.lastTextSource ?? "Waiting",
+                value: app.screenshots.lastTextSource.map(Self.textSourceLabel) ?? "Waiting",
                 detail: dateDetail(app.screenshots.lastOCRCapture),
                 tone: app.screenshots.lastTextSource == nil ? .idle : .good),
             MemoryHealthItem(
@@ -212,6 +212,19 @@ struct MemoryHealthSection: View {
                 detail: availableBytes.map { "\(byteCount(UInt64(max(0, $0)))) available" },
                 tone: .neutral),
         ]
+    }
+
+    /// "hybrid_redacted" → "Hybrid, redacted", so the status reads like its neighbours.
+    static func textSourceLabel(_ source: String) -> String {
+        let redacted = source.hasSuffix("_redacted")
+        let base = redacted ? String(source.dropLast("_redacted".count)) : source
+        let label = switch base {
+        case "accessibility": "Accessibility"
+        case "hybrid": "Hybrid"
+        case "ocr": "OCR"
+        default: base.prefix(1).uppercased() + base.dropFirst()
+        }
+        return redacted ? label + ", redacted" : label
     }
 
     private func audioDetail(date: Date?, dropped: Int) -> String? {
@@ -291,61 +304,77 @@ struct MemoryHealthItem: Identifiable {
     let tone: MemoryHealthTone
 }
 
-/// Title and when it last happened on the left; a toned status on the right.
-private struct MemoryHealthRow: View {
-    let item: MemoryHealthItem
+/// Health rows in aligned columns: symbol, name, when it last happened, and
+/// status. One grid keeps the columns straight whatever the text lengths;
+/// each row reads to assistive technology as one element on its name.
+private struct MemoryHealthTable: View {
+    let items: [MemoryHealthItem]
 
     var body: some View {
-        LabeledContent {
-            MemoryHealthStatus(value: item.value, tone: item.tone)
-        } label: {
-            Label {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(item.title)
-                    if let detail = item.detail, !detail.isEmpty {
-                        Text(detail)
-                            .font(AppFont.scaled(.callout))
-                            .settingsSecondary()
-                    }
+        Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 9) {
+            ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                if index > 0 {
+                    Divider().gridCellUnsizedAxes(.horizontal)
                 }
-            } icon: {
-                Image(systemName: item.icon).foregroundStyle(Brand.teal)
+                GridRow(alignment: .firstTextBaseline) {
+                    Image(systemName: item.icon)
+                        .foregroundStyle(Brand.teal)
+                        .frame(width: 20)
+                        .accessibilityHidden(true)
+                    // A shared minimum lines the detail column up across sections.
+                    Text(item.title)
+                        .fixedSize()
+                        .frame(minWidth: 130, alignment: .leading)
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel(item.title)
+                        .accessibilityValue([item.value, item.detail].compactMap { $0 }.joined(separator: ", "))
+                    Text(item.detail ?? "")
+                        .font(AppFont.scaled(.callout))
+                        .settingsSecondary()
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .accessibilityHidden(true)
+                    MemoryHealthStatus(value: item.value, tone: item.tone)
+                        .gridColumnAlignment(.trailing)
+                        .accessibilityHidden(true)
+                }
             }
         }
-        .accessibilityElement(children: .combine)
+        .padding(.vertical, 2)
     }
 }
 
-/// A status capsule shared by health readouts: the dot carries the tone and
-/// the text keeps its meaning without color.
+/// A status shared by health readouts: a toned dot and a word, the word
+/// keeping its meaning without color. Only states that need the user get a
+/// filled capsule, so a healthy page stays quiet.
 struct MemoryHealthStatus: View {
     @Environment(\.colorScheme) private var scheme
     let value: String
     let tone: MemoryHealthTone
 
     var body: some View {
-        if tone == .neutral {
+        switch tone {
+        case .neutral:
             Text(value)
-                .font(AppFont.scaled(.callout).weight(.semibold).monospacedDigit())
+                .font(AppFont.scaled(.callout).weight(.medium).monospacedDigit())
                 .settingsSecondary()
-        } else {
+        case .attention:
             HStack(spacing: 6) {
-                StatusDot(color: dotColor, size: 7)
+                StatusDot(color: Brand.amber, size: 7)
                 Text(value)
                     .font(AppFont.scaled(.callout).weight(.semibold))
-                    .foregroundStyle(tone == .attention ? SettingsPalette.warning(scheme) : Color.primary)
+                    .foregroundStyle(SettingsPalette.warning(scheme))
             }
             .padding(.horizontal, 9)
-            .padding(.vertical, 4)
-            .background(dotColor.opacity(tone == .idle ? 0.10 : 0.14), in: Capsule())
-        }
-    }
-
-    private var dotColor: Color {
-        switch tone {
-        case .good: Brand.teal
-        case .attention: Brand.amber
-        case .idle, .neutral: Color.secondary
+            .padding(.vertical, 3)
+            .background(Brand.amber.opacity(0.14), in: Capsule())
+        case .good, .idle:
+            HStack(spacing: 6) {
+                StatusDot(color: tone == .good ? Brand.teal : Color.secondary.opacity(0.6), size: 7)
+                Text(value)
+                    .font(AppFont.scaled(.callout))
+                    .settingsSecondary()
+            }
         }
     }
 }

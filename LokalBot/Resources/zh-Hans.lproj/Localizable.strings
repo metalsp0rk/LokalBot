@@ -1196,3 +1196,11 @@
 "Clear Statistics" = "清除统计";
 "Deletes the daily and monthly counts. Usage and timing measurements are kept." = "删除每日和每月的计数。“用量与耗时”中的测量数据会保留。";
 "Counted on this Mac while you type in other apps: suggestions shown and accepted, the characters you type yourself where autocomplete works, and the pauses between them, by day, kind of app and model. No text, app names or window titles are kept. Time saved is the keystrokes you did not type at your measured speed, not counting time spent reading suggestions." = "在你于其他应用中输入时，于本机统计：显示和采用的建议、你在自动补全可用的位置自己输入的字符数及按键间隔，按天、应用类型和模型分别记录。不保存任何文字、应用名称或窗口标题。节省的时间按你实测的输入速度计算你少按的键，不含阅读建议的时间。";
+"CPU" = "CPU";
+"Memory" = "内存";
+"Models loaded" = "已加载模型";
+"Model memory" = "模型内存";
+"Across all cores" = "所有核心合计";
+"%@ of RAM" = "占内存的 %@";
+"Updates every 2 seconds and counts LokalBot and its helpers. External Ollama and Apple Intelligence models aren't counted." = "每 2 秒更新，统计 LokalBot 及其辅助进程。外部 Ollama 和 Apple Intelligence 模型不计入。";
+"Diagnostics include logs, health reports, settings without secrets, and library counts. Never meeting audio, transcripts, notes, or screenshots." = "诊断信息包含日志、健康报告、不含密钥的设置和资料库数量统计。绝不包含会议音频、转写、笔记或屏幕截图。";

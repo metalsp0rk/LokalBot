@@ -179,6 +179,8 @@ struct AutocompleteExperienceView: View {
         return text
     }
 
+    /// The page's switch sits with what it controls: whether autocomplete is
+    /// on, which model it uses, and whether it can run.
     private var summary: some View {
         HStack(alignment: .top, spacing: 12) {
             IconTile(systemImage: "text.cursor",
@@ -195,10 +197,15 @@ struct AutocompleteExperienceView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 ViewThatFits(in: .horizontal) {
-                    HStack(spacing: 6) { readiness }
+                    HStack(spacing: 14) { readiness }
                     VStack(alignment: .leading, spacing: 6) { readiness }
                 }
             }
+            Spacer(minLength: 12)
+            Toggle("Enable autocomplete", isOn: $app.settings.cotypingEnabled)
+                .labelsHidden()
+                .accessibilityLabel("Enable autocomplete")
+                .settingTarget("settings.cotypingEnabled", selected: app.focusedSettingID)
         }
         .padding(.vertical, 4)
         .accessibilityIdentifier("autocomplete.home")
@@ -216,7 +223,7 @@ struct AutocompleteExperienceView: View {
         let model = selectedModel?.displayName ?? "LFM2.5 1.2B Instruct"
         if app.settings.cotypingEnabled { return "\(model) · suggestions appear as you type in other apps." }
         return modelReady
-            ? "The model is ready. Turn on autocomplete below to start."
+            ? "The model is ready. Turn on autocomplete to start."
             : "Download the Autocomplete model to try it."
     }
 
@@ -235,9 +242,15 @@ struct AutocompleteExperienceView: View {
                                 focusRevision: focusRevision,
                                 onAccept: { accept($0) },
                                 onReject: { dismiss() })
-                .frame(minHeight: 120)
-                .padding(8)
-                .workspaceControl()
+                .frame(minHeight: 76)
+                .padding(4)
+                .background(Color(nsColor: .textBackgroundColor),
+                            in: RoundedRectangle(cornerRadius: Brand.Radius.control))
+                .overlay {
+                    RoundedRectangle(cornerRadius: Brand.Radius.control)
+                        .strokeBorder(Color(nsColor: .separatorColor))
+                        .allowsHitTesting(false)
+                }
                 .onChange(of: text) { _, updated in
                     // An accept or typing the suggested characters keeps the
                     // rest of the ghost, as in another app; anything else is stale.
@@ -298,28 +311,46 @@ struct AutocompleteExperienceView: View {
         .accessibilityIdentifier("autocomplete.rehearsal.conversation")
     }
 
-    /// Which optional sources shaped the suggestion on screen.
+    /// Which optional sources shaped the suggestion on screen, with source
+    /// names and states in aligned columns.
     private var contextSources: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 6) {
             Text("Context for this suggestion")
                 .font(AppFont.scaled(.callout).weight(.semibold))
                 .settingsSecondary()
-            ForEach(contextStatuses) { status in
-                HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    StatusDot(color: color(for: status.tone), size: 7)
-                    (Text(status.title + ": ").fontWeight(.medium) + Text(status.detail))
-                        .font(AppFont.scaled(.callout))
-                        .foregroundStyle(status.tone == .off ? Color.secondary : Color.primary)
-                        .fixedSize(horizontal: false, vertical: true)
+            Grid(alignment: .leading, horizontalSpacing: 8, verticalSpacing: 5) {
+                ForEach(contextStatuses) { status in
+                    GridRow(alignment: .firstTextBaseline) {
+                        StatusDot(color: color(for: status.tone), size: 7)
+                            .accessibilityHidden(true)
+                        Text(status.title)
+                            .foregroundStyle(status.tone == .off ? Color.secondary : Color.primary)
+                            .fixedSize()
+                            // One element with an explicit label: combining the
+                            // dot and the styled text left assistive technology
+                            // with an empty label.
+                            .accessibilityElement(children: .ignore)
+                            .accessibilityLabel("\(status.title): \(status.detail)")
+                            .accessibilityIdentifier("autocomplete.rehearsal.context.\(status.id)")
+                        detailText(status)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.leading, 6)
+                            .accessibilityHidden(true)
+                    }
                 }
-                // One element with an explicit label: combining the dot and the
-                // styled text left assistive technology with an empty label.
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel("\(status.title): \(status.detail)")
-                .accessibilityIdentifier("autocomplete.rehearsal.context.\(status.id)")
             }
+            .font(AppFont.scaled(.callout))
         }
         .padding(.top, 2)
+    }
+
+    @ViewBuilder private func detailText(_ status: CotypingContextStatus) -> some View {
+        if status.tone == .attention {
+            Text(status.detail).foregroundStyle(LBTokens.Palette.attentionText)
+        } else {
+            Text(status.detail).settingsSecondary()
+        }
     }
 
     private func color(for tone: CotypingContextStatus.Tone) -> Color {
