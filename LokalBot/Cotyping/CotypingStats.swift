@@ -91,15 +91,19 @@ struct CotypingStats: Codable, Equatable, Sendable {
 protocol CotypingStatsPersisting: Sendable {
     func persist(_ stats: CotypingStats) async
     func remove() async
+    func persistUsage(_ usage: CotypingUsageHistory) async
+    func removeUsage() async
 }
 
 actor UserDefaultsCotypingStatsPersistence: CotypingStatsPersisting {
     private let defaults: UserDefaults
     private let key: String
+    private let usageKey: String
 
-    init(defaults: UserDefaults, key: String) {
+    init(defaults: UserDefaults, key: String, usageKey: String) {
         self.defaults = defaults
         self.key = key
+        self.usageKey = usageKey
     }
 
     func persist(_ stats: CotypingStats) {
@@ -110,31 +114,56 @@ actor UserDefaultsCotypingStatsPersistence: CotypingStatsPersisting {
     func remove() {
         defaults.removeObject(forKey: key)
     }
+
+    func persistUsage(_ usage: CotypingUsageHistory) {
+        guard let data = try? JSONEncoder().encode(usage) else { return }
+        defaults.set(data, forKey: usageKey)
+    }
+
+    func removeUsage() {
+        defaults.removeObject(forKey: usageKey)
+    }
 }
 
-/// Owns the persisted `CotypingStats` and records into it from the coordinator.
-/// `@MainActor` + `ObservableObject` keeps UI state immediately observable, but
-/// persistence is delegated to an actor. Local only — written to UserDefaults
-/// as the same small JSON blob; never leaves the device.
+/// Owns the persisted `CotypingStats` and `CotypingUsageHistory` and records
+/// into them from the coordinator. `@MainActor` + `ObservableObject` keeps UI
+/// state immediately observable, but persistence is delegated to an actor.
+/// Local only — written to UserDefaults as two small JSON blobs; never leaves
+/// the device.
 @MainActor
 final class CotypingStatsStore: ObservableObject {
     static let shared = CotypingStatsStore()
 
     @Published private(set) var stats: CotypingStats
+    /// Day-by-day use for the statistics. Not `@Published`: typed characters
+    /// arrive with every keystroke in other apps, and an open Settings window
+    /// need not redraw for each. Other changes announce themselves, and the
+    /// next generation or accept shows the typing.
+    private(set) var usage: CotypingUsageHistory
 
     private let persistence: any CotypingStatsPersisting
+    private let now: () -> Date
+    private let calendar: Calendar
     private var persistenceTask: Task<Void, Never>?
     private var revision = 0
     private var enqueuedRevision = 0
+    private var usageRevision = 0
+    private var enqueuedUsageRevision = 0
     private static let key = "lokalbotv3.cotypingStats"
+    private static let usageKey = "lokalbotv3.cotypingUsage"
 
     init(
         defaults: UserDefaults = .standard,
-        persistence: (any CotypingStatsPersisting)? = nil
+        persistence: (any CotypingStatsPersisting)? = nil,
+        now: @escaping () -> Date = Date.init,
+        calendar: Calendar = .current
     ) {
         self.persistence = persistence
-            ?? UserDefaultsCotypingStatsPersistence(defaults: defaults, key: Self.key)
+            ?? UserDefaultsCotypingStatsPersistence(defaults: defaults, key: Self.key, usageKey: Self.usageKey)
+        self.now = now
+        self.calendar = calendar
         stats = Self.load(from: defaults)
+        usage = Self.loadUsage(from: defaults)
     }
 
     func recordGeneration(latencyMs: Int) {
@@ -174,9 +203,60 @@ final class CotypingStatsStore: ObservableObject {
         revision &+= 1
     }
 
+    // MARK: - Usage history
+
+    func recordSuggestionShown(surface: String, model: String) {
+        objectWillChange.send()
+        usage.recordShown(surface: surface, model: model, at: now(), calendar: calendar)
+        usageRevision &+= 1
+    }
+
+    /// Saved with the suggestion, like the accept counters.
+    func recordSuggestionAccept(words: Int, characters: Int, firstOfSuggestion: Bool, surface: String, model: String) {
+        objectWillChange.send()
+        usage.recordAccept(
+            words: words, characters: characters, firstOfSuggestion: firstOfSuggestion,
+            surface: surface, model: model, at: now(), calendar: calendar)
+        usageRevision &+= 1
+    }
+
+    func recordTakenBack(surface: String, model: String) {
+        objectWillChange.send()
+        usage.recordTakenBack(surface: surface, model: model, at: now(), calendar: calendar)
+        usageRevision &+= 1
+    }
+
+    func recordTypoFixed() {
+        objectWillChange.send()
+        usage.recordTypoFixed(at: now(), calendar: calendar)
+        usageRevision &+= 1
+        enqueuePersistence()
+    }
+
+    /// Called for each key typed where autocomplete works, so it neither
+    /// redraws nor writes; see `usage`.
+    func recordTyped(characters: Int, gapMilliseconds: Int?) {
+        usage.recordTyped(characters: characters, gapMilliseconds: gapMilliseconds, at: now(), calendar: calendar)
+        usageRevision &+= 1
+    }
+
+    func clearUsage() {
+        guard usage != CotypingUsageHistory() else { return }
+        objectWillChange.send()
+        usage = CotypingUsageHistory()
+        usageRevision &+= 1
+        enqueuedUsageRevision = usageRevision
+        let previous = persistenceTask
+        let persistence = persistence
+        persistenceTask = Task.detached(priority: .utility) {
+            if let previous { await previous.value }
+            await persistence.removeUsage()
+        }
+    }
+
     /// One persistence boundary for all chunks accepted from one suggestion.
     func suggestionCompleted() {
-        guard revision != enqueuedRevision else { return }
+        guard revision != enqueuedRevision || usageRevision != enqueuedUsageRevision else { return }
         enqueuePersistence()
     }
 
@@ -196,7 +276,7 @@ final class CotypingStatsStore: ObservableObject {
     /// Persists any dirty counters and awaits all background writes. This is
     /// the termination safety net for an in-flight/partially accepted session.
     func flushPersistence() async {
-        if revision != enqueuedRevision { enqueuePersistence() }
+        if revision != enqueuedRevision || usageRevision != enqueuedUsageRevision { enqueuePersistence() }
         let pending = persistenceTask
         await pending?.value
     }
@@ -207,14 +287,18 @@ final class CotypingStatsStore: ObservableObject {
         await pending?.value
     }
 
+    /// Writes the counters, and the usage history only when it changed.
     private func enqueuePersistence() {
         let persistedStats = stats
+        let persistedUsage = usageRevision != enqueuedUsageRevision ? usage : nil
         enqueuedRevision = revision
+        enqueuedUsageRevision = usageRevision
         let previous = persistenceTask
         let persistence = persistence
         persistenceTask = Task.detached(priority: .utility) {
             if let previous { await previous.value }
             await persistence.persist(persistedStats)
+            if let persistedUsage { await persistence.persistUsage(persistedUsage) }
         }
     }
 
@@ -231,6 +315,13 @@ final class CotypingStatsStore: ObservableObject {
     private static func load(from defaults: UserDefaults) -> CotypingStats {
         guard let data = defaults.data(forKey: key),
               let decoded = try? JSONDecoder().decode(CotypingStats.self, from: data) else { return CotypingStats() }
+        return decoded
+    }
+
+    private static func loadUsage(from defaults: UserDefaults) -> CotypingUsageHistory {
+        guard let data = defaults.data(forKey: usageKey),
+              let decoded = try? JSONDecoder().decode(CotypingUsageHistory.self, from: data)
+        else { return CotypingUsageHistory() }
         return decoded
     }
 }

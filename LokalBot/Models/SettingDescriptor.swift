@@ -91,6 +91,8 @@ struct SettingDescriptor: Identifiable {
         .init(id: "settings.quickRecallEnabled", title: "Enable the system-wide Ask shortcut", category: .general, aliases: "quickRecallEnabled"),
         .init(id: "settings.quickRecallShortcut", title: "Ask shortcut", category: .general, aliases: "quick recall hotkey keyboard key combination change"),
         .init(id: "settings.cotypingEnabled", title: "Enable autocomplete", category: .writing, aliases: "cotypingEnabled"),
+        .init(id: "settings.autocompleteStatistics", title: "Autocomplete statistics", category: .writing,
+              aliases: "stats usage acceptance accepted words saved time typing speed wpm chart"),
         .init(id: "settings.cotypingMultiLine", title: "Allow multi-line suggestions", category: .writing, aliases: "cotypingMultiLine"),
         .init(id: "settings.cotypingAcceptKey", title: "Accept next", category: .writing, aliases: "cotypingAcceptKey"),
         .init(id: "settings.cotypingAcceptGranularity", title: "Each accept takes", category: .writing, aliases: "cotypingAcceptGranularity"),

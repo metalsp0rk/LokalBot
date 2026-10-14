@@ -49,7 +49,10 @@ extension CotypingCoordinator {
                 clearSuggestion()
                 return false
             }
-            if case .correction = current.kind { acceptedWordCount += 1 }
+            if case .correction = current.kind {
+                acceptedWordCount += 1
+                stats.recordTypoFixed()
+            }
             clearSuggestion()
             state = .idle
             return true
@@ -100,10 +103,12 @@ extension CotypingCoordinator {
             return false
         }
         lastAcceptanceAt = Date()
-        noteAcceptance(field: liveField, inserted: insertionText, charsAccepted: acceptedChunk.count)
+        let acceptedWords = CotypingAcceptanceChunker.acceptedWordCount(in: acceptedChunk)
+        noteAcceptance(field: liveField, inserted: insertionText, charsAccepted: acceptedChunk.count,
+                       words: acceptedWords)
         recordAcceptedText(acceptedChunk, field: liveField, settings: settings)
 
-        acceptedWordCount += CotypingAcceptanceChunker.acceptedWordCount(in: acceptedChunk)
+        acceptedWordCount += acceptedWords
         current = current.advanced(by: acceptedChunk.count)
         session = current
         noteSuggestionActivity()
@@ -301,6 +306,7 @@ extension CotypingCoordinator {
             }
         }
         session = nil
+        shownSuggestion = nil
         suggestionExpiryTask?.cancel()
         suggestionExpiryTask = nil
         lastSuggestionActivity = nil
