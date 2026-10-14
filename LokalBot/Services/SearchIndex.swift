@@ -34,6 +34,9 @@ final class SearchIndex {
         let snippet: String
         let speaker: String
         var isSemantic = false
+        /// The whole stored document row. `snippet` keeps only a few tokens
+        /// around the match and can drop a nearby "not".
+        var sourceText: String?
     }
 
     private let database: SQLiteDatabase?
@@ -299,7 +302,7 @@ final class SearchIndex {
               let database else { return [] }
         var sql = """
             SELECT meeting_id, kind, start, speaker,
-                   snippet(docs, 0, '«', '»', '…', 14)
+                   snippet(docs, 0, '«', '»', '…', 14), text
             FROM docs WHERE docs MATCH ?1
               AND NOT EXISTS (
                   SELECT 1 FROM deleted_meetings AS deleted
@@ -330,7 +333,8 @@ final class SearchIndex {
             return Hit(meetingID: meetingID, kind: kind,
                        start: sqlite3_column_double(statement, 2),
                        snippet: String(cString: snippetText),
-                       speaker: speaker)
+                       speaker: speaker,
+                       sourceText: sqlite3_column_text(statement, 5).map { String(cString: $0) })
         }.filter { !locallyDeletedMeetingIDs.contains($0.meetingID) }
     }
 

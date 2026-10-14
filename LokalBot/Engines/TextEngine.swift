@@ -447,7 +447,8 @@ struct OllamaEngine: TextEngine {
         let body = Self.chatBody(model: model, system: system, user: user, schema: schema, options: options,
                                  requestLevel: support.requestLevel(
                                     reasoningLevel, taskBudget: options?.reasoningBudgetTokens))
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        // Same per-launch key order problem as OpenAICompatibleEngine.
+        request.httpBody = try JSONSerialization.data(withJSONObject: body, options: schema == nil ? [] : [.sortedKeys])
 
         let (data, response) = try await sendInferenceRequest(request, base: baseURL)
         let httpResponse = response as? HTTPURLResponse
@@ -849,7 +850,11 @@ struct OpenAICompatibleEngine: TextEngine {
             body["provider"] = provider
         }
         body.merge(extraBody) { _, new in new }
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        // Grammar-constrained servers generate schema properties in wire order.
+        // Swift dictionaries hash in a per-launch order, so without sorting the
+        // same request could ask for a verdict before its evidence on one launch
+        // and after it on the next.
+        request.httpBody = try JSONSerialization.data(withJSONObject: body, options: schema == nil ? [] : [.sortedKeys])
         return request
     }
 

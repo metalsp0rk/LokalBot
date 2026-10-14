@@ -2,6 +2,25 @@ import XCTest
 @testable import LokalBot
 
 final class TextEngineTests: XCTestCase {
+    func testStructuredRequestBodyHasAStableKeyOrder() throws {
+        let engine = OpenAICompatibleEngine(baseURL: URL(string: "http://127.0.0.1:18781/v1")!, model: "synthetic")
+        let schema: [String: Any] = ["type": "object", "properties": [
+            "verdict": ["type": "string"], "issues": ["type": "array", "items": ["type": "string"]],
+            "evidence_check": ["type": "string"]], "required": ["evidence_check", "verdict", "issues"]]
+        let request = try engine.makeChatRequest(system: "s", prompt: "q", context: [], schema: schema,
+                                                options: .init(maxTokens: 512, temperature: 0))
+        let bytes = try XCTUnwrap(request.httpBody)
+        let reencoded = try JSONSerialization.data(withJSONObject: JSONSerialization.jsonObject(with: bytes),
+                                                   options: [.sortedKeys])
+        XCTAssertEqual(bytes, reencoded, "every object, the schema included, is in sorted key order")
+        let text = try XCTUnwrap(String(data: bytes, encoding: .utf8))
+        var positions: [String.Index] = []
+        for key in ["\"evidence_check\":", "\"issues\":", "\"verdict\":"] {
+            positions.append(try XCTUnwrap(text.range(of: key)).lowerBound)
+        }
+        XCTAssertEqual(positions, positions.sorted())
+    }
+
     func testStrippingReasoningRemovesThinkBlocks() {
         let text = """
         <think>hidden chain</think>

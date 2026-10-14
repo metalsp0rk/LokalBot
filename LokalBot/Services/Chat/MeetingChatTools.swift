@@ -42,7 +42,7 @@ enum MeetingChatFormat {
                 let stamp = hit.kind == .segment ? " @ \(Transcript.stamp(hit.start))" : ""
                 let who = hit.speaker.isEmpty ? "" : " (\(hit.speaker))"
                 lines.append("- [\(SessionLookup.shortID(hit.meetingID))] \(title(hit.meetingID))"
-                    + "\(stamp) [\(hit.kind.rawValue)]\(who): \(clean(hit.snippet))")
+                    + "\(stamp) [\(hit.kind.rawValue)]\(who): \(keywordPassage(hit))")
             }
         }
         if !semantic.isEmpty {
@@ -278,6 +278,23 @@ enum MeetingChatFormat {
 
     // MARK: - Helpers
 
+    /// The whole transcript utterance or summary line around a keyword match.
+    /// An FTS snippet keeps about 14 tokens and can cut a nearby "not" out of
+    /// the observation. A line longer than the cap keeps the snippet.
+    static func keywordPassage(_ hit: SearchIndex.Hit, maximumCharacters: Int = 600) -> String {
+        var anchor = hit.snippet.replacingOccurrences(of: "«", with: "").replacingOccurrences(of: "»", with: "")
+        if anchor.hasPrefix("…") { anchor.removeFirst() }
+        if anchor.hasSuffix("…") { anchor.removeLast() }
+        guard let source = hit.sourceText, !anchor.isEmpty,
+              let match = source.range(of: anchor) else { return clean(hit.snippet) }
+        let start = source[..<match.lowerBound].lastIndex(of: "\n").map { source.index(after: $0) } ?? source.startIndex
+        let end = source[match.upperBound...].firstIndex(of: "\n") ?? source.endIndex
+        let line = source[start..<end]
+            .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespaces)
+        return line.count <= maximumCharacters ? line : clean(hit.snippet)
+    }
+
     /// Strip FTS5 «»-markers, collapse whitespace, and cap a single snippet.
     static func clean(_ snippet: String) -> String {
         let collapsed = snippet
@@ -318,19 +335,23 @@ final class MeetingChatTools: ChatToolRunner {
     private let embeddingIndex: EmbeddingIndex
     private let activityStore: ActivityStore
     private let settingsProvider: () -> AppSettings
+    /// Relative days ("last 7 days", "yesterday") resolve against this clock.
+    private let now: () -> Date
 
     init(meetings: @escaping () -> [Meeting],
          storage: StorageManager,
          searchIndex: SearchIndex,
          embeddingIndex: EmbeddingIndex,
          activityStore: ActivityStore,
-         settings: @escaping () -> AppSettings) {
+         settings: @escaping () -> AppSettings,
+         now: @escaping () -> Date = Date.init) {
         self.meetingsProvider = meetings
         self.storage = storage
         self.searchIndex = searchIndex
         self.embeddingIndex = embeddingIndex
         self.activityStore = activityStore
         self.settingsProvider = settings
+        self.now = now
     }
 
     let specs: [ChatToolSpec] = [
@@ -503,7 +524,8 @@ final class MeetingChatTools: ChatToolRunner {
                 scopeLabel = scope.dateLabel
             } else {
                 let days = max(1, min(call.int("days") ?? 7, 90))
-                let cutoff = Calendar.current.date(byAdding: .day, value: -days, to: Date()) ?? Date()
+                let current = now()
+                let cutoff = Calendar.current.date(byAdding: .day, value: -days, to: current) ?? current
                 scoped = meetings.filter { $0.startedAt >= cutoff }
                 scopeLabel = "last \(days) days"
             }
@@ -556,10 +578,20 @@ final class MeetingChatTools: ChatToolRunner {
             evidence: ChatEvidence(screenIDs: Set(hits.prefix(12).map(\.snapshotID))))
     }
 
+    /// An attached screen stays citable only while it still exists and falls
+    /// inside the question's dates.
+    func attachedScreenEvidence(ids: Set<Int64>, dayScopeKey: String?) -> ChatEvidence {
+        let scope = dayScopeKey.flatMap { AskDateScope(storageKey: $0) }
+        guard dayScopeKey == nil || scope != nil else { return ChatEvidence() }
+        return ChatEvidence(screenIDs: ids.filter { id in
+            activityStore.screenshot(id: id).map { scope?.contains($0.ts) ?? true } ?? false
+        })
+    }
+
     private func activitySummary(_ call: ChatToolCall) -> ChatToolResult {
         let argument = call.string("_lokalbot_day_scope") ?? call.string("day") ?? "today"
         let scope = AskDateScope(storageKey: argument)
-            ?? (call.string("_lokalbot_day_scope") == nil ? Self.parseDay(argument).map { AskDateScope(day: $0) } : nil)
+            ?? (call.string("_lokalbot_day_scope") == nil ? Self.parseDay(argument, now: now()).map { AskDateScope(day: $0) } : nil)
         guard let scope, let interval = scope.interval() else {
             return ChatToolResult(text: "Could not understand day or date scope '\(argument)'.", summary: "bad day argument")
         }
