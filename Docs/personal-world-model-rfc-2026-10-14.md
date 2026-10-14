@@ -1,6 +1,6 @@
 # Personal World Model v1
 
-Date: 2026-10-14. Status: accepted direction; Phases 1 and 2 in progress in
+Date: 2026-10-14. Status: accepted direction; Phases 1–3 in progress in
 draft PR 251. Code references are to master at `04f12f6`.
 
 ## Summary
@@ -48,8 +48,10 @@ Corrections to the discussion:
 
 - One store of **personal claims** that Ask, Quick Recall and (opt-in) MCP
   clients read.
-- **The person stays the authority.** Inferences are proposals until the person
-  confirms them. Principles are never inferred.
+- **The person stays the authority.** Principles are never inferred. Learned
+  facts and goals are saved automatically (decision 6), but each shows the line
+  it came from, is labelled as learned wherever it is used, and can be kept,
+  edited or forgotten.
 - **Visible use.** Each answer lists the claims that shaped it. Each claim can
   be edited, retracted or forgotten.
 - **Source deletion wins.** Evidence-backed claims retract with their sources,
@@ -284,6 +286,40 @@ agent access is the differentiator and is safe with stated claims alone.
 3. **Evidence-backed claims.** Remember-from-answer, the nightly proposals with
    quote grounding, the review queue, the My World destination, the deletion
    alert, and retraction tests.
+
+   Built on 2026-10-14 as automatic learning, after decision 6. It differs
+   from the plan above in these ways:
+   - **Separate call:** learning is its own small Think call after the review
+     (`PersonalLearning`), not a new field in the review's JSON, so the tuned
+     brief is untouched. Only days with the person's own lines call the model.
+   - **Input:** the person's own lines only. That means "me" segments, or a
+     lone "local" voice. A microphone shared by several diarized local voices
+     is skipped, because there is no telling which voice is the person.
+     Lines need a first-person word (English or Serbian). The cap is 40 lines
+     and 6,000 characters.
+   - **Grounding:** each item names its line, must share at least a third of
+     its content words with it, and must not near-duplicate a known item.
+     There are at most three a night.
+   - **Retraction:** it is checked on every read against the Dream evidence
+     revisions (`DreamStore.evidenceCheck`). It also runs after each meeting
+     deletion or correction. A pending revocation withholds learned items
+     rather than serving them. The store stays outside `DreamStore`'s lock.
+   - **Deletion alert:** it became a per-item **Keep Even If the Meeting Is
+     Deleted** action in About you, so no deletion dialog changes.
+   - **Not built yet:** Remember-from-answer, the My World sidebar
+     destination, bulk sharing, and the `sensitive` flag. Health, money,
+     religion, politics and sexuality are excluded at the prompt instead.
+   - **Local-model check:** Qwen3.5 4B ran on ten synthetic lines, six of them
+     traps (a task, a health detail, a colleague's private news, a joke, a
+     value judgment and a deadline). It picked the right three and skipped
+     every trap. With the same items already known, it suggested only the new
+     one. Until "shorten, don't rephrase" was added, it copied lines word for
+     word. A Serbian example in the prompt made it translate English lines
+     into Serbian, once reversing a meaning, so the example was removed. It
+     still translates Serbian lines into English, and the grounding check
+     then drops them. So Serbian facts are rarely learned with the built-in
+     model. Embedding-based grounding (EmbeddingGemma 2 handles Serbian well)
+     is the likely fix.
 4. **Decision journal.** Extend existing `decisionRecords` with an optional
    expected outcome and a review date. Today's weekly review asks "How did this
    turn out?", and the answer becomes evidence for later proposals. This is
@@ -330,3 +366,9 @@ The harness should be a fixture-driven XCTest, in the style of
    example "Je Maja moja menadžerka", and can be edited.
 5. **Deleting a conversation** keeps the claims stated in it, as their own
    data. The alert proposed in the Ask-memory design is not needed in Phase 1.
+6. **Automatic learning (later the same day).** Facts and goals learned from
+   the person's own meeting lines are saved without review. Preferences wait
+   for review. Principles are never learned. This replaces "proposals never
+   reach any prompt until confirmed" for facts and goals. Learned items are
+   labelled as learned in Ask and for agents, never default to shared, and
+   go to scoped questions only when stated.

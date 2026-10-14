@@ -1,10 +1,12 @@
+import CryptoKit
 import Foundation
 
 /// One thing LokalBot knows about the person: a fact about them, how they want
-/// help, a goal, or a principle they decide by. Phase 1 of the personal world
-/// model (Docs/personal-world-model-rfc-2026-10-14.md) stores only what the
-/// person states, so every claim here is their own words, never an inference.
-/// Later phases add evidence-backed and proposed claims as new origins.
+/// help, a goal, or a principle they decide by
+/// (Docs/personal-world-model-rfc-2026-10-14.md). Stated claims are the
+/// person's own words. Learned claims come from what the person said in a
+/// meeting; they carry that meeting as evidence and retract with it.
+/// Principles are never learned.
 struct PersonalClaim: Codable, Identifiable, Equatable, Sendable, PersonalContextItem {
     typealias Kind = PersonalClaimKind
 
@@ -13,6 +15,8 @@ struct PersonalClaim: Codable, Identifiable, Equatable, Sendable, PersonalContex
         case said(conversationID: UUID, messageID: UUID)
         /// Added in Settings → Day Memory → About you.
         case added
+        /// Picked up overnight from the person's own line in this meeting.
+        case learned(meetingID: UUID, dayKey: String)
     }
 
     /// Who may read the claim besides LokalBot itself.
@@ -23,6 +27,22 @@ struct PersonalClaim: Codable, Identifiable, Equatable, Sendable, PersonalContex
         case agents
     }
 
+    enum Status: String, Codable, Sendable {
+        /// In use by Ask and, if shared, agents.
+        case confirmed
+        /// A learned preference waiting for the person's review; never used.
+        case proposed
+    }
+
+    enum Authority: String, Codable, Sendable {
+        /// The person stated it or kept it as their own statement.
+        case stated
+        /// Saved automatically from what the person said in a meeting.
+        case learned
+        /// Learned, then confirmed by the person in review.
+        case confirmed
+    }
+
     let id: UUID
     var kind: Kind
     var text: String
@@ -30,12 +50,21 @@ struct PersonalClaim: Codable, Identifiable, Equatable, Sendable, PersonalContex
     /// Included first in every eligible prompt, ahead of relevance ranking.
     var alwaysUse: Bool
     var sharing: Sharing
+    var status: Status
+    var authority: Authority
+    /// The meeting a learned claim came from. Nil means no evidence
+    /// dependency (stated claims, or a learned one the person kept).
+    var evidence: DreamEvidenceProvenance?
+    /// The person's own line the claim was learned from, shown in review.
+    var quote: String?
     let createdAt: Date
     var updatedAt: Date
     var lastUsedAt: Date?
 
     init(id: UUID = UUID(), kind: Kind, text: String, origin: Origin,
-         alwaysUse: Bool = false, sharing: Sharing = .lokalBotOnly, createdAt: Date,
+         alwaysUse: Bool = false, sharing: Sharing = .lokalBotOnly,
+         status: Status = .confirmed, authority: Authority = .stated,
+         evidence: DreamEvidenceProvenance? = nil, quote: String? = nil, createdAt: Date,
          updatedAt: Date? = nil, lastUsedAt: Date? = nil) {
         self.id = id
         self.kind = kind
@@ -43,17 +72,27 @@ struct PersonalClaim: Codable, Identifiable, Equatable, Sendable, PersonalContex
         self.origin = origin
         self.alwaysUse = alwaysUse
         self.sharing = sharing
+        self.status = status
+        self.authority = authority
+        self.evidence = evidence
+        self.quote = quote
         self.createdAt = createdAt
         self.updatedAt = updatedAt ?? createdAt
         self.lastUsedAt = lastUsedAt
     }
 
+    var isLearned: Bool {
+        if case .learned = origin { return true }
+        return false
+    }
+
     private enum CodingKeys: String, CodingKey {
-        case id, kind, text, origin, alwaysUse, sharing, createdAt, updatedAt, lastUsedAt
+        case id, kind, text, origin, alwaysUse, sharing, status, authority, evidence, quote
+        case createdAt, updatedAt, lastUsedAt
     }
 
     /// Fields added after Phase 1 decode with defaults that keep earlier
-    /// behavior: a claim saved before sharing existed stays LokalBot-only.
+    /// behavior: an older claim is a confirmed, stated, LokalBot-only one.
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         id = try c.decode(UUID.self, forKey: .id)
@@ -62,6 +101,10 @@ struct PersonalClaim: Codable, Identifiable, Equatable, Sendable, PersonalContex
         origin = try c.decode(Origin.self, forKey: .origin)
         alwaysUse = try c.decodeIfPresent(Bool.self, forKey: .alwaysUse) ?? false
         sharing = try c.decodeIfPresent(Sharing.self, forKey: .sharing) ?? .lokalBotOnly
+        status = try c.decodeIfPresent(Status.self, forKey: .status) ?? .confirmed
+        authority = try c.decodeIfPresent(Authority.self, forKey: .authority) ?? .stated
+        evidence = try c.decodeIfPresent(DreamEvidenceProvenance.self, forKey: .evidence)
+        quote = try c.decodeIfPresent(String.self, forKey: .quote)
         createdAt = try c.decode(Date.self, forKey: .createdAt)
         updatedAt = try c.decodeIfPresent(Date.self, forKey: .updatedAt) ?? createdAt
         lastUsedAt = try c.decodeIfPresent(Date.self, forKey: .lastUsedAt)
@@ -108,6 +151,7 @@ extension PersonalContextProjection.Claim {
         switch claim.origin {
         case .said: source = .askedToRemember
         case .added: source = .addedInSettings
+        case .learned: source = claim.authority == .stated ? .addedInSettings : .learnedFromMeeting
         }
         self.init(id: claim.id, kind: claim.kind, text: claim.text, alwaysUse: claim.alwaysUse,
                   source: source, createdAt: claim.createdAt, updatedAt: claim.updatedAt)
@@ -147,8 +191,40 @@ struct PersonalModel: Codable, Equatable, Sendable {
         }
     }
 
+    /// A forgotten learned claim or a dismissed suggestion, kept only as a
+    /// one-way hash so the same text isn't learned again.
+    struct Tombstone: Codable, Equatable, Sendable {
+        var key: String
+        var createdAt: Date
+    }
+
+    static let maxProposals = 20
+    static let proposalLifetime: TimeInterval = 14 * 24 * 60 * 60
+    static let tombstoneLifetime: TimeInterval = 180 * 24 * 60 * 60
+
     var version = PersonalModel.currentVersion
     var claims: [PersonalClaim] = []
+    var tombstones: [Tombstone] = []
+
+    init(version: Int = PersonalModel.currentVersion, claims: [PersonalClaim] = [],
+         tombstones: [Tombstone] = []) {
+        self.version = version
+        self.claims = claims
+        self.tombstones = tombstones
+    }
+
+    private enum CodingKeys: String, CodingKey { case version, claims, tombstones }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        version = try c.decodeIfPresent(Int.self, forKey: .version) ?? PersonalModel.currentVersion
+        claims = try c.decodeIfPresent([PersonalClaim].self, forKey: .claims) ?? []
+        tombstones = try c.decodeIfPresent([Tombstone].self, forKey: .tombstones) ?? []
+    }
+
+    static func tombstoneKey(_ text: String) -> String {
+        SHA256.hash(data: Data(duplicateKey(text).utf8)).map { String(format: "%02x", $0) }.joined()
+    }
 
     /// Prompt-safe text, or why it can't be kept. Over-long text is refused
     /// rather than truncated: a cut sentence can drop a negation.
@@ -181,10 +257,16 @@ struct PersonalModel: Codable, Equatable, Sendable {
         }
         let key = Self.duplicateKey(text)
         if let index = claims.firstIndex(where: { Self.duplicateKey($0.text) == key }) {
+            // Saying what LokalBot learned makes it the person's statement.
+            if claims[index].isLearned {
+                claims[index].status = .confirmed
+                claims[index].authority = .stated
+                claims[index].evidence = nil
+            }
             claims[index].updatedAt = now
             return .success(claims[index])
         }
-        guard claims.count < Self.maxClaims else { return .failure(.full) }
+        guard claims.filter({ $0.status == .confirmed }).count < Self.maxClaims else { return .failure(.full) }
         let claim = PersonalClaim(kind: kind, text: text, origin: origin, createdAt: now)
         claims.append(claim)
         return .success(claim)
@@ -217,8 +299,117 @@ struct PersonalModel: Codable, Equatable, Sendable {
         return .success(claim)
     }
 
-    mutating func remove(ids: Set<UUID>) {
+    /// Forgetting a learned claim leaves a tombstone so tomorrow's review
+    /// doesn't learn it again; stated claims leave nothing behind.
+    mutating func remove(ids: Set<UUID>, now: Date = Date()) {
+        for claim in claims where ids.contains(claim.id) && claim.isLearned && claim.authority != .stated {
+            tombstones.append(Tombstone(key: Self.tombstoneKey(claim.text), createdAt: now))
+        }
         claims.removeAll { ids.contains($0.id) }
+    }
+
+    /// Source deletion or correction: the claim goes, with no tombstone, so
+    /// it can be learned again from evidence that still exists.
+    mutating func retract(ids: Set<UUID>) {
+        claims.removeAll { ids.contains($0.id) }
+    }
+
+    struct LearningCandidate: Equatable, Sendable {
+        var kind: PersonalClaim.Kind
+        var text: String
+        var quote: String
+        var meetingID: UUID
+        var dayKey: String
+        var evidence: DreamEvidenceProvenance
+    }
+
+    struct LearningOutcome: Equatable, Sendable {
+        var saved: [PersonalClaim] = []
+        var proposed: [PersonalClaim] = []
+        var skipped = 0
+    }
+
+    /// Facts and goals are saved and used at once; preferences wait for
+    /// review; principles are never learned. Duplicates, forgotten or
+    /// dismissed text, invalid text, and anything past the limits are skipped.
+    @discardableResult
+    mutating func learn(_ candidates: [LearningCandidate], now: Date) -> LearningOutcome {
+        var outcome = LearningOutcome()
+        for candidate in candidates {
+            guard candidate.kind != .principle,
+                  case .success(let text) = Self.validatedText(candidate.text) else {
+                outcome.skipped += 1
+                continue
+            }
+            let key = Self.duplicateKey(text)
+            let tombstone = Self.tombstoneKey(text)
+            guard !claims.contains(where: { Self.duplicateKey($0.text) == key || Self.isNearDuplicate($0.text, text) }),
+                  !tombstones.contains(where: { $0.key == tombstone }) else {
+                outcome.skipped += 1
+                continue
+            }
+            let proposes = candidate.kind == .preference
+            let limitReached = proposes
+                ? claims.filter { $0.status == .proposed }.count >= Self.maxProposals
+                : claims.filter { $0.status == .confirmed }.count >= Self.maxClaims
+            guard !limitReached else {
+                outcome.skipped += 1
+                continue
+            }
+            let claim = PersonalClaim(
+                kind: candidate.kind, text: text,
+                origin: .learned(meetingID: candidate.meetingID, dayKey: candidate.dayKey),
+                status: proposes ? .proposed : .confirmed, authority: .learned,
+                evidence: candidate.evidence,
+                quote: String(PromptContextSanitizer.sanitize(candidate.quote).prefix(400)),
+                createdAt: now)
+            claims.append(claim)
+            if proposes { outcome.proposed.append(claim) } else { outcome.saved.append(claim) }
+        }
+        return outcome
+    }
+
+    /// The same thing reworded: most content words of the shorter text appear
+    /// in the other. Models restate known items despite being told not to.
+    static func isNearDuplicate(_ lhs: String, _ rhs: String) -> Bool {
+        let left = PersonalContextSelection.contentWords(lhs)
+        let right = PersonalContextSelection.contentWords(rhs)
+        let smaller = min(left.count, right.count)
+        guard smaller > 0 else { return false }
+        return Double(left.intersection(right).count) / Double(smaller) >= 0.7
+    }
+
+    /// Review of a learned suggestion: keep it as confirmed.
+    @discardableResult
+    mutating func confirm(id: UUID, now: Date) -> Result<PersonalClaim, EditError> {
+        guard let index = claims.firstIndex(where: { $0.id == id }) else { return .failure(.notFound) }
+        claims[index].status = .confirmed
+        claims[index].authority = .confirmed
+        claims[index].updatedAt = now
+        return .success(claims[index])
+    }
+
+    /// Dismissing a suggestion: it goes and won't be suggested again.
+    mutating func dismiss(id: UUID, now: Date) {
+        remove(ids: [id], now: now)
+    }
+
+    /// The person vouches for a learned claim: it no longer depends on the
+    /// meeting, so deleting that meeting keeps it.
+    @discardableResult
+    mutating func keepAsStatement(id: UUID, now: Date) -> Result<PersonalClaim, EditError> {
+        guard let index = claims.firstIndex(where: { $0.id == id }) else { return .failure(.notFound) }
+        claims[index].status = .confirmed
+        claims[index].authority = .stated
+        claims[index].evidence = nil
+        claims[index].updatedAt = now
+        return .success(claims[index])
+    }
+
+    /// Drops suggestions nobody reviewed and old tombstones.
+    mutating func prune(now: Date) {
+        claims.removeAll { $0.status == .proposed && now.timeIntervalSince($0.createdAt) > Self.proposalLifetime }
+        tombstones.removeAll { now.timeIntervalSince($0.createdAt) > Self.tombstoneLifetime }
     }
 
     mutating func markUsed(ids: Set<UUID>, at date: Date) {

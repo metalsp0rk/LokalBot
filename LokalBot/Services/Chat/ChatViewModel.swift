@@ -1063,12 +1063,15 @@ final class ChatViewModel: ObservableObject {
                 agent.workMemory = workMemory()
             }
             // The person's own statements carry no source evidence, so unlike
-            // work memory they apply to scoped questions too.
+            // work memory they apply to scoped questions too. Learned claims
+            // came from meetings and follow the work-memory boundary.
             var usedClaimIDs: [UUID] = []
             if askMemoryEnabled(), let personalModel {
+                let unscoped = scopes == AskSourceScope.defaults && dayScopeKey == nil
+                    && meetingIDs == nil && screenSnapshotIDs == nil
                 let recentUserTurns = history.filter { $0.role == .user }.suffix(2).map(\.text)
                 let selection = PersonalContextBuilder.select(
-                    claims: personalModel.currentClaims(),
+                    claims: personalModel.usableClaims(includeEvidenceBacked: unscoped),
                     question: latest,
                     recentUserTurns: recentUserTurns)
                 agent.personalContext = selection.block

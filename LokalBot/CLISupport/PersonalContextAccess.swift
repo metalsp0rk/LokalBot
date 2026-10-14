@@ -97,6 +97,8 @@ struct PersonalContextProjection: Codable, Equatable, Sendable {
         enum Source: String, Codable, Sendable {
             case askedToRemember = "asked_to_remember"
             case addedInSettings = "added_in_settings"
+            /// Saved automatically from something the user said in a meeting.
+            case learnedFromMeeting = "learned_from_meeting"
         }
 
         var id: UUID
@@ -196,9 +198,10 @@ enum PersonalContextTool {
         "Personal context access is on, but LokalBot hasn't written the shared items yet. " +
         "Open LokalBot once so it can prepare them."
     static let note =
-        "These are the user's own statements, shared with agents by the user. Use them only when " +
-        "they bear on the task. Items not listed are unknown, not false. Never cite them as meeting " +
-        "or screen evidence."
+        "The user chose to share these with agents. \"stated\" items are the user's own words; " +
+        "\"learned\" items were picked up from what the user said in meetings and may be out of date. " +
+        "Use them only when they bear on the task. Items not listed are unknown, not false. Never " +
+        "cite them as meeting or screen evidence."
 
     static var definition: ToolDefinition {
         ToolDefinition(
@@ -303,13 +306,17 @@ enum PersonalContextTool {
         var items: [Report.Item] = []
         for claim in chosen {
             let source: String
+            var authority = "stated"
             switch claim.source {
             case .askedToRemember: source = "The user asked LokalBot to remember this"
             case .addedInSettings: source = "The user added this in LokalBot"
+            case .learnedFromMeeting:
+                source = "LokalBot learned this from something the user said in a meeting; it may be out of date"
+                authority = "learned"
             }
             items.append(Report.Item(
                 id: claim.id.uuidString.lowercased(), kind: claim.kind.rawValue, text: claim.text,
-                authority: "stated", asOf: day.string(from: claim.updatedAt), source: source,
+                authority: authority, asOf: day.string(from: claim.updatedAt), source: source,
                 alwaysUse: claim.alwaysUse))
         }
         return .success(Report(task: task, items: items, sharedCount: projection.claims.count, note: note))

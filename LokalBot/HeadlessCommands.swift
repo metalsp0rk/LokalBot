@@ -526,7 +526,7 @@ struct HeadlessCommandRunner {
                     dreamingEnabled: app.settings.dreamingEnabled)
                 if app.settings.askMemoryEnabled {
                     let selection = PersonalContextBuilder.select(
-                        claims: app.personalModel.currentClaims(), question: question)
+                        claims: app.personalModel.usableClaims(), question: question)
                     agent.personalContext = selection.block
                     if !selection.claims.isEmpty {
                         print("LokalBot --chat: using \(selection.claims.count) personal claim(s)")

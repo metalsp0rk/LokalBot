@@ -432,6 +432,19 @@ struct DreamStore {
         }
     }
 
+    /// For evidence-backed data kept outside this store (learned personal
+    /// claims): a check that is true when a later deletion or correction of a
+    /// source invalidated the provenance. Nil while a revocation is pending or
+    /// the state can't be read, so callers withhold that data until cleanup.
+    func evidenceCheck() -> ((DreamEvidenceProvenance) -> Bool)? {
+        let state: EvidenceState?? = try? withLock {
+            guard evidenceIsAvailable else { return nil }
+            return try evidenceState()
+        }
+        guard let state = state ?? nil else { return nil }
+        return { provenance in self.isInvalidated(provenance, by: state) }
+    }
+
     // MARK: - Plumbing
 
     private func evidenceState() throws -> EvidenceState {

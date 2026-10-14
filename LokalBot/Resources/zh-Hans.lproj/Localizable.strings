@@ -1205,3 +1205,6 @@
 "Clear Statistics" = "清除统计";
 "Deletes the daily and monthly counts. Usage and timing measurements are kept." = "删除每日和每月的计数。“用量与耗时”中的测量数据会保留。";
 "Counted on this Mac while you type in other apps: suggestions shown and accepted, the characters you type yourself where autocomplete works, and the pauses between them, by day, kind of app and model. No text, app names or window titles are kept. Time saved is the keystrokes you did not type at your measured speed, not counting time spent reading suggestions." = "在你于其他应用中输入时，于本机统计：显示和采用的建议、你在自动补全可用的位置自己输入的字符数及按键间隔，按天、应用类型和模型分别记录。不保存任何文字、应用名称或窗口标题。节省的时间按你实测的输入速度计算你少按的键，不含阅读建议的时间。";
+"Learn about me from my meetings" = "从我的会议中了解我";
+"Keep" = "保留";
+"Keep Even If the Meeting Is Deleted" = "即使删除会议也保留";

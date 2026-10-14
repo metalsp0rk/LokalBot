@@ -1205,3 +1205,6 @@
 "Clear Statistics" = "Clear Statistics";
 "Deletes the daily and monthly counts. Usage and timing measurements are kept." = "Deletes the daily and monthly counts. Usage and timing measurements are kept.";
 "Counted on this Mac while you type in other apps: suggestions shown and accepted, the characters you type yourself where autocomplete works, and the pauses between them, by day, kind of app and model. No text, app names or window titles are kept. Time saved is the keystrokes you did not type at your measured speed, not counting time spent reading suggestions." = "Counted on this Mac while you type in other apps: suggestions shown and accepted, the characters you type yourself where autocomplete works, and the pauses between them, by day, kind of app and model. No text, app names or window titles are kept. Time saved is the keystrokes you did not type at your measured speed, not counting time spent reading suggestions.";
+"Learn about me from my meetings" = "Learn about me from my meetings";
+"Keep" = "Keep";
+"Keep Even If the Meeting Is Deleted" = "Keep Even If the Meeting Is Deleted";

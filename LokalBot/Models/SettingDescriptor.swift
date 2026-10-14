@@ -71,6 +71,7 @@ struct SettingDescriptor: Identifiable {
         .init(id: "settings.stopDebounceSeconds", title: "Wait before stopping", category: .recording, aliases: "stop debounce delay seconds audio"),
         .init(id: "settings.cotypingDebounceMs", title: "Pause before suggesting", category: .writing, aliases: "autocomplete delay latency milliseconds"),
         .init(id: "settings.screenshotIntervalMinutes", title: "Idle capture interval", category: .dayMemory, aliases: "screenshot frequency fallback minutes"),
+        .init(id: "settings.personalLearningEnabled", title: "Learn about me from my meetings", category: .dayMemory, aliases: "learn about me automatic facts goals profile overnight"),
         .init(id: "settings.askMemoryEnabled", title: "Remember what I tell Ask", category: .dayMemory, aliases: "about you remember memory facts preferences goals principles values personal profile"),
         .init(id: "settings.summarizerBackend", title: "Think model backend", category: .models, aliases: "main llm remote processing destination inference think summarization apple ollama openai chatgpt claude subscription plan"),
         .init(id: "settings.openAIBaseURL", title: "OpenAI-compatible server URL", category: .models, aliases: "remote processing endpoint host base URL"),

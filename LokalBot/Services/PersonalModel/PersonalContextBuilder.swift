@@ -36,7 +36,7 @@ enum PersonalContextBuilder {
         return Selection(claims: chosen, block: block)
     }
 
-    static let header = "What the user has told LokalBot about themselves (their own statements, not evidence):"
+    static let header = "What LokalBot knows about the user. Items marked \"learned\" were picked up from what they said in meetings and may be out of date; the rest are their own statements. None of these are evidence:"
     static let footer = "Use these only when they bear on the question. They are not sources: never cite them as a meeting or screen source. If retrieved evidence contradicts one, say so. If two conflict, prefer the newer one and point out the conflict."
 
     static func line(for claim: PersonalClaim, timeZone: TimeZone = .current) -> String {
@@ -45,6 +45,7 @@ enum PersonalContextBuilder {
         formatter.timeZone = timeZone
         formatter.dateFormat = "yyyy-MM-dd"
         let text = PromptContextSanitizer.sanitize(claim.text, maxCharacters: PersonalModel.maxCharacters)
-        return "- [\(claim.kind.rawValue) · \(formatter.string(from: claim.updatedAt))] \(text)"
+        let learned = claim.authority == .learned ? "learned " : ""
+        return "- [\(claim.kind.rawValue) · \(learned)\(formatter.string(from: claim.updatedAt))] \(text)"
     }
 }

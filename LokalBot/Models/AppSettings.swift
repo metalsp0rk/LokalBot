@@ -326,6 +326,10 @@ struct AppSettings: Codable, Equatable {
     /// the person asks. Turning it off stops saving and use but keeps what is
     /// already remembered until the person forgets it.
     var askMemoryEnabled: Bool = true
+    /// After the overnight review, learn facts and goals about the person
+    /// from their own lines in that day's meetings (preferences wait for
+    /// review; principles are never learned). Needs Ask memory and the review.
+    var personalLearningEnabled: Bool = true
 
     // MARK: - Safe routines
 
@@ -811,6 +815,7 @@ struct AppSettings: Codable, Equatable {
         case dreamingHour
         case dreamingFirstEligibleDayKey
         case askMemoryEnabled
+        case personalLearningEnabled
         case memoryRoutinesEnabled
         case memoryRoutineFolder
         case enabledMemoryRoutines
@@ -1001,6 +1006,7 @@ struct AppSettings: Codable, Equatable {
             dreamingFirstEligibleDayKey,
             forKey: .dreamingFirstEligibleDayKey)
         try c.encode(askMemoryEnabled, forKey: .askMemoryEnabled)
+        try c.encode(personalLearningEnabled, forKey: .personalLearningEnabled)
         try c.encode(memoryRoutinesEnabled, forKey: .memoryRoutinesEnabled)
         try c.encode(memoryRoutineFolder, forKey: .memoryRoutineFolder)
         try c.encode(enabledMemoryRoutines, forKey: .enabledMemoryRoutines)
@@ -1176,6 +1182,7 @@ struct AppSettings: Codable, Equatable {
         dreamingHour = min(23, max(0, decode(.dreamingHour, defaults.dreamingHour)))
         dreamingFirstEligibleDayKey = decode(.dreamingFirstEligibleDayKey, String?.none)
         askMemoryEnabled = decode(.askMemoryEnabled, defaults.askMemoryEnabled)
+        personalLearningEnabled = decode(.personalLearningEnabled, defaults.personalLearningEnabled)
         memoryRoutinesEnabled = decode(.memoryRoutinesEnabled, defaults.memoryRoutinesEnabled)
         memoryRoutineFolder = decode(.memoryRoutineFolder, defaults.memoryRoutineFolder)
         enabledMemoryRoutines = decode(.enabledMemoryRoutines, defaults.enabledMemoryRoutines)

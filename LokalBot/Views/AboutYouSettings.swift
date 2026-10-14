@@ -1,8 +1,8 @@
 import SwiftUI
 
 /// Settings → Day Memory → About you: what the person told LokalBot about
-/// themselves. Phase 1 of the personal world model holds only their own
-/// statements, so every row can be edited or forgotten here.
+/// themselves, what it learned from their meetings, and learned preferences
+/// waiting for review. Every row can be edited or forgotten here.
 struct AboutYouSettings: View {
     @EnvironmentObject private var app: AppState
     @ObservedObject var personalModel: PersonalModelController
@@ -31,11 +31,30 @@ struct AboutYouSettings: View {
             }
             .settingTarget("settings.askMemoryEnabled", selected: app.focusedSettingID)
             .accessibilityIdentifier("settings.askMemory")
+            Toggle(isOn: $app.settings.personalLearningEnabled) {
+                SettingsLabel("Learn about me from my meetings",
+                              help: "After the overnight review, LokalBot reads only what you said in that day's meetings and saves up to three new facts or goals about you. Preferences wait for your review below. It never learns your principles or values.")
+            }
+            .settingTarget("settings.personalLearningEnabled", selected: app.focusedSettingID)
+            .disabled(!app.settings.askMemoryEnabled)
+            .accessibilityIdentifier("settings.personalLearning")
+            if app.settings.personalLearningEnabled, app.settings.askMemoryEnabled, !app.settings.dreamingEnabled {
+                SettingsHelp("Learning runs after the overnight review, which is off.")
+            }
             if let loadError = personalModel.loadError {
                 Label(loadError, systemImage: "exclamationmark.triangle")
                     .workspaceTextRole(.warning)
             }
-            let claims = personalModel.orderedClaims
+            let suggestions = personalModel.suggestions
+            if !suggestions.isEmpty {
+                Text(suggestions.count == 1 ? "1 suggestion to review" : "\(suggestions.count) suggestions to review")
+                    .font(.scaled(.caption).weight(.semibold))
+                    .settingsSecondary()
+                ForEach(suggestions) { claim in
+                    suggestionRow(claim)
+                }
+            }
+            let claims = personalModel.orderedClaims.filter { $0.status == .confirmed }
             if claims.isEmpty {
                 SettingsHelp("Nothing yet. Try “Remember that Maya is my manager” or “Remember: answer in bullet points”.")
             } else {
@@ -61,7 +80,9 @@ struct AboutYouSettings: View {
                                 + "(MCP clients and the CLI) read only items you mark Share with agents, and only while "
                                 + "personal context access is on in Settings → Privacy. Agent Mode, Autocomplete, exports, "
                                 + "and diagnostics never get them. Turning this off stops saving and using them in Ask; "
-                                + "forget them here to delete them.")
+                                + "forget them here to delete them. Learned items go when you delete or correct the "
+                                + "meeting they came from, unless you keep them. Questions limited to some sources or "
+                                + "days don't get learned items. A forgotten learned item isn't learned again.")
         }
         .onAppear { personalModel.loadIfNeeded() }
         .sheet(item: $editing) { target in
@@ -96,7 +117,10 @@ struct AboutYouSettings: View {
                 Text(claim.text)
                     .textSelection(.enabled)
                     .fixedSize(horizontal: false, vertical: true)
-                SettingsHelp(Self.originLine(for: claim))
+                SettingsHelp(originLine(for: claim))
+                if claim.authority == .learned, let quote = claim.quote {
+                    quoteLine(quote)
+                }
             }
             Spacer(minLength: 8)
             if claim.sharing == .agents {
@@ -119,6 +143,15 @@ struct AboutYouSettings: View {
                 Button(claim.sharing == .agents ? "Stop Sharing with Agents" : "Share with Agents") {
                     report(personalModel.update(
                         claim.id, sharing: claim.sharing == .agents ? .lokalBotOnly : .agents))
+                }
+                if case .learned(let meetingID, _) = claim.origin {
+                    Divider()
+                    Button("Open Meeting") { app.openMeeting(meetingID) }
+                    if claim.evidence != nil {
+                        Button("Keep Even If the Meeting Is Deleted") {
+                            report(personalModel.keepAsStatement(claim.id))
+                        }
+                    }
                 }
                 Divider()
                 Button("Forget", role: .destructive) { report(personalModel.forget([claim.id])) }
@@ -156,12 +189,57 @@ struct AboutYouSettings: View {
         }
     }
 
-    static func originLine(for claim: PersonalClaim) -> String {
+    private func suggestionRow(_ claim: PersonalClaim) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "sparkles")
+                .foregroundStyle(Brand.teal)
+                .frame(width: 18)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(claim.text)
+                    .textSelection(.enabled)
+                    .fixedSize(horizontal: false, vertical: true)
+                SettingsHelp(originLine(for: claim))
+                if let quote = claim.quote { quoteLine(quote) }
+                HStack(spacing: 10) {
+                    Button("Keep") { report(personalModel.confirm(claim.id)) }
+                        .accessibilityIdentifier("settings.aboutYou.suggestion.keep")
+                    Button("Edit…") { editing = .edit(claim) }
+                    Button("Dismiss") { report(personalModel.dismiss(claim.id)) }
+                        .accessibilityIdentifier("settings.aboutYou.suggestion.dismiss")
+                    if case .learned(let meetingID, _) = claim.origin {
+                        Button("Open Meeting") { app.openMeeting(meetingID) }
+                    }
+                }
+                .buttonStyle(.borderless)
+                .font(AppFont.scaled(.callout))
+            }
+        }
+        .accessibilityIdentifier("settings.aboutYou.suggestion")
+    }
+
+    private func quoteLine(_ quote: String) -> some View {
+        Text("You said: “\(quote)”")
+            .font(.scaled(.caption))
+            .italic()
+            .settingsSecondary()
+            .lineLimit(3)
+            .textSelection(.enabled)
+    }
+
+    private func originLine(for claim: PersonalClaim) -> String {
         let day = claim.createdAt.formatted(date: .abbreviated, time: .omitted)
         let origin: String
         switch claim.origin {
         case .said: origin = "You said this in Ask"
         case .added: origin = "Added in Settings"
+        case .learned(let meetingID, _):
+            let title = app.meetings.first { $0.id == meetingID }?.title ?? "a meeting"
+            switch claim.authority {
+            case .learned: origin = "Learned from \(title)"
+            case .confirmed: origin = "Learned from \(title), kept by you"
+            case .stated: origin = "Learned from \(title), now your own statement"
+            }
         }
         return "\(claim.kind.displayName) · \(origin) · \(day)"
     }

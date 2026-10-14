@@ -100,11 +100,27 @@ until you remove them.
 
 **About you** (Settings → Day Memory) holds what you tell Ask to remember
 about yourself: messages that start with "Remember …" in Ask or Quick Recall,
-and items you add there. Nothing is inferred or extracted from your meetings
-or screen. The items are AES-GCM encrypted with the same per-install key as
-saved Ask conversations, in the library's `memory` folder. Each Ask question,
-including one limited to some sources or days, includes the relevant items
-in its prompt to your Think model, which may be an approved remote server.
+and items you add there. With **Learn about me from my meetings** (on by
+default, part of the overnight review) it also learns about you. After each
+review, LokalBot sends your own transcript lines from that day's meetings to
+your Think model. It sends only lines with first-person words such as "I"
+or "my", at most 40 lines and 6,000 characters, plus what About you already
+holds. Other speakers' lines are never sent, nor your lines from a
+microphone several people shared. This follows the same approved-server rule
+as the overnight review. Up to three
+facts or goals a night are saved and used without review; learned
+preferences wait for you to keep or dismiss them; principles and values are
+never learned. Each learned item must come from one of your lines, shows
+that line, and is labelled as learned wherever it is used. Deleting or
+correcting the meeting it came from removes it unless you chose **Keep Even
+If the Meeting Is Deleted**. Forgetting a learned item, or dismissing a
+suggestion, keeps a one-way hash for 180 days so the same text isn't
+learned again. Unreviewed suggestions are dropped after 14 days.
+The items are AES-GCM encrypted with the same per-install key as
+saved Ask conversations, in the library's `memory` folder. Each Ask question
+includes the relevant items in its prompt to your Think model, which may be
+an approved remote server. A question limited to some sources or days gets
+only items you stated, not learned ones.
 The answer lists the items it was given. External agents can read only items
 you mark **Share with agents**, and only while the separate personal-context
 grant described under External-agent access is on. Agent Mode, Autocomplete,

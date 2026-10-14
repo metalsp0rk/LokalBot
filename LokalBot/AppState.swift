@@ -833,7 +833,9 @@ final class AppState: ObservableObject {
     /// What the person told LokalBot about themselves: Ask and Quick Recall
     /// read and add to it, Settings → Day Memory → About you edits it.
     private(set) lazy var personalModel: PersonalModelController = {
-        let controller = PersonalModelController(store: PersonalModelStore(root: storage.rootURL))
+        let controller = PersonalModelController(
+            store: PersonalModelStore(root: storage.rootURL),
+            evidenceCheck: { [weak self] in self?.dreamStore.evidenceCheck() })
         controller.onChange = { [weak self] claims in
             self?.personalContextAccess.refresh(claims)
         }
@@ -1834,6 +1836,8 @@ final class AppState: ObservableObject {
         invalidateDreams(affectedDays: days, affectedMeetingIDs: meetingIDs,
                          comparisonWindowDays: activityOnly ? 1 : DreamCompiler.comparisonWindowDays,
                          activityOnly: activityOnly)
+        // Learned facts and goals go with the meeting they came from.
+        if !meetingIDs.isEmpty { personalModel.retractIfLoaded() }
     }
 
     /// Reprocessing revises a meeting; it does not delete it. On 2026-10-07 a
@@ -2319,10 +2323,38 @@ final class AppState: ObservableObject {
                 let report = try await service.dream(target: target)
                 self.latestDreamReport = report
                 self.refreshDreamMemory()
+                await self.learnAboutPerson(target: target)
             },
             onError: { [weak self] message in
                 self?.lastError = message
             })
+    }
+
+    /// After the overnight review: learn up to three facts, goals, or
+    /// suggested preferences from what the person said in that day's
+    /// meetings. Best effort; a failure never affects the review itself.
+    private func learnAboutPerson(target: DreamScheduler.Target) async {
+        guard settings.askMemoryEnabled, settings.personalLearningEnabled else { return }
+        let engineSettings = settings
+        if target.isAutomatic && !engineSettings.allowsAutomaticMainInference { return }
+        do {
+            let revision = try dreamStore.evidenceRevision()
+            let engine = try await thinkExecution.makeTextEngine(
+                engineSettings, priority: .background, purpose: "personal learning")
+            try Task.checkCancellation()
+            let known = personalModel.usableClaims() + personalModel.suggestions
+            let candidates = try await PersonalLearning.run(
+                day: target.day, storageRoot: storage.rootURL, known: known, revision: revision,
+                engine: engine, calendar: target.calendar)
+            guard !candidates.isEmpty else { return }
+            let outcome = personalModel.learn(candidates)
+            lokalbotLog("personal learning: day=\(target.dayKey) saved=\(outcome.saved.count) "
+                + "suggested=\(outcome.proposed.count) skipped=\(outcome.skipped)")
+        } catch is CancellationError {
+            return
+        } catch {
+            lokalbotLog("personal learning skipped: \(error.localizedDescription)")
+        }
     }
 
     func setDreamingEnabled(_ enabled: Bool) {
