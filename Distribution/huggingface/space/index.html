@@ -21,7 +21,7 @@
   <main><h1>LokalBot local-stack benchmarks — extracted numbers</h1>
 <p>Every number below is copied verbatim from a file in this repository; the <strong>Source</strong> column or line is the path to check. Nothing here is estimated or invented. All measurements to date were taken on a single machine: an <strong>Apple M4 Max, 48 GB</strong> of unified memory. These are engine-level benchmarks, not end-to-end UI timings. The repository index of every report is <a href="https://github.com/stevyhacker/lokalbot/blob/master/Benchmarks/README.md"><code>Benchmarks/README.md</code></a>.</p>
 <h2>Current default stack</h2>
-<p>The defaults on a fresh install total about <strong>6.5 GB</strong> of model files if every role is used (<a href="https://github.com/stevyhacker/lokalbot/blob/master/README.md"><code>README.md</code></a>, "Local AI, your choice").</p>
+<p>The defaults on a fresh install total about <strong>9.6 GB</strong> of model files if every role is used (<a href="https://github.com/stevyhacker/lokalbot/blob/master/README.md"><code>README.md</code></a>, "Local AI, your choice").</p>
 <table>
 <thead>
 <tr>
@@ -68,11 +68,11 @@
 </tr>
 <tr>
 <td>Autocomplete</td>
-<td>LFM2.5 1.2B Instruct</td>
-<td><code>Q4_K_M</code></td>
-<td style="text-align: right;">0.73 GB</td>
-<td>28/28 safety, 12/13 completions, 484–494 ms p95</td>
-<td><a href="https://github.com/stevyhacker/lokalbot/blob/master/Benchmarks/Cotyping/results/2026-07-21-model-debounce-benchmark.md"><code>Benchmarks/Cotyping/results/2026-07-21-model-debounce-benchmark.md</code></a></td>
+<td>Gemma 4 E2B Base</td>
+<td><code>Q6_K</code></td>
+<td style="text-align: right;">3.85 GB</td>
+<td>34.50% held-out next-word accuracy vs 30.43% for LFM2.5; on today's engine check, 12/13 completions and 851–1,054 ms p95 but 25/28 safety, so it fails that gate</td>
+<td><a href="https://github.com/stevyhacker/lokalbot/blob/master/Benchmarks/Cotyping/results/2026-10-02-quality/REPORT.md"><code>Benchmarks/Cotyping/results/2026-10-02-quality/REPORT.md</code></a>, <a href="https://github.com/stevyhacker/lokalbot/blob/master/Benchmarks/Cotyping/results/2026-10-14-engine-bench/REPORT.md"><code>Benchmarks/Cotyping/results/2026-10-14-engine-bench/REPORT.md</code></a></td>
 </tr>
 <tr>
 <td>Screen text (opt-in)</td>
@@ -84,7 +84,7 @@
 </tr>
 </tbody>
 </table>
-<p>Alternatives remain selectable in the app: Parakeet, Granite Speech, Whisper large-v3 turbo, SenseVoice, and GigaAM for transcription, and Pyannote Community-1 for diarization (<a href="https://github.com/stevyhacker/lokalbot/blob/master/README.md"><code>README.md</code></a>).</p>
+<p>Alternatives remain selectable in the app: Parakeet, Granite Speech, Whisper large-v3 turbo, SenseVoice, and GigaAM for transcription, Pyannote Community-1 for diarization, and LFM2.5 1.2B Instruct <code>Q4_K_M</code> (0.73 GB, the Lightweight preset) for autocomplete (<a href="https://github.com/stevyhacker/lokalbot/blob/master/README.md"><code>README.md</code></a>).</p>
 <h2>Speaker diarization — Nemotron 3 vs Pyannote Community-1</h2>
 <p>Four independent English AMI test meetings, each evaluated as headset mix and distant-microphone audio: <strong>8 conditions, 184.55 minutes of audio</strong>, four speakers in every reference. DER adds missed speech, false alarms, and speaker confusion, divided by reference speaker time; overlap is scored and no speaker-count hints were used. Speed is the warm median over three runs on the 17.49-minute ES2004a headset recording. Source: <a href="https://github.com/stevyhacker/lokalbot/blob/master/Benchmarks/NemotronDiarization/results/2026-09-23/REPORT.md"><code>Benchmarks/NemotronDiarization/results/2026-09-23/REPORT.md</code></a> (scores in <a href="https://github.com/stevyhacker/lokalbot/blob/master/Benchmarks/NemotronDiarization/results/2026-09-23/scores.json"><code>Benchmarks/NemotronDiarization/results/2026-09-23/scores.json</code></a>).</p>
 <table>
@@ -273,8 +273,51 @@
 </tbody>
 </table>
 <p>Granite 5 is English-only, emits unpunctuated lowercase text, and is not integrated into LokalBot. This small set does not establish a reliable accuracy ordering.</p>
-<h2>Cotyping (inline autocomplete) latency matrix</h2>
-<p>Harness: production <code>LokalBot --cotyping-bench</code>, all 28 default scenarios through the real in-process llama.cpp engine. Gate = 28/28 safety, ≥12/13 word completions, p95 ≤ 2000 ms. Source: <a href="https://github.com/stevyhacker/lokalbot/blob/master/Benchmarks/Cotyping/results/2026-07-21-model-debounce-benchmark.md"><code>Benchmarks/Cotyping/results/2026-07-21-model-debounce-benchmark.md</code></a>.</p>
+<h2>Cotyping (inline autocomplete) — today's engine, 2026-10-14</h2>
+<p>Harness: production <code>LokalBot --cotyping-bench</code>, all 28 default scenarios through the real in-process llama.cpp engine. Engine only: input monitoring, debounce, AX validation, and the overlay are excluded. Gate = 28/28 safety, ≥12/13 word completions, p95 ≤ 2000 ms, unchanged since July. Release build of <code>master</code> at <code>9bff2ca</code>, unmodified app code; 3 output words, local learning and clipboard context off, app context on. Ranges cover 6 complete Gemma runs and 4 LFM2.5 runs; every run of a model produced the same suggestion text and suppression for every scenario. Source: <a href="https://github.com/stevyhacker/lokalbot/blob/master/Benchmarks/Cotyping/results/2026-10-14-engine-bench/REPORT.md"><code>Benchmarks/Cotyping/results/2026-10-14-engine-bench/REPORT.md</code></a> (per-run figures in <a href="https://github.com/stevyhacker/lokalbot/blob/master/Benchmarks/Cotyping/results/2026-10-14-engine-bench/summary.json"><code>Benchmarks/Cotyping/results/2026-10-14-engine-bench/summary.json</code></a>).</p>
+<p><strong>Neither model passes the gate on current code.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Exact file</th>
+<th>Safety</th>
+<th>Word completions</th>
+<th>Avg latency, first request excluded</th>
+<th>p95 latency</th>
+<th>Gate</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Gemma 4 E2B Base (current default)</td>
+<td><code>gemma-4-E2B.i1-Q6_K.gguf</code></td>
+<td>25/28</td>
+<td>12/13</td>
+<td>99–116 ms</td>
+<td>851–1,054 ms</td>
+<td>Fail (safety)</td>
+</tr>
+<tr>
+<td>LFM2.5 1.2B Instruct (Lightweight preset)</td>
+<td><code>LFM2.5-1.2B-Instruct-Q4_K_M.gguf</code></td>
+<td>24/28</td>
+<td>11/13</td>
+<td>41–46 ms</td>
+<td>217–292 ms</td>
+<td>Fail (safety, word completion)</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>Both models miss the same 3 safety scenarios.</strong> Each time, the first-word confidence gate (added 2026-10-06 in <code>ef8eeef</code>) held back a suggestion (<code>lowConfidence</code>) in an open-ended scenario that expects visible text: <code>notes-list</code>, <code>comma-clause</code>, and <code>sentence-start</code>. Neither model inserted unsafe text, leaked the prompt, or produced an error.</li>
+<li>LFM2.5's fourth miss is <code>wc-schedule</code>: it completed "schedu" as "ling." ("scheduling."), but the scenario requires "le". The 13th word-completion case (<code>mid-word</code>) is the allowed strictly-inside-word suppression for both models; as in July, 12/13 is the suite's ceiling.</li>
+<li>Averages leave out each fresh process's first request, which loads the model: <strong>39.4–44.0 s</strong> for Gemma 4 E2B Base and <strong>9.6–13.3 s</strong> for LFM2.5 in a fresh test profile. Including it, the harness reports 1,518–1,665 ms and 381–521 ms averages. Medians of the other 27 requests were 75–81 ms and 32–35 ms. The harness p95 is nearest-rank over 28, so it lands on the second request after load, which is still slower than steady state. The first request's cause was not isolated (it is not integrity hashing), so it is not evidence of what a long-running installed app shows on its first keystroke.</li>
+<li>Keyword hits, a weak relevance signal and not a gate: Gemma 11/64, LFM2.5 8/64 (LFM2.5 had 15/64 in July).</li>
+</ul>
+<p>Gemma 4 E2B Base is the default because of held-out exact next-word accuracy, not because of this gate: <strong>34.50% vs 30.43%</strong> for LFM2.5 (2,300 vs 2,029 of 6,667 held-out word checkpoints), at a warm generation p95 of 68.21 ms vs 29.49 ms. These are synthetic replay results through the production engine, not observed user acceptance rates. Source: <a href="https://github.com/stevyhacker/lokalbot/blob/master/Benchmarks/Cotyping/results/2026-10-02-quality/REPORT.md"><code>Benchmarks/Cotyping/results/2026-10-02-quality/REPORT.md</code></a>.</p>
+<h2>Cotyping (inline autocomplete) — earlier July 21 run, Debug build</h2>
+<p>Kept as an earlier snapshot only. This run used a <strong>Debug</strong> build of code that predates the confidence gate, the October quality and prompt changes, and the hybrid decoder, so its passes for LFM2.5 and Gemma 4 E4B Instruct do not carry over to today's engine. LFM2.5 was the autocomplete default at the time. Same harness and gate as above. Source: <a href="https://github.com/stevyhacker/lokalbot/blob/master/Benchmarks/Cotyping/results/2026-07-21-model-debounce-benchmark.md"><code>Benchmarks/Cotyping/results/2026-07-21-model-debounce-benchmark.md</code></a>.</p>
 <table>
 <thead>
 <tr>
@@ -351,7 +394,7 @@
 </tr>
 </tbody>
 </table>
-<p>Supporting figures from the same sources:</p>
+<p>Supporting figures from the July and earlier sources:</p>
 <ul>
 <li>LFM2.5 keyword relevance: <strong>15/64 hits vs 13/64</strong> for the Gemma instruct baseline — "a weak relevance signal, not a separate gate" (<a href="https://github.com/stevyhacker/lokalbot/blob/master/Benchmarks/Cotyping/results/2026-07-21-model-debounce-benchmark.md"><code>Benchmarks/Cotyping/results/2026-07-21-model-debounce-benchmark.md</code></a>).</li>
 <li>Cold Metal-kernel compilation, first scenario only: LFM2.5 <strong>19,349 ms</strong>, Gemma E4B instruct <strong>127,466 ms</strong> (same file).</li>
@@ -524,6 +567,10 @@
 <tr>
 <td>OCR sets are small (15 real + 5 synthetic screenshots)</td>
 <td>Grow the synthetic manifest to ≥50 fixtures across app categories and re-run <code>score_text_outputs.py</code>.</td>
+</tr>
+<tr>
+<td>Autocomplete's first request in a fresh profile (39.4–44.0 s for Gemma 4 E2B Base) has no isolated cause</td>
+<td>Time the first suggestion in a long-running installed app separately from the fresh-profile <code>--cotyping-bench</code> run.</td>
 </tr>
 <tr>
 <td>Cotyping keyword-hit count is self-declared a weak signal</td>

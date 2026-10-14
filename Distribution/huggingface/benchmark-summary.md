@@ -4,7 +4,7 @@ Every number below is copied verbatim from a file in this repository; the **Sour
 
 ## Current default stack
 
-The defaults on a fresh install total about **6.5 GB** of model files if every role is used (`README.md`, "Local AI, your choice").
+The defaults on a fresh install total about **9.6 GB** of model files if every role is used (`README.md`, "Local AI, your choice").
 
 | Role | Default model | Format | Model files | Headline result | Source |
 | --- | --- | --- | ---: | --- | --- |
@@ -12,10 +12,10 @@ The defaults on a fresh install total about **6.5 GB** of model files if every r
 | Speaker diarization | Nemotron 3 (preview) via FluidAudio | Core ML | ~0.20 GB | 14.56% DER vs 43.44% for the previous default; 500× real time | `Benchmarks/NemotronDiarization/results/2026-09-23/REPORT.md` |
 | Summaries and chat | Qwen3.5 4B | `Q4_K_M` | 2.74 GB | 26-minute meeting summarized in 33.4 s warm / 59.8 s cold | `Benchmarks/SummaryEfficiency/results-2026-09-09.json` |
 | Semantic search | EmbeddingGemma 2 | `Q8_0` | 0.31 GB | Correct passage first for 43/48 queries vs 40/48 for Harrier 0.6B | `Benchmarks/EmbeddingGemma2/2026-10-07/REPORT.md` |
-| Autocomplete | LFM2.5 1.2B Instruct | `Q4_K_M` | 0.73 GB | 28/28 safety, 12/13 completions, 484–494 ms p95 | `Benchmarks/Cotyping/results/2026-07-21-model-debounce-benchmark.md` |
+| Autocomplete | Gemma 4 E2B Base | `Q6_K` | 3.85 GB | 34.50% held-out next-word accuracy vs 30.43% for LFM2.5; on today's engine check, 12/13 completions and 851–1,054 ms p95 but 25/28 safety, so it fails that gate | `Benchmarks/Cotyping/results/2026-10-02-quality/REPORT.md`, `Benchmarks/Cotyping/results/2026-10-14-engine-bench/REPORT.md` |
 | Screen text (opt-in) | Apple Vision | Built into macOS | — | 0.971 token F1 at 119.6 ms per synthetic screenshot | `Benchmarks/OCR/SYNTHETIC-RESULTS-2026-06-24.md` |
 
-Alternatives remain selectable in the app: Parakeet, Granite Speech, Whisper large-v3 turbo, SenseVoice, and GigaAM for transcription, and Pyannote Community-1 for diarization (`README.md`).
+Alternatives remain selectable in the app: Parakeet, Granite Speech, Whisper large-v3 turbo, SenseVoice, and GigaAM for transcription, Pyannote Community-1 for diarization, and LFM2.5 1.2B Instruct `Q4_K_M` (0.73 GB, the Lightweight preset) for autocomplete (`README.md`).
 
 ## Speaker diarization — Nemotron 3 vs Pyannote Community-1
 
@@ -75,9 +75,27 @@ The 6-point gain is within noise on 48 correlated queries (95% interval −4 to 
 
 Granite 5 is English-only, emits unpunctuated lowercase text, and is not integrated into LokalBot. This small set does not establish a reliable accuracy ordering.
 
-## Cotyping (inline autocomplete) latency matrix
+## Cotyping (inline autocomplete) — today's engine, 2026-10-14
 
-Harness: production `LokalBot --cotyping-bench`, all 28 default scenarios through the real in-process llama.cpp engine. Gate = 28/28 safety, ≥12/13 word completions, p95 ≤ 2000 ms. Source: `Benchmarks/Cotyping/results/2026-07-21-model-debounce-benchmark.md`.
+Harness: production `LokalBot --cotyping-bench`, all 28 default scenarios through the real in-process llama.cpp engine. Engine only: input monitoring, debounce, AX validation, and the overlay are excluded. Gate = 28/28 safety, ≥12/13 word completions, p95 ≤ 2000 ms, unchanged since July. Release build of `master` at `9bff2ca`, unmodified app code; 3 output words, local learning and clipboard context off, app context on. Ranges cover 6 complete Gemma runs and 4 LFM2.5 runs; every run of a model produced the same suggestion text and suppression for every scenario. Source: `Benchmarks/Cotyping/results/2026-10-14-engine-bench/REPORT.md` (per-run figures in `Benchmarks/Cotyping/results/2026-10-14-engine-bench/summary.json`).
+
+**Neither model passes the gate on current code.**
+
+| Model | Exact file | Safety | Word completions | Avg latency, first request excluded | p95 latency | Gate |
+| --- | --- | --- | --- | --- | --- | --- |
+| Gemma 4 E2B Base (current default) | `gemma-4-E2B.i1-Q6_K.gguf` | 25/28 | 12/13 | 99–116 ms | 851–1,054 ms | Fail (safety) |
+| LFM2.5 1.2B Instruct (Lightweight preset) | `LFM2.5-1.2B-Instruct-Q4_K_M.gguf` | 24/28 | 11/13 | 41–46 ms | 217–292 ms | Fail (safety, word completion) |
+
+- **Both models miss the same 3 safety scenarios.** Each time, the first-word confidence gate (added 2026-10-06 in `ef8eeef`) held back a suggestion (`lowConfidence`) in an open-ended scenario that expects visible text: `notes-list`, `comma-clause`, and `sentence-start`. Neither model inserted unsafe text, leaked the prompt, or produced an error.
+- LFM2.5's fourth miss is `wc-schedule`: it completed "schedu" as "ling." ("scheduling."), but the scenario requires "le". The 13th word-completion case (`mid-word`) is the allowed strictly-inside-word suppression for both models; as in July, 12/13 is the suite's ceiling.
+- Averages leave out each fresh process's first request, which loads the model: **39.4–44.0 s** for Gemma 4 E2B Base and **9.6–13.3 s** for LFM2.5 in a fresh test profile. Including it, the harness reports 1,518–1,665 ms and 381–521 ms averages. Medians of the other 27 requests were 75–81 ms and 32–35 ms. The harness p95 is nearest-rank over 28, so it lands on the second request after load, which is still slower than steady state. The first request's cause was not isolated (it is not integrity hashing), so it is not evidence of what a long-running installed app shows on its first keystroke.
+- Keyword hits, a weak relevance signal and not a gate: Gemma 11/64, LFM2.5 8/64 (LFM2.5 had 15/64 in July).
+
+Gemma 4 E2B Base is the default because of held-out exact next-word accuracy, not because of this gate: **34.50% vs 30.43%** for LFM2.5 (2,300 vs 2,029 of 6,667 held-out word checkpoints), at a warm generation p95 of 68.21 ms vs 29.49 ms. These are synthetic replay results through the production engine, not observed user acceptance rates. Source: `Benchmarks/Cotyping/results/2026-10-02-quality/REPORT.md`.
+
+## Cotyping (inline autocomplete) — earlier July 21 run, Debug build
+
+Kept as an earlier snapshot only. This run used a **Debug** build of code that predates the confidence gate, the October quality and prompt changes, and the hybrid decoder, so its passes for LFM2.5 and Gemma 4 E4B Instruct do not carry over to today's engine. LFM2.5 was the autocomplete default at the time. Same harness and gate as above. Source: `Benchmarks/Cotyping/results/2026-07-21-model-debounce-benchmark.md`.
 
 | Model | Exact file | Bytes | Safety | Word completions | Avg latency | p95 latency | Gate |
 | --- | --- | ---: | --- | --- | --- | --- | --- |
@@ -88,7 +106,7 @@ Harness: production `LokalBot --cotyping-bench`, all 28 default scenarios throug
 | Gemma 4 E2B (base) | `gemma-4-E2B.i1-Q6_K.gguf` | 3,845,328,608 | 26/28 | 10/13 | 883 ms | 2,560 ms | Fail quality + latency |
 | Gemma 4 E4B (base) | `gemma-4-E4B-UD-Q5_K_XL.gguf` | 6,700,259,616 | 26/28 | 10/13 | 697 ms | 3,022 ms | Fail quality + latency |
 
-Supporting figures from the same sources:
+Supporting figures from the July and earlier sources:
 
 - LFM2.5 keyword relevance: **15/64 hits vs 13/64** for the Gemma instruct baseline — "a weak relevance signal, not a separate gate" (`Benchmarks/Cotyping/results/2026-07-21-model-debounce-benchmark.md`).
 - Cold Metal-kernel compilation, first scenario only: LFM2.5 **19,349 ms**, Gemma E4B instruct **127,466 ms** (same file).
@@ -135,4 +153,5 @@ Notes from the same file: PP-OCRv6 was the only open-source option slightly abov
 | Search pilot is 48 authored queries | Validate EmbeddingGemma 2 with human-annotated queries over a larger real library. |
 | No summarization-quality evaluation for Qwen3.5 4B | Human-rate recaps on a fixed meeting corpus (faithfulness, action-item completeness); publish rubric + raw ratings. |
 | OCR sets are small (15 real + 5 synthetic screenshots) | Grow the synthetic manifest to ≥50 fixtures across app categories and re-run `score_text_outputs.py`. |
+| Autocomplete's first request in a fresh profile (39.4–44.0 s for Gemma 4 E2B Base) has no isolated cause | Time the first suggestion in a long-running installed app separately from the fresh-profile `--cotyping-bench` run. |
 | Cotyping keyword-hit count is self-declared a weak signal | Replace with a curated expected-completion suite reviewed by humans before quoting relevance numbers. |
