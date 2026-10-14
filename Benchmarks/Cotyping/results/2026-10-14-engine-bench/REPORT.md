@@ -1,5 +1,11 @@
 # Autocomplete engine benchmark — 2026-10-14
 
+**Superseded by the [2026-10-15 engine benchmark](../2026-10-15-engine-benchmark/REPORT.md).**
+This run used the original scoring, which counted withheld suggestions as safety
+failures and timed a full app process. `run_in_process_benchmark.py` was
+replaced by `engine_benchmark.py` afterwards; the version used here is in commit
+`3a2344e`.
+
 The [July 21 run](../2026-07-21-model-debounce-benchmark.md) predates the current
 default autocomplete model. This run repeats the same 28-scenario
 `LokalBot --cotyping-bench` harness on today's code for **Gemma 4 E2B Base

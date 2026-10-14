@@ -1,0 +1,5665 @@
+{
+  "overall": {
+    "checkpoints": 788,
+    "correct": 163,
+    "shown": 379,
+    "accuracy": 0.2069,
+    "coverage": 0.481,
+    "precision": 0.4301,
+    "errors": 0
+  },
+  "english": {
+    "checkpoints": 624,
+    "correct": 151,
+    "shown": 359,
+    "accuracy": 0.242,
+    "coverage": 0.5753,
+    "precision": 0.4206,
+    "errors": 0
+  },
+  "otherLanguages": {
+    "checkpoints": 164,
+    "correct": 12,
+    "shown": 20,
+    "accuracy": 0.0732,
+    "coverage": 0.122,
+    "precision": 0.6,
+    "errors": 0
+  },
+  "categories": {
+    "conversation": {
+      "checkpoints": 76,
+      "correct": 15,
+      "shown": 39,
+      "accuracy": 0.1974,
+      "coverage": 0.5132,
+      "precision": 0.3846,
+      "errors": 0
+    },
+    "email": {
+      "checkpoints": 52,
+      "correct": 22,
+      "shown": 45,
+      "accuracy": 0.4231,
+      "coverage": 0.8654,
+      "precision": 0.4889,
+      "errors": 0
+    },
+    "everyday": {
+      "checkpoints": 80,
+      "correct": 23,
+      "shown": 41,
+      "accuracy": 0.2875,
+      "coverage": 0.5125,
+      "precision": 0.561,
+      "errors": 0
+    },
+    "formatting": {
+      "checkpoints": 39,
+      "correct": 15,
+      "shown": 30,
+      "accuracy": 0.3846,
+      "coverage": 0.7692,
+      "precision": 0.5,
+      "errors": 0
+    },
+    "long-context": {
+      "checkpoints": 47,
+      "correct": 11,
+      "shown": 39,
+      "accuracy": 0.234,
+      "coverage": 0.8298,
+      "precision": 0.2821,
+      "errors": 0
+    },
+    "multilingual": {
+      "checkpoints": 40,
+      "correct": 12,
+      "shown": 18,
+      "accuracy": 0.3,
+      "coverage": 0.45,
+      "precision": 0.6667,
+      "errors": 0
+    },
+    "science": {
+      "checkpoints": 85,
+      "correct": 19,
+      "shown": 41,
+      "accuracy": 0.2235,
+      "coverage": 0.4824,
+      "precision": 0.4634,
+      "errors": 0
+    },
+    "serbian-cyrillic": {
+      "checkpoints": 58,
+      "correct": 0,
+      "shown": 1,
+      "accuracy": 0.0,
+      "coverage": 0.0172,
+      "precision": 0.0,
+      "errors": 0
+    },
+    "serbian-latin": {
+      "checkpoints": 66,
+      "correct": 0,
+      "shown": 1,
+      "accuracy": 0.0,
+      "coverage": 0.0152,
+      "precision": 0.0,
+      "errors": 0
+    },
+    "technology": {
+      "checkpoints": 86,
+      "correct": 18,
+      "shown": 46,
+      "accuracy": 0.2093,
+      "coverage": 0.5349,
+      "precision": 0.3913,
+      "errors": 0
+    },
+    "travel": {
+      "checkpoints": 83,
+      "correct": 18,
+      "shown": 39,
+      "accuracy": 0.2169,
+      "coverage": 0.4699,
+      "precision": 0.4615,
+      "errors": 0
+    },
+    "work": {
+      "checkpoints": 76,
+      "correct": 10,
+      "shown": 39,
+      "accuracy": 0.1316,
+      "coverage": 0.5132,
+      "precision": 0.2564,
+      "errors": 0
+    }
+  },
+  "latency": {
+    "count": 788,
+    "meanMs": 16.1,
+    "medianMs": 11.3,
+    "p90Ms": 28.2,
+    "p95Ms": 63.5,
+    "maxMs": 76.7
+  },
+  "scores": [
+    {
+      "id": "quality-email-01:1:0",
+      "category": "email",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 23.024417
+    },
+    {
+      "id": "quality-email-01:2:0",
+      "category": "email",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 29.54375
+    },
+    {
+      "id": "quality-email-01:3:0",
+      "category": "email",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 29.575125
+    },
+    {
+      "id": "quality-email-01:4:0",
+      "category": "email",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 25.294083
+    },
+    {
+      "id": "quality-email-01:5:0",
+      "category": "email",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 22.752667
+    },
+    {
+      "id": "quality-email-01:6:0",
+      "category": "email",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 14.74825
+    },
+    {
+      "id": "quality-email-01:7:0",
+      "category": "email",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 19.902166
+    },
+    {
+      "id": "quality-email-02:1:0",
+      "category": "email",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 14.467042
+    },
+    {
+      "id": "quality-email-02:2:0",
+      "category": "email",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 28.542083
+    },
+    {
+      "id": "quality-email-02:3:0",
+      "category": "email",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 29.745834
+    },
+    {
+      "id": "quality-email-02:4:0",
+      "category": "email",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 25.121292
+    },
+    {
+      "id": "quality-email-02:5:0",
+      "category": "email",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 58.471708
+    },
+    {
+      "id": "quality-email-02:6:0",
+      "category": "email",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 14.755666
+    },
+    {
+      "id": "quality-email-03:1:0",
+      "category": "email",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 27.880542
+    },
+    {
+      "id": "quality-email-03:2:0",
+      "category": "email",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 29.387166
+    },
+    {
+      "id": "quality-email-03:3:0",
+      "category": "email",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 29.604042
+    },
+    {
+      "id": "quality-email-03:4:0",
+      "category": "email",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 29.036167
+    },
+    {
+      "id": "quality-email-03:5:0",
+      "category": "email",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 25.158459
+    },
+    {
+      "id": "quality-email-03:6:0",
+      "category": "email",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 22.567667
+    },
+    {
+      "id": "quality-email-03:7:0",
+      "category": "email",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 19.835542
+    },
+    {
+      "id": "quality-email-03:8:0",
+      "category": "email",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 14.975542
+    },
+    {
+      "id": "quality-email-04:1:0",
+      "category": "email",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 25.2695
+    },
+    {
+      "id": "quality-email-04:2:0",
+      "category": "email",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 22.980416
+    },
+    {
+      "id": "quality-email-04:3:0",
+      "category": "email",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 19.974042
+    },
+    {
+      "id": "quality-email-04:4:0",
+      "category": "email",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 17.342959
+    },
+    {
+      "id": "quality-email-04:5:0",
+      "category": "email",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 19.9975
+    },
+    {
+      "id": "quality-email-04:6:0",
+      "category": "email",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 17.403458
+    },
+    {
+      "id": "quality-email-05:1:0",
+      "category": "email",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 28.165667
+    },
+    {
+      "id": "quality-email-05:2:0",
+      "category": "email",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 24.439042
+    },
+    {
+      "id": "quality-email-05:3:0",
+      "category": "email",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 20.123958
+    },
+    {
+      "id": "quality-email-05:4:0",
+      "category": "email",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 17.2875
+    },
+    {
+      "id": "quality-email-05:5:0",
+      "category": "email",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 17.849417
+    },
+    {
+      "id": "quality-email-05:6:0",
+      "category": "email",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 14.884209
+    },
+    {
+      "id": "quality-email-06:1:0",
+      "category": "email",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 25.753
+    },
+    {
+      "id": "quality-email-06:2:0",
+      "category": "email",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 28.266125
+    },
+    {
+      "id": "quality-email-06:3:0",
+      "category": "email",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 25.284167
+    },
+    {
+      "id": "quality-email-06:4:0",
+      "category": "email",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 25.992834
+    },
+    {
+      "id": "quality-email-06:5:0",
+      "category": "email",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 25.938584
+    },
+    {
+      "id": "quality-email-06:6:0",
+      "category": "email",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 30.33
+    },
+    {
+      "id": "quality-email-07:1:0",
+      "category": "email",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 29.519125
+    },
+    {
+      "id": "quality-email-07:2:0",
+      "category": "email",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 16.116542
+    },
+    {
+      "id": "quality-email-07:3:0",
+      "category": "email",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 25.567
+    },
+    {
+      "id": "quality-email-07:4:0",
+      "category": "email",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 14.988792
+    },
+    {
+      "id": "quality-email-07:5:0",
+      "category": "email",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 20.159542
+    },
+    {
+      "id": "quality-email-07:6:0",
+      "category": "email",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 14.767667
+    },
+    {
+      "id": "quality-email-08:1:0",
+      "category": "email",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 11.758083
+    },
+    {
+      "id": "quality-email-08:2:0",
+      "category": "email",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 14.564458
+    },
+    {
+      "id": "quality-email-08:3:0",
+      "category": "email",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 24.870334
+    },
+    {
+      "id": "quality-email-08:4:0",
+      "category": "email",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 22.143125
+    },
+    {
+      "id": "quality-email-08:5:0",
+      "category": "email",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 20.023708
+    },
+    {
+      "id": "quality-email-08:6:0",
+      "category": "email",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 17.842875
+    },
+    {
+      "id": "quality-email-08:7:0",
+      "category": "email",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 15.12775
+    },
+    {
+      "id": "quality-formatting-01:1:0",
+      "category": "formatting",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 14.957959
+    },
+    {
+      "id": "quality-formatting-01:2:0",
+      "category": "formatting",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 28.167459
+    },
+    {
+      "id": "quality-formatting-01:3:0",
+      "category": "formatting",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 29.126334
+    },
+    {
+      "id": "quality-formatting-01:4:0",
+      "category": "formatting",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 29.136334
+    },
+    {
+      "id": "quality-formatting-02:1:0",
+      "category": "formatting",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 29.166458
+    },
+    {
+      "id": "quality-formatting-02:2:0",
+      "category": "formatting",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 29.31975
+    },
+    {
+      "id": "quality-formatting-02:3:0",
+      "category": "formatting",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 29.15875
+    },
+    {
+      "id": "quality-formatting-02:4:0",
+      "category": "formatting",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 29.123833
+    },
+    {
+      "id": "quality-formatting-03:1:0",
+      "category": "formatting",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 13.163125
+    },
+    {
+      "id": "quality-formatting-03:2:0",
+      "category": "formatting",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 14.486667
+    },
+    {
+      "id": "quality-formatting-03:3:0",
+      "category": "formatting",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 11.648792
+    },
+    {
+      "id": "quality-formatting-03:4:0",
+      "category": "formatting",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 27.726667
+    },
+    {
+      "id": "quality-formatting-03:5:0",
+      "category": "formatting",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 29.007625
+    },
+    {
+      "id": "quality-formatting-04:1:0",
+      "category": "formatting",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 29.621417
+    },
+    {
+      "id": "quality-formatting-04:2:0",
+      "category": "formatting",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 13.130375
+    },
+    {
+      "id": "quality-formatting-04:3:0",
+      "category": "formatting",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 28.3215
+    },
+    {
+      "id": "quality-formatting-04:4:0",
+      "category": "formatting",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 13.201459
+    },
+    {
+      "id": "quality-formatting-05:1:0",
+      "category": "formatting",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 12.051458
+    },
+    {
+      "id": "quality-formatting-05:2:0",
+      "category": "formatting",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 11.945
+    },
+    {
+      "id": "quality-formatting-05:3:0",
+      "category": "formatting",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 28.724
+    },
+    {
+      "id": "quality-formatting-05:4:0",
+      "category": "formatting",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 16.086667
+    },
+    {
+      "id": "quality-formatting-05:5:0",
+      "category": "formatting",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 19.939375
+    },
+    {
+      "id": "quality-formatting-05:6:0",
+      "category": "formatting",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 17.509084
+    },
+    {
+      "id": "quality-formatting-06:1:0",
+      "category": "formatting",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 28.214042
+    },
+    {
+      "id": "quality-formatting-06:2:0",
+      "category": "formatting",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 21.066958
+    },
+    {
+      "id": "quality-formatting-06:3:0",
+      "category": "formatting",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 30.832375
+    },
+    {
+      "id": "quality-formatting-06:4:0",
+      "category": "formatting",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 32.184541
+    },
+    {
+      "id": "quality-formatting-06:5:0",
+      "category": "formatting",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 32.223084
+    },
+    {
+      "id": "quality-formatting-07:1:0",
+      "category": "formatting",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 31.233084
+    },
+    {
+      "id": "quality-formatting-07:2:0",
+      "category": "formatting",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 30.318542
+    },
+    {
+      "id": "quality-formatting-07:3:0",
+      "category": "formatting",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 31.119667
+    },
+    {
+      "id": "quality-formatting-08:1:0",
+      "category": "formatting",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 30.2585
+    },
+    {
+      "id": "quality-formatting-08:2:0",
+      "category": "formatting",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 30.001583
+    },
+    {
+      "id": "quality-formatting-08:3:0",
+      "category": "formatting",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 26.7315
+    },
+    {
+      "id": "quality-formatting-08:4:0",
+      "category": "formatting",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 22.42175
+    },
+    {
+      "id": "quality-formatting-08:5:0",
+      "category": "formatting",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 25.436792
+    },
+    {
+      "id": "quality-formatting-08:6:0",
+      "category": "formatting",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 27.914708
+    },
+    {
+      "id": "quality-formatting-08:7:0",
+      "category": "formatting",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 18.09225
+    },
+    {
+      "id": "quality-formatting-08:8:0",
+      "category": "formatting",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 14.900375
+    },
+    {
+      "id": "quality-multilingual-01:1:0",
+      "category": "multilingual",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 9.4935
+    },
+    {
+      "id": "quality-multilingual-01:2:0",
+      "category": "multilingual",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.943375
+    },
+    {
+      "id": "quality-multilingual-01:3:0",
+      "category": "multilingual",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 14.605041
+    },
+    {
+      "id": "quality-multilingual-01:4:0",
+      "category": "multilingual",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 11.573709
+    },
+    {
+      "id": "quality-multilingual-02:1:0",
+      "category": "multilingual",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 11.886416
+    },
+    {
+      "id": "quality-multilingual-02:2:0",
+      "category": "multilingual",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 11.871792
+    },
+    {
+      "id": "quality-multilingual-02:3:0",
+      "category": "multilingual",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 11.961959
+    },
+    {
+      "id": "quality-multilingual-02:4:0",
+      "category": "multilingual",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 11.942875
+    },
+    {
+      "id": "quality-multilingual-03:1:0",
+      "category": "multilingual",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 12.068
+    },
+    {
+      "id": "quality-multilingual-03:2:0",
+      "category": "multilingual",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 11.99375
+    },
+    {
+      "id": "quality-multilingual-03:3:0",
+      "category": "multilingual",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 11.763291
+    },
+    {
+      "id": "quality-multilingual-03:4:0",
+      "category": "multilingual",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 11.84825
+    },
+    {
+      "id": "quality-multilingual-03:5:0",
+      "category": "multilingual",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 14.907125
+    },
+    {
+      "id": "quality-multilingual-04:1:0",
+      "category": "multilingual",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.902917
+    },
+    {
+      "id": "quality-multilingual-04:2:0",
+      "category": "multilingual",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 11.840833
+    },
+    {
+      "id": "quality-multilingual-04:3:0",
+      "category": "multilingual",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 15.146875
+    },
+    {
+      "id": "quality-multilingual-04:4:0",
+      "category": "multilingual",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 11.875417
+    },
+    {
+      "id": "quality-multilingual-04:5:0",
+      "category": "multilingual",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 16.116334
+    },
+    {
+      "id": "quality-multilingual-05:1:0",
+      "category": "multilingual",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 9.229959
+    },
+    {
+      "id": "quality-multilingual-05:2:0",
+      "category": "multilingual",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 6.101375
+    },
+    {
+      "id": "quality-multilingual-05:3:0",
+      "category": "multilingual",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 11.911208
+    },
+    {
+      "id": "quality-multilingual-05:4:0",
+      "category": "multilingual",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 11.831125
+    },
+    {
+      "id": "quality-multilingual-06:1:0",
+      "category": "multilingual",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 19.60975
+    },
+    {
+      "id": "quality-multilingual-06:2:0",
+      "category": "multilingual",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 17.1525
+    },
+    {
+      "id": "quality-multilingual-06:3:0",
+      "category": "multilingual",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 14.807458
+    },
+    {
+      "id": "quality-multilingual-06:4:0",
+      "category": "multilingual",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 11.719584
+    },
+    {
+      "id": "quality-multilingual-06:5:0",
+      "category": "multilingual",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 15.2805
+    },
+    {
+      "id": "quality-multilingual-07:1:0",
+      "category": "multilingual",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 14.775458
+    },
+    {
+      "id": "quality-multilingual-07:2:0",
+      "category": "multilingual",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 11.544125
+    },
+    {
+      "id": "quality-multilingual-07:3:0",
+      "category": "multilingual",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 9.0635
+    },
+    {
+      "id": "quality-multilingual-07:4:0",
+      "category": "multilingual",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 26.39775
+    },
+    {
+      "id": "quality-multilingual-07:5:0",
+      "category": "multilingual",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 13.542542
+    },
+    {
+      "id": "quality-multilingual-07:6:0",
+      "category": "multilingual",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 15.14225
+    },
+    {
+      "id": "quality-multilingual-08:1:0",
+      "category": "multilingual",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 17.891959
+    },
+    {
+      "id": "quality-multilingual-08:2:0",
+      "category": "multilingual",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 14.360292
+    },
+    {
+      "id": "quality-multilingual-08:3:0",
+      "category": "multilingual",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 11.89675
+    },
+    {
+      "id": "quality-multilingual-08:4:0",
+      "category": "multilingual",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 9.441458
+    },
+    {
+      "id": "quality-multilingual-08:5:0",
+      "category": "multilingual",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 14.4015
+    },
+    {
+      "id": "quality-multilingual-08:6:0",
+      "category": "multilingual",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 17.568584
+    },
+    {
+      "id": "quality-multilingual-08:7:0",
+      "category": "multilingual",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 15.145333
+    },
+    {
+      "id": "quality-long-context-01:1:0",
+      "category": "long-context",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 76.704041
+    },
+    {
+      "id": "quality-long-context-01:2:0",
+      "category": "long-context",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 75.335416
+    },
+    {
+      "id": "quality-long-context-01:3:0",
+      "category": "long-context",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 75.625333
+    },
+    {
+      "id": "quality-long-context-01:4:0",
+      "category": "long-context",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 75.4755
+    },
+    {
+      "id": "quality-long-context-01:5:0",
+      "category": "long-context",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 76.170667
+    },
+    {
+      "id": "quality-long-context-01:6:0",
+      "category": "long-context",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 72.033875
+    },
+    {
+      "id": "quality-long-context-02:1:0",
+      "category": "long-context",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 74.925375
+    },
+    {
+      "id": "quality-long-context-02:2:0",
+      "category": "long-context",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 75.136542
+    },
+    {
+      "id": "quality-long-context-02:3:0",
+      "category": "long-context",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 74.891459
+    },
+    {
+      "id": "quality-long-context-02:4:0",
+      "category": "long-context",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 71.81575
+    },
+    {
+      "id": "quality-long-context-02:5:0",
+      "category": "long-context",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 60.632834
+    },
+    {
+      "id": "quality-long-context-02:6:0",
+      "category": "long-context",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 60.716959
+    },
+    {
+      "id": "quality-long-context-02:7:0",
+      "category": "long-context",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 74.234125
+    },
+    {
+      "id": "quality-long-context-03:1:0",
+      "category": "long-context",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 74.934625
+    },
+    {
+      "id": "quality-long-context-03:2:0",
+      "category": "long-context",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 75.775792
+    },
+    {
+      "id": "quality-long-context-03:3:0",
+      "category": "long-context",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 75.092084
+    },
+    {
+      "id": "quality-long-context-03:4:0",
+      "category": "long-context",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 61.051458
+    },
+    {
+      "id": "quality-long-context-03:5:0",
+      "category": "long-context",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 75.816583
+    },
+    {
+      "id": "quality-long-context-03:6:0",
+      "category": "long-context",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 75.347
+    },
+    {
+      "id": "quality-long-context-04:1:0",
+      "category": "long-context",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 74.849792
+    },
+    {
+      "id": "quality-long-context-04:2:0",
+      "category": "long-context",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 61.553083
+    },
+    {
+      "id": "quality-long-context-04:3:0",
+      "category": "long-context",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 74.459542
+    },
+    {
+      "id": "quality-long-context-04:4:0",
+      "category": "long-context",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 75.435333
+    },
+    {
+      "id": "quality-long-context-04:5:0",
+      "category": "long-context",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 61.615875
+    },
+    {
+      "id": "quality-long-context-04:6:0",
+      "category": "long-context",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 60.640875
+    },
+    {
+      "id": "quality-long-context-05:1:0",
+      "category": "long-context",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 75.026667
+    },
+    {
+      "id": "quality-long-context-05:2:0",
+      "category": "long-context",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 72.745875
+    },
+    {
+      "id": "quality-long-context-05:3:0",
+      "category": "long-context",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 66.568833
+    },
+    {
+      "id": "quality-long-context-05:4:0",
+      "category": "long-context",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 63.465958
+    },
+    {
+      "id": "quality-long-context-05:5:0",
+      "category": "long-context",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 68.744292
+    },
+    {
+      "id": "quality-long-context-05:6:0",
+      "category": "long-context",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 66.107625
+    },
+    {
+      "id": "quality-long-context-06:1:0",
+      "category": "long-context",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 73.723083
+    },
+    {
+      "id": "quality-long-context-06:2:0",
+      "category": "long-context",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 75.927792
+    },
+    {
+      "id": "quality-long-context-06:3:0",
+      "category": "long-context",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 69.073
+    },
+    {
+      "id": "quality-long-context-06:4:0",
+      "category": "long-context",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 74.548583
+    },
+    {
+      "id": "quality-long-context-06:5:0",
+      "category": "long-context",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 64.165292
+    },
+    {
+      "id": "quality-long-context-07:1:0",
+      "category": "long-context",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 74.386334
+    },
+    {
+      "id": "quality-long-context-07:2:0",
+      "category": "long-context",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 75.904417
+    },
+    {
+      "id": "quality-long-context-07:3:0",
+      "category": "long-context",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 58.765875
+    },
+    {
+      "id": "quality-long-context-07:4:0",
+      "category": "long-context",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 75.118791
+    },
+    {
+      "id": "quality-long-context-07:5:0",
+      "category": "long-context",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 74.550959
+    },
+    {
+      "id": "quality-long-context-08:1:0",
+      "category": "long-context",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 74.275875
+    },
+    {
+      "id": "quality-long-context-08:2:0",
+      "category": "long-context",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 74.27475
+    },
+    {
+      "id": "quality-long-context-08:3:0",
+      "category": "long-context",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 74.214292
+    },
+    {
+      "id": "quality-long-context-08:4:0",
+      "category": "long-context",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 63.493792
+    },
+    {
+      "id": "quality-long-context-08:5:0",
+      "category": "long-context",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 73.654458
+    },
+    {
+      "id": "quality-long-context-08:6:0",
+      "category": "long-context",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 71.113584
+    },
+    {
+      "id": "hybrid-conversation-01:1:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 3.703459
+    },
+    {
+      "id": "hybrid-conversation-01:2:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 20.141666
+    },
+    {
+      "id": "hybrid-conversation-01:3:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 21.562625
+    },
+    {
+      "id": "hybrid-conversation-01:4:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 21.645208
+    },
+    {
+      "id": "hybrid-conversation-01:5:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.622917
+    },
+    {
+      "id": "hybrid-conversation-01:6:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 10.204375
+    },
+    {
+      "id": "hybrid-conversation-01:7:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 7.626875
+    },
+    {
+      "id": "hybrid-conversation-01:8:0",
+      "category": "conversation",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 11.007125
+    },
+    {
+      "id": "hybrid-conversation-01:9:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 8.505875
+    },
+    {
+      "id": "hybrid-conversation-02:1:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 3.653083
+    },
+    {
+      "id": "hybrid-conversation-02:2:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 20.176041
+    },
+    {
+      "id": "hybrid-conversation-02:3:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 8.480542
+    },
+    {
+      "id": "hybrid-conversation-02:4:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 6.94325
+    },
+    {
+      "id": "hybrid-conversation-02:5:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 6.968583
+    },
+    {
+      "id": "hybrid-conversation-02:6:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 4.11525
+    },
+    {
+      "id": "hybrid-conversation-02:7:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 18.732667
+    },
+    {
+      "id": "hybrid-conversation-02:8:0",
+      "category": "conversation",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 21.628375
+    },
+    {
+      "id": "hybrid-conversation-02:9:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 9.980292
+    },
+    {
+      "id": "hybrid-conversation-02:10:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 11.024583
+    },
+    {
+      "id": "hybrid-conversation-02:11:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 13.65225
+    },
+    {
+      "id": "hybrid-conversation-02:12:0",
+      "category": "conversation",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 8.720542
+    },
+    {
+      "id": "hybrid-conversation-03:1:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 3.723584
+    },
+    {
+      "id": "hybrid-conversation-03:2:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 14.685292
+    },
+    {
+      "id": "hybrid-conversation-03:3:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 19.883708
+    },
+    {
+      "id": "hybrid-conversation-03:4:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 8.548541
+    },
+    {
+      "id": "hybrid-conversation-03:5:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 6.988458
+    },
+    {
+      "id": "hybrid-conversation-03:6:0",
+      "category": "conversation",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 18.488583
+    },
+    {
+      "id": "hybrid-conversation-03:7:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.675375
+    },
+    {
+      "id": "hybrid-conversation-03:8:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 8.564583
+    },
+    {
+      "id": "hybrid-conversation-03:9:0",
+      "category": "conversation",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 8.635917
+    },
+    {
+      "id": "hybrid-conversation-04:1:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 3.663958
+    },
+    {
+      "id": "hybrid-conversation-04:2:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 4.067167
+    },
+    {
+      "id": "hybrid-conversation-04:3:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 20.086667
+    },
+    {
+      "id": "hybrid-conversation-04:4:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 8.553375
+    },
+    {
+      "id": "hybrid-conversation-04:5:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.5455
+    },
+    {
+      "id": "hybrid-conversation-04:6:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 13.042542
+    },
+    {
+      "id": "hybrid-conversation-04:7:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.892417
+    },
+    {
+      "id": "hybrid-conversation-04:8:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 9.554458
+    },
+    {
+      "id": "hybrid-conversation-05:1:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 20.812834
+    },
+    {
+      "id": "hybrid-conversation-05:2:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.332666
+    },
+    {
+      "id": "hybrid-conversation-05:3:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.309167
+    },
+    {
+      "id": "hybrid-conversation-05:4:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.27425
+    },
+    {
+      "id": "hybrid-conversation-05:5:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.253708
+    },
+    {
+      "id": "hybrid-conversation-05:6:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 8.652708
+    },
+    {
+      "id": "hybrid-conversation-05:7:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 8.750708
+    },
+    {
+      "id": "hybrid-conversation-05:8:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 8.797584
+    },
+    {
+      "id": "hybrid-conversation-05:9:0",
+      "category": "conversation",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 11.486042
+    },
+    {
+      "id": "hybrid-conversation-05:10:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.821834
+    },
+    {
+      "id": "hybrid-conversation-05:11:0",
+      "category": "conversation",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 8.814292
+    },
+    {
+      "id": "hybrid-conversation-06:1:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 3.792375
+    },
+    {
+      "id": "hybrid-conversation-06:2:0",
+      "category": "conversation",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 6.897417
+    },
+    {
+      "id": "hybrid-conversation-06:3:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 4.071209
+    },
+    {
+      "id": "hybrid-conversation-06:4:0",
+      "category": "conversation",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 20.903
+    },
+    {
+      "id": "hybrid-conversation-06:5:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 22.442625
+    },
+    {
+      "id": "hybrid-conversation-06:6:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 10.017208
+    },
+    {
+      "id": "hybrid-conversation-06:7:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 18.021875
+    },
+    {
+      "id": "hybrid-conversation-06:8:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 11.398292
+    },
+    {
+      "id": "hybrid-conversation-07:1:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 3.79575
+    },
+    {
+      "id": "hybrid-conversation-07:2:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.25725
+    },
+    {
+      "id": "hybrid-conversation-07:3:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 4.299875
+    },
+    {
+      "id": "hybrid-conversation-07:4:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 4.182334
+    },
+    {
+      "id": "hybrid-conversation-07:5:0",
+      "category": "conversation",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 20.042959
+    },
+    {
+      "id": "hybrid-conversation-07:6:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 11.555292
+    },
+    {
+      "id": "hybrid-conversation-07:7:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 14.12425
+    },
+    {
+      "id": "hybrid-conversation-07:8:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 8.835083
+    },
+    {
+      "id": "hybrid-conversation-07:9:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 8.822625
+    },
+    {
+      "id": "hybrid-conversation-08:1:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.068792
+    },
+    {
+      "id": "hybrid-conversation-08:2:0",
+      "category": "conversation",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 20.776375
+    },
+    {
+      "id": "hybrid-conversation-08:3:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 22.612458
+    },
+    {
+      "id": "hybrid-conversation-08:4:0",
+      "category": "conversation",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 22.711375
+    },
+    {
+      "id": "hybrid-conversation-08:5:0",
+      "category": "conversation",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 23.851708
+    },
+    {
+      "id": "hybrid-conversation-08:6:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 8.984709
+    },
+    {
+      "id": "hybrid-conversation-08:7:0",
+      "category": "conversation",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 19.402625
+    },
+    {
+      "id": "hybrid-conversation-08:8:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 14.164458
+    },
+    {
+      "id": "hybrid-conversation-08:9:0",
+      "category": "conversation",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 14.220458
+    },
+    {
+      "id": "hybrid-conversation-08:10:0",
+      "category": "conversation",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 8.841625
+    },
+    {
+      "id": "hybrid-work-01:1:0",
+      "category": "work",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 20.872458
+    },
+    {
+      "id": "hybrid-work-01:2:0",
+      "category": "work",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 22.539458
+    },
+    {
+      "id": "hybrid-work-01:3:0",
+      "category": "work",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 22.6105
+    },
+    {
+      "id": "hybrid-work-01:4:0",
+      "category": "work",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 8.978042
+    },
+    {
+      "id": "hybrid-work-01:5:0",
+      "category": "work",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 9.878834
+    },
+    {
+      "id": "hybrid-work-01:6:0",
+      "category": "work",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.189458
+    },
+    {
+      "id": "hybrid-work-01:7:0",
+      "category": "work",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 11.354875
+    },
+    {
+      "id": "hybrid-work-01:8:0",
+      "category": "work",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 8.727833
+    },
+    {
+      "id": "hybrid-work-01:9:0",
+      "category": "work",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 11.476958
+    },
+    {
+      "id": "hybrid-work-01:10:0",
+      "category": "work",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 8.795541
+    },
+    {
+      "id": "hybrid-work-02:1:0",
+      "category": "work",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 3.830667
+    },
+    {
+      "id": "hybrid-work-02:2:0",
+      "category": "work",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.143583
+    },
+    {
+      "id": "hybrid-work-02:3:0",
+      "category": "work",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.077416
+    },
+    {
+      "id": "hybrid-work-02:4:0",
+      "category": "work",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.162042
+    },
+    {
+      "id": "hybrid-work-02:5:0",
+      "category": "work",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.220667
+    },
+    {
+      "id": "hybrid-work-02:6:0",
+      "category": "work",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.141291
+    },
+    {
+      "id": "hybrid-work-02:7:0",
+      "category": "work",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 9.917458
+    },
+    {
+      "id": "hybrid-work-02:8:0",
+      "category": "work",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 8.661542
+    },
+    {
+      "id": "hybrid-work-02:9:0",
+      "category": "work",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 8.745375
+    },
+    {
+      "id": "hybrid-work-02:10:0",
+      "category": "work",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 8.865792
+    },
+    {
+      "id": "hybrid-work-03:1:0",
+      "category": "work",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 3.813166
+    },
+    {
+      "id": "hybrid-work-03:2:0",
+      "category": "work",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 6.933125
+    },
+    {
+      "id": "hybrid-work-03:3:0",
+      "category": "work",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 20.998041
+    },
+    {
+      "id": "hybrid-work-03:4:0",
+      "category": "work",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 9.020166
+    },
+    {
+      "id": "hybrid-work-03:5:0",
+      "category": "work",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.201625
+    },
+    {
+      "id": "hybrid-work-03:6:0",
+      "category": "work",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.243042
+    },
+    {
+      "id": "hybrid-work-03:7:0",
+      "category": "work",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.287166
+    },
+    {
+      "id": "hybrid-work-03:8:0",
+      "category": "work",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 16.780917
+    },
+    {
+      "id": "hybrid-work-03:9:0",
+      "category": "work",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.748709
+    },
+    {
+      "id": "hybrid-work-04:1:0",
+      "category": "work",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 3.84
+    },
+    {
+      "id": "hybrid-work-04:2:0",
+      "category": "work",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.152375
+    },
+    {
+      "id": "hybrid-work-04:3:0",
+      "category": "work",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 20.91125
+    },
+    {
+      "id": "hybrid-work-04:4:0",
+      "category": "work",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 6.093875
+    },
+    {
+      "id": "hybrid-work-04:5:0",
+      "category": "work",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 7.419958
+    },
+    {
+      "id": "hybrid-work-04:6:0",
+      "category": "work",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 12.634875
+    },
+    {
+      "id": "hybrid-work-04:7:0",
+      "category": "work",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 20.654458
+    },
+    {
+      "id": "hybrid-work-04:8:0",
+      "category": "work",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 8.674666
+    },
+    {
+      "id": "hybrid-work-04:9:0",
+      "category": "work",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 8.7255
+    },
+    {
+      "id": "hybrid-work-05:1:0",
+      "category": "work",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 20.673833
+    },
+    {
+      "id": "hybrid-work-05:2:0",
+      "category": "work",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 22.797583
+    },
+    {
+      "id": "hybrid-work-05:3:0",
+      "category": "work",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 22.583917
+    },
+    {
+      "id": "hybrid-work-05:4:0",
+      "category": "work",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 22.693834
+    },
+    {
+      "id": "hybrid-work-05:5:0",
+      "category": "work",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 22.721666
+    },
+    {
+      "id": "hybrid-work-05:6:0",
+      "category": "work",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 22.597208
+    },
+    {
+      "id": "hybrid-work-05:7:0",
+      "category": "work",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 24.082084
+    },
+    {
+      "id": "hybrid-work-05:8:0",
+      "category": "work",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 18.486417
+    },
+    {
+      "id": "hybrid-work-05:9:0",
+      "category": "work",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 9.104541
+    },
+    {
+      "id": "hybrid-work-05:10:0",
+      "category": "work",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 9.415083
+    },
+    {
+      "id": "hybrid-work-06:1:0",
+      "category": "work",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 3.78925
+    },
+    {
+      "id": "hybrid-work-06:2:0",
+      "category": "work",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 4.255833
+    },
+    {
+      "id": "hybrid-work-06:3:0",
+      "category": "work",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 20.723
+    },
+    {
+      "id": "hybrid-work-06:4:0",
+      "category": "work",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 22.657
+    },
+    {
+      "id": "hybrid-work-06:5:0",
+      "category": "work",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 6.059917
+    },
+    {
+      "id": "hybrid-work-06:6:0",
+      "category": "work",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 20.696334
+    },
+    {
+      "id": "hybrid-work-06:7:0",
+      "category": "work",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 9.022083
+    },
+    {
+      "id": "hybrid-work-06:8:0",
+      "category": "work",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 8.699667
+    },
+    {
+      "id": "hybrid-work-06:9:0",
+      "category": "work",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 22.347708
+    },
+    {
+      "id": "hybrid-work-06:10:0",
+      "category": "work",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 21.333
+    },
+    {
+      "id": "hybrid-work-07:1:0",
+      "category": "work",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 3.771041
+    },
+    {
+      "id": "hybrid-work-07:2:0",
+      "category": "work",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.155333
+    },
+    {
+      "id": "hybrid-work-07:3:0",
+      "category": "work",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 20.761417
+    },
+    {
+      "id": "hybrid-work-07:4:0",
+      "category": "work",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 6.207875
+    },
+    {
+      "id": "hybrid-work-07:5:0",
+      "category": "work",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.235709
+    },
+    {
+      "id": "hybrid-work-07:6:0",
+      "category": "work",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.13325
+    },
+    {
+      "id": "hybrid-work-07:7:0",
+      "category": "work",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 13.928584
+    },
+    {
+      "id": "hybrid-work-07:8:0",
+      "category": "work",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 8.701833
+    },
+    {
+      "id": "hybrid-work-08:1:0",
+      "category": "work",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 6.646458
+    },
+    {
+      "id": "hybrid-work-08:2:0",
+      "category": "work",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 20.375667
+    },
+    {
+      "id": "hybrid-work-08:3:0",
+      "category": "work",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 22.500292
+    },
+    {
+      "id": "hybrid-work-08:4:0",
+      "category": "work",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.934875
+    },
+    {
+      "id": "hybrid-work-08:5:0",
+      "category": "work",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 15.200708
+    },
+    {
+      "id": "hybrid-work-08:6:0",
+      "category": "work",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 9.937042
+    },
+    {
+      "id": "hybrid-work-08:7:0",
+      "category": "work",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 8.705833
+    },
+    {
+      "id": "hybrid-work-08:8:0",
+      "category": "work",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 8.718625
+    },
+    {
+      "id": "hybrid-work-08:9:0",
+      "category": "work",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 8.920875
+    },
+    {
+      "id": "hybrid-work-08:10:0",
+      "category": "work",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 11.511083
+    },
+    {
+      "id": "hybrid-technology-01:1:0",
+      "category": "technology",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 3.770416
+    },
+    {
+      "id": "hybrid-technology-01:2:0",
+      "category": "technology",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 20.743584
+    },
+    {
+      "id": "hybrid-technology-01:3:0",
+      "category": "technology",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 22.497583
+    },
+    {
+      "id": "hybrid-technology-01:4:0",
+      "category": "technology",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 22.305958
+    },
+    {
+      "id": "hybrid-technology-01:5:0",
+      "category": "technology",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 4.322583
+    },
+    {
+      "id": "hybrid-technology-01:6:0",
+      "category": "technology",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 4.40025
+    },
+    {
+      "id": "hybrid-technology-01:7:0",
+      "category": "technology",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 8.57375
+    },
+    {
+      "id": "hybrid-technology-01:8:0",
+      "category": "technology",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 13.935125
+    },
+    {
+      "id": "hybrid-technology-01:9:0",
+      "category": "technology",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 8.718333
+    },
+    {
+      "id": "hybrid-technology-01:10:0",
+      "category": "technology",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 8.607459
+    },
+    {
+      "id": "hybrid-technology-01:11:0",
+      "category": "technology",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 9.073292
+    },
+    {
+      "id": "hybrid-technology-02:1:0",
+      "category": "technology",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 3.786
+    },
+    {
+      "id": "hybrid-technology-02:2:0",
+      "category": "technology",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 6.906458
+    },
+    {
+      "id": "hybrid-technology-02:3:0",
+      "category": "technology",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.053125
+    },
+    {
+      "id": "hybrid-technology-02:4:0",
+      "category": "technology",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 20.84725
+    },
+    {
+      "id": "hybrid-technology-02:5:0",
+      "category": "technology",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 22.45925
+    },
+    {
+      "id": "hybrid-technology-02:6:0",
+      "category": "technology",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 8.939625
+    },
+    {
+      "id": "hybrid-technology-02:7:0",
+      "category": "technology",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.274583
+    },
+    {
+      "id": "hybrid-technology-02:8:0",
+      "category": "technology",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 22.278375
+    },
+    {
+      "id": "hybrid-technology-02:9:0",
+      "category": "technology",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 10.571208
+    },
+    {
+      "id": "hybrid-technology-02:10:0",
+      "category": "technology",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 11.547375
+    },
+    {
+      "id": "hybrid-technology-03:1:0",
+      "category": "technology",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.253458
+    },
+    {
+      "id": "hybrid-technology-03:2:0",
+      "category": "technology",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 4.277833
+    },
+    {
+      "id": "hybrid-technology-03:3:0",
+      "category": "technology",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.176209
+    },
+    {
+      "id": "hybrid-technology-03:4:0",
+      "category": "technology",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 20.960791
+    },
+    {
+      "id": "hybrid-technology-03:5:0",
+      "category": "technology",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.384041
+    },
+    {
+      "id": "hybrid-technology-03:6:0",
+      "category": "technology",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 9.523667
+    },
+    {
+      "id": "hybrid-technology-03:7:0",
+      "category": "technology",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 22.713709
+    },
+    {
+      "id": "hybrid-technology-03:8:0",
+      "category": "technology",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 18.663417
+    },
+    {
+      "id": "hybrid-technology-03:9:0",
+      "category": "technology",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 14.195833
+    },
+    {
+      "id": "hybrid-technology-03:10:0",
+      "category": "technology",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 11.735417
+    },
+    {
+      "id": "hybrid-technology-03:11:0",
+      "category": "technology",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 8.922375
+    },
+    {
+      "id": "hybrid-technology-04:1:0",
+      "category": "technology",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 3.746791
+    },
+    {
+      "id": "hybrid-technology-04:2:0",
+      "category": "technology",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.209666
+    },
+    {
+      "id": "hybrid-technology-04:3:0",
+      "category": "technology",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 4.358458
+    },
+    {
+      "id": "hybrid-technology-04:4:0",
+      "category": "technology",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 15.28175
+    },
+    {
+      "id": "hybrid-technology-04:5:0",
+      "category": "technology",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.18525
+    },
+    {
+      "id": "hybrid-technology-04:6:0",
+      "category": "technology",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 9.919125
+    },
+    {
+      "id": "hybrid-technology-04:7:0",
+      "category": "technology",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 7.041167
+    },
+    {
+      "id": "hybrid-technology-04:8:0",
+      "category": "technology",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 8.415041
+    },
+    {
+      "id": "hybrid-technology-04:9:0",
+      "category": "technology",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 22.200917
+    },
+    {
+      "id": "hybrid-technology-04:10:0",
+      "category": "technology",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 24.137666
+    },
+    {
+      "id": "hybrid-technology-04:11:0",
+      "category": "technology",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 23.832583
+    },
+    {
+      "id": "hybrid-technology-04:12:0",
+      "category": "technology",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 22.11575
+    },
+    {
+      "id": "hybrid-technology-05:1:0",
+      "category": "technology",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 3.79
+    },
+    {
+      "id": "hybrid-technology-05:2:0",
+      "category": "technology",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.056834
+    },
+    {
+      "id": "hybrid-technology-05:3:0",
+      "category": "technology",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.24425
+    },
+    {
+      "id": "hybrid-technology-05:4:0",
+      "category": "technology",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 17.897666
+    },
+    {
+      "id": "hybrid-technology-05:5:0",
+      "category": "technology",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 15.154042
+    },
+    {
+      "id": "hybrid-technology-05:6:0",
+      "category": "technology",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 15.100125
+    },
+    {
+      "id": "hybrid-technology-05:7:0",
+      "category": "technology",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 13.950958
+    },
+    {
+      "id": "hybrid-technology-05:8:0",
+      "category": "technology",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 16.62625
+    },
+    {
+      "id": "hybrid-technology-05:9:0",
+      "category": "technology",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 8.863708
+    },
+    {
+      "id": "hybrid-technology-06:1:0",
+      "category": "technology",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 3.763833
+    },
+    {
+      "id": "hybrid-technology-06:2:0",
+      "category": "technology",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 20.788209
+    },
+    {
+      "id": "hybrid-technology-06:3:0",
+      "category": "technology",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 22.68725
+    },
+    {
+      "id": "hybrid-technology-06:4:0",
+      "category": "technology",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 22.691584
+    },
+    {
+      "id": "hybrid-technology-06:5:0",
+      "category": "technology",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 11.764417
+    },
+    {
+      "id": "hybrid-technology-06:6:0",
+      "category": "technology",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.263
+    },
+    {
+      "id": "hybrid-technology-06:7:0",
+      "category": "technology",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 20.686125
+    },
+    {
+      "id": "hybrid-technology-06:8:0",
+      "category": "technology",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 10.417292
+    },
+    {
+      "id": "hybrid-technology-06:9:0",
+      "category": "technology",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 8.7115
+    },
+    {
+      "id": "hybrid-technology-06:10:0",
+      "category": "technology",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 22.362459
+    },
+    {
+      "id": "hybrid-technology-06:11:0",
+      "category": "technology",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 24.299625
+    },
+    {
+      "id": "hybrid-technology-07:1:0",
+      "category": "technology",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.652125
+    },
+    {
+      "id": "hybrid-technology-07:2:0",
+      "category": "technology",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 20.834208
+    },
+    {
+      "id": "hybrid-technology-07:3:0",
+      "category": "technology",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 6.056
+    },
+    {
+      "id": "hybrid-technology-07:4:0",
+      "category": "technology",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 20.800917
+    },
+    {
+      "id": "hybrid-technology-07:5:0",
+      "category": "technology",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 6.023042
+    },
+    {
+      "id": "hybrid-technology-07:6:0",
+      "category": "technology",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 4.317209
+    },
+    {
+      "id": "hybrid-technology-07:7:0",
+      "category": "technology",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.265958
+    },
+    {
+      "id": "hybrid-technology-07:8:0",
+      "category": "technology",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 8.662792
+    },
+    {
+      "id": "hybrid-technology-07:9:0",
+      "category": "technology",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 8.650833
+    },
+    {
+      "id": "hybrid-technology-07:10:0",
+      "category": "technology",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 11.576958
+    },
+    {
+      "id": "hybrid-technology-08:1:0",
+      "category": "technology",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 3.708834
+    },
+    {
+      "id": "hybrid-technology-08:2:0",
+      "category": "technology",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 20.7645
+    },
+    {
+      "id": "hybrid-technology-08:3:0",
+      "category": "technology",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 22.665625
+    },
+    {
+      "id": "hybrid-technology-08:4:0",
+      "category": "technology",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 22.684959
+    },
+    {
+      "id": "hybrid-technology-08:5:0",
+      "category": "technology",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 9.166917
+    },
+    {
+      "id": "hybrid-technology-08:6:0",
+      "category": "technology",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 20.084666
+    },
+    {
+      "id": "hybrid-technology-08:7:0",
+      "category": "technology",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.306459
+    },
+    {
+      "id": "hybrid-technology-08:8:0",
+      "category": "technology",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 19.210125
+    },
+    {
+      "id": "hybrid-technology-08:9:0",
+      "category": "technology",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 16.898584
+    },
+    {
+      "id": "hybrid-technology-08:10:0",
+      "category": "technology",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 14.219417
+    },
+    {
+      "id": "hybrid-technology-08:11:0",
+      "category": "technology",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 8.764459
+    },
+    {
+      "id": "hybrid-technology-08:12:0",
+      "category": "technology",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 8.746459
+    },
+    {
+      "id": "hybrid-everyday-01:1:0",
+      "category": "everyday",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 3.720542
+    },
+    {
+      "id": "hybrid-everyday-01:2:0",
+      "category": "everyday",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 20.747166
+    },
+    {
+      "id": "hybrid-everyday-01:3:0",
+      "category": "everyday",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 14.427125
+    },
+    {
+      "id": "hybrid-everyday-01:4:0",
+      "category": "everyday",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 9.895208
+    },
+    {
+      "id": "hybrid-everyday-01:5:0",
+      "category": "everyday",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.217292
+    },
+    {
+      "id": "hybrid-everyday-01:6:0",
+      "category": "everyday",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.278291
+    },
+    {
+      "id": "hybrid-everyday-01:7:0",
+      "category": "everyday",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 8.603125
+    },
+    {
+      "id": "hybrid-everyday-01:8:0",
+      "category": "everyday",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 11.332958
+    },
+    {
+      "id": "hybrid-everyday-01:9:0",
+      "category": "everyday",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 11.616208
+    },
+    {
+      "id": "hybrid-everyday-01:10:0",
+      "category": "everyday",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 8.870291
+    },
+    {
+      "id": "hybrid-everyday-02:1:0",
+      "category": "everyday",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 3.779875
+    },
+    {
+      "id": "hybrid-everyday-02:2:0",
+      "category": "everyday",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.224333
+    },
+    {
+      "id": "hybrid-everyday-02:3:0",
+      "category": "everyday",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.249375
+    },
+    {
+      "id": "hybrid-everyday-02:4:0",
+      "category": "everyday",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 4.309542
+    },
+    {
+      "id": "hybrid-everyday-02:5:0",
+      "category": "everyday",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 21.850916
+    },
+    {
+      "id": "hybrid-everyday-02:6:0",
+      "category": "everyday",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 22.696542
+    },
+    {
+      "id": "hybrid-everyday-02:7:0",
+      "category": "everyday",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 9.037625
+    },
+    {
+      "id": "hybrid-everyday-02:8:0",
+      "category": "everyday",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 8.661625
+    },
+    {
+      "id": "hybrid-everyday-02:9:0",
+      "category": "everyday",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 11.360166
+    },
+    {
+      "id": "hybrid-everyday-02:10:0",
+      "category": "everyday",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 8.831208
+    },
+    {
+      "id": "hybrid-everyday-02:11:0",
+      "category": "everyday",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 8.82725
+    },
+    {
+      "id": "hybrid-everyday-03:1:0",
+      "category": "everyday",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 3.767375
+    },
+    {
+      "id": "hybrid-everyday-03:2:0",
+      "category": "everyday",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.239375
+    },
+    {
+      "id": "hybrid-everyday-03:3:0",
+      "category": "everyday",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 20.805916
+    },
+    {
+      "id": "hybrid-everyday-03:4:0",
+      "category": "everyday",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 11.691541
+    },
+    {
+      "id": "hybrid-everyday-03:5:0",
+      "category": "everyday",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 12.675833
+    },
+    {
+      "id": "hybrid-everyday-03:6:0",
+      "category": "everyday",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.171
+    },
+    {
+      "id": "hybrid-everyday-03:7:0",
+      "category": "everyday",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 20.792125
+    },
+    {
+      "id": "hybrid-everyday-03:8:0",
+      "category": "everyday",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 15.681292
+    },
+    {
+      "id": "hybrid-everyday-03:9:0",
+      "category": "everyday",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 19.3735
+    },
+    {
+      "id": "hybrid-everyday-03:10:0",
+      "category": "everyday",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 16.732958
+    },
+    {
+      "id": "hybrid-everyday-04:1:0",
+      "category": "everyday",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 3.780875
+    },
+    {
+      "id": "hybrid-everyday-04:2:0",
+      "category": "everyday",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.149916
+    },
+    {
+      "id": "hybrid-everyday-04:3:0",
+      "category": "everyday",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.21125
+    },
+    {
+      "id": "hybrid-everyday-04:4:0",
+      "category": "everyday",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 4.363208
+    },
+    {
+      "id": "hybrid-everyday-04:5:0",
+      "category": "everyday",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 12.620333
+    },
+    {
+      "id": "hybrid-everyday-04:6:0",
+      "category": "everyday",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.296667
+    },
+    {
+      "id": "hybrid-everyday-04:7:0",
+      "category": "everyday",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 22.236459
+    },
+    {
+      "id": "hybrid-everyday-04:8:0",
+      "category": "everyday",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 13.277125
+    },
+    {
+      "id": "hybrid-everyday-04:9:0",
+      "category": "everyday",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 8.93525
+    },
+    {
+      "id": "hybrid-everyday-05:1:0",
+      "category": "everyday",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 3.753166
+    },
+    {
+      "id": "hybrid-everyday-05:2:0",
+      "category": "everyday",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.192625
+    },
+    {
+      "id": "hybrid-everyday-05:3:0",
+      "category": "everyday",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.168
+    },
+    {
+      "id": "hybrid-everyday-05:4:0",
+      "category": "everyday",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.194875
+    },
+    {
+      "id": "hybrid-everyday-05:5:0",
+      "category": "everyday",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 9.886833
+    },
+    {
+      "id": "hybrid-everyday-05:6:0",
+      "category": "everyday",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 7.379292
+    },
+    {
+      "id": "hybrid-everyday-05:7:0",
+      "category": "everyday",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 4.285625
+    },
+    {
+      "id": "hybrid-everyday-05:8:0",
+      "category": "everyday",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 11.270583
+    },
+    {
+      "id": "hybrid-everyday-05:9:0",
+      "category": "everyday",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 8.765167
+    },
+    {
+      "id": "hybrid-everyday-05:10:0",
+      "category": "everyday",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 8.917
+    },
+    {
+      "id": "hybrid-everyday-06:1:0",
+      "category": "everyday",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 3.815375
+    },
+    {
+      "id": "hybrid-everyday-06:2:0",
+      "category": "everyday",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.215958
+    },
+    {
+      "id": "hybrid-everyday-06:3:0",
+      "category": "everyday",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 4.261666
+    },
+    {
+      "id": "hybrid-everyday-06:4:0",
+      "category": "everyday",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 20.58225
+    },
+    {
+      "id": "hybrid-everyday-06:5:0",
+      "category": "everyday",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 18.013584
+    },
+    {
+      "id": "hybrid-everyday-06:6:0",
+      "category": "everyday",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.2855
+    },
+    {
+      "id": "hybrid-everyday-06:7:0",
+      "category": "everyday",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 4.353666
+    },
+    {
+      "id": "hybrid-everyday-06:8:0",
+      "category": "everyday",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 19.267291
+    },
+    {
+      "id": "hybrid-everyday-06:9:0",
+      "category": "everyday",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 16.84325
+    },
+    {
+      "id": "hybrid-everyday-07:1:0",
+      "category": "everyday",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 3.779666
+    },
+    {
+      "id": "hybrid-everyday-07:2:0",
+      "category": "everyday",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 20.819917
+    },
+    {
+      "id": "hybrid-everyday-07:3:0",
+      "category": "everyday",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 6.199625
+    },
+    {
+      "id": "hybrid-everyday-07:4:0",
+      "category": "everyday",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.176459
+    },
+    {
+      "id": "hybrid-everyday-07:5:0",
+      "category": "everyday",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.221417
+    },
+    {
+      "id": "hybrid-everyday-07:6:0",
+      "category": "everyday",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 20.623417
+    },
+    {
+      "id": "hybrid-everyday-07:7:0",
+      "category": "everyday",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 4.344792
+    },
+    {
+      "id": "hybrid-everyday-07:8:0",
+      "category": "everyday",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 19.4035
+    },
+    {
+      "id": "hybrid-everyday-07:9:0",
+      "category": "everyday",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 16.908417
+    },
+    {
+      "id": "hybrid-everyday-07:10:0",
+      "category": "everyday",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 14.212417
+    },
+    {
+      "id": "hybrid-everyday-08:1:0",
+      "category": "everyday",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 3.7895
+    },
+    {
+      "id": "hybrid-everyday-08:2:0",
+      "category": "everyday",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 15.295292
+    },
+    {
+      "id": "hybrid-everyday-08:3:0",
+      "category": "everyday",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 18.619542
+    },
+    {
+      "id": "hybrid-everyday-08:4:0",
+      "category": "everyday",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.44325
+    },
+    {
+      "id": "hybrid-everyday-08:5:0",
+      "category": "everyday",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.175417
+    },
+    {
+      "id": "hybrid-everyday-08:6:0",
+      "category": "everyday",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 9.836541
+    },
+    {
+      "id": "hybrid-everyday-08:7:0",
+      "category": "everyday",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 14.054958
+    },
+    {
+      "id": "hybrid-everyday-08:8:0",
+      "category": "everyday",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 8.730167
+    },
+    {
+      "id": "hybrid-everyday-08:9:0",
+      "category": "everyday",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 14.209708
+    },
+    {
+      "id": "hybrid-everyday-08:10:0",
+      "category": "everyday",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 11.356834
+    },
+    {
+      "id": "hybrid-everyday-08:11:0",
+      "category": "everyday",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 8.661167
+    },
+    {
+      "id": "hybrid-travel-01:1:0",
+      "category": "travel",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 3.786416
+    },
+    {
+      "id": "hybrid-travel-01:2:0",
+      "category": "travel",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 20.7575
+    },
+    {
+      "id": "hybrid-travel-01:3:0",
+      "category": "travel",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 19.69025
+    },
+    {
+      "id": "hybrid-travel-01:4:0",
+      "category": "travel",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 20.7915
+    },
+    {
+      "id": "hybrid-travel-01:5:0",
+      "category": "travel",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 19.39825
+    },
+    {
+      "id": "hybrid-travel-01:6:0",
+      "category": "travel",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 20.775667
+    },
+    {
+      "id": "hybrid-travel-01:7:0",
+      "category": "travel",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 10.41475
+    },
+    {
+      "id": "hybrid-travel-01:8:0",
+      "category": "travel",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 8.599458
+    },
+    {
+      "id": "hybrid-travel-01:9:0",
+      "category": "travel",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 8.780167
+    },
+    {
+      "id": "hybrid-travel-01:10:0",
+      "category": "travel",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 11.404041
+    },
+    {
+      "id": "hybrid-travel-01:11:0",
+      "category": "travel",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 8.789917
+    },
+    {
+      "id": "hybrid-travel-02:1:0",
+      "category": "travel",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 3.796125
+    },
+    {
+      "id": "hybrid-travel-02:2:0",
+      "category": "travel",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 20.8165
+    },
+    {
+      "id": "hybrid-travel-02:3:0",
+      "category": "travel",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 22.602584
+    },
+    {
+      "id": "hybrid-travel-02:4:0",
+      "category": "travel",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 6.101625
+    },
+    {
+      "id": "hybrid-travel-02:5:0",
+      "category": "travel",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.127209
+    },
+    {
+      "id": "hybrid-travel-02:6:0",
+      "category": "travel",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.313083
+    },
+    {
+      "id": "hybrid-travel-02:7:0",
+      "category": "travel",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 4.42025
+    },
+    {
+      "id": "hybrid-travel-02:8:0",
+      "category": "travel",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 22.292625
+    },
+    {
+      "id": "hybrid-travel-02:9:0",
+      "category": "travel",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 24.072834
+    },
+    {
+      "id": "hybrid-travel-02:10:0",
+      "category": "travel",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 19.635417
+    },
+    {
+      "id": "hybrid-travel-02:11:0",
+      "category": "travel",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 8.89675
+    },
+    {
+      "id": "hybrid-travel-03:1:0",
+      "category": "travel",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 3.8065
+    },
+    {
+      "id": "hybrid-travel-03:2:0",
+      "category": "travel",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.1825
+    },
+    {
+      "id": "hybrid-travel-03:3:0",
+      "category": "travel",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.181166
+    },
+    {
+      "id": "hybrid-travel-03:4:0",
+      "category": "travel",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.150875
+    },
+    {
+      "id": "hybrid-travel-03:5:0",
+      "category": "travel",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.123125
+    },
+    {
+      "id": "hybrid-travel-03:6:0",
+      "category": "travel",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 20.902833
+    },
+    {
+      "id": "hybrid-travel-03:7:0",
+      "category": "travel",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 19.896958
+    },
+    {
+      "id": "hybrid-travel-03:8:0",
+      "category": "travel",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 11.408833
+    },
+    {
+      "id": "hybrid-travel-03:9:0",
+      "category": "travel",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 8.852458
+    },
+    {
+      "id": "hybrid-travel-04:1:0",
+      "category": "travel",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 3.801167
+    },
+    {
+      "id": "hybrid-travel-04:2:0",
+      "category": "travel",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.162333
+    },
+    {
+      "id": "hybrid-travel-04:3:0",
+      "category": "travel",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.169791
+    },
+    {
+      "id": "hybrid-travel-04:4:0",
+      "category": "travel",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 20.768542
+    },
+    {
+      "id": "hybrid-travel-04:5:0",
+      "category": "travel",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 8.88225
+    },
+    {
+      "id": "hybrid-travel-04:6:0",
+      "category": "travel",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 4.331208
+    },
+    {
+      "id": "hybrid-travel-04:7:0",
+      "category": "travel",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 21.006291
+    },
+    {
+      "id": "hybrid-travel-04:8:0",
+      "category": "travel",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 25.001583
+    },
+    {
+      "id": "hybrid-travel-04:9:0",
+      "category": "travel",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 24.09025
+    },
+    {
+      "id": "hybrid-travel-04:10:0",
+      "category": "travel",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.705625
+    },
+    {
+      "id": "hybrid-travel-05:1:0",
+      "category": "travel",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 3.791167
+    },
+    {
+      "id": "hybrid-travel-05:2:0",
+      "category": "travel",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 4.117416
+    },
+    {
+      "id": "hybrid-travel-05:3:0",
+      "category": "travel",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.089041
+    },
+    {
+      "id": "hybrid-travel-05:4:0",
+      "category": "travel",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 4.244709
+    },
+    {
+      "id": "hybrid-travel-05:5:0",
+      "category": "travel",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.21675
+    },
+    {
+      "id": "hybrid-travel-05:6:0",
+      "category": "travel",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 21.028917
+    },
+    {
+      "id": "hybrid-travel-05:7:0",
+      "category": "travel",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 9.047334
+    },
+    {
+      "id": "hybrid-travel-05:8:0",
+      "category": "travel",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 8.516916
+    },
+    {
+      "id": "hybrid-travel-05:9:0",
+      "category": "travel",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 19.442042
+    },
+    {
+      "id": "hybrid-travel-05:10:0",
+      "category": "travel",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 11.545417
+    },
+    {
+      "id": "hybrid-travel-05:11:0",
+      "category": "travel",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 8.79725
+    },
+    {
+      "id": "hybrid-travel-06:1:0",
+      "category": "travel",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 3.801958
+    },
+    {
+      "id": "hybrid-travel-06:2:0",
+      "category": "travel",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 20.960625
+    },
+    {
+      "id": "hybrid-travel-06:3:0",
+      "category": "travel",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 22.330375
+    },
+    {
+      "id": "hybrid-travel-06:4:0",
+      "category": "travel",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 22.398209
+    },
+    {
+      "id": "hybrid-travel-06:5:0",
+      "category": "travel",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 20.730875
+    },
+    {
+      "id": "hybrid-travel-06:6:0",
+      "category": "travel",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 22.517958
+    },
+    {
+      "id": "hybrid-travel-06:7:0",
+      "category": "travel",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 24.00675
+    },
+    {
+      "id": "hybrid-travel-06:8:0",
+      "category": "travel",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 10.539708
+    },
+    {
+      "id": "hybrid-travel-06:9:0",
+      "category": "travel",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 22.4285
+    },
+    {
+      "id": "hybrid-travel-06:10:0",
+      "category": "travel",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 24.256041
+    },
+    {
+      "id": "hybrid-travel-06:11:0",
+      "category": "travel",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 24.262959
+    },
+    {
+      "id": "hybrid-travel-07:1:0",
+      "category": "travel",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.616459
+    },
+    {
+      "id": "hybrid-travel-07:2:0",
+      "category": "travel",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 4.261459
+    },
+    {
+      "id": "hybrid-travel-07:3:0",
+      "category": "travel",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.110917
+    },
+    {
+      "id": "hybrid-travel-07:4:0",
+      "category": "travel",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.162416
+    },
+    {
+      "id": "hybrid-travel-07:5:0",
+      "category": "travel",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 9.826917
+    },
+    {
+      "id": "hybrid-travel-07:6:0",
+      "category": "travel",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.18075
+    },
+    {
+      "id": "hybrid-travel-07:7:0",
+      "category": "travel",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 8.678208
+    },
+    {
+      "id": "hybrid-travel-07:8:0",
+      "category": "travel",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 16.900166
+    },
+    {
+      "id": "hybrid-travel-07:9:0",
+      "category": "travel",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 14.270083
+    },
+    {
+      "id": "hybrid-travel-07:10:0",
+      "category": "travel",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.882625
+    },
+    {
+      "id": "hybrid-travel-07:11:0",
+      "category": "travel",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 8.523209
+    },
+    {
+      "id": "hybrid-travel-08:1:0",
+      "category": "travel",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 3.648125
+    },
+    {
+      "id": "hybrid-travel-08:2:0",
+      "category": "travel",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 20.77225
+    },
+    {
+      "id": "hybrid-travel-08:3:0",
+      "category": "travel",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 22.493292
+    },
+    {
+      "id": "hybrid-travel-08:4:0",
+      "category": "travel",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.169042
+    },
+    {
+      "id": "hybrid-travel-08:5:0",
+      "category": "travel",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 17.911291
+    },
+    {
+      "id": "hybrid-travel-08:6:0",
+      "category": "travel",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.222708
+    },
+    {
+      "id": "hybrid-travel-08:7:0",
+      "category": "travel",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.157917
+    },
+    {
+      "id": "hybrid-travel-08:8:0",
+      "category": "travel",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 8.649458
+    },
+    {
+      "id": "hybrid-travel-08:9:0",
+      "category": "travel",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.803958
+    },
+    {
+      "id": "hybrid-science-01:1:0",
+      "category": "science",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 3.75425
+    },
+    {
+      "id": "hybrid-science-01:2:0",
+      "category": "science",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 20.905125
+    },
+    {
+      "id": "hybrid-science-01:3:0",
+      "category": "science",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 8.777666
+    },
+    {
+      "id": "hybrid-science-01:4:0",
+      "category": "science",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.293083
+    },
+    {
+      "id": "hybrid-science-01:5:0",
+      "category": "science",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.330959
+    },
+    {
+      "id": "hybrid-science-01:6:0",
+      "category": "science",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 4.361416
+    },
+    {
+      "id": "hybrid-science-01:7:0",
+      "category": "science",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 17.352167
+    },
+    {
+      "id": "hybrid-science-01:8:0",
+      "category": "science",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 19.313833
+    },
+    {
+      "id": "hybrid-science-01:9:0",
+      "category": "science",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 8.688459
+    },
+    {
+      "id": "hybrid-science-02:1:0",
+      "category": "science",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 4.048458
+    },
+    {
+      "id": "hybrid-science-02:2:0",
+      "category": "science",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 21.558625
+    },
+    {
+      "id": "hybrid-science-02:3:0",
+      "category": "science",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 6.010792
+    },
+    {
+      "id": "hybrid-science-02:4:0",
+      "category": "science",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.156625
+    },
+    {
+      "id": "hybrid-science-02:5:0",
+      "category": "science",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.311417
+    },
+    {
+      "id": "hybrid-science-02:6:0",
+      "category": "science",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.277584
+    },
+    {
+      "id": "hybrid-science-02:7:0",
+      "category": "science",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 12.6755
+    },
+    {
+      "id": "hybrid-science-02:8:0",
+      "category": "science",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 8.53175
+    },
+    {
+      "id": "hybrid-science-02:9:0",
+      "category": "science",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 8.778709
+    },
+    {
+      "id": "hybrid-science-02:10:0",
+      "category": "science",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 19.635958
+    },
+    {
+      "id": "hybrid-science-02:11:0",
+      "category": "science",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 8.960583
+    },
+    {
+      "id": "hybrid-science-03:1:0",
+      "category": "science",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 3.8025
+    },
+    {
+      "id": "hybrid-science-03:2:0",
+      "category": "science",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 20.774083
+    },
+    {
+      "id": "hybrid-science-03:3:0",
+      "category": "science",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 22.278333
+    },
+    {
+      "id": "hybrid-science-03:4:0",
+      "category": "science",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 4.260542
+    },
+    {
+      "id": "hybrid-science-03:5:0",
+      "category": "science",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.041375
+    },
+    {
+      "id": "hybrid-science-03:6:0",
+      "category": "science",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 12.486959
+    },
+    {
+      "id": "hybrid-science-03:7:0",
+      "category": "science",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 9.844208
+    },
+    {
+      "id": "hybrid-science-03:8:0",
+      "category": "science",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 8.629708
+    },
+    {
+      "id": "hybrid-science-03:9:0",
+      "category": "science",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.800459
+    },
+    {
+      "id": "hybrid-science-03:10:0",
+      "category": "science",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 8.73675
+    },
+    {
+      "id": "hybrid-science-03:11:0",
+      "category": "science",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.847458
+    },
+    {
+      "id": "hybrid-science-04:1:0",
+      "category": "science",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 3.765459
+    },
+    {
+      "id": "hybrid-science-04:2:0",
+      "category": "science",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.210625
+    },
+    {
+      "id": "hybrid-science-04:3:0",
+      "category": "science",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 20.35975
+    },
+    {
+      "id": "hybrid-science-04:4:0",
+      "category": "science",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.077125
+    },
+    {
+      "id": "hybrid-science-04:5:0",
+      "category": "science",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 15.379208
+    },
+    {
+      "id": "hybrid-science-04:6:0",
+      "category": "science",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 12.496375
+    },
+    {
+      "id": "hybrid-science-04:7:0",
+      "category": "science",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 12.527
+    },
+    {
+      "id": "hybrid-science-04:8:0",
+      "category": "science",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 19.345
+    },
+    {
+      "id": "hybrid-science-04:9:0",
+      "category": "science",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 16.851542
+    },
+    {
+      "id": "hybrid-science-04:10:0",
+      "category": "science",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 14.190125
+    },
+    {
+      "id": "hybrid-science-04:11:0",
+      "category": "science",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 11.54075
+    },
+    {
+      "id": "hybrid-science-05:1:0",
+      "category": "science",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 3.79975
+    },
+    {
+      "id": "hybrid-science-05:2:0",
+      "category": "science",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 20.667209
+    },
+    {
+      "id": "hybrid-science-05:3:0",
+      "category": "science",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 22.494083
+    },
+    {
+      "id": "hybrid-science-05:4:0",
+      "category": "science",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 6.158334
+    },
+    {
+      "id": "hybrid-science-05:5:0",
+      "category": "science",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 20.948208
+    },
+    {
+      "id": "hybrid-science-05:6:0",
+      "category": "science",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 22.690875
+    },
+    {
+      "id": "hybrid-science-05:7:0",
+      "category": "science",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 17.148041
+    },
+    {
+      "id": "hybrid-science-05:8:0",
+      "category": "science",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 14.007833
+    },
+    {
+      "id": "hybrid-science-05:9:0",
+      "category": "science",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 11.351709
+    },
+    {
+      "id": "hybrid-science-05:10:0",
+      "category": "science",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 8.845959
+    },
+    {
+      "id": "hybrid-science-06:1:0",
+      "category": "science",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 3.640208
+    },
+    {
+      "id": "hybrid-science-06:2:0",
+      "category": "science",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.145709
+    },
+    {
+      "id": "hybrid-science-06:3:0",
+      "category": "science",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 20.777792
+    },
+    {
+      "id": "hybrid-science-06:4:0",
+      "category": "science",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 9.035125
+    },
+    {
+      "id": "hybrid-science-06:5:0",
+      "category": "science",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.187875
+    },
+    {
+      "id": "hybrid-science-06:6:0",
+      "category": "science",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.181458
+    },
+    {
+      "id": "hybrid-science-06:7:0",
+      "category": "science",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 12.693458
+    },
+    {
+      "id": "hybrid-science-06:8:0",
+      "category": "science",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 11.339916
+    },
+    {
+      "id": "hybrid-science-06:9:0",
+      "category": "science",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 8.805666
+    },
+    {
+      "id": "hybrid-science-06:10:0",
+      "category": "science",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 8.870167
+    },
+    {
+      "id": "hybrid-science-06:11:0",
+      "category": "science",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.886791
+    },
+    {
+      "id": "hybrid-science-07:1:0",
+      "category": "science",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 3.767542
+    },
+    {
+      "id": "hybrid-science-07:2:0",
+      "category": "science",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.295125
+    },
+    {
+      "id": "hybrid-science-07:3:0",
+      "category": "science",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 21.610583
+    },
+    {
+      "id": "hybrid-science-07:4:0",
+      "category": "science",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 6.048209
+    },
+    {
+      "id": "hybrid-science-07:5:0",
+      "category": "science",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 17.801167
+    },
+    {
+      "id": "hybrid-science-07:6:0",
+      "category": "science",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.252917
+    },
+    {
+      "id": "hybrid-science-07:7:0",
+      "category": "science",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 15.519625
+    },
+    {
+      "id": "hybrid-science-07:8:0",
+      "category": "science",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 22.351834
+    },
+    {
+      "id": "hybrid-science-07:9:0",
+      "category": "science",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 24.087375
+    },
+    {
+      "id": "hybrid-science-07:10:0",
+      "category": "science",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 8.848333
+    },
+    {
+      "id": "hybrid-science-07:11:0",
+      "category": "science",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 8.826583
+    },
+    {
+      "id": "hybrid-science-08:1:0",
+      "category": "science",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 3.809042
+    },
+    {
+      "id": "hybrid-science-08:2:0",
+      "category": "science",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 4.247667
+    },
+    {
+      "id": "hybrid-science-08:3:0",
+      "category": "science",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 20.791709
+    },
+    {
+      "id": "hybrid-science-08:4:0",
+      "category": "science",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 22.356625
+    },
+    {
+      "id": "hybrid-science-08:5:0",
+      "category": "science",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.229333
+    },
+    {
+      "id": "hybrid-science-08:6:0",
+      "category": "science",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.202958
+    },
+    {
+      "id": "hybrid-science-08:7:0",
+      "category": "science",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 20.497166
+    },
+    {
+      "id": "hybrid-science-08:8:0",
+      "category": "science",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.654958
+    },
+    {
+      "id": "hybrid-science-08:9:0",
+      "category": "science",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 8.698584
+    },
+    {
+      "id": "hybrid-science-08:10:0",
+      "category": "science",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 8.741209
+    },
+    {
+      "id": "hybrid-science-08:11:0",
+      "category": "science",
+      "correct": true,
+      "shown": true,
+      "latencyMs": 8.852292
+    },
+    {
+      "id": "hybrid-serbian-latin-01:1:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.185291
+    },
+    {
+      "id": "hybrid-serbian-latin-01:2:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.190334
+    },
+    {
+      "id": "hybrid-serbian-latin-01:3:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 8.611333
+    },
+    {
+      "id": "hybrid-serbian-latin-01:4:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.871333
+    },
+    {
+      "id": "hybrid-serbian-latin-01:5:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.908291
+    },
+    {
+      "id": "hybrid-serbian-latin-01:6:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 11.740584
+    },
+    {
+      "id": "hybrid-serbian-latin-01:7:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 14.754166
+    },
+    {
+      "id": "hybrid-serbian-latin-01:8:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 11.590125
+    },
+    {
+      "id": "hybrid-serbian-latin-02:1:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.185541
+    },
+    {
+      "id": "hybrid-serbian-latin-02:2:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 4.257042
+    },
+    {
+      "id": "hybrid-serbian-latin-02:3:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 4.349958
+    },
+    {
+      "id": "hybrid-serbian-latin-02:4:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.692208
+    },
+    {
+      "id": "hybrid-serbian-latin-02:5:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 8.682916
+    },
+    {
+      "id": "hybrid-serbian-latin-02:6:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.9645
+    },
+    {
+      "id": "hybrid-serbian-latin-02:7:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 14.599417
+    },
+    {
+      "id": "hybrid-serbian-latin-02:8:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 14.717542
+    },
+    {
+      "id": "hybrid-serbian-latin-02:9:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 11.713042
+    },
+    {
+      "id": "hybrid-serbian-latin-03:1:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 4.288625
+    },
+    {
+      "id": "hybrid-serbian-latin-03:2:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 4.204291
+    },
+    {
+      "id": "hybrid-serbian-latin-03:3:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 4.343417
+    },
+    {
+      "id": "hybrid-serbian-latin-03:4:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 8.585
+    },
+    {
+      "id": "hybrid-serbian-latin-03:5:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.867208
+    },
+    {
+      "id": "hybrid-serbian-latin-03:6:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.863042
+    },
+    {
+      "id": "hybrid-serbian-latin-03:7:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 11.669
+    },
+    {
+      "id": "hybrid-serbian-latin-03:8:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 14.719459
+    },
+    {
+      "id": "hybrid-serbian-latin-04:1:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 4.298542
+    },
+    {
+      "id": "hybrid-serbian-latin-04:2:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 4.249834
+    },
+    {
+      "id": "hybrid-serbian-latin-04:3:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 4.291375
+    },
+    {
+      "id": "hybrid-serbian-latin-04:4:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.9245
+    },
+    {
+      "id": "hybrid-serbian-latin-04:5:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.93725
+    },
+    {
+      "id": "hybrid-serbian-latin-04:6:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.92
+    },
+    {
+      "id": "hybrid-serbian-latin-04:7:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 11.751375
+    },
+    {
+      "id": "hybrid-serbian-latin-04:8:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 11.823333
+    },
+    {
+      "id": "hybrid-serbian-latin-05:1:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.221292
+    },
+    {
+      "id": "hybrid-serbian-latin-05:2:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 4.273542
+    },
+    {
+      "id": "hybrid-serbian-latin-05:3:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 4.291083
+    },
+    {
+      "id": "hybrid-serbian-latin-05:4:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.824417
+    },
+    {
+      "id": "hybrid-serbian-latin-05:5:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 8.793958
+    },
+    {
+      "id": "hybrid-serbian-latin-05:6:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.905167
+    },
+    {
+      "id": "hybrid-serbian-latin-05:7:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 11.693542
+    },
+    {
+      "id": "hybrid-serbian-latin-05:8:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 11.72675
+    },
+    {
+      "id": "hybrid-serbian-latin-06:1:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 20.773209
+    },
+    {
+      "id": "hybrid-serbian-latin-06:2:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.980375
+    },
+    {
+      "id": "hybrid-serbian-latin-06:3:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 4.28275
+    },
+    {
+      "id": "hybrid-serbian-latin-06:4:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 4.283084
+    },
+    {
+      "id": "hybrid-serbian-latin-06:5:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.805417
+    },
+    {
+      "id": "hybrid-serbian-latin-06:6:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.869292
+    },
+    {
+      "id": "hybrid-serbian-latin-06:7:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 8.8665
+    },
+    {
+      "id": "hybrid-serbian-latin-06:8:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.55125
+    },
+    {
+      "id": "hybrid-serbian-latin-06:9:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 15.297125
+    },
+    {
+      "id": "hybrid-serbian-latin-07:1:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 4.303709
+    },
+    {
+      "id": "hybrid-serbian-latin-07:2:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.182459
+    },
+    {
+      "id": "hybrid-serbian-latin-07:3:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.72075
+    },
+    {
+      "id": "hybrid-serbian-latin-07:4:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.819083
+    },
+    {
+      "id": "hybrid-serbian-latin-07:5:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.924958
+    },
+    {
+      "id": "hybrid-serbian-latin-07:6:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 11.731
+    },
+    {
+      "id": "hybrid-serbian-latin-07:7:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 11.791625
+    },
+    {
+      "id": "hybrid-serbian-latin-07:8:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 11.710708
+    },
+    {
+      "id": "hybrid-serbian-latin-08:1:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 4.273083
+    },
+    {
+      "id": "hybrid-serbian-latin-08:2:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.261458
+    },
+    {
+      "id": "hybrid-serbian-latin-08:3:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 4.337666
+    },
+    {
+      "id": "hybrid-serbian-latin-08:4:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.877167
+    },
+    {
+      "id": "hybrid-serbian-latin-08:5:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.882166
+    },
+    {
+      "id": "hybrid-serbian-latin-08:6:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.940417
+    },
+    {
+      "id": "hybrid-serbian-latin-08:7:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 11.650042
+    },
+    {
+      "id": "hybrid-serbian-latin-08:8:0",
+      "category": "serbian-latin",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 11.590292
+    },
+    {
+      "id": "hybrid-serbian-cyrillic-01:1:0",
+      "category": "serbian-cyrillic",
+      "correct": false,
+      "shown": true,
+      "latencyMs": 20.923166
+    },
+    {
+      "id": "hybrid-serbian-cyrillic-01:2:0",
+      "category": "serbian-cyrillic",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 6.0395
+    },
+    {
+      "id": "hybrid-serbian-cyrillic-01:3:0",
+      "category": "serbian-cyrillic",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.676959
+    },
+    {
+      "id": "hybrid-serbian-cyrillic-01:4:0",
+      "category": "serbian-cyrillic",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.941792
+    },
+    {
+      "id": "hybrid-serbian-cyrillic-01:5:0",
+      "category": "serbian-cyrillic",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.891667
+    },
+    {
+      "id": "hybrid-serbian-cyrillic-01:6:0",
+      "category": "serbian-cyrillic",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.966166
+    },
+    {
+      "id": "hybrid-serbian-cyrillic-01:7:0",
+      "category": "serbian-cyrillic",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 11.725208
+    },
+    {
+      "id": "hybrid-serbian-cyrillic-01:8:0",
+      "category": "serbian-cyrillic",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 11.827375
+    },
+    {
+      "id": "hybrid-serbian-cyrillic-02:1:0",
+      "category": "serbian-cyrillic",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.310708
+    },
+    {
+      "id": "hybrid-serbian-cyrillic-02:2:0",
+      "category": "serbian-cyrillic",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.383
+    },
+    {
+      "id": "hybrid-serbian-cyrillic-02:3:0",
+      "category": "serbian-cyrillic",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.799708
+    },
+    {
+      "id": "hybrid-serbian-cyrillic-02:4:0",
+      "category": "serbian-cyrillic",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 6.137333
+    },
+    {
+      "id": "hybrid-serbian-cyrillic-02:5:0",
+      "category": "serbian-cyrillic",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.858
+    },
+    {
+      "id": "hybrid-serbian-cyrillic-02:6:0",
+      "category": "serbian-cyrillic",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.875416
+    },
+    {
+      "id": "hybrid-serbian-cyrillic-02:7:0",
+      "category": "serbian-cyrillic",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.91975
+    },
+    {
+      "id": "hybrid-serbian-cyrillic-03:1:0",
+      "category": "serbian-cyrillic",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.632917
+    },
+    {
+      "id": "hybrid-serbian-cyrillic-03:2:0",
+      "category": "serbian-cyrillic",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.004833
+    },
+    {
+      "id": "hybrid-serbian-cyrillic-03:3:0",
+      "category": "serbian-cyrillic",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.251541
+    },
+    {
+      "id": "hybrid-serbian-cyrillic-03:4:0",
+      "category": "serbian-cyrillic",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.847083
+    },
+    {
+      "id": "hybrid-serbian-cyrillic-03:5:0",
+      "category": "serbian-cyrillic",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.894208
+    },
+    {
+      "id": "hybrid-serbian-cyrillic-03:6:0",
+      "category": "serbian-cyrillic",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 8.906833
+    },
+    {
+      "id": "hybrid-serbian-cyrillic-03:7:0",
+      "category": "serbian-cyrillic",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 11.719709
+    },
+    {
+      "id": "hybrid-serbian-cyrillic-03:8:0",
+      "category": "serbian-cyrillic",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 11.871542
+    },
+    {
+      "id": "hybrid-serbian-cyrillic-04:1:0",
+      "category": "serbian-cyrillic",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.315416
+    },
+    {
+      "id": "hybrid-serbian-cyrillic-04:2:0",
+      "category": "serbian-cyrillic",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 4.246916
+    },
+    {
+      "id": "hybrid-serbian-cyrillic-04:3:0",
+      "category": "serbian-cyrillic",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 4.316542
+    },
+    {
+      "id": "hybrid-serbian-cyrillic-04:4:0",
+      "category": "serbian-cyrillic",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.73175
+    },
+    {
+      "id": "hybrid-serbian-cyrillic-04:5:0",
+      "category": "serbian-cyrillic",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.8995
+    },
+    {
+      "id": "hybrid-serbian-cyrillic-04:6:0",
+      "category": "serbian-cyrillic",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.894166
+    },
+    {
+      "id": "hybrid-serbian-cyrillic-04:7:0",
+      "category": "serbian-cyrillic",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.954125
+    },
+    {
+      "id": "hybrid-serbian-cyrillic-05:1:0",
+      "category": "serbian-cyrillic",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 4.326125
+    },
+    {
+      "id": "hybrid-serbian-cyrillic-05:2:0",
+      "category": "serbian-cyrillic",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 4.254125
+    },
+    {
+      "id": "hybrid-serbian-cyrillic-05:3:0",
+      "category": "serbian-cyrillic",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 4.336208
+    },
+    {
+      "id": "hybrid-serbian-cyrillic-05:4:0",
+      "category": "serbian-cyrillic",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.807125
+    },
+    {
+      "id": "hybrid-serbian-cyrillic-05:5:0",
+      "category": "serbian-cyrillic",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.878792
+    },
+    {
+      "id": "hybrid-serbian-cyrillic-05:6:0",
+      "category": "serbian-cyrillic",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.841917
+    },
+    {
+      "id": "hybrid-serbian-cyrillic-05:7:0",
+      "category": "serbian-cyrillic",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.878083
+    },
+    {
+      "id": "hybrid-serbian-cyrillic-05:8:0",
+      "category": "serbian-cyrillic",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 11.821042
+    },
+    {
+      "id": "hybrid-serbian-cyrillic-06:1:0",
+      "category": "serbian-cyrillic",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.220333
+    },
+    {
+      "id": "hybrid-serbian-cyrillic-06:2:0",
+      "category": "serbian-cyrillic",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.206458
+    },
+    {
+      "id": "hybrid-serbian-cyrillic-06:3:0",
+      "category": "serbian-cyrillic",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 8.609833
+    },
+    {
+      "id": "hybrid-serbian-cyrillic-06:4:0",
+      "category": "serbian-cyrillic",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.870709
+    },
+    {
+      "id": "hybrid-serbian-cyrillic-06:5:0",
+      "category": "serbian-cyrillic",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 8.77925
+    },
+    {
+      "id": "hybrid-serbian-cyrillic-06:6:0",
+      "category": "serbian-cyrillic",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 8.857917
+    },
+    {
+      "id": "hybrid-serbian-cyrillic-07:1:0",
+      "category": "serbian-cyrillic",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 4.279959
+    },
+    {
+      "id": "hybrid-serbian-cyrillic-07:2:0",
+      "category": "serbian-cyrillic",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.692083
+    },
+    {
+      "id": "hybrid-serbian-cyrillic-07:3:0",
+      "category": "serbian-cyrillic",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.933416
+    },
+    {
+      "id": "hybrid-serbian-cyrillic-07:4:0",
+      "category": "serbian-cyrillic",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.84075
+    },
+    {
+      "id": "hybrid-serbian-cyrillic-07:5:0",
+      "category": "serbian-cyrillic",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.911834
+    },
+    {
+      "id": "hybrid-serbian-cyrillic-07:6:0",
+      "category": "serbian-cyrillic",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.969208
+    },
+    {
+      "id": "hybrid-serbian-cyrillic-07:7:0",
+      "category": "serbian-cyrillic",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 11.744125
+    },
+    {
+      "id": "hybrid-serbian-cyrillic-08:1:0",
+      "category": "serbian-cyrillic",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 7.20225
+    },
+    {
+      "id": "hybrid-serbian-cyrillic-08:2:0",
+      "category": "serbian-cyrillic",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 4.289042
+    },
+    {
+      "id": "hybrid-serbian-cyrillic-08:3:0",
+      "category": "serbian-cyrillic",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.753583
+    },
+    {
+      "id": "hybrid-serbian-cyrillic-08:4:0",
+      "category": "serbian-cyrillic",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.888834
+    },
+    {
+      "id": "hybrid-serbian-cyrillic-08:5:0",
+      "category": "serbian-cyrillic",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.845666
+    },
+    {
+      "id": "hybrid-serbian-cyrillic-08:6:0",
+      "category": "serbian-cyrillic",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 5.958708
+    },
+    {
+      "id": "hybrid-serbian-cyrillic-08:7:0",
+      "category": "serbian-cyrillic",
+      "correct": false,
+      "shown": false,
+      "latencyMs": 11.792541
+    }
+  ]
+}
