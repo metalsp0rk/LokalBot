@@ -1,9 +1,10 @@
 # README screenshots
 
-The five app screenshots used by the root [README](../../README.md) were captured
+The five app screenshots below were captured for the root [README](../../README.md)
 on **October 9, 2026** in light appearance from the `v0.10.2` release commit
 [`1ade074a90510866d8909dc17e2e1dde372831b7`](https://github.com/stevyhacker/lokalbot/tree/1ade074a90510866d8909dc17e2e1dde372831b7)
-(build 46).
+(build 46). The README now uses the first four; it shows Autocomplete with the
+[clip described below](#autocomplete-clip) instead of `cotyping.png`.
 
 | File | Surface |
 | --- | --- |
@@ -47,6 +48,37 @@ downloaded models, so a fresh Models capture shows "Download required" on every
 role; the README's model table covers the same information. The committed
 `models.png` remains the v0.8.2 capture described in
 [models.source.json](models.source.json).
+
+## Autocomplete clip
+
+[autocomplete-memory.gif](autocomplete-memory.gif) (1650 × 258, 161 frames at
+12 fps, 13.4 s, 316,808 bytes, SHA-256
+`3c7a7bdb75a9fd2e6bf9cd85a8f8596be7921aa51e7df466c072576505ea823c`) is cut from
+`remember.mp4`, the TextEdit footage of the
+[autocomplete launch film](../../Video/lokalbot-autocomplete-launch/README.md),
+recorded on October 13, 2026. Unlike the stills, it shows live inference: every
+suggestion is real output from the default autocomplete model (Gemma 4 E2B Base,
+`Q6_K`, in-process llama.cpp). The app was a filming copy of `master` at
+[`92d87af`](https://github.com/stevyhacker/lokalbot/tree/92d87af) whose only
+change lets screen recording see the suggestion panel. It ran on the film's
+fictional library (the "Harbor beta check-in" with John, from
+`filming/seed_library.py`) with meeting memory on. Typing and Tab presses were
+driven by computer use.
+
+The clip plays 6.0–17.4 s of the footage at real speed, cropped to the text and
+padded with the footage's own background inside a 1 px border. It starts at
+9.8 s, where the memory suggestion has just appeared, so a still or paused view
+shows a suggestion rather than an empty page. After the last accept, the
+finished sentence is held for 2.0 s, then 6.0–9.8 s plays (the empty page and
+the typing) and leads back into the first frame. Unlike the film, it keeps the
+brief generic suggestion offered before " ships" is typed and the meeting
+lookup settles. Rebuild it from the repository root with:
+
+```sh
+ffmpeg -i Video/lokalbot-autocomplete-launch/assets/footage/remember.mp4 \
+  -filter_complex "[0:v]split[x][y];[x]trim=start=9.8:end=17.4,setpts=PTS-STARTPTS,tpad=stop_mode=clone:stop_duration=2.0[a];[y]trim=start=6.0:end=9.8,setpts=PTS-STARTPTS[b];[a][b]concat=n=2:v=1:a=0,fps=12,crop=1580:212:0:0,format=rgb24,pad=iw+68:ih+44:34:26:color=0xFDFDFD,pad=iw+2:ih+2:1:1:color=0xD0D7DE,split[c][d];[c]palettegen=max_colors=128:stats_mode=diff[p];[d][p]paletteuse=dither=none:diff_mode=rectangle" \
+  -loop 0 Assets/screenshots/autocomplete-memory.gif
+```
 
 ## Demo video
 
