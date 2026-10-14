@@ -19,6 +19,7 @@ If `lokalbot-cli` isn't on PATH, use the embedded copy directly:
 - Use `people` for everything about one person: what the user owes them, what they owe the user, decisions made together, and shared meetings.
 - Use `path` only when the task needs an on-disk folder or audio file.
 - For viewed screen text or app activity, use the screen-memory MCP tools within the user's separate permission and history scope.
+- Use `personal-context` (MCP: `get_personal_context`) before advising on a personal decision or tailoring work to the user: it returns the facts, preferences, goals, and principles the user chose to share, most relevant to your task first.
 
 ## Discovery
 
@@ -70,6 +71,15 @@ lokalbot-cli people "Ana Petrović"
 
 People are joined from calendar attendee names, speaker names applied in LokalBot, and action owners. Only names are returned; never ask for or infer email addresses.
 
+## Personal context
+
+```bash
+lokalbot-cli personal-context --task "Evaluate a job offer in Berlin"
+lokalbot-cli personal-context --task "Plan next quarter" --kind goal --kind principle --limit 5
+```
+
+Items are the user's own statements (`authority: "stated"`), shared by them for agents. Use them only when they bear on the task, and say which ones shaped your answer. Items not returned are unknown, not false, so don't infer the user's values from their absence. They are not evidence about meetings or other people. A `[personal_context_disabled]` error means the user hasn't turned on "Allow external agents to read what I shared about myself" in Settings → Privacy. Explain that, and don't work around it.
+
 ## Path lookup
 
 ```bash
@@ -80,7 +90,7 @@ cd "$(lokalbot-cli path latest)"
 
 ## MCP alternative (and ask_library)
 
-The same library is available over MCP for GUI clients and anything else that speaks it: `lokalbot-cli mcp` serves `list_meetings`, `get_meeting`, `search_meetings`, `ask_library`, `get_action_items`, `list_people`, and `get_person` on stdio. It also advertises `search_screen`, `get_timeline`, `get_recent_activity`, `get_app_usage`, and `get_screenshot_detail`; those return OCR and metadata only, never decrypted pixels or screenshot paths.
+The same library is available over MCP for GUI clients and anything else that speaks it: `lokalbot-cli mcp` serves `list_meetings`, `get_meeting`, `search_meetings`, `ask_library`, `get_action_items`, `list_people`, and `get_person` on stdio. It also advertises `search_screen`, `get_timeline`, `get_recent_activity`, `get_app_usage`, and `get_screenshot_detail`; those return OCR and metadata only, never decrypted pixels or screenshot paths. `get_personal_context` returns what the user shared about themselves under its own permission.
 
 ```bash
 claude mcp add lokalbot -- /Applications/LokalBot.app/Contents/Helpers/lokalbot-cli mcp

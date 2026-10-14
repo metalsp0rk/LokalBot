@@ -525,6 +525,11 @@ final class AppState: ObservableObject {
     /// access: enabling one capability never grants the other.
     private(set) lazy var screenMemoryAccess = ScreenMemoryAccessManager(
         gate: ScreenMemoryAccessGate(root: storage.rootURL))
+    /// A third independent grant: agents read only the About you items the
+    /// person marked as shared, from a copy kept in step with every edit.
+    private(set) lazy var personalContextAccess = PersonalContextAccessManager(
+        gate: PersonalContextAccessGate(root: storage.rootURL),
+        claims: { [weak self] in self?.personalModel.readableClaims() })
     private(set) lazy var quickRecallHotKey: QuickRecallHotKeyController = {
         let controller = QuickRecallHotKeyController()
         controller.onInvoke = { WindowAccess.shared.open("quick-recall") }
@@ -827,8 +832,13 @@ final class AppState: ObservableObject {
 
     /// What the person told LokalBot about themselves: Ask and Quick Recall
     /// read and add to it, Settings → Day Memory → About you edits it.
-    private(set) lazy var personalModel = PersonalModelController(
-        store: PersonalModelStore(root: storage.rootURL))
+    private(set) lazy var personalModel: PersonalModelController = {
+        let controller = PersonalModelController(store: PersonalModelStore(root: storage.rootURL))
+        controller.onChange = { [weak self] claims in
+            self?.personalContextAccess.refresh(claims)
+        }
+        return controller
+    }()
 
     // Agent Mode (pi). Installer and tab manager are cheap; each tab lazily
     // spawns its own controller/process when AgentView mounts it.
@@ -1140,6 +1150,7 @@ final class AppState: ObservableObject {
         // Resume the wake watcher when the Privacy marker was left enabled.
         agentAccess.start()
         screenMemoryAccess.start()
+        personalContextAccess.start()
         applyQuickRecallSetting()
         applyDailyMemoryExportSetting()
         applyDayDigestSetting()

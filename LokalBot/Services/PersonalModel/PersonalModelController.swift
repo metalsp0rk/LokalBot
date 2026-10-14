@@ -15,6 +15,9 @@ final class PersonalModelController: ObservableObject {
     private var model = PersonalModel()
     private var loaded = false
     private var writable = false
+    /// Called after every saved change, forget-all and reload, so the
+    /// agent-facing projection never lags behind (nil claims: unreadable).
+    var onChange: ((_ claims: [PersonalClaim]?) -> Void)?
 
     init(store: PersonalModelStore, now: @escaping () -> Date = Date.init) {
         self.store = store
@@ -30,6 +33,13 @@ final class PersonalModelController: ObservableObject {
     func currentClaims() -> [PersonalClaim] {
         loadIfNeeded()
         return claims
+    }
+
+    /// The claims, or nil when the saved file couldn't be read. Agent access
+    /// fails closed on nil instead of treating it as "nothing shared".
+    func readableClaims() -> [PersonalClaim]? {
+        loadIfNeeded()
+        return writable ? claims : nil
     }
 
     func claim(id: UUID) -> PersonalClaim? {
@@ -55,6 +65,7 @@ final class PersonalModelController: ObservableObject {
             lokalbotLog("personal model load failed: \(error)")
         }
         claims = model.claims
+        onChange?(writable ? claims : nil)
     }
 
     @discardableResult
@@ -67,9 +78,10 @@ final class PersonalModelController: ObservableObject {
 
     @discardableResult
     func update(_ id: UUID, text: String? = nil, kind: PersonalClaim.Kind? = nil,
-                alwaysUse: Bool? = nil) -> Result<PersonalClaim, PersonalModel.EditError> {
+                alwaysUse: Bool? = nil,
+                sharing: PersonalClaim.Sharing? = nil) -> Result<PersonalClaim, PersonalModel.EditError> {
         mutate { model, date in
-            model.update(id: id, text: text, kind: kind, alwaysUse: alwaysUse, now: date)
+            model.update(id: id, text: text, kind: kind, alwaysUse: alwaysUse, sharing: sharing, now: date)
         }
     }
 
@@ -94,6 +106,7 @@ final class PersonalModelController: ObservableObject {
         claims = []
         writable = true
         loadError = nil
+        onChange?(claims)
         return .success(())
     }
 
@@ -123,6 +136,7 @@ final class PersonalModelController: ObservableObject {
         }
         model = updated
         claims = updated.claims
+        onChange?(claims)
         return result
     }
 

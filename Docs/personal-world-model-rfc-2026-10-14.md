@@ -1,7 +1,7 @@
 # Personal World Model v1
 
-Date: 2026-10-14. Status: accepted direction; Phase 1 in progress. Code
-references are to master at `04f12f6`.
+Date: 2026-10-14. Status: accepted direction; Phases 1 and 2 in progress in
+draft PR 251. Code references are to master at `04f12f6`.
 
 ## Summary
 
@@ -230,17 +230,24 @@ discussion's "show why it influenced the answer".
 
   ```json
   {"name": "get_personal_context",
-   "arguments": {"task": "Evaluate a job offer", "domains": ["career", "family"], "max_items": 12}}
+   "arguments": {"task": "Evaluate a job offer", "kinds": ["principle", "goal"], "max_items": 8}}
   ```
 
-  `PersonalContextBuilder` lives in `CLISupport` and does the selection.
-  `max_items` is at most 12. The result gives each claim's kind, text,
-  authority, as-of date, horizon and a source label (meeting title and date,
-  never content). A note says "Absent claims are unknown, not false."
-- **Refusals** use the existing error vocabulary
-  (`personal_context_disabled`). Out-of-grant claims appear missing.
-- A per-claim **Share with agents** switch plus a bulk "Share all non-sensitive
-  confirmed claims" button. Sensitive claims always need their own switch.
+  `PersonalContextSelection` lives in `CLISupport`, so Ask and agents rank
+  claims the same way. `max_items` defaults to 8 and is at most 12. The
+  result gives each claim's kind, text, authority, as-of date and a source
+  label. In later phases the label becomes the meeting title and date, never
+  content. A note says items not listed are unknown, not false.
+  `lokalbot-cli personal-context --task …` returns the same report.
+- **Refusals** use the existing error vocabulary: `personal_context_disabled`,
+  and `personal_context_unavailable` when the grant is on but the app hasn't
+  written the projection. Out-of-grant claims are simply absent.
+- A per-claim **Share with agents** switch in the row menu and the editor.
+  Phase 2 filters by kind, not by the `domains` sketched above. Claims carry
+  no domains yet, and task-word ranking covers the examples. The bulk
+  "share all non-sensitive" action and the `sensitive` flag wait for Phase 3.
+  Until then every claim is one the person typed, and sensitivity matters
+  most for proposed claims.
 
 ## My World UI
 
@@ -270,7 +277,10 @@ agent access is the differentiator and is safe with stated claims alone.
    parity (`lokalbot-cli personal-context --task …`) and the lokalbot-cli skill
    docs. Milestone: a principle typed into LokalBot changes Claude Code's
    answer to a relevant question, and revoking the grant or the claim removes
-   it.
+   it. Met on 2026-10-14 with `claude -p` against the built MCP server and a
+   synthetic library. Getting there exposed a stdio bug present since
+   2026-07-14: the server waited for 64 KB or EOF before answering, so
+   clients that keep stdin open never connected. It is fixed in the same PR.
 3. **Evidence-backed claims.** Remember-from-answer, the nightly proposals with
    quote grounding, the review queue, the My World destination, the deletion
    alert, and retraction tests.

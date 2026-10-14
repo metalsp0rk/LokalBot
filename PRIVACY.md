@@ -105,8 +105,10 @@ or screen. The items are AES-GCM encrypted with the same per-install key as
 saved Ask conversations, in the library's `memory` folder. Each Ask question,
 including one limited to some sources or days, includes the relevant items
 in its prompt to your Think model, which may be an approved remote server.
-The answer lists the items it was given. They are never given to MCP
-clients, the CLI, Agent Mode, Autocomplete, notes, exports, or diagnostics.
+The answer lists the items it was given. External agents can read only items
+you mark **Share with agents**, and only while the separate personal-context
+grant described under External-agent access is on. Agent Mode, Autocomplete,
+notes, exports, and diagnostics never get them.
 Turning off **Remember what I tell Ask** stops saving and using them and
 keeps what is saved; **Forget**, **Forget everything…**, or Undo on the Ask
 reply deletes them. Deleting the conversation a "Remember …" message came
@@ -329,6 +331,17 @@ clamped to the granted period and out-of-scope ids appear missing. Enabling
 meeting access does not enable screen-memory access, or vice versa. A connected
 MCP client may transmit tool inputs and results under that client's own privacy
 terms.
+
+**Allow external agents to read what I shared about myself** is a third,
+independent grant, off by default. It covers only the About you items you mark
+**Share with agents**. Neither meeting nor screen access implies it, and Agent
+Mode's own session access doesn't either. While it is on, LokalBot keeps a
+plaintext copy of exactly those items, with their kind, text, and dates, in the
+library's `control/personal-context.json` (mode 0600) so the CLI can read them
+without the encryption key. The copy is rewritten whenever you edit, unshare,
+or forget an item. It is deleted when you turn the grant off, and when LokalBot
+can't read About you. `get_personal_context` and `lokalbot-cli personal-context`
+return at most 12 items, the most relevant to the agent's stated task.
 
 **Open in Claude** and **Open in Codex**, in a meeting's More menu, start a new
 conversation in that installed app with the meeting's title, summary, and as much

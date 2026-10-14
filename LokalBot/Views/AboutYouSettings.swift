@@ -6,6 +6,7 @@ import SwiftUI
 struct AboutYouSettings: View {
     @EnvironmentObject private var app: AppState
     @ObservedObject var personalModel: PersonalModelController
+    @ObservedObject var access: PersonalContextAccessManager
     @State private var editing: EditorTarget?
     @State private var confirmingForgetAll = false
     @State private var error: String?
@@ -42,6 +43,7 @@ struct AboutYouSettings: View {
                     row(claim)
                 }
             }
+            agentAccessLine
             HStack(spacing: 8) {
                 Button("Add…") { editing = .add }
                     .disabled(personalModel.loadError != nil)
@@ -55,14 +57,16 @@ struct AboutYouSettings: View {
                             "Items stay on this Mac, encrypted with the same key as your Ask history. Each question gets "
                                 + "the items marked Always use, your principles and preferences, and the facts and goals "
                                 + "that share words with it, up to about 2,000 characters. If your Think model is a "
-                                + "remote server you approved, they are sent there with the question. They are never "
-                                + "given to MCP clients, the CLI, Agent Mode, Autocomplete, exports, or diagnostics. "
-                                + "Turning this off stops saving and using them; forget them here to delete them.")
+                                + "remote server you approved, they are sent there with the question. External agents "
+                                + "(MCP clients and the CLI) read only items you mark Share with agents, and only while "
+                                + "personal context access is on in Settings → Privacy. Agent Mode, Autocomplete, exports, "
+                                + "and diagnostics never get them. Turning this off stops saving and using them in Ask; "
+                                + "forget them here to delete them.")
         }
         .onAppear { personalModel.loadIfNeeded() }
         .sheet(item: $editing) { target in
-            PersonalClaimEditor(target: target) { text, kind in
-                save(target: target, text: text, kind: kind)
+            PersonalClaimEditor(target: target) { text, kind, sharing in
+                save(target: target, text: text, kind: kind, sharing: sharing)
             }
         }
         .confirmationDialog(
@@ -95,6 +99,12 @@ struct AboutYouSettings: View {
                 SettingsHelp(Self.originLine(for: claim))
             }
             Spacer(minLength: 8)
+            if claim.sharing == .agents {
+                Image(systemName: "person.2.wave.2")
+                    .foregroundStyle(access.isEnabled ? AnyShapeStyle(Brand.teal) : AnyShapeStyle(.secondary))
+                    .help(access.isEnabled ? "Shared with agents" : "Marked for agents; personal context access is off")
+                    .accessibilityLabel("Shared with agents")
+            }
             if claim.alwaysUse {
                 Image(systemName: "pin.fill")
                     .foregroundStyle(.secondary)
@@ -105,6 +115,10 @@ struct AboutYouSettings: View {
                 Button("Edit…") { editing = .edit(claim) }
                 Button(claim.alwaysUse ? "Stop Always Using" : "Always Use") {
                     report(personalModel.update(claim.id, alwaysUse: !claim.alwaysUse))
+                }
+                Button(claim.sharing == .agents ? "Stop Sharing with Agents" : "Share with Agents") {
+                    report(personalModel.update(
+                        claim.id, sharing: claim.sharing == .agents ? .lokalBotOnly : .agents))
                 }
                 Divider()
                 Button("Forget", role: .destructive) { report(personalModel.forget([claim.id])) }
@@ -122,6 +136,26 @@ struct AboutYouSettings: View {
         .accessibilityIdentifier("settings.aboutYou.claim")
     }
 
+    @ViewBuilder private var agentAccessLine: some View {
+        let shared = personalModel.claims.filter { $0.sharing == .agents }.count
+        if access.isEnabled {
+            SettingsHelp(shared == 0
+                ? "Personal context access is on, but nothing is shared yet. Choose Share with Agents on an item."
+                : shared == 1 ? "Agents can read 1 shared item, when it's relevant to their task."
+                : "Agents can read \(shared) shared items, when they're relevant to their task.")
+        } else if shared > 0 {
+            HStack(spacing: 6) {
+                SettingsHelp(shared == 1 ? "1 item is marked for agents, but personal context access is off."
+                                         : "\(shared) items are marked for agents, but personal context access is off.")
+                Button("Privacy settings…") {
+                    app.settingsTab = .privacy
+                    app.focusedSettingID = "settings.personalContextAccess"
+                }
+                .buttonStyle(.workspaceLink)
+            }
+        }
+    }
+
     static func originLine(for claim: PersonalClaim) -> String {
         let day = claim.createdAt.formatted(date: .abbreviated, time: .omitted)
         let origin: String
@@ -132,13 +166,17 @@ struct AboutYouSettings: View {
         return "\(claim.kind.displayName) · \(origin) · \(day)"
     }
 
-    private func save(target: EditorTarget, text: String, kind: PersonalClaim.Kind) -> String? {
-        let result: Result<PersonalClaim, PersonalModel.EditError>
+    private func save(target: EditorTarget, text: String, kind: PersonalClaim.Kind,
+                      sharing: PersonalClaim.Sharing) -> String? {
+        var result: Result<PersonalClaim, PersonalModel.EditError>
         switch target {
         case .add:
             result = personalModel.remember(text, kind: kind, origin: .added)
+            if case .success(let claim) = result, claim.sharing != sharing {
+                result = personalModel.update(claim.id, sharing: sharing)
+            }
         case .edit(let claim):
-            result = personalModel.update(claim.id, text: text, kind: kind)
+            result = personalModel.update(claim.id, text: text, kind: kind, sharing: sharing)
         }
         switch result {
         case .success:
@@ -163,22 +201,25 @@ struct AboutYouSettings: View {
 struct PersonalClaimEditor: View {
     @Environment(\.dismiss) private var dismiss
     let target: AboutYouSettings.EditorTarget
-    let onSave: (String, PersonalClaim.Kind) -> String?
+    let onSave: (String, PersonalClaim.Kind, PersonalClaim.Sharing) -> String?
     @State private var text: String
     @State private var kind: PersonalClaim.Kind
+    @State private var sharesWithAgents: Bool
     @State private var error: String?
 
     init(target: AboutYouSettings.EditorTarget,
-         onSave: @escaping (String, PersonalClaim.Kind) -> String?) {
+         onSave: @escaping (String, PersonalClaim.Kind, PersonalClaim.Sharing) -> String?) {
         self.target = target
         self.onSave = onSave
         switch target {
         case .add:
             _text = State(initialValue: "")
             _kind = State(initialValue: .fact)
+            _sharesWithAgents = State(initialValue: false)
         case .edit(let claim):
             _text = State(initialValue: claim.text)
             _kind = State(initialValue: claim.kind)
+            _sharesWithAgents = State(initialValue: claim.sharing == .agents)
         }
     }
 
@@ -202,6 +243,9 @@ struct PersonalClaimEditor: View {
                 .lineLimit(3...6)
                 .textFieldStyle(.roundedBorder)
                 .accessibilityIdentifier("settings.aboutYou.text")
+            Toggle("Share with agents", isOn: $sharesWithAgents)
+                .help("MCP clients and the CLI can read this item while personal context access is on in Settings → Privacy.")
+                .accessibilityIdentifier("settings.aboutYou.share")
             HStack {
                 Text("\(text.count)/\(PersonalModel.maxCharacters)")
                     .font(.scaled(.caption).monospacedDigit())
@@ -211,7 +255,7 @@ struct PersonalClaimEditor: View {
                 Button("Cancel", role: .cancel) { dismiss() }
                     .keyboardShortcut(.cancelAction)
                 Button("Save") {
-                    if let failure = onSave(text, kind) {
+                    if let failure = onSave(text, kind, sharesWithAgents ? .agents : .lokalBotOnly) {
                         error = failure
                     } else {
                         dismiss()

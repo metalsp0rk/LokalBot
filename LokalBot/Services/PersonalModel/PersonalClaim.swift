@@ -5,45 +5,8 @@ import Foundation
 /// model (Docs/personal-world-model-rfc-2026-10-14.md) stores only what the
 /// person states, so every claim here is their own words, never an inference.
 /// Later phases add evidence-backed and proposed claims as new origins.
-struct PersonalClaim: Codable, Identifiable, Equatable, Sendable {
-    enum Kind: String, Codable, CaseIterable, Sendable {
-        case fact
-        case preference
-        case goal
-        case principle
-
-        var displayName: String {
-            switch self {
-            case .fact: "Fact"
-            case .preference: "Preference"
-            case .goal: "Goal"
-            case .principle: "Principle"
-            }
-        }
-
-        var systemImage: String {
-            switch self {
-            case .fact: "person.text.rectangle"
-            case .preference: "slider.horizontal.3"
-            case .goal: "flag"
-            case .principle: "scale.3d"
-            }
-        }
-
-        /// A starting kind for a statement typed in Ask. Only obvious English
-        /// openings are recognized; principles are never guessed, because the
-        /// person decides what counts as one of their values.
-        static func suggested(for text: String) -> Kind {
-            let lowered = text.lowercased()
-            let preferenceOpenings = ["i prefer", "i like", "i don't like", "i do not like", "i dislike",
-                                      "answer in", "reply in", "respond in", "always answer", "use "]
-            if preferenceOpenings.contains(where: lowered.hasPrefix) { return .preference }
-            let goalOpenings = ["my goal", "i want to", "i'm working toward", "i am working toward",
-                                "i'm trying to", "i am trying to", "i plan to"]
-            if goalOpenings.contains(where: lowered.hasPrefix) { return .goal }
-            return .fact
-        }
-    }
+struct PersonalClaim: Codable, Identifiable, Equatable, Sendable, PersonalContextItem {
+    typealias Kind = PersonalClaimKind
 
     enum Origin: Codable, Equatable, Sendable {
         /// "Remember …" typed in Ask or Quick Recall.
@@ -52,27 +15,102 @@ struct PersonalClaim: Codable, Identifiable, Equatable, Sendable {
         case added
     }
 
+    /// Who may read the claim besides LokalBot itself.
+    enum Sharing: String, Codable, Sendable {
+        /// Ask and Quick Recall only. The default for every claim.
+        case lokalBotOnly
+        /// Also external agents, while the Personal context grant is on.
+        case agents
+    }
+
     let id: UUID
     var kind: Kind
     var text: String
     let origin: Origin
     /// Included first in every eligible prompt, ahead of relevance ranking.
     var alwaysUse: Bool
+    var sharing: Sharing
     let createdAt: Date
     var updatedAt: Date
     var lastUsedAt: Date?
 
     init(id: UUID = UUID(), kind: Kind, text: String, origin: Origin,
-         alwaysUse: Bool = false, createdAt: Date, updatedAt: Date? = nil,
-         lastUsedAt: Date? = nil) {
+         alwaysUse: Bool = false, sharing: Sharing = .lokalBotOnly, createdAt: Date,
+         updatedAt: Date? = nil, lastUsedAt: Date? = nil) {
         self.id = id
         self.kind = kind
         self.text = text
         self.origin = origin
         self.alwaysUse = alwaysUse
+        self.sharing = sharing
         self.createdAt = createdAt
         self.updatedAt = updatedAt ?? createdAt
         self.lastUsedAt = lastUsedAt
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, kind, text, origin, alwaysUse, sharing, createdAt, updatedAt, lastUsedAt
+    }
+
+    /// Fields added after Phase 1 decode with defaults that keep earlier
+    /// behavior: a claim saved before sharing existed stays LokalBot-only.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id)
+        kind = try c.decode(Kind.self, forKey: .kind)
+        text = try c.decode(String.self, forKey: .text)
+        origin = try c.decode(Origin.self, forKey: .origin)
+        alwaysUse = try c.decodeIfPresent(Bool.self, forKey: .alwaysUse) ?? false
+        sharing = try c.decodeIfPresent(Sharing.self, forKey: .sharing) ?? .lokalBotOnly
+        createdAt = try c.decode(Date.self, forKey: .createdAt)
+        updatedAt = try c.decodeIfPresent(Date.self, forKey: .updatedAt) ?? createdAt
+        lastUsedAt = try c.decodeIfPresent(Date.self, forKey: .lastUsedAt)
+    }
+}
+
+extension PersonalClaimKind {
+    var displayName: String {
+        switch self {
+        case .fact: "Fact"
+        case .preference: "Preference"
+        case .goal: "Goal"
+        case .principle: "Principle"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .fact: "person.text.rectangle"
+        case .preference: "slider.horizontal.3"
+        case .goal: "flag"
+        case .principle: "scale.3d"
+        }
+    }
+
+    /// A starting kind for a statement typed in Ask. Only obvious English
+    /// openings are recognized; principles are never guessed, because the
+    /// person decides what counts as one of their values.
+    static func suggested(for text: String) -> PersonalClaimKind {
+        let lowered = text.lowercased()
+        let preferenceOpenings = ["i prefer", "i like", "i don't like", "i do not like", "i dislike",
+                                  "answer in", "reply in", "respond in", "always answer", "use "]
+        if preferenceOpenings.contains(where: lowered.hasPrefix) { return .preference }
+        let goalOpenings = ["my goal", "i want to", "i'm working toward", "i am working toward",
+                            "i'm trying to", "i am trying to", "i plan to"]
+        if goalOpenings.contains(where: lowered.hasPrefix) { return .goal }
+        return .fact
+    }
+}
+
+extension PersonalContextProjection.Claim {
+    init(_ claim: PersonalClaim) {
+        let source: Source
+        switch claim.origin {
+        case .said: source = .askedToRemember
+        case .added: source = .addedInSettings
+        }
+        self.init(id: claim.id, kind: claim.kind, text: claim.text, alwaysUse: claim.alwaysUse,
+                  source: source, createdAt: claim.createdAt, updatedAt: claim.updatedAt)
     }
 }
 
@@ -154,7 +192,8 @@ struct PersonalModel: Codable, Equatable, Sendable {
 
     @discardableResult
     mutating func update(id: UUID, text raw: String? = nil, kind: PersonalClaim.Kind? = nil,
-                         alwaysUse: Bool? = nil, now: Date) -> Result<PersonalClaim, EditError> {
+                         alwaysUse: Bool? = nil, sharing: PersonalClaim.Sharing? = nil,
+                         now: Date) -> Result<PersonalClaim, EditError> {
         guard let index = claims.firstIndex(where: { $0.id == id }) else { return .failure(.notFound) }
         var claim = claims[index]
         if let raw {
@@ -171,6 +210,7 @@ struct PersonalModel: Codable, Equatable, Sendable {
         }
         if let kind { claim.kind = kind }
         if let alwaysUse { claim.alwaysUse = alwaysUse }
+        if let sharing { claim.sharing = sharing }
         claim.updatedAt = now
         guard let current = claims.firstIndex(where: { $0.id == id }) else { return .failure(.notFound) }
         claims[current] = claim
