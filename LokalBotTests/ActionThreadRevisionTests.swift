@@ -102,7 +102,6 @@ final class ActionThreadRevisionTests: XCTestCase {
 
         XCTAssertEqual(wrapperCalls, 2)
         XCTAssertEqual(index.projection(for: meeting.id)?.actionReferences.first?.status, .open)
-        XCTAssertTrue(index.statusUndo.isEmpty)
         XCTAssertNil(MeetingOutcomeStore.loadState(from: folder).actions[action.id])
         XCTAssertNil(MeetingOutcomeStore.loadFollowUp(from: folder))
         XCTAssertEqual(index.projection(for: meeting.id)?.followUp, originalFollowUp)
@@ -284,7 +283,7 @@ final class ActionThreadRevisionTests: XCTestCase {
         XCTAssertLessThan(Date().timeIntervalSince(start), 2, "Action edits must not scan and normalize every pair")
     }
 
-    func testThreadUndoRestoresEachSourceStatusAndInvalidatesEvidence() throws {
+    func testThreadCompletionWritesEachSourceOverlayAndInvalidatesEvidenceOnce() throws {
         let (storage, meetings, action) = try fixture()
         var notifications: [[Meeting.ID]] = []
         let index = OutcomeIndex(
@@ -297,22 +296,20 @@ final class ActionThreadRevisionTests: XCTestCase {
             try Data(contentsOf: $0.folderURL(in: storage).appendingPathComponent(MeetingOutcomes.fileName))
         }
         XCTAssertTrue(index.setStatus(.done, thread: try XCTUnwrap(index.userActionThreads.first)))
-        XCTAssertEqual(index.statusUndo.count, 2)
         XCTAssertEqual(notifications.count, 1)
         XCTAssertEqual(Set(notifications[0]), Set(meetings.map(\.id)))
-        index.undoStatusChange()
-        XCTAssertTrue(index.statusUndo.isEmpty)
         XCTAssertNil(index.lastError)
-        XCTAssertEqual(index.projection(for: meetings[0].id)?.actionReferences.first?.status, .deferred)
-        XCTAssertEqual(index.projection(for: meetings[1].id)?.actionReferences.first?.status, .open)
-        XCTAssertEqual(Set(notifications.dropFirst().flatMap { $0 }), Set(meetings.map(\.id)))
+        for meeting in meetings {
+            XCTAssertEqual(index.projection(for: meeting.id)?.actionReferences.first?.status, .done)
+        }
+        // Status lives in the per-meeting overlay; extracted commitments stay untouched.
         for (offset, meeting) in meetings.enumerated() {
             XCTAssertEqual(try Data(contentsOf: meeting.folderURL(in: storage)
                 .appendingPathComponent(MeetingOutcomes.fileName)), sources[offset])
         }
     }
 
-    func testPartialThreadCompletionKeepsSuccessfulSourcesUndoableAndCanRetry() throws {
+    func testPartialThreadCompletionKeepsSuccessfulSourcesAndCanRetry() throws {
         let (storage, meetings, _) = try fixture()
         let index = OutcomeIndex(storage: storage)
         index.refresh(meetings: meetings)
@@ -323,20 +320,15 @@ final class ActionThreadRevisionTests: XCTestCase {
         try FileManager.default.createDirectory(at: stateURL, withIntermediateDirectories: true)
         XCTAssertFalse(index.setStatus(.done, thread: thread))
         XCTAssertNotNil(index.lastError)
-        XCTAssertEqual(index.statusUndo.count, 1)
-        XCTAssertEqual(index.statusUndo.first?.meetingID, thread.references.first?.meetingID)
         XCTAssertTrue(index.userActionThreads[0].hasMixedStatus)
-        index.undoStatusChange()
-        XCTAssertEqual(index.openUserActions.count, 2)
-        XCTAssertNil(index.lastError)
+        XCTAssertEqual(index.openUserActions.map(\.meetingID), [blocked.meetingID])
         try FileManager.default.removeItem(at: stateURL)
         XCTAssertTrue(index.setStatus(.done, thread: try XCTUnwrap(index.userActionThreads.first)))
+        XCTAssertNil(index.lastError)
         XCTAssertTrue(index.openUserActions.isEmpty)
-        XCTAssertEqual(index.statusUndo.count, 2)
-        index.undoStatusChange()
         let reopened = OutcomeIndex(storage: storage)
         reopened.refresh(meetings: meetings)
-        XCTAssertEqual(reopened.openUserActions.count, 2)
+        XCTAssertTrue(reopened.openUserActions.isEmpty)
     }
 
     private func fixture() throws -> (StorageManager, [Meeting], MeetingOutcomes.ActionItem) {

@@ -23,13 +23,6 @@ final class OutcomeIndex: ObservableObject {
     private let mutateEvidence: ([Meeting], () throws -> Void) throws -> Void
     private let onEvidenceChanged: ([Meeting]) -> Void
     @Published private(set) var lastError: String?
-    struct StatusChange {
-        let meetingID: UUID
-        let actionID: String
-        let previous: OutcomeStatus
-        let applied: OutcomeStatus
-    }
-    @Published private(set) var statusUndo: [StatusChange] = []
 
     init(
         storage: StorageManager,
@@ -118,47 +111,23 @@ final class OutcomeIndex: ObservableObject {
     @discardableResult
     func setStatus(_ status: OutcomeStatus, actionID: String,
                    meetingID: Meeting.ID) -> Bool {
-        guard let previous = projection(for: meetingID)?.actionReferences.first(where: { $0.action.id == actionID })?.status else { return false }
-        let success = mutateAction(actionID: actionID, meetingID: meetingID) { state in
+        guard projection(for: meetingID)?.actionReferences.contains(where: { $0.action.id == actionID }) == true else { return false }
+        return mutateAction(actionID: actionID, meetingID: meetingID) { state in
             state.status = status
             state.userEdited = true
         }
-        if success {
-            statusUndo = [StatusChange(meetingID: meetingID, actionID: actionID, previous: previous, applied: status)]
-        }
-        return success
     }
 
     @discardableResult
     func setStatus(_ status: OutcomeStatus, for references: [OutcomeActionReference]) -> [String] {
-        var changes: [StatusChange] = []
         var failed: [String] = []
         for reference in references {
-            if setStatus(status, actionID: reference.action.id, meetingID: reference.meetingID) {
-                changes += statusUndo
-            } else { failed.append(reference.text) }
-        }
-        statusUndo = changes
-        if !failed.isEmpty { lastError = "Could not update: " + failed.joined(separator: "; ") }
-        return failed
-    }
-
-    func dismissUndo() { statusUndo = [] }
-
-    func undoStatusChange() {
-        var remaining: [StatusChange] = []
-        var failures: [String] = []
-        for change in statusUndo {
-            guard let current = projection(for: change.meetingID)?.actionReferences.first(where: { $0.action.id == change.actionID }),
-                  current.status == change.applied else { continue }
-            if !mutateAction(actionID: change.actionID, meetingID: change.meetingID, change: { $0.status = change.previous }) {
-                remaining.append(change)
-                failures.append(current.text)
+            if !setStatus(status, actionID: reference.action.id, meetingID: reference.meetingID) {
+                failed.append(reference.text)
             }
         }
-        statusUndo = remaining
-        // A later successful restore must not hide an earlier write failure.
-        lastError = failures.isEmpty ? nil : "Could not undo: " + failures.joined(separator: "; ")
+        if !failed.isEmpty { lastError = "Could not update: " + failed.joined(separator: "; ") }
+        return failed
     }
 
     @discardableResult
@@ -169,10 +138,6 @@ final class OutcomeIndex: ObservableObject {
             return false
         }
         var changedMeetings: [Meeting] = []
-        var changes: [StatusChange] = []
-        defer {
-            if !changes.isEmpty { statusUndo = changes }
-        }
         for reference in thread.references where reference.status != status {
             guard mutateAction(
                 actionID: reference.action.id,
@@ -188,8 +153,6 @@ final class OutcomeIndex: ObservableObject {
                 notifyEvidenceChanged(changedMeetings)
                 return false
             }
-            changes.append(StatusChange(meetingID: reference.meetingID, actionID: reference.action.id,
-                                        previous: reference.status, applied: status))
             if let meeting = projections[reference.meetingID]?.meeting {
                 changedMeetings.append(meeting)
             }

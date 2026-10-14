@@ -62,40 +62,20 @@ struct MainWindowView: View {
                 .splitPaneAccessibilityLabel("Workspace navigation")
         } detail: {
             workspace
-                .safeAreaInset(edge: .bottom, spacing: 0) {
-                    VStack(spacing: 0) {
-                        errorFeedback
-                        if !app.outcomeIndex.statusUndo.isEmpty {
-                            HStack {
-                                Text("Updated \(app.outcomeIndex.statusUndo.count) action(s)")
-                                Button("Undo") {
-                                    app.outcomeIndex.undoStatusChange()
-                                    app.lastError = app.outcomeIndex.lastError
-                                }
-                                    .accessibilityIdentifier("outcomes.undo")
-                                Spacer()
-                                Button("Dismiss") { app.outcomeIndex.dismissUndo() }
-                            }
-                            .font(AppFont.scaled(.body))
-                            .padding(12).background(.bar)
-                            .transition(WorkspaceMotion.bottomEdgeTransition(reduceMotion: reduceMotion))
-                        }
-                    }
-                }
+                .safeAreaInset(edge: .bottom, spacing: 0) { errorFeedback }
                 // Model code sets this feedback, so animate on its values: the
                 // bar enters from the bottom edge while the workspace above
                 // yields its space in the same motion.
                 .animation(bottomFeedbackAnimation, value: app.lastError)
                 .animation(bottomFeedbackAnimation, value: app.micRecoveryNeeded)
-                .animation(bottomFeedbackAnimation, value: app.outcomeIndex.statusUndo.isEmpty)
                 .accessibilityElement(children: .contain)
                 .accessibilityLabel("Workspace content")
                 .splitPaneAccessibilityLabel("Workspace content")
         }
     }
 
-    /// Reserve space for recovery feedback so it cannot cover Undo or a
-    /// workspace's composer, transport, or other bottom controls.
+    /// Reserve space for recovery feedback so it cannot cover a workspace's
+    /// composer, transport, or other bottom controls.
     @ViewBuilder private var errorFeedback: some View {
         if app.micRecoveryNeeded {
             ErrorToast(

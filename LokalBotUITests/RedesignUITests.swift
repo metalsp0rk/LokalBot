@@ -615,9 +615,9 @@ final class RedesignUITests: XCTestCase {
         XCTAssertEqual(UserDefaults(suiteName: suite!)?.data(forKey: "lokalbotv3.settings"), before)
     }
 
-    func testActionSearchPreservesSelectionAndCompletionCanBeUndone() throws {
+    func testActionSearchPreservesSelectionAndCompletionRecoversFromSaveFailure() throws {
         let folder = fixture.folder(for: fixture.designReview)
-        // Large-list persistence and undo belong to RedesignContractTests, which
+        // Large-list persistence belongs to RedesignContractTests, which
         // covers 0, 40 and 400 actions without an accessibility snapshot of every row.
         // Two distinct actions exercise filtering and hidden selection here.
         let actions: [[String: Any]] = (0..<2).map { index in
@@ -649,36 +649,19 @@ final class RedesignUITests: XCTestCase {
         XCTAssertFalse(element("actions.selection.hidden").exists)
         let complete = app.buttons["outcome.action.toggle.\(fixture.designReview.id.uuidString):search-action-1"]
         XCTAssertTrue(complete.waitForExistence(timeout: 4))
-        complete.click()
-        XCTAssertTrue(UITestHarness.waitUntil { !action.exists })
-        app.buttons["outcomes.undo"].click()
-        XCTAssertTrue(action.waitForExistence(timeout: 5))
-        snapshot("actions-search-and-undo")
         let stateFile = folder.appendingPathComponent("outcome-state.json")
         try withBlockedStateFile(stateFile) {
             complete.click()
             XCTAssertTrue(UITestHarness.staticText(containing: "Could not update this action", in: app)
                 .waitForExistence(timeout: 4))
             XCTAssertTrue(action.exists, "A failed save must preserve the open action")
+            snapshot("action-complete-write-failure")
         }
         complete.click()
         XCTAssertTrue(UITestHarness.waitUntil { !action.exists })
         XCTAssertFalse(UITestHarness.staticText(containing: "Could not update this action", in: app).exists,
                        "A successful retry should clear the previous save error")
-        try withBlockedStateFile(stateFile) {
-            app.buttons["outcomes.undo"].click()
-            let undoFailure = UITestHarness.staticText(containing: "Could not undo", in: app)
-            XCTAssertTrue(undoFailure.waitForExistence(timeout: 4))
-            XCTAssertTrue(app.buttons["outcomes.undo"].exists, "Failed Undo must remain retryable")
-            XCTAssertFalse(action.exists, "A failed Undo must not pretend the state was restored")
-            XCTAssertLessThanOrEqual(undoFailure.frame.maxY, app.buttons["outcomes.undo"].frame.minY,
-                                     "The error must remain above the retry action without covering it")
-            snapshot("action-undo-write-failure")
-        }
-        app.buttons["outcomes.undo"].click()
-        XCTAssertTrue(action.waitForExistence(timeout: 5), "Retry should restore the action after storage recovers")
-        XCTAssertFalse(UITestHarness.staticText(containing: "Could not undo", in: app).exists,
-                       "A successful Undo should clear its previous error")
+        XCTAssertFalse(app.windows.buttons["Undo"].exists, "Completing an action must not leave a persistent Undo bar")
     }
 
     func testAgentApprovalDescribesEffectAndDenialAndStopReachTheController() throws {
@@ -734,13 +717,15 @@ final class RedesignUITests: XCTestCase {
         }
         app = run.app; suite = run.defaultsSuiteName
     }
+    /// Blocks writes by putting a directory where the state file belongs, then
+    /// restores the previous file, or its absence when no status was saved yet.
     private func withBlockedStateFile(_ file: URL, perform body: () throws -> Void) throws {
-        let contents = try Data(contentsOf: file)
-        try FileManager.default.removeItem(at: file)
+        let contents = try? Data(contentsOf: file)
+        if contents != nil { try FileManager.default.removeItem(at: file) }
         try FileManager.default.createDirectory(at: file, withIntermediateDirectories: true)
         defer {
             try? FileManager.default.removeItem(at: file)
-            try? contents.write(to: file, options: .atomic)
+            try? contents?.write(to: file, options: .atomic)
         }
         try body()
     }
