@@ -409,9 +409,28 @@ kbd {
 .brand__mark { border-radius: 8px; display: block; }
 .brand__name { font-size: 1.06rem; }
 .nav__links { display: flex; gap: 28px; margin-left: auto; }
-.nav__links a { color: var(--text-dim); font-size: 0.95rem; transition: color 0.2s var(--ease); }
+.nav__links a { color: var(--text-dim); font-size: 0.95rem; white-space: nowrap; transition: color 0.2s var(--ease); }
 .nav__links a:hover { color: var(--text); }
 .nav__actions { display: flex; align-items: center; gap: 12px; margin-left: 8px; }
+/* phones: app.js adds a menu button that opens the nav links in a panel */
+.nav__actions .nav__menu-button { display: none; padding: 0; font: inherit; cursor: pointer; }
+.nav__menu-button svg { width: 1em; height: 1em; }
+.nav__menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  display: grid;
+  min-width: 220px;
+  padding: 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--glass-shadow);
+}
+.nav__menu[hidden] { display: none; }
+.nav__menu a { padding: 12px 14px; border-radius: var(--radius-sm); color: var(--text-dim); }
+.nav__menu a:hover,
+.nav__menu a:focus-visible { color: var(--text); background: var(--teal-soft); }
 
 /* =========================================================================
    layout helpers
@@ -1126,8 +1145,37 @@ kbd {
 .guide-card strong { color: var(--text); font-size: 1.2rem; line-height: 1.25; }
 .guide-card > span { color: var(--text-dim); font-size: 0.92rem; line-height: 1.55; }
 .guide-card__meta { margin-top: auto; color: var(--text-faint) !important; font-size: 0.82rem !important; }
-.guide-card-grid--index { padding-bottom: 104px; }
 .guide-related--compare { padding: 0 0 104px; }
+/* /guides filter: app.js reveals it and hides cards and sections that don't match */
+.guide-filter {
+  position: relative;
+  display: flex;
+  align-items: center;
+  max-width: 520px;
+  margin-top: 32px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--pill);
+  background: var(--glass-gloss), var(--glass-tint-chip);
+  box-shadow: var(--glass-inset);
+  transition: border-color 0.2s var(--ease), box-shadow 0.2s var(--ease);
+}
+.guide-filter:focus-within { border-color: var(--teal); box-shadow: var(--glass-inset), 0 0 0 3px var(--teal-soft); }
+.guide-filter > .ph { position: absolute; left: 18px; color: var(--text-faint); font-size: 1.15rem; pointer-events: none; }
+.guide-filter__input {
+  width: 100%;
+  min-width: 0;
+  padding: 14px 20px 14px 48px;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 1rem;
+  outline: none;
+}
+.guide-filter__input::placeholder { color: var(--text-faint); }
+.guide-filter-empty { padding: 0 0 104px; color: var(--text-dim); }
+.guides-page [hidden] { display: none !important; }
 .guide-index-link { margin-top: 28px; }
 .guide-download { padding-right: 0; padding-left: 0; }
 
@@ -1212,8 +1260,16 @@ kbd {
   .spotlight--flip .spotlight__demo, .spotlight__demo { order: 2; }
 }
 
+/* the homepage nav has six links, so it switches to the menu earlier */
+@media (max-width: 960px) {
+  .home .nav__links { display: none; }
+  .home .nav__actions { margin-left: auto; }
+  .home .nav__actions .nav__menu-button { display: inline-flex; }
+}
 @media (max-width: 760px) {
   .nav__links { display: none; }
+  .nav__actions { margin-left: auto; }
+  .nav__actions .nav__menu-button { display: inline-flex; }
   .section { padding: 72px 20px; }
   .hero { padding: 36px 20px 64px; }
   .proof { grid-template-columns: 1fr; }
@@ -1281,6 +1337,10 @@ kbd {
 .home-demo-note { margin: 0; color: var(--text-faint); font-size: 0.84rem; }
 .home-writing__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
 .home-writing__grid .tile { padding: 28px; }
+.home-compare .tile h3 a { color: var(--accent-text); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px; }
+.home-compare .tile h3 a:hover { text-decoration-thickness: 2px; }
+.home-compare__note { margin-top: 20px; color: var(--text-faint); font-size: 0.84rem; }
+.home-compare__note a { color: var(--accent-text); text-decoration: underline; text-underline-offset: 3px; }
 .home .home-demo { max-width: 1000px; }
 .home-demo__video .hero__demo { aspect-ratio: 16 / 9; object-fit: contain; }
 .home-demo__video figcaption a { color: var(--accent-text); text-decoration: underline; text-underline-offset: 3px; }
@@ -1420,8 +1480,8 @@ kbd {
   .home .nav .brand { gap: 8px; }
   .home .nav .brand__mark { width: 26px; height: 26px; }
   .home .nav .brand__name { font-size: 0.94rem; }
-  .home .nav__actions { margin-left: auto; }
-  .home .nav__actions .icon-link { display: none; }
+  .home .nav__actions { margin-left: auto; gap: 6px; }
+  .home .nav__actions .icon-link { width: 34px; height: 34px; font-size: 1.1rem; }
   .home .nav .btn { padding: 10px 14px; font-size: 0.85rem; }
   .home-badge { margin-bottom: 18px; }
   .home .home-demo--lead { padding-top: 0; }
@@ -1430,6 +1490,14 @@ kbd {
 @media (max-width: 480px) {
   .home-badge { padding-right: 12px; }
   .home-badge__text { display: none; }
+}
+/* small phones: keep the menu, GitHub icon, and "Send to my Mac" inside the nav */
+@media (max-width: 360px) {
+  .home .nav { gap: 8px; padding: 0 10px; }
+  .home .nav .btn { padding: 9px 11px; font-size: 0.8rem; }
+}
+@media (max-width: 340px) {
+  .home .nav .brand__name { display: none; }
 }
 
 /* =========================================================================
@@ -1450,8 +1518,8 @@ kbd {
 @media (prefers-reduced-transparency: reduce) {
   .home-image-link { background: var(--surface); }
   .nav, .proof, .tile, .memory-pillar, .memory__boundary, .cotype, .appcard, .download__panel, .hero__diagram,
-  .faq__list, .compare-wrap, .pick, .guide-article, .guide-card, .btn--ghost, .icon-link, .home-badge, .step__num,
-  .recorder, .track, .tile__tags li, kbd {
+  .faq__list, .compare-wrap, .pick, .guide-article, .guide-card, .guide-filter, .btn--ghost, .icon-link, .home-badge,
+  .step__num, .recorder, .track, .tile__tags li, kbd {
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
     background: var(--surface);
@@ -1465,7 +1533,7 @@ kbd {
     background: var(--surface);
   }
   .nav { background: var(--nav-solid); }
-  .btn--ghost, .icon-link, .home-badge, .step__num, .recorder, .track, .tile__tags li, kbd {
+  .btn--ghost, .icon-link, .guide-filter, .home-badge, .step__num, .recorder, .track, .tile__tags li, kbd {
     background: var(--surface-2);
   }
 }

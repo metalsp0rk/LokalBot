@@ -23,6 +23,8 @@ private struct EngineBoom: Error {}
 private actor DiscardingCotypingStatsPersistence: CotypingStatsPersisting {
     func persist(_ stats: CotypingStats) {}
     func remove() {}
+    func persistUsage(_ usage: CotypingUsageHistory) {}
+    func removeUsage() {}
 }
 
 private final class CotypingSettingsBox {
@@ -457,6 +459,90 @@ final class CotypingCoordinatorTests: XCTestCase {
         coordinator.acceptAwaitingNextKey?.uptimeNanoseconds = 0
         coordinator.noteKeyAfterAcceptance(backspace)
         XCTAssertEqual(stats.stats.live["other"]?.acceptsCorrected, 2, "a late deletion is ordinary editing")
+    }
+
+    // MARK: - Statistics
+
+    func testASuggestionCountsAsUsedOnceHoweverManyPressesTakeIt() {
+        settings.cotypingBuiltInModelID = "gemma-e2b"
+        let coordinator = makeCoordinator()
+        let field = liveField("I wanted to follow", bundleID: "com.tinyspeck.slackmacgap")
+        coordinator.noteSuggestionShown(CotypingSession(field: field, fullText: " up on the plan"))
+        coordinator.noteAcceptance(field: field, inserted: " up", charsAccepted: 3, words: 1)
+        coordinator.noteAcceptance(field: field, inserted: " on", charsAccepted: 3, words: 1)
+        coordinator.noteSuggestionShown(CotypingSession(field: field, fullText: " tomorrow"))
+
+        let total = stats.usage.summary(.week).total
+        XCTAssertEqual(total.suggestions.shown, 2)
+        XCTAssertEqual(total.suggestions.used, 1)
+        XCTAssertEqual(total.suggestions.accepts, 2)
+        XCTAssertEqual(total.suggestions.words, 2)
+        XCTAssertEqual(total.surfaces["chat"]?.used, 1)
+        XCTAssertEqual(total.models["gemma-e2b"]?.shown, 2)
+    }
+
+    func testCorrectionsAndEmojiAreNotSuggestionsShown() {
+        let coordinator = makeCoordinator()
+        let field = liveField("teh")
+        coordinator.noteSuggestionShown(CotypingSession(field: field, fullText: "the", kind: .correction(typoWord: "teh")))
+        coordinator.noteSuggestionShown(CotypingSession(field: field, fullText: "🎉", kind: .emoji(shortcode: "tada")))
+        XCTAssertEqual(stats.usage.summary(.week).total.suggestions.shown, 0)
+        XCTAssertNil(coordinator.shownSuggestion)
+    }
+
+    /// An accept with no suggestion on record still counts its words, but
+    /// never as a used suggestion, so the share used cannot pass 100%.
+    func testAnAcceptWithoutAShownSuggestionIsNotCountedAsUsed() {
+        let coordinator = makeCoordinator()
+        coordinator.noteAcceptance(field: liveField("I wanted to follow"), inserted: " up", charsAccepted: 3, words: 1)
+        let counts = stats.usage.summary(.week).total.suggestions
+        XCTAssertEqual(counts.used, 0)
+        XCTAssertEqual(counts.words, 1)
+    }
+
+    func testAnAcceptDeletedStraightAwayIsTakenBackForItsModel() {
+        settings.cotypingBuiltInModelID = "gemma-e4b"
+        let coordinator = makeCoordinator()
+        let field = liveField("I wanted to follow")
+        coordinator.noteSuggestionShown(CotypingSession(field: field, fullText: " up"))
+        coordinator.noteAcceptance(field: field, inserted: " up", charsAccepted: 3, words: 1)
+        coordinator.noteKeyAfterAcceptance(CotypingInputEvent(kind: .textMutation, characters: ""))
+        let total = stats.usage.summary(.week).total
+        XCTAssertEqual(total.suggestions.takenBack, 1)
+        XCTAssertEqual(total.models["gemma-e4b"]?.takenBack, 1)
+    }
+
+    func testTypingIsCountedOnlyWhereAutocompleteCouldSuggest() {
+        settings.cotypingEnabled = true
+        let coordinator = makeCoordinator()
+        let notes = CotypingFocus(appName: "Notes", bundleID: "com.apple.Notes", capability: .supported,
+                                  field: liveField("Hello"))
+        let letter = CotypingInputEvent(kind: .textMutation, characters: "a")
+
+        coordinator.noteTyping(letter, in: notes)
+        coordinator.noteTyping(letter, in: notes)
+        // Deletions, other keys and pauses break the run; they are not typing speed.
+        coordinator.noteTyping(CotypingInputEvent(kind: .textMutation, characters: ""), in: notes)
+        coordinator.noteTyping(letter, in: notes)
+        var total = stats.usage.summary(.week).total
+        XCTAssertEqual(total.typedCharacters, 3)
+        XCTAssertEqual(total.typingGaps, 1)
+
+        var password = liveField("")
+        password.isSecure = true
+        coordinator.noteTyping(letter, in: CotypingFocus(appName: "Notes", bundleID: "com.apple.Notes",
+                                                         capability: .supported, field: password))
+        coordinator.noteTyping(letter, in: CotypingFocus(appName: "LokalBot", bundleID: "me.dotenv.LokalBot.tests",
+                                                         capability: .supported, field: liveField("")))
+        coordinator.noteTyping(letter, in: CotypingFocus(appName: "Terminal", bundleID: "com.apple.Terminal",
+                                                         capability: .supported, field: liveField("")))
+        coordinator.noteTyping(letter, in: .none)
+        total = stats.usage.summary(.week).total
+        XCTAssertEqual(total.typedCharacters, 3, "password fields, LokalBot, terminals and no field do not count")
+
+        settings.cotypingEnabled = false
+        makeCoordinator().noteTyping(letter, in: notes)
+        XCTAssertEqual(stats.usage.summary(.week).total.typedCharacters, 3, "nor typing while autocomplete is off")
     }
 
     func testKeystrokeToVisibleIsMeasuredOncePerKeystroke() {

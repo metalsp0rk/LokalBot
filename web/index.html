@@ -18,12 +18,12 @@
   <meta property="og:image" content="https://www.lokalbot.com/assets/og-ai-team.png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="675" />
-  <meta property="og:image:alt" content="The little AI team inside your Mac: Nemotron, Qwen3-ASR, LFM2.5, Harrier, Qwen3.5, and Apple Vision around a LokalBot meeting transcript. 6.8 GB, all local." />
+  <meta property="og:image:alt" content="The little AI team inside your Mac: the local models that power LokalBot, arranged around a meeting transcript. Every model runs on the Mac." />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="LokalBot — Find what you said or saw on your Mac" />
   <meta name="twitter:description" content="Search your meetings and, if you turn it on, what you saw on screen. A free, open-source Mac app that runs locally by default." />
   <meta name="twitter:image" content="https://www.lokalbot.com/assets/og-ai-team.png" />
-  <meta name="twitter:image:alt" content="Six local models that power LokalBot, from speaker separation to screen text, arranged around a meeting transcript. 6.8 GB, all local." />
+  <meta name="twitter:image:alt" content="The local models that power LokalBot, from speaker separation to screen text, arranged around a meeting transcript." />
   <link rel="icon" href="assets/lokalbot-icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="assets/lokalbot-icon-512.png" />
   <link rel="stylesheet" href="styles.css" />
@@ -121,7 +121,7 @@
         "@type": "VideoObject",
         "@id": "https://www.lokalbot.com/#how-video",
         "name": "How LokalBot works in 25 seconds",
-        "description": "The local models that do the work on your Mac: Nemotron tells speakers apart, Qwen3-ASR transcribes, Qwen3.5 summarizes, Harrier searches by meaning, Apple Vision reads screen text if you opt in, and LFM2.5 finishes your sentences. About 6.8 GB of models in total.",
+        "description": "The local models that do the work on your Mac: speaker separation, transcription, summaries, search by meaning, opt-in screen text, and autocomplete.",
         "thumbnailUrl": "https://www.lokalbot.com/assets/lokalbot-ai-team-poster.webp",
         "contentUrl": "https://www.lokalbot.com/assets/lokalbot-ai-team.mp4",
         "uploadDate": "2026-09-30",
@@ -159,7 +159,7 @@
             "name": "Can I choose my own models?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "Yes. Start with the built-in local models, choose another downloaded model, or connect Ollama, Apple Intelligence, or an OpenAI-compatible server. Transcription, summaries, and autocomplete have their own model choices. See the transcription model guide and offline setup guide."
+              "text": "Yes. Start with the built-in local models, choose another downloaded model, or connect Ollama, Apple Intelligence, or an OpenAI-compatible server. Summaries and chat can also run on your own ChatGPT or Claude plan, with no API key. A remote server or plan gets context only after you approve it. Transcription, summaries, and autocomplete have their own model choices. See the transcription model guide and offline setup guide."
             }
           },
           {
@@ -207,6 +207,7 @@
       <a href="#features">What it does</a>
       <a href="#how">How it works</a>
       <a href="#proof">Privacy</a>
+      <a href="#compare">Compare</a>
       <a href="guides">Guides</a>
     </nav>
     <div class="nav__actions">
@@ -374,7 +375,7 @@
 <span class="c-op"># Or search from any shell or agent</span>
 <span class="c-prompt">$</span> lokalbot-cli search <span class="c-str">"database decision"</span>
 <span class="c-prompt">$</span> lokalbot-cli actions <span class="c-flag">--owner</span> me</pre>
-        <p class="home-agents__links"><a href="https://github.com/stevyhacker/lokalbot#for-developers--agents" target="_blank" rel="noopener">Set up agent access</a> <a href="https://github.com/stevyhacker/lokalbot/blob/master/Distribution/claude-plugin/README.md" target="_blank" rel="noopener">Claude Code plugin</a></p>
+        <p class="home-agents__links"><a href="claude-code-codex-meeting-notes">Set up agent access</a> <a href="https://github.com/stevyhacker/lokalbot/blob/master/Distribution/claude-plugin/README.md" target="_blank" rel="noopener">Claude Code plugin</a></p>
       </div>
     </section>
 
@@ -382,15 +383,15 @@
       <header class="section__head">
         <p class="eyebrow">Under the hood</p>
         <h2 class="section__title" id="how-title">How it works.</h2>
-        <p class="section__lead">A 25-second look at the local models that do the work: Nemotron tells speakers apart, Qwen3-ASR transcribes, Qwen3.5 summarizes, Harrier searches by meaning, Apple Vision reads screen text if you opt in, and LFM2.5 finishes your sentences. About 6.8 GB of models, all on your Mac.</p>
+        <p class="section__lead">A 25-second look at the local models that do the work: Nemotron tells speakers apart, Qwen3-ASR transcribes, Qwen3.5 summarizes, EmbeddingGemma 2 searches by meaning, Apple Vision reads screen text if you opt in, and LFM2.5 finishes your sentences. About 6.5 GB of models, all on your Mac.</p>
       </header>
       <figure class="home-demo__video">
-        <video class="hero__demo" controls playsinline preload="none" poster="assets/lokalbot-ai-team-poster.webp" width="1920" height="1080" aria-label="How LokalBot works in 25 seconds: the little AI team inside your Mac. Nemotron for speaker separation, Qwen3-ASR for transcription, Qwen3.5 for summaries, Harrier for semantic search, Apple Vision for opt-in screen text, and LFM2.5 for autocomplete.">
+        <video class="hero__demo" controls playsinline preload="none" poster="assets/lokalbot-ai-team-poster.webp" width="1920" height="1080" aria-label="How LokalBot works in 25 seconds: the little AI team inside your Mac, with local models for speaker separation, transcription, summaries, semantic search, opt-in screen text, and autocomplete.">
           <source src="assets/lokalbot-ai-team.mp4" type="video/mp4" />
           <track kind="captions" src="assets/lokalbot-ai-team.en.vtt" srclang="en" label="English" />
           <p><a href="assets/lokalbot-ai-team.mp4">Watch how LokalBot works in 25 seconds.</a></p>
         </video>
-        <figcaption><a href="assets/lokalbot-ai-team.mp4">Open the video</a> &middot; <a href="https://github.com/stevyhacker/lokalbot/blob/master/DEVELOPMENT.md" target="_blank" rel="noopener">Technical deep dive</a> &middot; <a href="benchmarks">Model benchmarks</a></figcaption>
+        <figcaption>The video still shows Harrier, the search model EmbeddingGemma 2 replaced. <a href="assets/lokalbot-ai-team.mp4">Open the video</a> &middot; <a href="https://github.com/stevyhacker/lokalbot/blob/master/DEVELOPMENT.md" target="_blank" rel="noopener">Technical deep dive</a> &middot; <a href="benchmarks">Model benchmarks</a></figcaption>
       </figure>
     </section>
 
@@ -410,6 +411,40 @@
       </div>
     </section>
 
+    <section class="section home-compare" id="compare" aria-labelledby="compare-title">
+      <header class="section__head">
+        <p class="eyebrow">Switching</p>
+        <h2 class="section__title" id="compare-title">Coming from another app?</h2>
+      </header>
+      <div class="home-writing__grid">
+        <article class="tile">
+          <h3><a href="lokalbot-vs-granola">Granola</a></h3>
+          <p>The same bot-free capture, but transcription and summaries run on your Mac. No account or subscription.</p>
+        </article>
+        <article class="tile">
+          <h3><a href="lokalbot-vs-otter">Otter</a> or <a href="lokalbot-vs-fireflies">Fireflies</a></h3>
+          <p>Nothing joins your call, the audio stays on your Mac, and there are no minute caps.</p>
+        </article>
+        <article class="tile">
+          <h3><a href="lokalbot-vs-apple-notes">Apple Notes</a></h3>
+          <p>Notes records your microphone, so with headphones on it misses the other side of the call. LokalBot records both sides and keeps every meeting searchable.</p>
+        </article>
+        <article class="tile">
+          <h3><a href="lokalbot-vs-rewind">Rewind</a> or <a href="lokalbot-vs-screenpipe">Screenpipe</a></h3>
+          <p>Rewind's Mac app is discontinued. LokalBot starts with app and window activity; screen text and screenshots are opt-in and deleted after 14 days by default.</p>
+        </article>
+        <article class="tile">
+          <h3><a href="lokalbot-vs-hyprnote">Hyprnote</a> or <a href="lokalbot-vs-meetily">Meetily</a></h3>
+          <p>Also open source and local. Here the local AI ships built in, and speaker separation, meeting detection, and MCP access are free.</p>
+        </article>
+        <article class="tile">
+          <h3><a href="lokalbot-vs-wispr-flow">Wispr Flow</a>, <a href="lokalbot-vs-superwhisper">Superwhisper</a>, or <a href="lokalbot-vs-macwhisper">MacWhisper</a></h3>
+          <p>Dictation runs on your Mac and comes with meeting notes and recall, for free. For transcribing files you already have, MacWhisper is the better tool.</p>
+        </article>
+      </div>
+      <p class="home-compare__note">Competitor details were last verified on September 24, 2026, and on October 1, 2026 for Apple Notes, Meetily, and Wispr Flow. <a href="guides#compare">All comparisons</a></p>
+    </section>
+
     <section class="section download home-download" id="download" aria-labelledby="download-title">
       <div class="download__panel">
         <img class="download__icon" src="assets/lokalbot-icon.svg" alt="" width="64" height="64" />
@@ -420,6 +455,7 @@
           Download for Mac
         </a>
         <p class="download__sub">.dmg installer &middot; <a href="https://github.com/stevyhacker/lokalbot/releases/latest" target="_blank" rel="noopener">Release notes</a></p>
+        <p class="download__sub">Or with Homebrew: <code>brew install --cask stevyhacker/tap/lokalbot</code></p>
         <p class="home-download__setup">Apple Silicon (M1 or later) &middot; macOS 15+<br />Models download during setup. Local processing can work offline afterward.</p>
         <p class="home-download__help"><a href="system-requirements">System requirements</a> &middot; <a href="support">Setup help and feedback</a></p>
       </div>
@@ -440,7 +476,7 @@
         </details>
         <details class="qa">
           <summary>Can I choose my own models?<i class="ph ph-plus" aria-hidden="true"></i></summary>
-          <p>Yes. Start with the built-in local models, choose another downloaded model, or connect Ollama, Apple Intelligence, or an OpenAI-compatible server. Transcription, summaries, and autocomplete have their own model choices. See the <a href="local-transcription-models-mac">transcription model guide</a> and <a href="offline-meeting-transcription-mac">offline setup guide</a>.</p>
+          <p>Yes. Start with the built-in local models, choose another downloaded model, or connect Ollama, Apple Intelligence, or an OpenAI-compatible server. Summaries and chat can also run on your own ChatGPT or Claude plan, with no API key. A remote server or plan gets context only after you approve it. Transcription, summaries, and autocomplete have their own model choices. See the <a href="local-transcription-models-mac">transcription model guide</a> and <a href="offline-meeting-transcription-mac">offline setup guide</a>.</p>
         </details>
         <details class="qa">
           <summary>Is LokalBot free?<i class="ph ph-plus" aria-hidden="true"></i></summary>
@@ -477,7 +513,7 @@
       <a href="enshittification-proof">Keeping your data</a>
       <a href="https://github.com/stevyhacker/lokalbot/releases/latest/download/LokalBot.dmg">Download for Mac</a>
     </nav>
-    <nav class="footer__col" id="compare" aria-label="Compare">
+    <nav class="footer__col" aria-label="Compare">
       <h3>Compare</h3>
       <a href="lokalbot-vs-granola">vs Granola</a>
       <a href="lokalbot-vs-apple-notes">vs Apple Notes</a>

@@ -115,6 +115,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return true
     }
 
+    /// The main scene is a single SwiftUI `Window`, and SwiftUI quits the app
+    /// when that window closes unless the delegate answers here. LokalBot keeps
+    /// capturing in the background, so closing the window must leave it running:
+    /// `DockPolicy.sync()` drops to the menu bar when menu-bar-only, and a Dock
+    /// click reopens the window otherwise.
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        false
+    }
+
     /// Give the in-process llama runtime a real shutdown window before AppKit
     /// calls exit(). Letting C++ static destructors run while Metal buffers are
     /// still resident trips ggml-metal's residency-set assertion on quit.
