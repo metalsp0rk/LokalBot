@@ -2,6 +2,7 @@
 
 Rendered by Scripts/render_web.py. Keep claims aligned with the checked-in
 README and implementation; these pages intentionally avoid competitor claims.
+A guide with "kind": "question" is listed under Questions on /guides.
 """
 
 # Head and structured-data copy for web/guides.html.
@@ -316,6 +317,222 @@ GUIDES = [
             ("Do I need 32 GB of memory?", "No. Smaller models run on lower-memory Apple Silicon Macs. The 32 GB recommendation applies to the largest local language-model choices."),
         ],
         "related": ["local-transcription-models-mac", "offline-meeting-transcription-mac", "record-both-sides-mac-meeting-without-bot"],
+    },
+    {
+        "slug": "claude-code-codex-meeting-notes",
+        "kind": "question",
+        "published": "2026-10-14",
+        "updated": "2026-10-14",
+        "updated_label": "October 14, 2026",
+        "title": "Let Claude Code or Codex Search Your Meeting Notes",
+        "description": "Give Claude Code, Codex, or another MCP client read-only access to meetings recorded and transcribed on your Mac, with no cloud notetaker or meeting bot.",
+        "eyebrow": "Agents and MCP",
+        "h1": "How do I let Claude Code or Codex search my meeting notes?",
+        "lead": "Keep the meetings on your Mac and give the agent a local, read-only way in. LokalBot records and transcribes calls on-device and includes an MCP server: turn on agent access, add it to Claude Code or Codex, and the agent can search, read, and ask about your meetings without a notetaker bot or a cloud account.",
+        "read_time": "5 min read",
+        "body": """
+        <h2>Three pieces, all on the Mac</h2>
+        <p>An agent can only answer “what did we decide about the launch date?” if it can reach the conversation. The usual route is a cloud notetaker: a bot or app sends the audio to a vendor, and the vendor's connector hands transcripts to the agent. A local setup replaces each step:</p>
+        <ol>
+          <li><strong>Capture without a bot.</strong> LokalBot records your microphone and the meeting app's audio on separate tracks. Nothing joins the call.</li>
+          <li><strong>Transcribe and index on-device.</strong> Speech recognition, summaries, and the search index run on Apple Silicon and stay in a local library.</li>
+          <li><strong>Open it read-only.</strong> The bundled <code>lokalbot-cli</code> is both a command-line tool and an MCP server that your agent starts on your Mac over stdio. It is off until you turn it on.</li>
+        </ol>
+
+        <h2>Set it up</h2>
+        <ol>
+          <li>Install LokalBot, let the models download, and record a short test meeting.</li>
+          <li>In <strong>Settings → Privacy &amp; Data → External agents</strong>, turn on <strong>Allow external agents to read your meeting library</strong>.</li>
+          <li>In <strong>Settings → Advanced → Agent CLI</strong>, choose <strong>Install for your coding agent</strong>. It links <code>lokalbot-cli</code> into <code>~/.local/bin</code> and installs a skill that explains the commands to agents.</li>
+          <li>Register the MCP server with your agent:</li>
+        </ol>
+        <pre class="code" aria-label="Add LokalBot's MCP server to Claude Code or Codex"><span class="c-op"># Claude Code</span>
+<span class="c-prompt">$</span> claude mcp add lokalbot <span class="c-op">--</span> lokalbot-cli mcp
+
+<span class="c-op"># Codex</span>
+<span class="c-prompt">$</span> codex mcp add lokalbot <span class="c-op">--</span> lokalbot-cli mcp</pre>
+        <p>In Claude Code you can install the LokalBot plugin instead. It adds the same server and a <code>/lokalbot:recall</code> command: run <code>/plugin marketplace add stevyhacker/lokalbot</code>, then <code>/plugin install lokalbot@lokalbot</code>. Other MCP clients that can start a local command, such as Cursor, use the same <code>lokalbot-cli mcp</code>.</p>
+
+        <h2>What the agent can do</h2>
+        <ul>
+          <li><strong>Find meetings.</strong> <code>list_meetings</code> filters by date and title, and <code>search_meetings</code> searches titles, summaries, and transcripts by word.</li>
+          <li><strong>Read one.</strong> <code>get_meeting</code> returns a meeting's metadata, summary, or transcript as Markdown, so the agent can ask for just the summary.</li>
+          <li><strong>Ask a question.</strong> <code>ask_library</code> has LokalBot's local model answer from your library, with meeting citations. The agent gets the answer instead of raw transcripts, which also keeps long calls out of its context window. The LokalBot app must be running, and the first answer can take up to a minute while the model loads.</li>
+          <li><strong>Follow up.</strong> <code>get_action_items</code> lists open actions with your corrections applied, and <code>list_people</code> shows who you meet, by name only. Email addresses are never returned.</li>
+        </ul>
+        <p>An agent without MCP can run the same commands in a shell. For example, <code>lokalbot-cli search "pricing decision"</code> prints matching meetings as JSON.</p>
+        <p>If you also save screen text, a second toggle, <strong>Allow external agents to read screen memory</strong>, grants access to today, the last seven days, or all retained history. Those tools return captured text and metadata, never screenshot pixels.</p>
+
+        <h2>Where your meetings go once an agent reads them</h2>
+        <p>LokalBot doesn't upload your library, and its agent access is read-only, so the agent can't change or delete meetings. But whatever a tool returns becomes part of the agent's conversation, and Claude Code and Codex send that conversation to Anthropic or OpenAI under their own terms. Treat it like pasting the text in yourself:</p>
+        <ul>
+          <li>Prefer <code>search_meetings</code> and <code>ask_library</code> to pulling whole transcripts.</li>
+          <li>Turn access on only for agents you trust with that content, and turn the toggle off to cut access again.</li>
+          <li>The toggle controls LokalBot's CLI and MCP server. An agent that can run shell commands as you can also read any file your account can, so use the agent's own permission settings to limit file access.</li>
+        </ul>
+        """,
+        "faq": [
+            ("Does the agent get my audio?", "No. The MCP tools return text: meeting metadata, summaries, transcripts, action items, names, and answers. They don't return audio."),
+            ("Can the agent edit or delete meetings?", "No. The CLI and MCP server are read-only. Changes happen in the LokalBot app."),
+            ("Does this work with other MCP clients?", "Yes. Any MCP client that can start a local command can run lokalbot-cli mcp, for example Cursor. Each client's own data handling applies."),
+        ],
+        "related": ["local-ai-meeting-notes-mac", "open-source-ai-meeting-notes", "ai-notetaker-bots-blocked-at-work"],
+    },
+    {
+        "slug": "ai-notetaker-bots-blocked-at-work",
+        "kind": "question",
+        "published": "2026-10-14",
+        "updated": "2026-10-14",
+        "updated_label": "October 14, 2026",
+        "title": "AI Notetaker Bots Blocked at Work? What IT Should Check",
+        "description": "Why companies block meeting bots, what a bot-free local recorder changes and what it doesn't, and a checklist IT can use before approving one on a Mac.",
+        "eyebrow": "IT approval",
+        "h1": "My company blocks AI notetaker bots. What can I use?",
+        "lead": "Start by asking what the policy forbids. Most bans target bots that join calls and services that keep recordings in a vendor's cloud. A recorder that runs on your Mac avoids both, but it still records people, so it needs the same approval and the same notice to participants. Here is what IT should check before saying yes.",
+        "read_time": "5 min read",
+        "body": """
+        <h2>Why the bots get blocked</h2>
+        <p>A notetaker bot is a separate participant. It is often added through calendar access, can join meetings its owner doesn't attend, shows up in client and partner calls, and sends the audio to the vendor's servers, where retention and model-training terms are the vendor's to set. Meeting platforms let admins block or flag these bots, and many companies now do.</p>
+
+        <h2>What a local recorder changes, and what it doesn't</h2>
+        <div class="guide-table-wrap">
+          <table class="guide-table">
+            <thead><tr><th scope="col"></th><th scope="col">Notetaker bot</th><th scope="col">Recorder on your Mac</th></tr></thead>
+            <tbody>
+              <tr><th scope="row">Joins the call</th><td>Yes, as a participant</td><td>No</td></tr>
+              <tr><th scope="row">Where audio is processed</th><td>The vendor's servers</td><td>Your Mac</td></tr>
+              <tr><th scope="row">Account and retention</th><td>A vendor account, under the vendor's terms</td><td>No account; local files under your settings</td></tr>
+              <tr><th scope="row">Visible to other participants</th><td>Usually, by name</td><td>No, so you have to tell them</td></tr>
+              <tr><th scope="row">Visible to meeting admins</th><td>Yes</td><td>No</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>The last two rows matter. A recorder nobody can see is not a way around a ban, and using one where recording isn't allowed breaks the same rules a bot would. Recording laws and client contracts apply either way. If the policy is about recording itself, no tool changes the answer.</p>
+
+        <h2>A checklist IT can work through</h2>
+        <p>Using LokalBot as the example:</p>
+        <ol>
+          <li><strong>Where does meeting audio go?</strong> With the built-in models, recording, transcription, summaries, and search run on the Mac. To verify it, download the models, select the built-in backend, turn off automatic update checks, and watch network traffic while you record, transcribe, and summarize.</li>
+          <li><strong>What else uses the network?</strong> Model downloads from Hugging Face or the model's publisher, update checks against GitHub Releases (which can be turned off), and any remote model server a user configures. A server off the Mac receives meeting context only after the user approves that exact origin.</li>
+          <li><strong>Accounts and telemetry.</strong> None. There is no sign-in, analytics service, or telemetry backend.</li>
+          <li><strong>Storage.</strong> Recordings, transcripts, and the search index are ordinary files and SQLite under the user's account, so FileVault and your device policies protect them at rest. Day tracking saves app names and window titles by default; screen text and encrypted screenshots are separate opt-ins that expire after 14 days by default.</li>
+          <li><strong>Consent behavior.</strong> On a fresh install, LokalBot asks through a notification before it records a detected meeting. Automatic recording is a setting the user has to turn on.</li>
+          <li><strong>Ways data can leave.</strong> Markdown and Obsidian exports are plain files in a folder the user picks. Agent access through the CLI and MCP server, and the optional Agent Mode, are off by default; once enabled, an agent's own provider receives what the agent reads.</li>
+          <li><strong>Code and builds.</strong> The source is public under GPLv3. Releases are signed with a Developer ID and notarized by Apple. Install from the DMG or Homebrew, or build from source.</li>
+        </ol>
+
+        <h2>What it doesn't have</h2>
+        <ul>
+          <li><strong>Central administration.</strong> There is no admin console, central policy, or documented managed settings. Each user configures their own copy, so control comes from your device management: allow or block the app, require FileVault, and set backup rules.</li>
+          <li><strong>Other platforms.</strong> It runs only on Apple Silicon Macs with macOS 15 or later.</li>
+          <li><strong>A shared workspace.</strong> Notes stay on one Mac unless the user exports them.</li>
+        </ul>
+
+        <h2>Asking for approval</h2>
+        <p>Send IT the <a href="privacy">privacy policy</a>, the <a href="https://github.com/stevyhacker/lokalbot" target="_blank" rel="noopener">source repository</a>, and this checklist, and offer to run the network test together on a short call. Once it's approved, tell people when you record, the same way you would if a bot were in the meeting.</p>
+        """,
+        "faq": [
+            ("Will Teams, Zoom, or Meet show that LokalBot is recording?", "No. It doesn't join the call, so the meeting app has no participant to show. That is why telling people is up to you."),
+            ("Is a local recorder allowed if my company bans AI notetakers?", "Only if the policy allows it, so ask IT or your manager. A local recorder changes where the data goes, not the fact that people are being recorded."),
+            ("Can IT confirm that meetings never leave the Mac?", "Yes. The source code is public, and the network test above shows what the app connects to while it records, transcribes, and summarizes with the built-in models."),
+        ],
+        "related": ["record-both-sides-mac-meeting-without-bot", "open-source-ai-meeting-notes", "bot-free-meeting-recorder-speaker-labels"],
+    },
+    {
+        "slug": "bot-free-meeting-recorder-speaker-labels",
+        "kind": "question",
+        "published": "2026-10-14",
+        "updated": "2026-10-14",
+        "updated_label": "October 14, 2026",
+        "title": "Can a Bot-Free Meeting Recorder Tell Who Said What?",
+        "description": "How a recorder that never joins the call separates speakers, where the names come from, and measured speaker-separation accuracy for LokalBot on Mac.",
+        "eyebrow": "Speaker labels",
+        "h1": "Can a bot-free meeting recorder tell who said what?",
+        "lead": "Partly. A recorder that doesn't join the call can't see the meeting app's participant list, so it doesn't know names on its own. It can tell your microphone from the call audio and separate the distinct voices in each, and then you put a name on each voice. LokalBot does all of this on your Mac.",
+        "read_time": "5 min read",
+        "body": """
+        <h2>Why bots know names and local recorders don't</h2>
+        <p>A meeting bot is a participant, so the meeting platform can tell it who is talking. A bot-free recorder hears what your Mac hears: your microphone, and the meeting app's audio with every remote participant mixed into one stream. To split that stream it has to group voices by how they sound, which is called speaker diarization. Diarization can say “three different people spoke, and here is when,” but not who they are.</p>
+
+        <h2>How LokalBot labels speakers</h2>
+        <ol>
+          <li><strong>Two tracks first.</strong> Your microphone and the meeting app are recorded separately, so your side and the call stay apart before any model runs. By default, speech on the microphone counts as yours (<strong>My microphone is me</strong>), which also puts your commitments first in action items.</li>
+          <li><strong>Voices within each track.</strong> After the meeting, <strong>Separate voices by speaker</strong>, on by default, groups the voices in both tracks on your Mac. New installs use Nemotron 3.</li>
+          <li><strong>Names from you.</strong> When you rename a speaker, calendar attendees appear as suggestions. They stay suggestions: even a one-on-one invite doesn't prove who spoke, so LokalBot never applies a calendar name on its own.</li>
+          <li><strong>Voices on this Mac, remembered.</strong> The optional <strong>Remember speakers on this Mac</strong> setting can suggest names for voices you've confirmed on this Mac's microphone in later recordings. Remote participants' voices are never enrolled or matched, so you name them in each meeting.</li>
+        </ol>
+        <p>All of these settings are in <strong>Settings → Meetings → Speaker names</strong>.</p>
+
+        <h2>How accurate is it?</h2>
+        <p>The test used four public AMI meeting recordings, each scored twice (headset mix and distant microphone), for 184.55 minutes of audio with four speakers per meeting. Nemotron 3 had a 14.6% diarization error rate with no forgiveness collar, against 43.4% for the previous default, Pyannote Community-1. It found the right number of speakers in all eight cases and ran about 500 times faster than real time. The error rate adds up missed speech, false alarms, and speech credited to the wrong person. See the <a href="benchmarks">benchmarks</a> for methods and raw results.</p>
+        <p>The test has limits: English only, four speakers, and meeting-room recordings rather than audio that went through a video call. Larger calls and other languages haven't been measured.</p>
+
+        <h2>When labels go wrong</h2>
+        <ul>
+          <li><strong>Several people on one microphone.</strong> In a meeting room, turn off <strong>My microphone is me</strong> so the room's voices are separated instead of all counted as yours.</li>
+          <li><strong>Speakers instead of headphones.</strong> Call audio leaks into your microphone and can land on your side of the transcript. Headphones keep the tracks clean.</li>
+          <li><strong>Crosstalk and short replies.</strong> Overlapping speech and one-word answers are the hardest parts for any diarization model.</li>
+          <li><strong>Big calls.</strong> Every remote voice shares one track, and more voices mean more chances to merge two people or split one.</li>
+        </ul>
+        <p>When a label is wrong, correct it in the transcript. Your names and corrections stay with the meeting.</p>
+        """,
+        "faq": [
+            ("Does LokalBot read participant names from Zoom, Meet, or Teams?", "No. It doesn't read the meeting app's participant list or who is speaking. Names come from you, with calendar attendees offered as suggestions."),
+            ("Does speaker separation upload audio?", "No. It runs on your Mac. The speaker model downloads once on first use, and with Qwen3-ASR a word-timing model of about 1 GB downloads too."),
+            ("Can I turn speaker separation off?", "Yes. Turn off Separate voices by speaker in Settings → Meetings → Speaker names. Your microphone and the call audio stay on separate tracks either way."),
+        ],
+        "related": ["record-both-sides-mac-meeting-without-bot", "local-transcription-models-mac", "claude-code-codex-meeting-notes"],
+    },
+    {
+        "slug": "meeting-transcripts-obsidian-markdown",
+        "kind": "question",
+        "published": "2026-10-14",
+        "updated": "2026-10-14",
+        "updated_label": "October 14, 2026",
+        "title": "How to Get Meeting Transcripts into Obsidian as Markdown",
+        "description": "Three ways to put local meeting transcripts and summaries into an Obsidian vault as Markdown: a one-off export, a daily note, or a short sync script.",
+        "eyebrow": "Obsidian and Markdown",
+        "h1": "How do I get meeting transcripts into Obsidian as Markdown?",
+        "lead": "Record and transcribe on your Mac, then write each meeting into your vault as a plain Markdown file. LokalBot has no built-in vault sync, so you export meetings one at a time, let it write a daily note in Obsidian format, or run a short script that copies new meetings into the vault.",
+        "read_time": "5 min read",
+        "body": """
+        <h2>Why plain files work best</h2>
+        <p>An Obsidian vault is a folder of Markdown files. Anything that writes a <code>.md</code> file into that folder can feed it, and the notes keep working without an account, a plugin, or a sync service in between. If the transcript is a file you own, nothing upstream can change how you get to it.</p>
+
+        <h2>Option 1: export one meeting</h2>
+        <p>Open a meeting and choose <strong>Export → Export Meeting as Markdown…</strong>, then save it into your vault. The file starts with the title, date, duration, and meeting app, followed by the summary and the full transcript. <strong>Copy Meeting as Markdown</strong> puts the same text on the clipboard. This is fine for the occasional meeting and tedious for every one.</p>
+
+        <h2>Option 2: a daily note in Obsidian format</h2>
+        <p>In <strong>Settings → Day Memory → Daily note export</strong>, turn on <strong>Export a daily memory note</strong>, pick a folder in your vault, and set the format to <strong>Obsidian</strong>. Each evening (6 PM by default) LokalBot writes or refreshes one note for the day, with <code>date</code> and <code>tags</code> properties: the day's digest, a list of its meetings, app time, and saved moments. A day missed while the Mac was asleep is written later. If you edit a generated note, LokalBot keeps your edits and pauses the export until you move that note or choose another folder.</p>
+        <p>The daily note lists meetings by time, title, and ID. It doesn't include their transcripts, so pair it with option 3 if you want the full text in the vault.</p>
+
+        <h2>Option 3: copy every meeting with a script</h2>
+        <p>The bundled <code>lokalbot-cli</code> prints any meeting as Markdown, so a few lines of shell can keep a vault folder up to date. The CLI is read-only and checks the same switch agents do, so first turn on <strong>Allow external agents to read your meeting library</strong> in <strong>Settings → Privacy &amp; Data</strong>, and install the CLI from <strong>Settings → Advanced → Agent CLI</strong>. Then save this as <code>lokalbot-to-obsidian.sh</code>, change the folder, and run it with <code>sh lokalbot-to-obsidian.sh</code>:</p>
+        <pre class="code" aria-label="Shell script that writes each LokalBot meeting into an Obsidian vault"><span class="c-op"># Folder inside your vault</span>
+vault=<span class="c-str">"$HOME/Documents/Obsidian/Meetings"</span>
+mkdir -p <span class="c-str">"$vault"</span>
+
+lokalbot-cli list <span class="c-op">\\</span>
+  <span class="c-op">|</span> jq -r <span class="c-str">'.[] | select(.has_summary) | "\\(.id) \\(.date | fromdateiso8601 | strflocaltime("%Y-%m-%d"))"'</span> <span class="c-op">\\</span>
+  <span class="c-op">|</span> while read -r id day; do
+      note=<span class="c-str">"$vault/$day $id.md"</span>
+      [ -e <span class="c-str">"$note"</span> ] <span class="c-op">||</span> lokalbot-cli get <span class="c-str">"$id"</span> <span class="c-op">&gt;</span> <span class="c-str">"$note"</span>
+    done</pre>
+        <p>It uses <code>jq</code>, which ships with macOS 15 and later. Each meeting is written once its summary is ready, as a note named like <code>2026-10-14 ab12cd.md</code>. Existing notes are never overwritten, so edits you make in Obsidian are safe; delete a note to have it written again, for example after you regenerate a summary. Run the script after meetings, or from a scheduled job if you want it hands-off.</p>
+
+        <h2>Things to know</h2>
+        <ul>
+          <li><strong>Exports are ordinary files.</strong> LokalBot doesn't encrypt them, and if you sync the vault with Obsidian Sync, iCloud, or Git, that service's terms now cover your transcripts too.</li>
+          <li><strong>Nothing syncs back.</strong> Editing a note in Obsidian doesn't change the meeting in LokalBot, and renaming a speaker in LokalBot doesn't update notes already written.</li>
+          <li><strong>The vault is readable by your other tools.</strong> Any app or agent with access to that folder can read the transcripts, so keep sensitive meetings out of shared vaults.</li>
+        </ul>
+        """,
+        "faq": [
+            ("Is there an Obsidian plugin for LokalBot?", "No. LokalBot writes plain Markdown files instead, through a meeting export, the daily note, or the CLI, so nothing needs installing in Obsidian."),
+            ("Do the exported transcripts include speaker names?", "Yes. Each transcript line starts with a timestamp and the speaker's name, or a default label such as Me when you haven't named that speaker."),
+            ("Can I use Logseq instead?", "Yes. The daily note also comes in Logseq and plain Markdown formats, and the meeting export and CLI output are plain Markdown."),
+        ],
+        "related": ["claude-code-codex-meeting-notes", "local-ai-meeting-notes-mac", "open-source-ai-meeting-notes"],
     },
 ]
 

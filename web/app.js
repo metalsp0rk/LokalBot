@@ -6,6 +6,43 @@
   var $ = function (sel, ctx) { return (ctx || document).querySelector(sel); };
   var $$ = function (sel, ctx) { return Array.prototype.slice.call((ctx || document).querySelectorAll(sel)); };
 
+  /* ---------- phones: the nav links collapse into a menu (CSS shows the button) ---------- */
+  var navBar = $(".nav");
+  var navLinks = navBar ? $(".nav__links", navBar) : null;
+  var navActions = navBar ? $(".nav__actions", navBar) : null;
+  if (navLinks && navActions) {
+    var menu = document.createElement("nav");
+    menu.id = "nav-menu";
+    menu.className = "nav__menu";
+    menu.setAttribute("aria-label", "Menu");
+    menu.hidden = true;
+    $$("a", navLinks).forEach(function (link) { menu.appendChild(link.cloneNode(true)); });
+
+    var menuButton = document.createElement("button");
+    menuButton.type = "button";
+    menuButton.className = "icon-link nav__menu-button";
+    menuButton.setAttribute("aria-label", "Menu");
+    menuButton.setAttribute("aria-controls", menu.id);
+    menuButton.setAttribute("aria-expanded", "false");
+    menuButton.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>';
+
+    var setMenu = function (open) {
+      menu.hidden = !open;
+      menuButton.setAttribute("aria-expanded", open ? "true" : "false");
+    };
+    menuButton.addEventListener("click", function () { setMenu(menu.hidden); });
+    menu.addEventListener("click", function (e) { if (e.target.closest("a")) setMenu(false); });
+    document.addEventListener("click", function (e) {
+      if (!menu.hidden && !menu.contains(e.target) && !menuButton.contains(e.target)) setMenu(false);
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && !menu.hidden) { setMenu(false); menuButton.focus(); }
+    });
+
+    navActions.insertBefore(menuButton, navActions.firstChild);
+    navBar.appendChild(menu);
+  }
+
   /* ---------- scroll reveal (IntersectionObserver, no scroll listeners) ---------- */
   var reveals = $$(".reveal");
   if (reduce || !("IntersectionObserver" in window)) {
@@ -164,6 +201,48 @@
     sync();
     if (mq.addEventListener) { mq.addEventListener("change", sync); } else if (mq.addListener) { mq.addListener(sync); }
   });
+
+  /* ---------- /guides: filter cards as you type; every word must match ---------- */
+  var filterBox = $("[data-guide-filter]");
+  var filterInput = filterBox ? $("input", filterBox) : null;
+  if (filterInput) {
+    var filterCards = $$(".guides-page .guide-card");
+    var filterSections = $$("[data-guide-section]");
+    var filterStatus = $("[data-guide-filter-status]");
+    var filterEmpty = $("[data-guide-filter-empty]");
+    var filterClear = $("[data-guide-filter-clear]");
+    /* visible card text plus the page's FAQ questions */
+    var haystacks = filterCards.map(function (card) {
+      return (card.textContent + " " + (card.getAttribute("data-terms") || "")).toLowerCase();
+    });
+    var applyFilter = function () {
+      var words = filterInput.value.toLowerCase().split(/\s+/).filter(Boolean);
+      var shown = 0;
+      filterCards.forEach(function (card, i) {
+        var match = words.every(function (word) { return haystacks[i].indexOf(word) !== -1; });
+        card.hidden = !match;
+        if (match) shown++;
+      });
+      filterSections.forEach(function (section) {
+        section.hidden = !$(".guide-card:not([hidden])", section);
+      });
+      if (filterEmpty) filterEmpty.hidden = shown > 0;
+      if (filterStatus) {
+        filterStatus.textContent = !words.length ? "" : shown === 1 ? "1 page matches." : shown + " pages match.";
+      }
+    };
+    filterInput.addEventListener("input", applyFilter);
+    if (filterClear) {
+      filterClear.addEventListener("click", function () {
+        filterInput.value = "";
+        applyFilter();
+        filterInput.focus();
+      });
+    }
+    /* browsers can restore the typed text when you come back to the page */
+    window.addEventListener("pageshow", function () { if (filterInput.value) applyFilter(); });
+    filterBox.hidden = false;
+  }
 
   /* ---------- waveform: randomize bar timing for an organic pulse ---------- */
   if (!reduce) {

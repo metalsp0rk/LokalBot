@@ -43,25 +43,42 @@
     <header class="guide-hero guide-hero--index">
       <p class="eyebrow">LokalBot guides</p>
       <h1>Private meeting notes, explained.</h1>
-      <p class="guide-hero__lead">Source-backed guides to recording both sides of a Mac call, running transcription offline, choosing local models, and understanding the real privacy boundary.</p>
+      <p class="guide-hero__lead">Answers, guides, and comparisons for bot-free meeting notes on a Mac, from recording both sides of a call and transcribing offline to choosing local models and understanding the real privacy boundary.</p>
+      <div class="guide-filter" data-guide-filter hidden>
+        <i class="ph ph-magnifying-glass" aria-hidden="true"></i>
+        <input class="guide-filter__input" type="search" placeholder="Filter: Obsidian, offline…" aria-label="Filter guides, questions, and comparisons" autocomplete="off" spellcheck="false" />
+      </div>
+      <p class="visually-hidden" role="status" data-guide-filter-status></p>
     </header>
-    <section class="guide-card-grid guide-card-grid--index" aria-label="All guides">
-{{GUIDE_CARDS}}
+    <section class="guide-related guide-related--compare" id="questions" aria-labelledby="questions-title" data-guide-section>
+      <p class="eyebrow">Questions</p>
+      <h2 id="questions-title">Answers to common questions</h2>
+      <div class="guide-card-grid">
+{{QUESTION_CARDS}}
+      </div>
     </section>
-    <section class="guide-related guide-related--compare" id="compare" aria-labelledby="compare-title">
+    <section class="guide-related guide-related--compare" id="how-to" aria-labelledby="how-to-title" data-guide-section>
+      <p class="eyebrow">Guides</p>
+      <h2 id="how-to-title">How local meeting notes work</h2>
+      <div class="guide-card-grid">
+{{GUIDE_CARDS}}
+      </div>
+    </section>
+    <section class="guide-related guide-related--compare" id="compare" aria-labelledby="compare-title" data-guide-section>
       <p class="eyebrow">Compare</p>
       <h2 id="compare-title">See how LokalBot differs</h2>
       <div class="guide-card-grid">
 {{COMPARE_CARDS}}
       </div>
     </section>
-    <section class="guide-related guide-related--compare" aria-labelledby="reference-title">
+    <section class="guide-related guide-related--compare" id="reference" aria-labelledby="reference-title" data-guide-section>
       <p class="eyebrow">Reference</p>
       <h2 id="reference-title">Facts and measurements</h2>
       <div class="guide-card-grid">
 {{REFERENCE_CARDS}}
       </div>
     </section>
+    <p class="guide-filter-empty" data-guide-filter-empty hidden>No pages match that filter. <button class="text-button" type="button" data-guide-filter-clear>Show all pages</button></p>
   </main>
 {{FOOTER}}
 </body>

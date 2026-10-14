@@ -35,6 +35,7 @@ CHECK_ICON = '<i class="ph ph-check" aria-hidden="true"></i>'
 
 SITE = "https://www.lokalbot.com"
 OG_IMAGE = f"{SITE}/assets/og-image.png"
+# Publish date of the original guides; a guide added later sets "published".
 GUIDES_PUBLISHED = "2026-07-13"
 
 # Defined in full by the home page's structured data; other pages reference
@@ -50,10 +51,10 @@ ORGANIZATION = {
 # Bump a date when you edit that page so the sitemap's lastmod stays honest.
 STATIC_PAGES = {
     "": "2026-10-14",
-    "privacy": "2026-10-02",
-    "terms": "2026-09-24",
-    "support": "2026-09-24",
-    "enshittification-proof": "2026-09-24",
+    "privacy": "2026-10-14",
+    "terms": "2026-10-14",
+    "support": "2026-10-14",
+    "enshittification-proof": "2026-10-14",
 }
 
 
@@ -208,28 +209,36 @@ def render_related_links(page: dict) -> str:
     return "\n".join(cards)
 
 
-def render_guide_cards() -> str:
+def search_terms(page: dict) -> str:
+    """Page title and FAQ questions the /guides filter matches beyond the card's visible text."""
+
+    terms = " ".join([page.get("title", "")] + [plain_text(question) for question, _ in page.get("faq", [])]).strip()
+    return f' data-terms="{html.escape(terms, quote=True)}"' if terms else ""
+
+
+def render_guide_cards(kind: str) -> str:
     return "\n".join(
-        f'      <a class="guide-card" href="{guide["slug"]}">\n'
-        f'        <span class="guide-card__eyebrow">{guide["eyebrow"]}</span>\n'
-        f'        <strong>{guide["h1"]}</strong>\n'
-        f'        <span>{guide["description"]}</span>\n'
-        f'        <span class="guide-card__meta">{guide["read_time"]}</span>\n'
-        '      </a>'
+        f'        <a class="guide-card" href="{guide["slug"]}"{search_terms(guide)}>\n'
+        f'          <span class="guide-card__eyebrow">{guide["eyebrow"]}</span>\n'
+        f'          <strong>{guide["h1"]}</strong>\n'
+        f'          <span>{guide["description"]}</span>\n'
+        f'          <span class="guide-card__meta">{guide["read_time"]}</span>\n'
+        "        </a>"
         for guide in GUIDES
+        if guide.get("kind", "guide") == kind
     )
 
 
-def render_compact_cards(cards: list[tuple[str, str, str, str]]) -> str:
-    """(slug, eyebrow, heading, description) cards for the /guides sections."""
+def render_compact_cards(cards: list[tuple[str, str, str, str, str]]) -> str:
+    """(slug, eyebrow, heading, description, terms) cards for the /guides sections."""
 
     return "\n".join(
-        f'        <a class="guide-card" href="{slug}">\n'
+        f'        <a class="guide-card" href="{slug}"{terms}>\n'
         f'          <span class="guide-card__eyebrow">{eyebrow}</span>\n'
         f"          <strong>{heading}</strong>\n"
         f"          <span>{description}</span>\n"
         "        </a>"
-        for slug, eyebrow, heading, description in cards
+        for slug, eyebrow, heading, description, terms in cards
     )
 
 
@@ -241,7 +250,7 @@ def guide_structured_data(page: dict) -> str:
                 "@type": "Article",
                 "headline": page["h1"],
                 "description": page["description"],
-                "datePublished": GUIDES_PUBLISHED,
+                "datePublished": page.get("published", GUIDES_PUBLISHED),
                 "dateModified": page.get("updated", GUIDES_PUBLISHED),
                 "mainEntityOfPage": url,
                 "image": OG_IMAGE,
@@ -296,8 +305,10 @@ def guides_index_updated() -> str:
 
 def guides_index_structured_data() -> str:
     url = f"{SITE}/guides"
+    # Same order as the page: Questions, Guides, Compare, Reference.
     listed = (
-        [(guide["slug"], guide["h1"]) for guide in GUIDES]
+        [(guide["slug"], guide["h1"]) for guide in GUIDES if guide.get("kind") == "question"]
+        + [(guide["slug"], guide["h1"]) for guide in GUIDES if guide.get("kind", "guide") == "guide"]
         + [(page["slug"], page["h1"]) for page in PAGES]
         + [(reference["slug"], reference["h1"]) for reference in REFERENCES]
     )
@@ -351,12 +362,13 @@ def render_guides_index(template: str, footer: str) -> str:
         "{{TITLE}}": GUIDES_INDEX["title"],
         "{{META_DESCRIPTION}}": GUIDES_INDEX["description"],
         "{{STRUCTURED_DATA}}": guides_index_structured_data(),
-        "{{GUIDE_CARDS}}": render_guide_cards(),
+        "{{QUESTION_CARDS}}": render_guide_cards("question"),
+        "{{GUIDE_CARDS}}": render_guide_cards("guide"),
         "{{COMPARE_CARDS}}": render_compact_cards(
-            [(page["slug"], "Compare", page["h1"], page["description"]) for page in PAGES]
+            [(page["slug"], "Compare", page["h1"], page["description"], search_terms(page)) for page in PAGES]
         ),
         "{{REFERENCE_CARDS}}": render_compact_cards(
-            [(ref["slug"], ref["eyebrow"], ref["h1"], ref["description"]) for ref in REFERENCES]
+            [(ref["slug"], ref["eyebrow"], ref["h1"], ref["description"], "") for ref in REFERENCES]
         ),
         "{{FOOTER}}": footer,
     }
