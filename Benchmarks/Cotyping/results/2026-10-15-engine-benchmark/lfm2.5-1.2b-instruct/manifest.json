@@ -1,0 +1,37 @@
+{
+  "modelFile": "LFM2.5-1.2B-Instruct-Q4_K_M.gguf",
+  "modelSHA256": "856aeee6d85ac684b1db8dee48795b44fc06731ecda03aee36ece682413a9b9a",
+  "appSHA256": "018a08eb09b4beb6ff571b1a5e4e8b0a6691cd49f429fe118ce74842109240f5",
+  "scriptSHA256": "e0cc20b3697f746e403294c4612a49a358458d50674ec04e932dbf6167b522b2",
+  "source": {
+    "commit": "15d7a26818f8c6fef1124e3c21a91613e7ae27e0",
+    "dirty": false
+  },
+  "hardware": {
+    "chip": "Apple M4 Max",
+    "memoryBytes": 51539607552,
+    "macOS": "27.0.1"
+  },
+  "corpora": {
+    "quality-cases.json": "8a3f3f7ad624dee5fcb8623fe0331947a3e13fe94beee28c00ef369e41f0cc41",
+    "hybrid-confirmation-cases.json": "e48e3de05b7533671f44506b81572409ddcb58a5166dc740204fb026e6152a18"
+  },
+  "replaySettings": {
+    "selectiveOneWordHybrid": true,
+    "searchExperiment": "certified",
+    "nativeThreads": 2
+  },
+  "passes": 5,
+  "warmupRequests": 8,
+  "typingPhrases": [
+    "quality-email-01",
+    "quality-email-07",
+    "quality-formatting-02",
+    "quality-long-context-01",
+    "quality-long-context-03",
+    "quality-multilingual-03",
+    "hybrid-conversation-01",
+    "hybrid-work-01"
+  ],
+  "boundary": "Engine only: excludes input monitoring, debounce, AX reads, screen and memory context, learning and the overlay"
+}

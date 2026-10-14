@@ -71,8 +71,8 @@
 <td>Gemma 4 E2B Base</td>
 <td><code>Q6_K</code></td>
 <td style="text-align: right;">3.85 GB</td>
-<td>34.50% held-out next-word accuracy vs 30.43% for LFM2.5; on today's engine check, 12/13 completions and 851–1,054 ms p95 but 25/28 safety, so it fails that gate</td>
-<td><a href="https://github.com/stevyhacker/lokalbot/blob/master/Benchmarks/Cotyping/results/2026-10-02-quality/REPORT.md"><code>Benchmarks/Cotyping/results/2026-10-02-quality/REPORT.md</code></a>, <a href="https://github.com/stevyhacker/lokalbot/blob/master/Benchmarks/Cotyping/results/2026-10-14-engine-bench/REPORT.md"><code>Benchmarks/Cotyping/results/2026-10-14-engine-bench/REPORT.md</code></a></td>
+<td>0 unsafe results in 140 checks; 23.1% next-word accuracy vs 20.7% for LFM2.5 (tied in English); right when shown 50%; 56 / 102 ms median / p95 per keystroke</td>
+<td><a href="https://github.com/stevyhacker/lokalbot/blob/master/Benchmarks/Cotyping/results/2026-10-15-engine-benchmark/REPORT.md"><code>Benchmarks/Cotyping/results/2026-10-15-engine-benchmark/REPORT.md</code></a></td>
 </tr>
 <tr>
 <td>Screen text (opt-in)</td>
@@ -407,51 +407,91 @@
 </tbody>
 </table>
 <p>Granite 5 is English-only, emits unpunctuated lowercase text, and is not integrated into LokalBot. This small set does not establish a reliable accuracy ordering.</p>
-<h2>Cotyping (inline autocomplete) — today's engine, 2026-10-14</h2>
-<p>Harness: production <code>LokalBot --cotyping-bench</code>, all 28 default scenarios through the real in-process llama.cpp engine. Engine only: input monitoring, debounce, AX validation, and the overlay are excluded. Gate = 28/28 safety, ≥12/13 word completions, p95 ≤ 2000 ms, unchanged since July. Release build of <code>master</code> at <code>9bff2ca</code>, unmodified app code; 3 output words, local learning and clipboard context off, app context on. Ranges cover 6 complete Gemma runs and 4 LFM2.5 runs; every run of a model produced the same suggestion text and suppression for every scenario. Source: <a href="https://github.com/stevyhacker/lokalbot/blob/master/Benchmarks/Cotyping/results/2026-10-14-engine-bench/REPORT.md"><code>Benchmarks/Cotyping/results/2026-10-14-engine-bench/REPORT.md</code></a> (per-run figures in <a href="https://github.com/stevyhacker/lokalbot/blob/master/Benchmarks/Cotyping/results/2026-10-14-engine-bench/summary.json"><code>Benchmarks/Cotyping/results/2026-10-14-engine-bench/summary.json</code></a>).</p>
-<p><strong>Neither model passes the gate on current code.</strong></p>
+<h2>Cotyping (inline autocomplete) — engine benchmark, 2026-10-15</h2>
+<p>Harness: <a href="https://github.com/stevyhacker/lokalbot/blob/master/Benchmarks/Cotyping/engine_benchmark.py"><code>Benchmarks/Cotyping/engine_benchmark.py</code></a> runs LokalBot's production autocomplete engine on one model through <code>--cotyping-bench --model-path</code>. It runs before app startup on the runtime the app builds, with fresh-install settings (4 words) and nothing else from the app, and times model loading on its own. It has three parts:</p>
+<ul>
+<li><strong>Safety checks:</strong> the same 28 scenarios as the earlier check, run 5 times (one first pass, then 4 warm passes). Each result is shown, allowed silence, withheld, a wrong word, unsafe, or an error; only unsafe results and errors fail.</li>
+<li><strong>Next-word accuracy:</strong> every word boundary of 96 original synthetic phrases, 788 positions in English, Serbian (Latin and Cyrillic), German, French, and Spanish. The first suggested word must equal the next word, ignoring case and apostrophe style.</li>
+<li><strong>Typing latency:</strong> per-keystroke time while typing 8 of those phrases one character at a time.</li>
+</ul>
+<p>Release build of commit <code>15d7a26</code> (from <code>master</code> at <code>9bff2ca</code>). Source: <a href="https://github.com/stevyhacker/lokalbot/blob/master/Benchmarks/Cotyping/results/2026-10-15-engine-benchmark/REPORT.md"><code>Benchmarks/Cotyping/results/2026-10-15-engine-benchmark/REPORT.md</code></a> (per-model figures in <a href="https://github.com/stevyhacker/lokalbot/blob/master/Benchmarks/Cotyping/results/2026-10-15-engine-benchmark/gemma4-e2b-base-q6/summary.json"><code>Benchmarks/Cotyping/results/2026-10-15-engine-benchmark/gemma4-e2b-base-q6/summary.json</code></a> and <a href="https://github.com/stevyhacker/lokalbot/blob/master/Benchmarks/Cotyping/results/2026-10-15-engine-benchmark/lfm2.5-1.2b-instruct/summary.json"><code>Benchmarks/Cotyping/results/2026-10-15-engine-benchmark/lfm2.5-1.2b-instruct/summary.json</code></a>).</p>
 <table>
 <thead>
 <tr>
-<th>Model</th>
-<th>Exact file</th>
-<th>Safety</th>
-<th>Word completions</th>
-<th>Avg latency, first request excluded</th>
-<th>p95 latency</th>
-<th>Gate</th>
+<th>Measure</th>
+<th style="text-align: right;">Gemma 4 E2B Base <code>Q6_K</code> (current default)</th>
+<th style="text-align: right;">LFM2.5 1.2B Instruct <code>Q4_K_M</code> (Lightweight preset)</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>Gemma 4 E2B Base (current default)</td>
-<td><code>gemma-4-E2B.i1-Q6_K.gguf</code></td>
-<td>25/28</td>
-<td>12/13</td>
-<td>99–116 ms</td>
-<td>851–1,054 ms</td>
-<td>Fail (safety)</td>
+<td>Unsafe results, 28 checks × 5 passes</td>
+<td style="text-align: right;"><strong>0</strong></td>
+<td style="text-align: right;"><strong>0</strong></td>
 </tr>
 <tr>
-<td>LFM2.5 1.2B Instruct (Lightweight preset)</td>
-<td><code>LFM2.5-1.2B-Instruct-Q4_K_M.gguf</code></td>
-<td>24/28</td>
-<td>11/13</td>
-<td>41–46 ms</td>
-<td>217–292 ms</td>
-<td>Fail (safety, word completion)</td>
+<td>Checks: shown / withheld / allowed silence</td>
+<td style="text-align: right;">24 / 3 / 1</td>
+<td style="text-align: right;">24 / 3 / 1</td>
+</tr>
+<tr>
+<td>Word completions</td>
+<td style="text-align: right;">12/13</td>
+<td style="text-align: right;">12/13</td>
+</tr>
+<tr>
+<td>Next-word accuracy, 788 word positions</td>
+<td style="text-align: right;"><strong>23.1%</strong></td>
+<td style="text-align: right;">20.7%</td>
+</tr>
+<tr>
+<td>— English, 624 positions</td>
+<td style="text-align: right;">25.3%</td>
+<td style="text-align: right;">24.2%</td>
+</tr>
+<tr>
+<td>— Other languages, 164 positions</td>
+<td style="text-align: right;">14.6%</td>
+<td style="text-align: right;">7.3%</td>
+</tr>
+<tr>
+<td>Suggestion shown (coverage)</td>
+<td style="text-align: right;">46.1%</td>
+<td style="text-align: right;">48.1%</td>
+</tr>
+<tr>
+<td>Right when shown (precision)</td>
+<td style="text-align: right;"><strong>50.1%</strong></td>
+<td style="text-align: right;">43.0%</td>
+</tr>
+<tr>
+<td>Per keystroke while typing, median / p95</td>
+<td style="text-align: right;">56 / 102 ms</td>
+<td style="text-align: right;"><strong>26 / 76 ms</strong></td>
+</tr>
+<tr>
+<td>Checks, warm median / p95</td>
+<td style="text-align: right;">60 / 103 ms</td>
+<td style="text-align: right;"><strong>18 / 29 ms</strong></td>
+</tr>
+<tr>
+<td>Model load</td>
+<td style="text-align: right;">0.65 s</td>
+<td style="text-align: right;">0.16 s</td>
 </tr>
 </tbody>
 </table>
+<p>Gemma minus LFM2.5 accuracy, with phrase-level paired bootstrap intervals (10,000 resamples): <strong>+2.4 points</strong> over all 96 phrases (95% interval −0.1 to +5.0); <strong>+1.1 points</strong> in English, 72 phrases (−1.4 to +3.5), a statistical tie; <strong>+7.3 points</strong> in other languages, 24 phrases (0.0 to +15.1). The lead comes from Serbian, where LFM2.5 shows almost nothing (2% coverage, 0% accuracy) and Gemma reaches 8–9%. Those groups are small, so read the intervals, not the points.</p>
 <ul>
-<li><strong>Both models miss the same 3 safety scenarios.</strong> Each time, the first-word confidence gate (added 2026-10-06 in <code>ef8eeef</code>) held back a suggestion (<code>lowConfidence</code>) in an open-ended scenario that expects visible text: <code>notes-list</code>, <code>comma-clause</code>, and <code>sentence-start</code>. Neither model inserted unsafe text, leaked the prompt, or produced an error.</li>
-<li>LFM2.5's fourth miss is <code>wc-schedule</code>: it completed "schedu" as "ling." ("scheduling."), but the scenario requires "le". The 13th word-completion case (<code>mid-word</code>) is the allowed strictly-inside-word suppression for both models; as in July, 12/13 is the suite's ceiling.</li>
-<li>Averages leave out each fresh process's first request, which loads the model: <strong>39.4–44.0 s</strong> for Gemma 4 E2B Base and <strong>9.6–13.3 s</strong> for LFM2.5 in a fresh test profile. Including it, the harness reports 1,518–1,665 ms and 381–521 ms averages. Medians of the other 27 requests were 75–81 ms and 32–35 ms. The harness p95 is nearest-rank over 28, so it lands on the second request after load, which is still slower than steady state. The first request's cause was not isolated (it is not integrity hashing), so it is not evidence of what a long-running installed app shows on its first keystroke.</li>
-<li>Keyword hits, a weak relevance signal and not a gate: Gemma 11/64, LFM2.5 8/64 (LFM2.5 had 15/64 in July).</li>
+<li>Accuracy counts a missing suggestion as a miss. When unsure of the first word, LokalBot shows nothing rather than guessing, so "right when shown" is closer to what you see while typing.</li>
+<li><strong>Withheld (both models, the same 3):</strong> <code>notes-list</code>, <code>comma-clause</code>, and <code>sentence-start</code>, open-ended continuations where the first-word confidence gate (<code>ef8eeef</code>) holds back an unsure guess. <strong>Allowed silence (both):</strong> <code>mid-word</code>, inside "rec|eive", where the engine declines to insert. Every one of the 5 passes showed identical suggestions for both models.</li>
+<li>These are engine timings only. Input monitoring, debounce, accessibility reads, screen and memory context, learning, and drawing the suggestion are not included. Accuracy uses typed text plus app and window title only, while the app also reads nearby screen text, so real suggestions have more context.</li>
+<li>The phrases were written for earlier LokalBot studies. The 64-phrase hybrid-confirmation set confirmed the hybrid decoder before it shipped, so it is not held out from product decisions.</li>
 </ul>
-<p>Gemma 4 E2B Base is the default because of held-out exact next-word accuracy, not because of this gate: <strong>34.50% vs 30.43%</strong> for LFM2.5 (2,300 vs 2,029 of 6,667 held-out word checkpoints), at a warm generation p95 of 68.21 ms vs 29.49 ms. These are synthetic replay results through the production engine, not observed user acceptance rates. Source: <a href="https://github.com/stevyhacker/lokalbot/blob/master/Benchmarks/Cotyping/results/2026-10-02-quality/REPORT.md"><code>Benchmarks/Cotyping/results/2026-10-02-quality/REPORT.md</code></a>.</p>
-<h2>Cotyping (inline autocomplete) — earlier July 21 run, Debug build</h2>
-<p>Kept as an earlier snapshot only. This run used a <strong>Debug</strong> build of code that predates the confidence gate, the October quality and prompt changes, and the hybrid decoder, so its passes for LFM2.5 and Gemma 4 E4B Instruct do not carry over to today's engine. LFM2.5 was the autocomplete default at the time. Same harness and gate as above. Source: <a href="https://github.com/stevyhacker/lokalbot/blob/master/Benchmarks/Cotyping/results/2026-07-21-model-debounce-benchmark.md"><code>Benchmarks/Cotyping/results/2026-07-21-model-debounce-benchmark.md</code></a>.</p>
+<p>Gemma 4 E2B Base became the default after the 2026-10-02 replay on Cotabby's held-out corpus: <strong>34.50% vs 30.43%</strong> exact next-word accuracy for LFM2.5 (2,300 vs 2,029 of 6,667 word checkpoints). That run used a different corpus, the decoder from before the hybrid, and no confidence gate, so it is not comparable with the numbers above. Source: <a href="https://github.com/stevyhacker/lokalbot/blob/master/Benchmarks/Cotyping/results/2026-10-02-quality/REPORT.md"><code>Benchmarks/Cotyping/results/2026-10-02-quality/REPORT.md</code></a>.</p>
+<h2>Cotyping (inline autocomplete) — earlier check, superseded scoring</h2>
+<p>The July 21 and October 14 runs used the original 28-scenario pass/fail check. That check counted a held-back suggestion as a safety failure, accepted only one word tail per fragment, and reported a fresh app process's 10–40 s first request as latency (<a href="https://github.com/stevyhacker/lokalbot/blob/master/Benchmarks/Cotyping/results/2026-10-15-engine-benchmark/REPORT.md"><code>Benchmarks/Cotyping/results/2026-10-15-engine-benchmark/REPORT.md</code></a>, "What changed from the old check"). Its results do not describe today's engine and are kept in the repository: <a href="https://github.com/stevyhacker/lokalbot/blob/master/Benchmarks/Cotyping/results/2026-07-21-model-debounce-benchmark.md"><code>Benchmarks/Cotyping/results/2026-07-21-model-debounce-benchmark.md</code></a> and <a href="https://github.com/stevyhacker/lokalbot/blob/master/Benchmarks/Cotyping/results/2026-10-14-engine-bench/REPORT.md"><code>Benchmarks/Cotyping/results/2026-10-14-engine-bench/REPORT.md</code></a>.</p>
+<p>The July 21 matrix is reproduced below as a historical snapshot only. It used a <strong>Debug</strong> build of code that predates the confidence gate, the October quality and prompt changes, and the hybrid decoder; LFM2.5 was the autocomplete default at the time. Gate = 28/28 safety, ≥12/13 word completions, p95 ≤ 2000 ms. Source: <a href="https://github.com/stevyhacker/lokalbot/blob/master/Benchmarks/Cotyping/results/2026-07-21-model-debounce-benchmark.md"><code>Benchmarks/Cotyping/results/2026-07-21-model-debounce-benchmark.md</code></a>.</p>
 <table>
 <thead>
 <tr>
@@ -707,12 +747,8 @@
 <td>Grow the synthetic manifest to ≥50 fixtures across app categories and re-run <code>score_text_outputs.py</code>.</td>
 </tr>
 <tr>
-<td>Autocomplete's first request in a fresh profile (39.4–44.0 s for Gemma 4 E2B Base) has no isolated cause</td>
-<td>Time the first suggestion in a long-running installed app separately from the fresh-profile <code>--cotyping-bench</code> run.</td>
-</tr>
-<tr>
-<td>Cotyping keyword-hit count is self-declared a weak signal</td>
-<td>Replace with a curated expected-completion suite reviewed by humans before quoting relevance numbers.</td>
+<td>Autocomplete numbers are engine-only, on 96 synthetic phrases (some of which confirmed the hybrid decoder), without the screen context the app reads, and say nothing about real acceptance</td>
+<td>Measure suggestion latency and acceptance end to end while typing in real apps, on text that was not used for product decisions.</td>
 </tr>
 </tbody>
 </table></main>

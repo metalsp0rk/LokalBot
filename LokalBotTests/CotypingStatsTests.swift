@@ -203,6 +203,12 @@ final class CotypingLiveMeasureTests: XCTestCase {
     func testMeasurementsFlagIsRecognizedBeforeLaunch() {
         XCTAssertEqual(HeadlessCommand.parse(["LokalBot", "--cotyping-measurements"]), .cotypingMeasurements)
         XCTAssertEqual(HeadlessCommand.parse(["LokalBot", "--cotyping-bench"]), .cotypingBench)
+        XCTAssertEqual(
+            HeadlessCommand.parse(["LokalBot", "--cotyping-bench", "--model-path", "/m/e2b.gguf", "--passes", "3"]),
+            .cotypingEngineBench(model: URL(fileURLWithPath: "/m/e2b.gguf"), passes: 3))
+        XCTAssertEqual(
+            HeadlessCommand.parse(["LokalBot", "--cotyping-bench", "--model-path", "/m/e2b.gguf"]),
+            .cotypingEngineBench(model: URL(fileURLWithPath: "/m/e2b.gguf"), passes: 5))
     }
 
     func testDeletionAndUndoAreCorrections() {
