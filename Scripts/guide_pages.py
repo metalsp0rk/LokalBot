@@ -552,6 +552,6 @@ REFERENCES = [
         "eyebrow": "Benchmarks",
         "h1": "LokalBot local model benchmarks",
         "description": "Measured speech recognition, speaker diarization, semantic search, summary, autocomplete, and OCR results for LokalBot's local models on Apple Silicon, with methods, sources, and known gaps.",
-        "updated": "2026-10-14",
+        "updated": "2026-10-15",
     },
 ]
