@@ -2,6 +2,7 @@
 
 Rendered by Scripts/render_web.py. Keep claims aligned with the checked-in
 README and implementation; these pages intentionally avoid competitor claims.
+A guide with "kind": "question" is listed under Questions on /guides.
 """
 
 # Head and structured-data copy for web/guides.html.
@@ -319,6 +320,7 @@ GUIDES = [
     },
     {
         "slug": "claude-code-codex-meeting-notes",
+        "kind": "question",
         "published": "2026-10-14",
         "updated": "2026-10-14",
         "updated_label": "October 14, 2026",
@@ -378,6 +380,7 @@ GUIDES = [
     },
     {
         "slug": "ai-notetaker-bots-blocked-at-work",
+        "kind": "question",
         "published": "2026-10-14",
         "updated": "2026-10-14",
         "updated_label": "October 14, 2026",
@@ -437,6 +440,7 @@ GUIDES = [
     },
     {
         "slug": "bot-free-meeting-recorder-speaker-labels",
+        "kind": "question",
         "published": "2026-10-14",
         "updated": "2026-10-14",
         "updated_label": "October 14, 2026",
@@ -481,6 +485,7 @@ GUIDES = [
     },
     {
         "slug": "meeting-transcripts-obsidian-markdown",
+        "kind": "question",
         "published": "2026-10-14",
         "updated": "2026-10-14",
         "updated_label": "October 14, 2026",

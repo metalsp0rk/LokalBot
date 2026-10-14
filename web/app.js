@@ -165,6 +165,48 @@
     if (mq.addEventListener) { mq.addEventListener("change", sync); } else if (mq.addListener) { mq.addListener(sync); }
   });
 
+  /* ---------- /guides: filter cards as you type; every word must match ---------- */
+  var filterBox = $("[data-guide-filter]");
+  var filterInput = filterBox ? $("input", filterBox) : null;
+  if (filterInput) {
+    var filterCards = $$(".guides-page .guide-card");
+    var filterSections = $$("[data-guide-section]");
+    var filterStatus = $("[data-guide-filter-status]");
+    var filterEmpty = $("[data-guide-filter-empty]");
+    var filterClear = $("[data-guide-filter-clear]");
+    /* visible card text plus the page's FAQ questions */
+    var haystacks = filterCards.map(function (card) {
+      return (card.textContent + " " + (card.getAttribute("data-terms") || "")).toLowerCase();
+    });
+    var applyFilter = function () {
+      var words = filterInput.value.toLowerCase().split(/\s+/).filter(Boolean);
+      var shown = 0;
+      filterCards.forEach(function (card, i) {
+        var match = words.every(function (word) { return haystacks[i].indexOf(word) !== -1; });
+        card.hidden = !match;
+        if (match) shown++;
+      });
+      filterSections.forEach(function (section) {
+        section.hidden = !$(".guide-card:not([hidden])", section);
+      });
+      if (filterEmpty) filterEmpty.hidden = shown > 0;
+      if (filterStatus) {
+        filterStatus.textContent = !words.length ? "" : shown === 1 ? "1 page matches." : shown + " pages match.";
+      }
+    };
+    filterInput.addEventListener("input", applyFilter);
+    if (filterClear) {
+      filterClear.addEventListener("click", function () {
+        filterInput.value = "";
+        applyFilter();
+        filterInput.focus();
+      });
+    }
+    /* browsers can restore the typed text when you come back to the page */
+    window.addEventListener("pageshow", function () { if (filterInput.value) applyFilter(); });
+    filterBox.hidden = false;
+  }
+
   /* ---------- waveform: randomize bar timing for an organic pulse ---------- */
   if (!reduce) {
     $$("[data-wave] span").forEach(function (bar) {
