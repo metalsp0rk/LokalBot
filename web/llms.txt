@@ -32,6 +32,7 @@ Key facts:
 - [How do I let Claude Code or Codex search my meeting notes?](https://www.lokalbot.com/claude-code-codex-meeting-notes): read-only local MCP access to a meeting library, setup, tools, and where the data goes
 - [My company blocks AI notetaker bots. What can I use?](https://www.lokalbot.com/ai-notetaker-bots-blocked-at-work): what a local recorder changes and an IT approval checklist
 - [Can a bot-free meeting recorder tell who said what?](https://www.lokalbot.com/bot-free-meeting-recorder-speaker-labels): speaker separation without a bot, naming, and measured accuracy
+- [How do I get meeting transcripts into Obsidian as Markdown?](https://www.lokalbot.com/meeting-transcripts-obsidian-markdown): one-off export, a daily Obsidian note, and a sync script using the CLI
 
 ## Comparisons
 

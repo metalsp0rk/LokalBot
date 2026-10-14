@@ -479,6 +479,56 @@ GUIDES = [
         ],
         "related": ["record-both-sides-mac-meeting-without-bot", "local-transcription-models-mac", "claude-code-codex-meeting-notes"],
     },
+    {
+        "slug": "meeting-transcripts-obsidian-markdown",
+        "published": "2026-10-14",
+        "updated": "2026-10-14",
+        "updated_label": "October 14, 2026",
+        "title": "How to Get Meeting Transcripts into Obsidian as Markdown",
+        "description": "Three ways to put local meeting transcripts and summaries into an Obsidian vault as Markdown: a one-off export, a daily note, or a short sync script.",
+        "eyebrow": "Obsidian and Markdown",
+        "h1": "How do I get meeting transcripts into Obsidian as Markdown?",
+        "lead": "Record and transcribe on your Mac, then write each meeting into your vault as a plain Markdown file. LokalBot has no built-in vault sync, so you export meetings one at a time, let it write a daily note in Obsidian format, or run a short script that copies new meetings into the vault.",
+        "read_time": "5 min read",
+        "body": """
+        <h2>Why plain files work best</h2>
+        <p>An Obsidian vault is a folder of Markdown files. Anything that writes a <code>.md</code> file into that folder can feed it, and the notes keep working without an account, a plugin, or a sync service in between. If the transcript is a file you own, nothing upstream can change how you get to it.</p>
+
+        <h2>Option 1: export one meeting</h2>
+        <p>Open a meeting and choose <strong>Export → Export Meeting as Markdown…</strong>, then save it into your vault. The file starts with the title, date, duration, and meeting app, followed by the summary and the full transcript. <strong>Copy Meeting as Markdown</strong> puts the same text on the clipboard. This is fine for the occasional meeting and tedious for every one.</p>
+
+        <h2>Option 2: a daily note in Obsidian format</h2>
+        <p>In <strong>Settings → Day Memory → Daily note export</strong>, turn on <strong>Export a daily memory note</strong>, pick a folder in your vault, and set the format to <strong>Obsidian</strong>. Each evening (6 PM by default) LokalBot writes or refreshes one note for the day, with <code>date</code> and <code>tags</code> properties: the day's digest, a list of its meetings, app time, and saved moments. A day missed while the Mac was asleep is written later. If you edit a generated note, LokalBot keeps your edits and pauses the export until you move that note or choose another folder.</p>
+        <p>The daily note lists meetings by time, title, and ID. It doesn't include their transcripts, so pair it with option 3 if you want the full text in the vault.</p>
+
+        <h2>Option 3: copy every meeting with a script</h2>
+        <p>The bundled <code>lokalbot-cli</code> prints any meeting as Markdown, so a few lines of shell can keep a vault folder up to date. The CLI is read-only and checks the same switch agents do, so first turn on <strong>Allow external agents to read your meeting library</strong> in <strong>Settings → Privacy &amp; Data</strong>, and install the CLI from <strong>Settings → Advanced → Agent CLI</strong>. Then save this as <code>lokalbot-to-obsidian.sh</code>, change the folder, and run it with <code>sh lokalbot-to-obsidian.sh</code>:</p>
+        <pre class="code" aria-label="Shell script that writes each LokalBot meeting into an Obsidian vault"><span class="c-op"># Folder inside your vault</span>
+vault=<span class="c-str">"$HOME/Documents/Obsidian/Meetings"</span>
+mkdir -p <span class="c-str">"$vault"</span>
+
+lokalbot-cli list <span class="c-op">\\</span>
+  <span class="c-op">|</span> jq -r <span class="c-str">'.[] | select(.has_summary) | "\\(.id) \\(.date | fromdateiso8601 | strflocaltime("%Y-%m-%d"))"'</span> <span class="c-op">\\</span>
+  <span class="c-op">|</span> while read -r id day; do
+      note=<span class="c-str">"$vault/$day $id.md"</span>
+      [ -e <span class="c-str">"$note"</span> ] <span class="c-op">||</span> lokalbot-cli get <span class="c-str">"$id"</span> <span class="c-op">&gt;</span> <span class="c-str">"$note"</span>
+    done</pre>
+        <p>It uses <code>jq</code>, which ships with macOS 15 and later. Each meeting is written once its summary is ready, as a note named like <code>2026-10-14 ab12cd.md</code>. Existing notes are never overwritten, so edits you make in Obsidian are safe; delete a note to have it written again, for example after you regenerate a summary. Run the script after meetings, or from a scheduled job if you want it hands-off.</p>
+
+        <h2>Things to know</h2>
+        <ul>
+          <li><strong>Exports are ordinary files.</strong> LokalBot doesn't encrypt them, and if you sync the vault with Obsidian Sync, iCloud, or Git, that service's terms now cover your transcripts too.</li>
+          <li><strong>Nothing syncs back.</strong> Editing a note in Obsidian doesn't change the meeting in LokalBot, and renaming a speaker in LokalBot doesn't update notes already written.</li>
+          <li><strong>The vault is readable by your other tools.</strong> Any app or agent with access to that folder can read the transcripts, so keep sensitive meetings out of shared vaults.</li>
+        </ul>
+        """,
+        "faq": [
+            ("Is there an Obsidian plugin for LokalBot?", "No. LokalBot writes plain Markdown files instead, through a meeting export, the daily note, or the CLI, so nothing needs installing in Obsidian."),
+            ("Do the exported transcripts include speaker names?", "Yes. Each transcript line starts with a timestamp and the speaker's name, or a default label such as Me when you haven't named that speaker."),
+            ("Can I use Logseq instead?", "Yes. The daily note also comes in Logseq and plain Markdown formats, and the meeting export and CLI output are plain Markdown."),
+        ],
+        "related": ["claude-code-codex-meeting-notes", "local-ai-meeting-notes-mac", "open-source-ai-meeting-notes"],
+    },
 ]
 
 # Hand-written reference pages (web/about.html, web/benchmarks.html). The
