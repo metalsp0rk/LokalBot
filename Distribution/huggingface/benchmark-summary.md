@@ -8,7 +8,7 @@ The defaults on a fresh install total about **9.6 GB** of model files if every r
 
 | Role | Default model | Format | Model files | Headline result | Source |
 | --- | --- | --- | ---: | --- | --- |
-| Transcription | Qwen3-ASR 1.7B | MLX 8-bit | 2.47 GB | Not yet measured (see gaps) | `README.md` |
+| Transcription | Qwen3-ASR 1.7B | MLX 8-bit | 2.47 GB | 17.6% WER on 27 minutes of AMI Mix-Headset audio; only Gemini 3.8 Flash scored lower (16.7%, within the error) | `README.md`, `Benchmarks/CloudSTT/results/2026-09-30/REPORT.md` |
 | Speaker diarization | Nemotron 3 (preview) via FluidAudio | Core ML | ~0.20 GB | 14.56% DER vs 43.44% for the previous default; 500× real time | `Benchmarks/NemotronDiarization/results/2026-09-23/REPORT.md` |
 | Summaries and chat | Qwen3.5 4B | `Q4_K_M` | 2.74 GB | 26-minute meeting summarized in 33.4 s warm / 59.8 s cold | `Benchmarks/SummaryEfficiency/results-2026-09-09.json` |
 | Semantic search | EmbeddingGemma 2 | `Q8_0` | 0.31 GB | Correct passage first for 43/48 queries vs 40/48 for Harrier 0.6B | `Benchmarks/EmbeddingGemma2/2026-10-07/REPORT.md` |
@@ -60,9 +60,46 @@ In the 2026-09-07 pilot, MiniCPM5-2B `Q4_K_M` was smaller (1.561 GB vs 2.741 GB)
 
 The 6-point gain is within noise on 48 correlated queries (95% interval −4 to +17 points); EmbeddingGemma 2 was adopted because it matched or beat Harrier at half the size, half the idle memory, and faster queries. Harrier had replaced Qwen3 Embedding 0.6B (35/48) in September (`Benchmarks/ModelAlternatives/2026-09-07/REPORT.md`).
 
+## Transcription — Qwen3-ASR 1.7B
+
+**Public AMI meetings, against closed APIs and Parakeet.** 16 windows of 90–120 seconds from the Mix-Headset recordings of four AMI test meetings: 27.4 minutes and 4,160 reference words. Every system received the same 16 kHz mono WAV chunks with an English language hint and no custom vocabulary; the local models ran serially on MLX 0.32.3 and mlx-audio 0.5.7. Most windows contain heavy overlapped talk on one mixed channel, so deletions dominate every system's errors and absolute WER is higher than on published close-talk AMI results. Low-overlap WER covers the 4 windows where under 30% of reference words overlap another utterance (728 words); it is too small to rank systems on. Speed is audio seconds per second of request latency; API latency includes upload, with four requests in flight. Source: `Benchmarks/CloudSTT/results/2026-09-30/REPORT.md` (aggregates in `Benchmarks/CloudSTT/results/2026-09-30/summary.json`).
+
+| System | WER | 95% CI | Low-overlap WER | Speed |
+| --- | ---: | ---: | ---: | ---: |
+| Gemini 3.8 Flash, prompted | 16.7% | 14.0–19.0% | 6.2% | 18× |
+| **Qwen3-ASR 1.7B, local (current default)** | **17.6%** | 14.6–20.5% | 7.1% | 44× |
+| Qwen3-ASR Flash | 18.1% | 14.6–20.8% | 6.3% | 25× |
+| Qwen-Audio 3.1 ASR Flash | 18.5% | 14.6–21.8% | 5.6% | 10× |
+| Parakeet TDT 0.6B v3, local | 19.2% | 15.8–22.3% | 8.1% | 129× |
+| GPT-4o mini Transcribe | 21.8% | 17.5–25.7% | 7.8% | 34× |
+| GPT Transcribe | 22.2% | 17.6–27.5% | 6.9% | 30× |
+| GPT-4o Transcribe | 23.0% | 18.4–27.0% | 6.2% | 25× |
+
+Gemini 3.8 Flash had lower WER than the local Qwen model in 93% of paired chunk-bootstrap samples, but on the owner's meetings it invented speech: 115 words in 15 invented spans. On those three meetings (69.9 minutes, no human reference), the local Qwen3-ASR 1.7B had the lowest disagreement with a consensus of the other vendor families, **4.2%** (95% CI 3.4–5.1%). That measures agreement, not accuracy.
+
+**Speakers assigned after transcription.** The same AMI windows and owner meetings, run headless on the app's runtime and weights (speech-swift 0.0.26, FluidAudio 0.17.1, `aufklarer/Qwen3-ASR-1.7B-MLX-8bit`) with Nemotron 3 diarization. On identical chunks, that runtime scored 17.47% AMI WER against mlx-audio's 17.64%. The previous behaviour cut each track at every speaker turn before transcription; the current one transcribes the track in merged windows of up to 60 s, then gives each forced-aligned word the speaker active at its midpoint. cpWER (concatenated minimum-permutation WER) counts attribution errors as well as recognition errors. Source: `Benchmarks/QwenSpanLength/results/2026-09-30/REPORT.md`.
+
+| Measure | Speaker regions first (previous) | Transcribe, then attribute (current) |
+| --- | ---: | ---: |
+| AMI WER | 26.49% | **17.69%** |
+| AMI cpWER | 36.52% | **33.90%** |
+| Owner's meetings, disagreement with consensus | 8.30% | **4.41%** |
+| Turns accepted for speaker memory, AMI / meetings | 286 of 417 / 1,319 of 1,501 | **364 of 417 / 1,405 of 1,501** |
+
+The shipped path decoded at **48×** real time, ASR only; the forced aligner timed all 101 minutes of chunks in 34 s, 179× real time. Built into the app (Debug configuration), the change took the three meetings from 7.89% to 4.59% disagreement; that run's timings, 90 s for the 16-minute meeting and 329 s for the 57-minute one including diarization and alignment, are not production timings. AMI covers only 27 minutes, so its intervals are about ±1 point. On 5–7 minute FLEURS read-speech tracks, Qwen3-ASR 1.7B scored 4.4% WER in German, 7.1% CER in Japanese, and 10.2% WER in Russian (same file).
+
+**Serbian, Croatian, and Bosnian.** FLEURS read speech with a human reference (531, 616, and 628 words), plus the owner's 10-minute Montenegrin/Serbian call, scored against Gemini 3.8 Flash as a rough reference. Scoring transliterates Serbian Cyrillic to Latin. Both engines decoded the app's Qwen word-attribution windows, serially on the M4 Max. Source: `Benchmarks/DualASR/results/2026-10-07/REPORT.md`.
+
+| WER | Serbian | Croatian | Bosnian | Owner's meeting |
+| --- | ---: | ---: | ---: | ---: |
+| Qwen3-ASR 1.7B, language on auto (default) | 17.3% | 26.8% | 36.8% | 38.3% |
+| Whisper large-v3 turbo, `bs` | **13.0%** | **13.0%** | **22.3%** | **26.9%** |
+
+Routing those tracks to Whisper was not adopted: the owner judged the gain not worth a 1.6 GB Whisper download, about 7 extra minutes per meeting hour (17× real time against Qwen's 33–42×), and new speaker-attribution work on Whisper text. Whisper is wrong for English-led audio: on the English-led code-switched track it scored 46.9–78.8%, against 12.4% for Qwen on auto.
+
 ## Speech recognition — Granite Speech 4.1 vs Granite Speech 5
 
-44 public clips / 271.3 seconds (24 conversational AMI clips, 20 clean LibriSpeech clips), scored with the standard Whisper English normalizer. Source: `Benchmarks/ModelAlternatives/2026-09-07/REPORT.md`. **Qwen3-ASR 1.7B, the current default, was not part of this run.**
+44 public clips / 271.3 seconds (24 conversational AMI clips, 20 clean LibriSpeech clips), scored with the standard Whisper English normalizer. Source: `Benchmarks/ModelAlternatives/2026-09-07/REPORT.md`. **Qwen3-ASR 1.7B, the current default, was not part of this run**; its results are in the section above.
 
 | Measure | Granite 4.1 Q4 | Granite 4.1 Q8 | Granite 5 TurboCTC BF16 |
 | --- | ---: | ---: | ---: |
@@ -148,7 +185,8 @@ Notes from the same file: PP-OCRv6 was the only open-source option slightly abov
 | Gap | One-line plan |
 | --- | --- |
 | Single-chip coverage: every number above is one M4 Max (48 GB); no 16 GB, M1, M2, or M3 results | Re-run the summary replay, `--cotyping-bench`, and the OCR harness on M1, M2, and M3 machines before claiming per-chip guidance. |
-| No word-error rate or realtime factor for Qwen3-ASR 1.7B, the default transcription model | Run it through the 44-clip set from `Benchmarks/ModelAlternatives/2026-09-07/REPORT.md` alongside Parakeet and Whisper large-v3 turbo. |
+| Qwen3-ASR 1.7B's English accuracy comes from 27 minutes of overlapped AMI audio and three owner meetings scored for agreement, not accuracy; no clean read speech | Run it through the 44-clip set from `Benchmarks/ModelAlternatives/2026-09-07/REPORT.md` alongside Parakeet and Whisper large-v3 turbo. |
+| Qwen3-ASR 1.7B speeds (44× and 48× real time) are ASR only, from headless harnesses; the only end-to-end meeting timings, with diarization and alignment, came from a Debug build | Time `LokalBot --process` on a Release build over the same meetings, reporting transcription, diarization, and alignment separately. |
 | Diarization tested only on four-speaker English AMI meetings | Add five-to-eight-speaker and non-English recordings, plus LokalBot's own mic/system-track captures. |
 | Search pilot is 48 authored queries | Validate EmbeddingGemma 2 with human-annotated queries over a larger real library. |
 | No summarization-quality evaluation for Qwen3.5 4B | Human-rate recaps on a fixed meeting corpus (faithfulness, action-item completeness); publish rubric + raw ratings. |

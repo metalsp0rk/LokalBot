@@ -39,8 +39,8 @@
 <td>Qwen3-ASR 1.7B</td>
 <td>MLX 8-bit</td>
 <td style="text-align: right;">2.47 GB</td>
-<td>Not yet measured (see gaps)</td>
-<td><a href="https://github.com/stevyhacker/lokalbot/blob/master/README.md"><code>README.md</code></a></td>
+<td>17.6% WER on 27 minutes of AMI Mix-Headset audio; only Gemini 3.8 Flash scored lower (16.7%, within the error)</td>
+<td><a href="https://github.com/stevyhacker/lokalbot/blob/master/README.md"><code>README.md</code></a>, <a href="https://github.com/stevyhacker/lokalbot/blob/master/Benchmarks/CloudSTT/results/2026-09-30/REPORT.md"><code>Benchmarks/CloudSTT/results/2026-09-30/REPORT.md</code></a></td>
 </tr>
 <tr>
 <td>Speaker diarization</td>
@@ -222,8 +222,142 @@
 </tbody>
 </table>
 <p>The 6-point gain is within noise on 48 correlated queries (95% interval −4 to +17 points); EmbeddingGemma 2 was adopted because it matched or beat Harrier at half the size, half the idle memory, and faster queries. Harrier had replaced Qwen3 Embedding 0.6B (35/48) in September (<a href="https://github.com/stevyhacker/lokalbot/blob/master/Benchmarks/ModelAlternatives/2026-09-07/REPORT.md"><code>Benchmarks/ModelAlternatives/2026-09-07/REPORT.md</code></a>).</p>
+<h2>Transcription — Qwen3-ASR 1.7B</h2>
+<p><strong>Public AMI meetings, against closed APIs and Parakeet.</strong> 16 windows of 90–120 seconds from the Mix-Headset recordings of four AMI test meetings: 27.4 minutes and 4,160 reference words. Every system received the same 16 kHz mono WAV chunks with an English language hint and no custom vocabulary; the local models ran serially on MLX 0.32.3 and mlx-audio 0.5.7. Most windows contain heavy overlapped talk on one mixed channel, so deletions dominate every system's errors and absolute WER is higher than on published close-talk AMI results. Low-overlap WER covers the 4 windows where under 30% of reference words overlap another utterance (728 words); it is too small to rank systems on. Speed is audio seconds per second of request latency; API latency includes upload, with four requests in flight. Source: <a href="https://github.com/stevyhacker/lokalbot/blob/master/Benchmarks/CloudSTT/results/2026-09-30/REPORT.md"><code>Benchmarks/CloudSTT/results/2026-09-30/REPORT.md</code></a> (aggregates in <a href="https://github.com/stevyhacker/lokalbot/blob/master/Benchmarks/CloudSTT/results/2026-09-30/summary.json"><code>Benchmarks/CloudSTT/results/2026-09-30/summary.json</code></a>).</p>
+<table>
+<thead>
+<tr>
+<th>System</th>
+<th style="text-align: right;">WER</th>
+<th style="text-align: right;">95% CI</th>
+<th style="text-align: right;">Low-overlap WER</th>
+<th style="text-align: right;">Speed</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Gemini 3.8 Flash, prompted</td>
+<td style="text-align: right;">16.7%</td>
+<td style="text-align: right;">14.0–19.0%</td>
+<td style="text-align: right;">6.2%</td>
+<td style="text-align: right;">18×</td>
+</tr>
+<tr>
+<td><strong>Qwen3-ASR 1.7B, local (current default)</strong></td>
+<td style="text-align: right;"><strong>17.6%</strong></td>
+<td style="text-align: right;">14.6–20.5%</td>
+<td style="text-align: right;">7.1%</td>
+<td style="text-align: right;">44×</td>
+</tr>
+<tr>
+<td>Qwen3-ASR Flash</td>
+<td style="text-align: right;">18.1%</td>
+<td style="text-align: right;">14.6–20.8%</td>
+<td style="text-align: right;">6.3%</td>
+<td style="text-align: right;">25×</td>
+</tr>
+<tr>
+<td>Qwen-Audio 3.1 ASR Flash</td>
+<td style="text-align: right;">18.5%</td>
+<td style="text-align: right;">14.6–21.8%</td>
+<td style="text-align: right;">5.6%</td>
+<td style="text-align: right;">10×</td>
+</tr>
+<tr>
+<td>Parakeet TDT 0.6B v3, local</td>
+<td style="text-align: right;">19.2%</td>
+<td style="text-align: right;">15.8–22.3%</td>
+<td style="text-align: right;">8.1%</td>
+<td style="text-align: right;">129×</td>
+</tr>
+<tr>
+<td>GPT-4o mini Transcribe</td>
+<td style="text-align: right;">21.8%</td>
+<td style="text-align: right;">17.5–25.7%</td>
+<td style="text-align: right;">7.8%</td>
+<td style="text-align: right;">34×</td>
+</tr>
+<tr>
+<td>GPT Transcribe</td>
+<td style="text-align: right;">22.2%</td>
+<td style="text-align: right;">17.6–27.5%</td>
+<td style="text-align: right;">6.9%</td>
+<td style="text-align: right;">30×</td>
+</tr>
+<tr>
+<td>GPT-4o Transcribe</td>
+<td style="text-align: right;">23.0%</td>
+<td style="text-align: right;">18.4–27.0%</td>
+<td style="text-align: right;">6.2%</td>
+<td style="text-align: right;">25×</td>
+</tr>
+</tbody>
+</table>
+<p>Gemini 3.8 Flash had lower WER than the local Qwen model in 93% of paired chunk-bootstrap samples, but on the owner's meetings it invented speech: 115 words in 15 invented spans. On those three meetings (69.9 minutes, no human reference), the local Qwen3-ASR 1.7B had the lowest disagreement with a consensus of the other vendor families, <strong>4.2%</strong> (95% CI 3.4–5.1%). That measures agreement, not accuracy.</p>
+<p><strong>Speakers assigned after transcription.</strong> The same AMI windows and owner meetings, run headless on the app's runtime and weights (speech-swift 0.0.26, FluidAudio 0.17.1, <code>aufklarer/Qwen3-ASR-1.7B-MLX-8bit</code>) with Nemotron 3 diarization. On identical chunks, that runtime scored 17.47% AMI WER against mlx-audio's 17.64%. The previous behaviour cut each track at every speaker turn before transcription; the current one transcribes the track in merged windows of up to 60 s, then gives each forced-aligned word the speaker active at its midpoint. cpWER (concatenated minimum-permutation WER) counts attribution errors as well as recognition errors. Source: <a href="https://github.com/stevyhacker/lokalbot/blob/master/Benchmarks/QwenSpanLength/results/2026-09-30/REPORT.md"><code>Benchmarks/QwenSpanLength/results/2026-09-30/REPORT.md</code></a>.</p>
+<table>
+<thead>
+<tr>
+<th>Measure</th>
+<th style="text-align: right;">Speaker regions first (previous)</th>
+<th style="text-align: right;">Transcribe, then attribute (current)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>AMI WER</td>
+<td style="text-align: right;">26.49%</td>
+<td style="text-align: right;"><strong>17.69%</strong></td>
+</tr>
+<tr>
+<td>AMI cpWER</td>
+<td style="text-align: right;">36.52%</td>
+<td style="text-align: right;"><strong>33.90%</strong></td>
+</tr>
+<tr>
+<td>Owner's meetings, disagreement with consensus</td>
+<td style="text-align: right;">8.30%</td>
+<td style="text-align: right;"><strong>4.41%</strong></td>
+</tr>
+<tr>
+<td>Turns accepted for speaker memory, AMI / meetings</td>
+<td style="text-align: right;">286 of 417 / 1,319 of 1,501</td>
+<td style="text-align: right;"><strong>364 of 417 / 1,405 of 1,501</strong></td>
+</tr>
+</tbody>
+</table>
+<p>The shipped path decoded at <strong>48×</strong> real time, ASR only; the forced aligner timed all 101 minutes of chunks in 34 s, 179× real time. Built into the app (Debug configuration), the change took the three meetings from 7.89% to 4.59% disagreement; that run's timings, 90 s for the 16-minute meeting and 329 s for the 57-minute one including diarization and alignment, are not production timings. AMI covers only 27 minutes, so its intervals are about ±1 point. On 5–7 minute FLEURS read-speech tracks, Qwen3-ASR 1.7B scored 4.4% WER in German, 7.1% CER in Japanese, and 10.2% WER in Russian (same file).</p>
+<p><strong>Serbian, Croatian, and Bosnian.</strong> FLEURS read speech with a human reference (531, 616, and 628 words), plus the owner's 10-minute Montenegrin/Serbian call, scored against Gemini 3.8 Flash as a rough reference. Scoring transliterates Serbian Cyrillic to Latin. Both engines decoded the app's Qwen word-attribution windows, serially on the M4 Max. Source: <a href="https://github.com/stevyhacker/lokalbot/blob/master/Benchmarks/DualASR/results/2026-10-07/REPORT.md"><code>Benchmarks/DualASR/results/2026-10-07/REPORT.md</code></a>.</p>
+<table>
+<thead>
+<tr>
+<th>WER</th>
+<th style="text-align: right;">Serbian</th>
+<th style="text-align: right;">Croatian</th>
+<th style="text-align: right;">Bosnian</th>
+<th style="text-align: right;">Owner's meeting</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Qwen3-ASR 1.7B, language on auto (default)</td>
+<td style="text-align: right;">17.3%</td>
+<td style="text-align: right;">26.8%</td>
+<td style="text-align: right;">36.8%</td>
+<td style="text-align: right;">38.3%</td>
+</tr>
+<tr>
+<td>Whisper large-v3 turbo, <code>bs</code></td>
+<td style="text-align: right;"><strong>13.0%</strong></td>
+<td style="text-align: right;"><strong>13.0%</strong></td>
+<td style="text-align: right;"><strong>22.3%</strong></td>
+<td style="text-align: right;"><strong>26.9%</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Routing those tracks to Whisper was not adopted: the owner judged the gain not worth a 1.6 GB Whisper download, about 7 extra minutes per meeting hour (17× real time against Qwen's 33–42×), and new speaker-attribution work on Whisper text. Whisper is wrong for English-led audio: on the English-led code-switched track it scored 46.9–78.8%, against 12.4% for Qwen on auto.</p>
 <h2>Speech recognition — Granite Speech 4.1 vs Granite Speech 5</h2>
-<p>44 public clips / 271.3 seconds (24 conversational AMI clips, 20 clean LibriSpeech clips), scored with the standard Whisper English normalizer. Source: <a href="https://github.com/stevyhacker/lokalbot/blob/master/Benchmarks/ModelAlternatives/2026-09-07/REPORT.md"><code>Benchmarks/ModelAlternatives/2026-09-07/REPORT.md</code></a>. <strong>Qwen3-ASR 1.7B, the current default, was not part of this run.</strong></p>
+<p>44 public clips / 271.3 seconds (24 conversational AMI clips, 20 clean LibriSpeech clips), scored with the standard Whisper English normalizer. Source: <a href="https://github.com/stevyhacker/lokalbot/blob/master/Benchmarks/ModelAlternatives/2026-09-07/REPORT.md"><code>Benchmarks/ModelAlternatives/2026-09-07/REPORT.md</code></a>. <strong>Qwen3-ASR 1.7B, the current default, was not part of this run</strong>; its results are in the section above.</p>
 <table>
 <thead>
 <tr>
@@ -549,8 +683,12 @@
 <td>Re-run the summary replay, <code>--cotyping-bench</code>, and the OCR harness on M1, M2, and M3 machines before claiming per-chip guidance.</td>
 </tr>
 <tr>
-<td>No word-error rate or realtime factor for Qwen3-ASR 1.7B, the default transcription model</td>
+<td>Qwen3-ASR 1.7B's English accuracy comes from 27 minutes of overlapped AMI audio and three owner meetings scored for agreement, not accuracy; no clean read speech</td>
 <td>Run it through the 44-clip set from <a href="https://github.com/stevyhacker/lokalbot/blob/master/Benchmarks/ModelAlternatives/2026-09-07/REPORT.md"><code>Benchmarks/ModelAlternatives/2026-09-07/REPORT.md</code></a> alongside Parakeet and Whisper large-v3 turbo.</td>
+</tr>
+<tr>
+<td>Qwen3-ASR 1.7B speeds (44× and 48× real time) are ASR only, from headless harnesses; the only end-to-end meeting timings, with diarization and alignment, came from a Debug build</td>
+<td>Time <code>LokalBot --process</code> on a Release build over the same meetings, reporting transcription, diarization, and alignment separately.</td>
 </tr>
 <tr>
 <td>Diarization tested only on four-speaker English AMI meetings</td>
