@@ -128,6 +128,15 @@ final class ScopedChatToolRunner: ChatToolRunner {
 
     var specs: [ChatToolSpec] { base.specs.filter { allows($0.name) } }
 
+    /// Attached screens get the same boundary as `search_screen`: the screen
+    /// source must be on and the pinned set still applies. A caller's date
+    /// range applies only when this question has none of its own.
+    func attachedScreenEvidence(ids: Set<Int64>, dayScopeKey: String?) -> ChatEvidence {
+        guard scopes.contains(.screen) else { return ChatEvidence() }
+        let allowed = screenSnapshotIDs.map { ids.intersection($0) } ?? ids
+        return base.attachedScreenEvidence(ids: allowed, dayScopeKey: self.dayScopeKey ?? dayScopeKey)
+    }
+
     func libraryOverview() -> String {
         // Source-limited and day-limited questions must not receive ambient
         // meeting titles outside the exact scope enforced by the tools below.

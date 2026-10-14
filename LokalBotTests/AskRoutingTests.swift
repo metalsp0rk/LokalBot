@@ -214,6 +214,23 @@ final class AskRoutingTests: XCTestCase {
         XCTAssertNil(base.lastCall)
     }
 
+    func testAttachedScreensKeepTheQuestionsSourcePinsAndDates() {
+        let base = RecordingToolRunner()
+        let meetingsOnly = ScopedChatToolRunner(base: base, scopes: [.meetings])
+        XCTAssertTrue(meetingsOnly.attachedScreenEvidence(ids: [42], dayScopeKey: nil).screenIDs.isEmpty)
+        XCTAssertNil(base.attachedIDs, "a question without the screen source must not look up screens")
+
+        let pinned = ScopedChatToolRunner(base: base, scopes: [.screen], dayScopeKey: "2026-08-31",
+                                          screenSnapshotIDs: [42])
+        XCTAssertEqual(pinned.attachedScreenEvidence(ids: [42, 99], dayScopeKey: "2020-01-01").screenIDs, [42])
+        XCTAssertEqual(base.attachedIDs, [42])
+        XCTAssertEqual(base.attachedDay, "2026-08-31", "a caller cannot replace the question's own dates")
+
+        let undated = ScopedChatToolRunner(base: base, scopes: [.screen])
+        XCTAssertEqual(undated.attachedScreenEvidence(ids: [7], dayScopeKey: "2026-09-03").screenIDs, [7])
+        XCTAssertEqual(base.attachedDay, "2026-09-03")
+    }
+
     private final class RecordingToolRunner: ChatToolRunner {
         let specs = [
             ChatToolSpec(name: "search_meetings", summary: "meetings", arguments: []),
@@ -221,6 +238,14 @@ final class AskRoutingTests: XCTestCase {
             ChatToolSpec(name: "activity_summary", summary: "today", arguments: []),
         ]
         var lastCall: ChatToolCall?
+        var attachedIDs: Set<Int64>?
+        var attachedDay: String?
+
+        func attachedScreenEvidence(ids: Set<Int64>, dayScopeKey: String?) -> ChatEvidence {
+            attachedIDs = ids
+            attachedDay = dayScopeKey
+            return ChatEvidence(screenIDs: ids)
+        }
 
         func libraryOverview() -> String { "all meeting titles" }
         func run(_ call: ChatToolCall) async -> ChatToolResult {

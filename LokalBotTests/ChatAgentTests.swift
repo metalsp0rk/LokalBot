@@ -504,7 +504,118 @@ final class ChatAgentTests: XCTestCase {
         XCTAssertEqual(MeetingChatFormat.clean("a «hit»\n   b"), "a hit b")
     }
 
+    func testKeywordPassageShowsTheWholeMatchedLineOrFallsBackToTheSnippet() {
+        let summary = """
+        ## Decisions
+        - The vendor handover, after a long review with legal and finance, did not happen.
+        - Budget approved.
+        """
+        var hit = SearchIndex.Hit(meetingID: UUID(), kind: .summary, start: 0,
+                                  snippet: "…The vendor «handover», after a long review…", speaker: "")
+        XCTAssertEqual(MeetingChatFormat.keywordPassage(hit), "…The vendor handover, after a long review…",
+                       "without the stored row only the snippet is available")
+        hit.sourceText = summary
+        XCTAssertEqual(MeetingChatFormat.keywordPassage(hit),
+                       "- The vendor handover, after a long review with legal and finance, did not happen.")
+        XCTAssertEqual(MeetingChatFormat.keywordPassage(hit, maximumCharacters: 40),
+                       "…The vendor handover, after a long review…", "an over-long line keeps the snippet")
+        hit.sourceText = "A different document"
+        XCTAssertEqual(MeetingChatFormat.keywordPassage(hit), "…The vendor handover, after a long review…")
+    }
+
+    func testAgentPromptUsesTheInjectedClock() async throws {
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+        let engine = ScriptedEngine(["You have no meetings recorded yet."])
+        var agent = ChatAgent(engine: engine, runner: FakeRunner(specs: [], overview: "no meetings", results: [:]))
+        agent.now = { now }
+        _ = try await agent.respond(history: [], latest: "anything?") { _ in }
+        let system = try XCTUnwrap(engine.prompts.first?.system)
+        XCTAssertTrue(system.hasSuffix(ChatPrompt.currentTimeLine(now: now)), system)
+    }
+
     // MARK: - Live tool runner (planted library)
+
+    func testKeywordSearchKeepsANegationOutsideTheSnippetWindow() async throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("lokalbot-chat-passage-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let line = "The vendor handover that we discussed at length with legal, finance and the regional "
+            + "sales leads during last week's review did not happen."
+        let id = UUID()
+        try MeetingFixture.write([.init(id: id, title: "Vendor review",
+                                        startedAt: Date(timeIntervalSince1970: 1_700_000_000),
+                                        transcriptLines: [line, "Budget approved for next quarter."])], under: root)
+        let storage = StorageManager(rootURL: root)
+        let meetings = storage.loadMeetings()
+        let sqlite = root.appendingPathComponent("lokalbotv3.sqlite")
+        let searchIndex = SearchIndex(databaseURL: sqlite)
+        searchIndex.reindexAll(meetings, storage: storage)
+        let hit = try XCTUnwrap(searchIndex.search("handover", meetingIDs: [id]).first)
+        XCTAssertFalse(hit.snippet.contains("not happen"), "precondition: the FTS snippet drops the negation")
+
+        var settings = AppSettings()
+        settings.semanticSearchEnabled = false
+        let tools = MeetingChatTools(
+            meetings: { meetings }, storage: storage, searchIndex: searchIndex,
+            embeddingIndex: EmbeddingIndex(databaseURL: sqlite, storage: storage),
+            activityStore: ActivityStore(databaseURL: sqlite), settings: { settings })
+        let result = await tools.run(ChatToolCall(name: "search_meetings", arguments: ["query": "handover"]))
+        XCTAssertTrue(result.text.contains(line), result.text)
+        XCTAssertFalse(result.text.contains("Budget approved"), result.text)
+    }
+
+    func testRelativeDaysFollowTheToolsClock() async throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("lokalbot-chat-clock-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let storage = StorageManager(rootURL: root)
+        let sqlite = root.appendingPathComponent("lokalbotv3.sqlite")
+        let activityStore = ActivityStore(databaseURL: sqlite)
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+        let yesterday = try XCTUnwrap(Calendar.current.date(byAdding: .day, value: -1, to: now))
+        let start = Calendar.current.startOfDay(for: yesterday).addingTimeInterval(10 * 3_600)
+        XCTAssertTrue(activityStore.insert(ActivityBlock(id: 0, app: "Keynote", title: "Board deck",
+                                                         start: start, end: start.addingTimeInterval(1_800))))
+
+        var settings = AppSettings()
+        settings.semanticSearchEnabled = false
+        let tools = MeetingChatTools(
+            meetings: { [] }, storage: storage, searchIndex: SearchIndex(databaseURL: sqlite),
+            embeddingIndex: EmbeddingIndex(databaseURL: sqlite, storage: storage),
+            activityStore: activityStore, settings: { settings }, now: { now })
+        let result = await tools.run(ChatToolCall(name: "activity_summary", arguments: ["day": "yesterday"]))
+        XCTAssertTrue(result.text.contains("Keynote"), result.text)
+    }
+
+    func testAttachedScreensMustExistAndFallInsideTheQuestionDates() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("lokalbot-chat-screens-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let storage = StorageManager(rootURL: root)
+        let sqlite = root.appendingPathComponent("lokalbotv3.sqlite")
+        let activityStore = ActivityStore(databaseURL: sqlite)
+        let calendar = Calendar.current
+        let insideDate = try XCTUnwrap(calendar.date(from: DateComponents(year: 2026, month: 9, day: 3, hour: 12)))
+        let outsideDate = try XCTUnwrap(calendar.date(from: DateComponents(year: 2026, month: 8, day: 31, hour: 12)))
+        let inside = try activityStore.insertScreenshot(ts: insideDate, path: "", app: "Notes", ocr: "inside")
+        let outside = try activityStore.insertScreenshot(ts: outsideDate, path: "", app: "Notes", ocr: "outside")
+        let missing: Int64 = 999_999
+
+        var settings = AppSettings()
+        settings.semanticSearchEnabled = false
+        let tools = MeetingChatTools(
+            meetings: { [] }, storage: storage, searchIndex: SearchIndex(databaseURL: sqlite),
+            embeddingIndex: EmbeddingIndex(databaseURL: sqlite, storage: storage),
+            activityStore: activityStore, settings: { settings })
+        XCTAssertEqual(tools.attachedScreenEvidence(ids: [inside, outside, missing], dayScopeKey: nil).screenIDs,
+                       [inside, outside], "a deleted screen is not citable")
+        XCTAssertEqual(tools.attachedScreenEvidence(ids: [inside, outside], dayScopeKey: "2026-09-01...2026-09-07").screenIDs,
+                       [inside])
+        XCTAssertTrue(tools.attachedScreenEvidence(ids: [inside], dayScopeKey: "not a date").screenIDs.isEmpty)
+    }
+
 
     func testToolsListSearchAndGetAgainstPlantedLibrary() async throws {
         let root = FileManager.default.temporaryDirectory
