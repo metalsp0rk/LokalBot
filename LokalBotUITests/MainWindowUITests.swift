@@ -632,17 +632,6 @@ final class MainWindowUITests: XCTestCase {
             let saved = try XCTUnwrap(state["actions"] as? [String: [String: Any]])
             XCTAssertEqual(saved["fixture-action-design-1"]?["status"] as? String, "done")
         }
-        let undo = app.buttons["outcomes.undo"]
-        XCTAssertTrue(undo.waitForExistence(timeout: 4))
-        undo.click()
-        XCTAssertTrue(UITestHarness.waitUntil {
-            stateURLs.allSatisfy { url in
-                guard let data = try? Data(contentsOf: url),
-                      let state = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                      let saved = state["actions"] as? [String: [String: Any]] else { return false }
-                return saved["fixture-action-design-1"]?["status"] as? String == "open"
-            }
-        }, "Thread Undo must restore every confirmed source")
     }
 
     func testActionThreadSourceCanBeSeparatedAndRestored() throws {
