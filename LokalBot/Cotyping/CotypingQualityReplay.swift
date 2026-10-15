@@ -182,9 +182,10 @@ enum CotypingQualityReplay {
                     apiKey: ProcessInfo.processInfo.environment[Engine.apiKeyEnvironmentKey],
                     extraBody: extraBody, sendsLlamaSamplingExtensions: false,
                     chatDialect: .inferred(from: baseURL))
-                // A chat message has no token boundary at the caret, so it is not healed.
+                // A chat message has no token boundary at the caret: it is not healed, and
+                // the space a chat model leaves out before a new word is put back.
                 engine = chat
-                    ? CotypingEngine(makeEngine: { ChatContinuationEngine(base: remote) })
+                    ? CotypingEngine(makeEngine: { ChatContinuationEngine(base: remote) }, restoresWordSpace: true)
                     : CotypingEngine(makeEngine: { remote }, healsCaretBoundary: true)
                 retryLimit = remoteRetryLimit
             }
@@ -466,30 +467,4 @@ enum CotypingQualityReplay {
     }
 
     enum ReplayError: Error { case invalidCases, invalidConfiguration }
-}
-
-/// Autocomplete through a chat endpoint: the app's autocomplete instruction as the
-/// system message and the rendered prompt as the user message, with thinking off.
-/// The reply budget is at least 32 tokens, so a phrase that runs a little long is
-/// trimmed by the normalizer instead of failing as truncated. An empty reply means
-/// the model had nothing to add, which is an empty suggestion rather than an error.
-private struct ChatContinuationEngine: TextEngine {
-    let base: OpenAICompatibleEngine
-
-    var displayName: String { base.displayName }
-
-    func generate(system: String, prompt: String, context: [String]) async throws -> String {
-        try await base.generate(system: system, prompt: prompt, context: context)
-    }
-
-    func complete(_ request: CompletionRequest) async throws -> String {
-        do {
-            return try await base.generate(
-                system: PromptTemplates.autocompleteSystem, prompt: request.prompt, context: [],
-                options: TextGenerationOptions(maxTokens: max(request.maxTokens, 32), reasoningBudgetTokens: 0,
-                                               temperature: request.temperature))
-        } catch TextEngineError.badResponse(let detail) where detail.contains("contained no text") {
-            return ""
-        }
-    }
 }

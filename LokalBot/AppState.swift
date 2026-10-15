@@ -220,6 +220,7 @@ final class AppState: ObservableObject {
             || old.cotypingBuiltInModelID != new.cotypingBuiltInModelID
             || old.cotypingInProcessRuntime != new.cotypingInProcessRuntime
             || old.customBuiltInModels != new.customBuiltInModels
+            || old.cotypingBackend != new.cotypingBackend
     }
 
     private static func dailyMemoryExportChanged(from old: AppSettings,
@@ -746,9 +747,13 @@ final class AppState: ObservableObject {
             }
             return await withTaskCancellationHandler { await task.value } onCancel: { task.cancel() }
         })
-    /// Cotyping (inline AI autocomplete). Always runs its own model on the
-    /// dedicated `LlamaServer.cotyping` instance so it never thrashes the
-    /// shared summarizer server. Resolved per-completion, so changes apply live.
+    /// Autocomplete on a chosen server. Writing reads its last problem.
+    private(set) lazy var cotypingServer = RemoteCotypingEngine(
+        route: { [store = settingsStore] in store.current.cotypingRoute() })
+    /// Cotyping (inline AI autocomplete). On this Mac it runs its own model on
+    /// the dedicated `LlamaServer.cotyping` instance so it never thrashes the
+    /// shared summarizer server; a chosen server is reached through
+    /// `cotypingServer`. Resolved per-completion, so changes apply live.
     private(set) lazy var cotypingEngine = CotypingEngineSelector(
         http: CotypingEngine(
             makeEngine: { [weak self] in
@@ -760,6 +765,7 @@ final class AppState: ObservableObject {
                     purpose: "cotyping")
             },
             stopRuntime: { await LlamaServer.cotyping.stop() }),
+        server: cotypingServer,
         makeLocal: { modelPath in
             LocalLlamaCotypingEngine(runtime: .forAutocomplete(), modelPath: modelPath)
         },

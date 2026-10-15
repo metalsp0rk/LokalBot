@@ -174,7 +174,7 @@ struct SettingsView: View {
         case .dayMemory:
             dayTrackingSection; routinesSection; dreamingSection
         case .writing:
-            AutocompleteExperienceView()
+            AutocompleteExperienceView(server: app.cotypingServer)
             AutocompleteStatisticsView()
             cotypingSection
         case .dictation:
@@ -325,10 +325,21 @@ struct SettingsView: View {
     @ViewBuilder private var cotypingSection: some View {
         if shows("Autocomplete", ["cotyping", "autocomplete", "suggestion", "suggestions",
                               "length", "words", "max words", "ghost", "inline",
-                              "completion", "typing"]) {
+                              "completion", "typing", "server"]) {
             Section("Autocomplete") {
                 LabeledContent("Autocomplete model") {
-                    Button("Manage in Models…") { app.openSettings(tab: .models) }
+                    HStack(spacing: 10) {
+                        Text(app.settings.cotypingModelDisplayName)
+                            .settingsSecondary()
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                        // The model, or a server, is chosen in the Models picker.
+                        Button("Change…") {
+                            app.openSettings(tab: .models)
+                            app.focusedSettingID = "settings.cotypingBuiltInModelID"
+                        }
+                        .accessibilityIdentifier("settings.cotypingModel.change")
+                    }
                 }
                 Stepper("Suggestion length: up to \(app.settings.cotypingMaxWords) words",
                         value: $app.settings.cotypingMaxWords, in: 2...50)
@@ -372,6 +383,11 @@ struct SettingsView: View {
             }
             Section("Context") {
                 let context = cotypingContext
+                if app.settings.cotypingLeavesThisMac, let host = app.settings.cotypingConfiguredServerURL?.host {
+                    Label("Context you turn on here is sent to \(host) with what you type.", systemImage: "network")
+                        .settingsSecondary()
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 Toggle("Use app and window context", isOn: $app.settings.cotypingUseAppContext)
                     .settingTarget("settings.cotypingUseAppContext", selected: app.focusedSettingID)
                 Toggle("Use clipboard as temporary context", isOn: $app.settings.cotypingUseClipboard)
@@ -463,6 +479,7 @@ struct SettingsView: View {
                     set: { writingAdvancedExpanded = $0 })) {
                     Toggle("Use fast in-process runtime",
                            isOn: $app.settings.cotypingInProcessRuntime)
+                    .disabled(app.settings.cotypingBackend != .onDevice)
                     .settingTarget("settings.cotypingInProcessRuntime", selected: app.focusedSettingID)
                     Toggle("Match the app font and text color",
                            isOn: $app.settings.cotypingMatchHostStyle)
@@ -1038,6 +1055,12 @@ struct SettingsView: View {
                         localText: "Audio, transcripts, and captured context stay on this Mac. Network access is limited to model downloads, updates, and optional Agent Mode setup.",
                         remoteText: "Audio stays on this Mac. Transcripts and approved context may be sent to your remote Think model (\(app.settings.summarizerBackend.displayName)). Other network access is for models, updates, and optional Agent Mode setup.")
                     storageLocationRow
+                    if app.settings.cotypingLeavesThisMac, let host = app.settings.cotypingConfiguredServerURL?.host {
+                        Label("Autocomplete also sends what you type, with the context you turn on under Writing, to \(host).",
+                              systemImage: "network")
+                            .settingsSecondary()
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
                 Section("Screen memory retention") {
                     RetentionSettingsControls()
