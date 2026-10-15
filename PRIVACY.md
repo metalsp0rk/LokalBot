@@ -100,25 +100,32 @@ until you remove them.
 
 **About you** (Settings → Day Memory) holds what you tell Ask to remember
 about yourself: messages that start with "Remember …" in Ask or Quick Recall,
-and items you add there. With **Learn about me from my meetings** (on by
-default, part of the overnight review) it also learns about you. After each
-review, LokalBot sends your own transcript lines from that day's meetings to
-your Think model. It sends only lines with first-person words such as "I"
-or "my", at most 40 lines and 6,000 characters, plus what About you already
-holds. Other speakers' lines are never sent, nor your lines from a
-microphone several people shared. This follows the same approved-server rule
-as the overnight review. Up to three
-facts or goals a night are saved and used without review; learned
-preferences wait for you to keep or dismiss them; principles and values are
-never learned. Each learned item must come from one of your lines, shows
+and items you add there. With **Learn about me from my meetings and work**
+(on by default, part of the overnight review) it also learns about you.
+After each review, LokalBot sends your own words from that day to your Think
+model. That means your transcript lines from meetings, the requests you
+typed to Claude Code or Codex (only while **Read coding agent sessions** is
+on), and the questions you asked in Ask. Only lines with first-person words
+such as "I" or "my" are sent, at most 40 lines (15 of them typed) and 6,000
+characters, plus what About you already holds. Other speakers' lines are
+never sent, nor your lines from a microphone several people shared. This
+follows the same approved-server rule as the overnight review. Up to three
+items a night come from this. Facts and goals from meetings are saved and
+used without review. Preferences, and anything learned from what you typed,
+wait for you to keep or dismiss them. A goal or project the overnight
+review's work memory has kept for two weeks, and seen in the last week, is
+also suggested for review; that step makes no model call. Principles and
+values are never learned. Each learned item must come from one of your lines, shows
 that line, and is labelled as learned wherever it is used. When the model
 words an item in another language than your line (for example an English
 item from a Serbian line), LokalBot compares their meaning with its local
 embedding model, which needs semantic search. Nothing is downloaded for
 this, and nothing leaves your Mac. An item it isn't sure of waits for your
 review even if it is a fact or goal. Deleting or
-correcting the meeting it came from removes it unless you chose **Keep Even
-If the Meeting Is Deleted**. Forgetting a learned item, or dismissing a
+correcting what it came from removes it: the meeting, the day's saved agent
+sessions, the evidence behind a work-memory item, or the Ask conversation.
+The exception is an item you chose to keep with **Keep Even If the … Is
+Deleted**. Forgetting a learned item, or dismissing a
 suggestion, keeps a one-way hash for 180 days so the same text isn't
 learned again. Unreviewed suggestions are dropped after 14 days.
 The items are AES-GCM encrypted with the same per-install key as

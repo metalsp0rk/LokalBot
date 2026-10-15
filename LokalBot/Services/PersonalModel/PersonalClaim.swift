@@ -17,6 +17,19 @@ struct PersonalClaim: Codable, Identifiable, Equatable, Sendable, PersonalContex
         case added
         /// Picked up overnight from the person's own line in this meeting.
         case learned(meetingID: UUID, dayKey: String)
+        /// Picked up overnight from something the person typed that day.
+        case typed(source: TypedSource, dayKey: String)
+        /// A goal or project the overnight review kept for weeks; the day
+        /// is when it was first seen.
+        case workMemory(dayKey: String)
+    }
+
+    /// Where the person typed the words a claim was learned from.
+    enum TypedSource: Codable, Equatable, Sendable {
+        /// A request to Claude Code or Codex, saved by Read coding agent sessions.
+        case codingAgent(name: String)
+        /// A question asked in Ask or Quick Recall.
+        case ask(conversationID: UUID)
     }
 
     /// Who may read the claim besides LokalBot itself.
@@ -81,9 +94,13 @@ struct PersonalClaim: Codable, Identifiable, Equatable, Sendable, PersonalContex
         self.lastUsedAt = lastUsedAt
     }
 
+    /// Learned automatically rather than stated (it may since have been
+    /// kept or restated, which `authority` records).
     var isLearned: Bool {
-        if case .learned = origin { return true }
-        return false
+        switch origin {
+        case .learned, .typed, .workMemory: true
+        case .said, .added: false
+        }
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -152,6 +169,8 @@ extension PersonalContextProjection.Claim {
         case .said: source = .askedToRemember
         case .added: source = .addedInSettings
         case .learned: source = claim.authority == .stated ? .addedInSettings : .learnedFromMeeting
+        case .typed: source = claim.authority == .stated ? .addedInSettings : .learnedFromTyping
+        case .workMemory: source = claim.authority == .stated ? .addedInSettings : .learnedFromWorkMemory
         }
         self.init(id: claim.id, kind: claim.kind, text: claim.text, alwaysUse: claim.alwaysUse,
                   source: source, createdAt: claim.createdAt, updatedAt: claim.updatedAt)
@@ -202,24 +221,34 @@ struct PersonalModel: Codable, Equatable, Sendable {
     static let proposalLifetime: TimeInterval = 14 * 24 * 60 * 60
     static let tombstoneLifetime: TimeInterval = 180 * 24 * 60 * 60
 
+    /// When a work-memory goal or project was first seen, as a hash of its
+    /// text, so one that lasts for weeks can be suggested.
+    struct WorkSighting: Codable, Equatable, Sendable {
+        var key: String
+        var firstDayKey: String
+    }
+
     var version = PersonalModel.currentVersion
     var claims: [PersonalClaim] = []
     var tombstones: [Tombstone] = []
+    var workSightings: [WorkSighting] = []
 
     init(version: Int = PersonalModel.currentVersion, claims: [PersonalClaim] = [],
-         tombstones: [Tombstone] = []) {
+         tombstones: [Tombstone] = [], workSightings: [WorkSighting] = []) {
         self.version = version
         self.claims = claims
         self.tombstones = tombstones
+        self.workSightings = workSightings
     }
 
-    private enum CodingKeys: String, CodingKey { case version, claims, tombstones }
+    private enum CodingKeys: String, CodingKey { case version, claims, tombstones, workSightings }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         version = try c.decodeIfPresent(Int.self, forKey: .version) ?? PersonalModel.currentVersion
         claims = try c.decodeIfPresent([PersonalClaim].self, forKey: .claims) ?? []
         tombstones = try c.decodeIfPresent([Tombstone].self, forKey: .tombstones) ?? []
+        workSightings = try c.decodeIfPresent([WorkSighting].self, forKey: .workSightings) ?? []
     }
 
     static func tombstoneKey(_ text: String) -> String {
@@ -314,16 +343,44 @@ struct PersonalModel: Codable, Equatable, Sendable {
         claims.removeAll { ids.contains($0.id) }
     }
 
+    /// Deleting an Ask conversation takes back what was learned from the
+    /// questions in it, unless the person kept it as their own statement.
+    mutating func retract(learnedFromConversation conversationID: UUID) {
+        claims.removeAll { claim in
+            guard claim.authority != .stated,
+                  case .typed(.ask(let id), _) = claim.origin else { return false }
+            return id == conversationID
+        }
+    }
+
     struct LearningCandidate: Equatable, Sendable {
         var kind: PersonalClaim.Kind
         var text: String
-        var quote: String
-        var meetingID: UUID
-        var dayKey: String
-        var evidence: DreamEvidenceProvenance
-        /// Grounded only by meaning across languages: even a fact or goal
-        /// waits for the person's review.
+        /// The person's own words it came from; nil for work memory.
+        var quote: String?
+        var origin: PersonalClaim.Origin
+        /// Nil only for Ask questions, which retract with their conversation.
+        var evidence: DreamEvidenceProvenance?
+        /// From typing, from work memory, or grounded only by meaning across
+        /// languages: even a fact or goal waits for the person's review.
         var needsReview = false
+
+        init(kind: PersonalClaim.Kind, text: String, quote: String?, origin: PersonalClaim.Origin,
+             evidence: DreamEvidenceProvenance?, needsReview: Bool = false) {
+            self.kind = kind
+            self.text = text
+            self.quote = quote
+            self.origin = origin
+            self.evidence = evidence
+            self.needsReview = needsReview
+        }
+
+        /// A line the person said in a meeting.
+        init(kind: PersonalClaim.Kind, text: String, quote: String, meetingID: UUID, dayKey: String,
+             evidence: DreamEvidenceProvenance, needsReview: Bool = false) {
+            self.init(kind: kind, text: text, quote: quote, origin: .learned(meetingID: meetingID, dayKey: dayKey),
+                      evidence: evidence, needsReview: needsReview)
+        }
     }
 
     struct LearningOutcome: Equatable, Sendable {
@@ -361,11 +418,10 @@ struct PersonalModel: Codable, Equatable, Sendable {
                 continue
             }
             let claim = PersonalClaim(
-                kind: candidate.kind, text: text,
-                origin: .learned(meetingID: candidate.meetingID, dayKey: candidate.dayKey),
+                kind: candidate.kind, text: text, origin: candidate.origin,
                 status: proposes ? .proposed : .confirmed, authority: .learned,
                 evidence: candidate.evidence,
-                quote: String(PromptContextSanitizer.sanitize(candidate.quote).prefix(400)),
+                quote: candidate.quote.map { String(PromptContextSanitizer.sanitize($0).prefix(400)) },
                 createdAt: now)
             claims.append(claim)
             if proposes { outcome.proposed.append(claim) } else { outcome.saved.append(claim) }

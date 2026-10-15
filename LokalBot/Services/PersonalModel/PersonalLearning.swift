@@ -2,24 +2,64 @@ import Foundation
 import NaturalLanguage
 
 /// The overnight learning pass (personal world model, Phase 3). After the
-/// day's review, it reads only the person's own lines from that day's
-/// meetings and asks the Think model for at most three durable things about
-/// them. Every result must point at one of those lines and share words with
-/// it; anything else is dropped. Facts and goals are saved, preferences wait
-/// for review, and principles are never learned (`PersonalModel.learn`).
+/// day's review, it reads only the person's own words from that day: their
+/// lines in meetings, and what they typed to coding agents or in Ask. It asks
+/// the Think model for at most three durable things about them. Every result
+/// must point at one of those lines and be grounded in it; anything else is
+/// dropped. Facts and goals from meetings are saved; preferences, and
+/// anything learned from typing, wait for review; principles are never
+/// learned (`PersonalModel.learn`).
 enum PersonalLearning {
-    /// One of the person's own turns: consecutive microphone segments of one
-    /// meeting, joined. `handle` is what the model cites.
+    /// One line of the person's own words. `handle` is what the model cites.
     struct Utterance: Equatable, Sendable {
+        enum Source: Equatable, Sendable {
+            /// Consecutive microphone segments of one meeting, joined.
+            case meeting(UUID)
+            case typed(PersonalClaim.TypedSource)
+        }
+
         var handle: String
-        var meetingID: UUID
-        var meetingTitle: String
+        var source: Source
+        /// The meeting title or "typed to Claude Code", shown to the model.
+        var label: String
         var dayKey: String
         var text: String
+
+        init(handle: String, source: Source, label: String, dayKey: String, text: String) {
+            self.handle = handle
+            self.source = source
+            self.label = label
+            self.dayKey = dayKey
+            self.text = text
+        }
+
+        init(handle: String, meetingID: UUID, meetingTitle: String, dayKey: String, text: String) {
+            self.init(handle: handle, source: .meeting(meetingID), label: meetingTitle, dayKey: dayKey, text: text)
+        }
+
+        var meetingID: UUID? {
+            if case .meeting(let id) = source { return id }
+            return nil
+        }
+    }
+
+    /// Something the person typed that day, gathered by the app.
+    struct TypedLine: Equatable, Sendable {
+        var source: PersonalClaim.TypedSource
+        var text: String
+
+        var label: String {
+            switch source {
+            case .codingAgent(let name): "typed to \(name)"
+            case .ask: "typed in Ask"
+            }
+        }
     }
 
     static let maxPerNight = 3
     static let maxUtterances = 40
+    /// Typed lines share the budget but never crowd meetings out.
+    static let maxTypedUtterances = 15
     static let utteranceCharacterBudget = 6_000
     static let maxTurnCharacters = 400
     static let minimumWords = 5
@@ -31,7 +71,7 @@ enum PersonalLearning {
     /// within the budget, then put back in meeting order with handles. A
     /// meeting whose microphone was shared by several diarized local voices is
     /// skipped: there is no telling which of them is the person.
-    static func utterances(day: Date, storageRoot: URL,
+    static func utterances(day: Date, storageRoot: URL, typed: [TypedLine] = [],
                            calendar: Calendar = .current) throws -> [Utterance] {
         let start = calendar.startOfDay(for: day)
         let end = calendar.date(byAdding: .day, value: 1, to: start) ?? start.addingTimeInterval(86_400)
@@ -51,17 +91,26 @@ enum PersonalLearning {
                 turns.append((turns.count, selfReferenceScore(text), utterance))
             }
         }
+        for line in typed {
+            let text = PromptContextSanitizer.sanitize(line.text, maxCharacters: maxTurnCharacters)
+            guard text.split(whereSeparator: \.isWhitespace).count >= minimumWords else { continue }
+            let utterance = Utterance(handle: "", source: .typed(line.source), label: line.label,
+                                      dayKey: dayKey, text: text)
+            turns.append((turns.count, selfReferenceScore(text), utterance))
+        }
         let ranked = turns.sorted { lhs, rhs in
             if lhs.score != rhs.score { return lhs.score > rhs.score }
             return lhs.order < rhs.order
         }
         var chosen: [(order: Int, utterance: Utterance)] = []
         var used = 0
+        var typedCount = 0
         for turn in ranked where turn.score > 0 {
-            guard chosen.count < maxUtterances, used + turn.utterance.text.count <= utteranceCharacterBudget else {
-                continue
-            }
+            let isTyped = turn.utterance.meetingID == nil
+            guard chosen.count < maxUtterances, used + turn.utterance.text.count <= utteranceCharacterBudget,
+                  !isTyped || typedCount < maxTypedUtterances else { continue }
             used += turn.utterance.text.count
+            if isTyped { typedCount += 1 }
             chosen.append((turn.order, turn.utterance))
         }
         var result: [Utterance] = []
@@ -71,6 +120,30 @@ enum PersonalLearning {
             result.append(utterance)
         }
         return result
+    }
+
+    /// The day's typed lines: requests the person sent to coding agents
+    /// (scheduled runs excluded) and questions asked in Ask. A "Remember …"
+    /// message is already saved, so it is skipped.
+    static func typedLines(bursts: [CodingAgentBurst], conversations: [Conversation], day: Date,
+                           calendar: Calendar = .current) -> [TypedLine] {
+        var lines: [TypedLine] = []
+        for burst in bursts where !burst.isScheduledRun && calendar.isDate(burst.start, inSameDayAs: day) {
+            for prompt in burst.prompts {
+                lines.append(TypedLine(source: .codingAgent(name: burst.agent.displayName), text: prompt))
+            }
+        }
+        for conversation in conversations {
+            let messages = conversation.messages
+            for (index, message) in messages.enumerated()
+            where message.role == .user && !message.createdAtIsEstimated
+                && calendar.isDate(message.createdAt, inSameDayAs: day) {
+                let next = messages.index(after: index)
+                if next < messages.endIndex, messages[next].rememberReceipt != nil { continue }
+                lines.append(TypedLine(source: .ask(conversationID: conversation.id), text: message.text))
+            }
+        }
+        return lines
     }
 
     /// Joins consecutive segments of the person's own speech into turns.
@@ -123,8 +196,8 @@ enum PersonalLearning {
 
     static let system = """
         You keep a small private profile of the user from things they said about themselves. \
-        You read only the user's own lines from their meetings; nobody else's speech is included. \
-        Reply with JSON only.
+        You read only the user's own words: lines they said in meetings and things they typed. \
+        Nobody else's words are included. Reply with JSON only.
         """
 
     static func prompt(utterances: [Utterance], known: [PersonalClaim]) -> String {
@@ -143,12 +216,15 @@ enum PersonalLearning {
             - Skip project status, tasks, deadlines, meeting logistics, small talk, jokes, hypotheticals, \
             quotes of other people, and anything about other people's private lives.
             - Skip health, money, religion, politics, and sexuality.
+            - Typed lines are usually requests or questions. Look inside them too: the user often mentions \
+            a fact or preference about themselves while asking for something. Keep only that part.
             - Skip anything already in the known list, even if worded differently.
             - Write each item as one short first-person sentence under 200 characters, built from the \
             line's own words: shorten it rather than rephrase it, and never translate it (a Serbian line stays \
             Serbian, an English line stays English). Drop filler \
             ("honestly", "so", "haha"). Turn a relative time into the year it means ("next year" becomes \
             "in 2027"); never invent a day or month.
+            - Consider every line on its own, typed lines included.
             - Return {"items": []} when nothing qualifies. That is the usual answer.
 
             Reply as {"items": [{"line": "U3", "kind": "fact", "text": "I live in Belgrade."}]}.
@@ -161,9 +237,9 @@ enum PersonalLearning {
             }
         }
         lines.append("")
-        lines.append("The user's lines, from meetings on \(utterances.first?.dayKey ?? "the reviewed day"):")
+        lines.append("The user's lines from \(utterances.first?.dayKey ?? "the reviewed day"), each with where they said or typed it:")
         for utterance in utterances {
-            let title = PromptContextSanitizer.sanitize(utterance.meetingTitle, maxCharacters: 80)
+            let title = PromptContextSanitizer.sanitize(utterance.label, maxCharacters: 80)
             lines.append("\(utterance.handle) (\(title)): \(utterance.text)")
         }
         return lines.joined(separator: "\n")
@@ -231,7 +307,7 @@ enum PersonalLearning {
     /// Word-overlap grounding only: what `run` falls back to without an
     /// embedder. At most `maxPerNight`.
     static func candidates(from output: String, utterances: [Utterance],
-                           evidence: (Utterance) -> DreamEvidenceProvenance) -> [PersonalModel.LearningCandidate] {
+                           evidence: (Utterance) -> DreamEvidenceProvenance?) -> [PersonalModel.LearningCandidate] {
         var result: [PersonalModel.LearningCandidate] = []
         for proposal in proposals(from: output, utterances: utterances) where result.count < maxPerNight {
             guard isGrounded(proposal.text, in: proposal.utterance.text) else { continue }
@@ -274,7 +350,7 @@ enum PersonalLearning {
     /// so it is compared by meaning instead, when an embedder is available.
     static func groundedCandidates(
         from output: String, utterances: [Utterance], embed: Embed?,
-        evidence: (Utterance) -> DreamEvidenceProvenance
+        evidence: (Utterance) -> DreamEvidenceProvenance?
     ) async -> [PersonalModel.LearningCandidate] {
         let all = proposals(from: output, utterances: utterances)
         var verdicts = all.map { proposal -> Grounding? in
@@ -346,11 +422,35 @@ enum PersonalLearning {
     }
 
     private static func candidate(_ proposal: Proposal, needsReview: Bool,
-                                  evidence: (Utterance) -> DreamEvidenceProvenance) -> PersonalModel.LearningCandidate {
-        PersonalModel.LearningCandidate(
-            kind: proposal.kind, text: proposal.text, quote: proposal.utterance.text,
-            meetingID: proposal.utterance.meetingID, dayKey: proposal.utterance.dayKey,
-            evidence: evidence(proposal.utterance), needsReview: needsReview)
+                                  evidence: (Utterance) -> DreamEvidenceProvenance?) -> PersonalModel.LearningCandidate {
+        let utterance = proposal.utterance
+        let origin: PersonalClaim.Origin
+        switch utterance.source {
+        case .meeting(let id): origin = .learned(meetingID: id, dayKey: utterance.dayKey)
+        case .typed(let source): origin = .typed(source: source, dayKey: utterance.dayKey)
+        }
+        return PersonalModel.LearningCandidate(
+            kind: proposal.kind, text: proposal.text, quote: utterance.text, origin: origin,
+            evidence: evidence(utterance), needsReview: needsReview || utterance.meetingID == nil)
+    }
+
+    /// What a learned item depends on: its meeting, or the day's activity
+    /// evidence for a coding-agent request (deleting saved agent sessions
+    /// retracts it). An Ask question has none; deleting its conversation
+    /// retracts the item instead.
+    static func provenance(for utterance: Utterance, revision: UInt64) -> DreamEvidenceProvenance? {
+        switch utterance.source {
+        case .meeting(let id):
+            return DreamEvidenceProvenance(
+                sources: [DreamEvidenceSource(kind: .meeting, id: id.uuidString, dayKey: utterance.dayKey)],
+                revision: revision)
+        case .typed(.codingAgent):
+            return DreamEvidenceProvenance(
+                sources: [DreamEvidenceSource(kind: .screenDay, id: utterance.dayKey, dayKey: utterance.dayKey)],
+                revision: revision)
+        case .typed(.ask):
+            return nil
+        }
     }
 
     // MARK: - Run
@@ -358,19 +458,16 @@ enum PersonalLearning {
     /// One night's pass. Returns no candidates without calling the model when
     /// the day has none of the person's own lines.
     static func run(day: Date, storageRoot: URL, known: [PersonalClaim], revision: UInt64,
-                    engine: TextEngine, embed: Embed? = nil, calendar: Calendar = .current) async throws
-        -> [PersonalModel.LearningCandidate] {
-        let lines = try utterances(day: day, storageRoot: storageRoot, calendar: calendar)
+                    engine: TextEngine, embed: Embed? = nil, typed: [TypedLine] = [],
+                    calendar: Calendar = .current) async throws -> [PersonalModel.LearningCandidate] {
+        let lines = try utterances(day: day, storageRoot: storageRoot, typed: typed, calendar: calendar)
         guard !lines.isEmpty else { return [] }
         let output = try await engine.generate(
             system: system, prompt: prompt(utterances: lines, known: known), context: [],
             schema: schema,
             options: TextGenerationOptions(maxTokens: maxOutputTokens, reasoningBudgetTokens: 0, temperature: 0))
         return await groundedCandidates(from: output, utterances: lines, embed: embed) { utterance in
-            DreamEvidenceProvenance(
-                sources: [DreamEvidenceSource(kind: .meeting, id: utterance.meetingID.uuidString,
-                                              dayKey: utterance.dayKey)],
-                revision: revision)
+            provenance(for: utterance, revision: revision)
         }
     }
 }

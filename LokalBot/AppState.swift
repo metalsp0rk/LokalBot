@@ -2335,8 +2335,18 @@ final class AppState: ObservableObject {
     /// meetings. Best effort; a failure never affects the review itself.
     private func learnAboutPerson(target: DreamScheduler.Target) async {
         guard settings.askMemoryEnabled, settings.personalLearningEnabled else { return }
+        // Goals and projects kept for weeks need no model call.
+        if let memory = (try? dreamStore.loadMemory()) ?? nil {
+            let promoted = personalModel.promoteWorkMemory(memory, dayKey: target.dayKey, calendar: target.calendar)
+            if !promoted.proposed.isEmpty {
+                lokalbotLog("personal learning: day=\(target.dayKey) work-memory suggestions=\(promoted.proposed.count)")
+            }
+        }
         let engineSettings = settings
         if target.isAutomatic && !engineSettings.allowsAutomaticMainInference { return }
+        let bursts = engineSettings.codingAgentEvidenceEnabled ? activityStore.codingAgentBursts(on: target.day) : []
+        let typed = PersonalLearning.typedLines(
+            bursts: bursts, conversations: chat.conversations, day: target.day, calendar: target.calendar)
         do {
             let revision = try dreamStore.evidenceRevision()
             let engine = try await thinkExecution.makeTextEngine(
@@ -2350,7 +2360,7 @@ final class AppState: ObservableObject {
                 : nil
             let candidates = try await PersonalLearning.run(
                 day: target.day, storageRoot: storage.rootURL, known: known, revision: revision,
-                engine: engine, embed: embed, calendar: target.calendar)
+                engine: engine, embed: embed, typed: typed, calendar: target.calendar)
             guard !candidates.isEmpty else { return }
             let outcome = personalModel.learn(candidates)
             lokalbotLog("personal learning: day=\(target.dayKey) saved=\(outcome.saved.count) "

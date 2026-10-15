@@ -69,7 +69,7 @@ final class PersonalLearningLinesTests: XCTestCase {
         XCTAssertEqual(lines.map(\.text), ["I live in Belgrade and I work from home most days."])
         XCTAssertEqual(lines.first?.handle, "U1")
         XCTAssertEqual(lines.first?.meetingID, meetingID)
-        XCTAssertEqual(lines.first?.meetingTitle, "Weekly sync")
+        XCTAssertEqual(lines.first?.label, "Weekly sync")
     }
 }
 
@@ -88,10 +88,7 @@ final class PersonalLearningReplyTests: XCTestCase {
 
     private func parse(_ output: String) -> [PersonalModel.LearningCandidate] {
         PersonalLearning.candidates(from: output, utterances: lines) { utterance in
-            DreamEvidenceProvenance(
-                sources: [DreamEvidenceSource(kind: .meeting, id: utterance.meetingID.uuidString,
-                                              dayKey: utterance.dayKey)],
-                revision: 7)
+            PersonalLearning.provenance(for: utterance, revision: 7)
         }
     }
 
@@ -106,8 +103,10 @@ final class PersonalLearningReplyTests: XCTestCase {
         XCTAssertEqual(candidates.map(\.kind), [.fact, .goal])
         let first = try XCTUnwrap(candidates.first)
         XCTAssertEqual(first.quote, "I live in Belgrade and I work from home most days.")
-        XCTAssertEqual(first.evidence.sources.map(\.id), [meetingID.uuidString])
-        XCTAssertEqual(first.evidence.revision, 7)
+        XCTAssertEqual(first.evidence?.sources.map(\.id), [meetingID.uuidString])
+        XCTAssertEqual(first.evidence?.revision, 7)
+        XCTAssertEqual(first.origin, .learned(meetingID: meetingID, dayKey: "2026-10-14"))
+        XCTAssertFalse(first.needsReview)
     }
 
     func testUngroundedUnknownPrincipleAndExtraItemsAreDropped() {
@@ -147,7 +146,7 @@ final class PersonalLearningCrossLanguageTests: XCTestCase {
 
     private func evidence(_ utterance: PersonalLearning.Utterance) -> DreamEvidenceProvenance {
         DreamEvidenceProvenance(
-            sources: [DreamEvidenceSource(kind: .meeting, id: utterance.meetingID.uuidString, dayKey: utterance.dayKey)],
+            sources: [DreamEvidenceSource(kind: .meeting, id: meetingID.uuidString, dayKey: utterance.dayKey)],
             revision: 1)
     }
 
@@ -430,7 +429,7 @@ final class PersonalLearningRetractionTests: XCTestCase {
         let candidates = try await PersonalLearning.run(
             day: now, storageRoot: root, known: [], revision: 4, engine: engine, calendar: calendar)
         XCTAssertEqual(candidates.map(\.text), ["I live in Belgrade."])
-        XCTAssertEqual(candidates.first?.meetingID, meetingID)
+        XCTAssertEqual(candidates.first?.origin, .learned(meetingID: meetingID, dayKey: "2026-09-21"))
         XCTAssertEqual(engine.prompts.count, 1)
         XCTAssertTrue(engine.prompts[0].contains("U1 (Weekly sync): I live in Belgrade"))
         XCTAssertFalse(engine.prompts[0].contains("salary"), "the other speaker's line is never sent")
@@ -441,6 +440,153 @@ final class PersonalLearningRetractionTests: XCTestCase {
             engine: quiet, calendar: calendar)
         XCTAssertTrue(none.isEmpty)
         XCTAssertTrue(quiet.prompts.isEmpty, "no lines, no model call")
+    }
+}
+
+final class PersonalLearningTypedAndWorkTests: XCTestCase {
+    private let now = Date(timeIntervalSince1970: 1_790_000_000)
+    private var calendar: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC")!
+        return calendar
+    }
+
+    private func burst(_ prompts: [String], start: Date) -> CodingAgentBurst {
+        CodingAgentBurst(agent: .claudeCode, sessionID: "s", title: "t", project: "LokalBot", branch: nil,
+                         start: start, end: start.addingTimeInterval(60), activeDuration: 60,
+                         prompts: prompts, promptCount: prompts.count, finalReply: nil, changedFiles: [],
+                         changedFileCount: 0, actions: [], pullRequests: [], toolCallCount: 0)
+    }
+
+    func testTypedLinesSkipScheduledRunsOtherDaysAndRememberMessages() {
+        let conversation = Conversation(messages: [
+            ChatMessage(role: .user, text: "I'm preparing for my Berlin interview, what did we discuss?", createdAt: now),
+            ChatMessage(role: .assistant, text: "You discussed …", createdAt: now),
+            ChatMessage(role: .user, text: "Remember I live in Belgrade", createdAt: now),
+            ChatMessage(role: .assistant, text: "I live in Belgrade", createdAt: now, rememberReceipt: .init(claimID: UUID())),
+            ChatMessage(role: .user, text: "I always write tests first, what's my next task?",
+                        createdAt: now.addingTimeInterval(-3 * 86_400)),
+        ])
+        let lines = PersonalLearning.typedLines(
+            bursts: [
+                burst(["I prefer small PRs, split this change please"], start: now),
+                burst(["Scheduled task: nightly summary"], start: now),
+            ],
+            conversations: [conversation], day: now, calendar: calendar)
+        XCTAssertEqual(lines.map(\.text), [
+            "I prefer small PRs, split this change please",
+            "I'm preparing for my Berlin interview, what did we discuss?",
+        ])
+        XCTAssertEqual(lines.map(\.label), ["typed to Claude Code", "typed in Ask"])
+        XCTAssertEqual(lines.last?.source, .ask(conversationID: conversation.id))
+    }
+
+    func testTypedItemsAlwaysWaitForReviewAndCarryTheirSource() async throws {
+        let conversationID = UUID()
+        let lines = [
+            PersonalLearning.Utterance(handle: "U1", source: .typed(.codingAgent(name: "Claude Code")),
+                                       label: "typed to Claude Code", dayKey: "2026-09-21",
+                                       text: "I prefer small pull requests that are easy to review"),
+            PersonalLearning.Utterance(handle: "U2", source: .typed(.ask(conversationID: conversationID)),
+                                       label: "typed in Ask", dayKey: "2026-09-21",
+                                       text: "I'm moving to Lisbon next spring with my family, what should I plan?"),
+        ]
+        let output = """
+            {"items": [
+              {"line": "U1", "kind": "preference", "text": "I prefer small pull requests."},
+              {"line": "U2", "kind": "fact", "text": "I'm moving to Lisbon with my family."}
+            ]}
+            """
+        let candidates = await PersonalLearning.groundedCandidates(from: output, utterances: lines, embed: nil) {
+            PersonalLearning.provenance(for: $0, revision: 3)
+        }
+        XCTAssertEqual(candidates.map(\.needsReview), [true, true])
+        XCTAssertEqual(candidates.first?.evidence?.sources.map(\.kind), [.screenDay])
+        XCTAssertNil(candidates.last?.evidence, "an Ask question retracts with its conversation instead")
+
+        var model = PersonalModel()
+        let outcome = model.learn(candidates, now: now)
+        XCTAssertTrue(outcome.saved.isEmpty)
+        XCTAssertEqual(outcome.proposed.count, 2)
+        _ = try model.confirm(id: XCTUnwrap(outcome.proposed.last?.id), now: now).get()
+
+        model.retract(learnedFromConversation: UUID())
+        XCTAssertEqual(model.claims.count, 2)
+        model.retract(learnedFromConversation: conversationID)
+        XCTAssertEqual(model.claims.map(\.text), ["I prefer small pull requests."])
+    }
+
+    func testUtterancesCapTypedLinesAndLabelThem() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("PersonalLearningTyped-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        try MeetingFixture.write([
+            .init(title: "Weekly sync", startedAt: now, transcriptLines: ["I live in Belgrade and I work from home most days."]),
+        ], under: root)
+        var typed: [PersonalLearning.TypedLine] = []
+        for index in 0..<30 {
+            typed.append(.init(source: .codingAgent(name: "Codex"), text: "I want feature number \(index) done my way please"))
+        }
+        let lines = try PersonalLearning.utterances(day: now, storageRoot: root, typed: typed, calendar: calendar)
+        XCTAssertEqual(lines.filter { $0.meetingID != nil }.count, 1, "meetings are never crowded out")
+        XCTAssertEqual(lines.filter { $0.meetingID == nil }.count, PersonalLearning.maxTypedUtterances)
+        let prompt = PersonalLearning.prompt(utterances: lines, known: [])
+        XCTAssertTrue(prompt.contains("(typed to Codex): I want feature number"))
+    }
+
+    private func memory(goalFirstDay: String, lastReinforced: String, provenance: DreamEvidenceProvenance?) -> DreamMemory {
+        var memory = DreamMemory(updatedAt: now)
+        memory.workGoals = [DreamMemory.Goal(text: "Ship LokalBot 1.0 this year", horizon: "this year",
+                                             lastReinforcedDay: lastReinforced, provenance: provenance)]
+        memory.activeProjects = [DreamMemory.Project(name: "Atlas billing", status: "in review",
+                                                     lastActiveDay: lastReinforced, provenance: provenance)]
+        return memory
+    }
+
+    func testWorkMemoryKeptForTwoWeeksBecomesSuggestions() {
+        let provenance = DreamEvidenceProvenance(
+            sources: [DreamEvidenceSource(kind: .meeting, id: UUID().uuidString, dayKey: "2026-10-01")], revision: 2)
+        let first = WorkMemoryPromotion.evaluate(
+            memory: memory(goalFirstDay: "2026-10-01", lastReinforced: "2026-10-01", provenance: provenance),
+            sightings: [], dayKey: "2026-10-01", calendar: calendar)
+        XCTAssertTrue(first.candidates.isEmpty)
+        XCTAssertEqual(first.sightings.map(\.firstDayKey), ["2026-10-01", "2026-10-01"])
+
+        let early = WorkMemoryPromotion.evaluate(
+            memory: memory(goalFirstDay: "", lastReinforced: "2026-10-14", provenance: provenance),
+            sightings: first.sightings, dayKey: "2026-10-14", calendar: calendar)
+        XCTAssertTrue(early.candidates.isEmpty, "13 days is not enough")
+
+        let due = WorkMemoryPromotion.evaluate(
+            memory: memory(goalFirstDay: "", lastReinforced: "2026-10-13", provenance: provenance),
+            sightings: first.sightings, dayKey: "2026-10-15", calendar: calendar)
+        XCTAssertEqual(due.candidates.map(\.text), ["Ship LokalBot 1.0 this year", "I work on Atlas billing."])
+        XCTAssertEqual(due.candidates.map(\.kind), [.goal, .fact])
+        XCTAssertTrue(due.candidates.allSatisfy { $0.needsReview && $0.origin == .workMemory(dayKey: "2026-10-01") })
+
+        var model = PersonalModel()
+        let outcome = model.learn(due.candidates, now: now)
+        XCTAssertEqual(outcome.proposed.count, 2)
+        XCTAssertTrue(outcome.saved.isEmpty)
+    }
+
+    func testStaleOrUnattributedWorkMemoryIsNotPromotedAndGoneItemsAreForgotten() {
+        let sightings = [PersonalModel.WorkSighting(key: "goal:" + PersonalModel.tombstoneKey("Ship LokalBot 1.0 this year"),
+                                                    firstDayKey: "2026-09-01")]
+        let stale = WorkMemoryPromotion.evaluate(
+            memory: memory(goalFirstDay: "", lastReinforced: "2026-09-20",
+                           provenance: DreamEvidenceProvenance(sources: [], revision: 1)),
+            sightings: sightings, dayKey: "2026-10-15", calendar: calendar)
+        XCTAssertTrue(stale.candidates.isEmpty, "not seen in the last week")
+
+        let legacy = WorkMemoryPromotion.evaluate(
+            memory: memory(goalFirstDay: "", lastReinforced: "2026-10-14", provenance: nil),
+            sightings: sightings, dayKey: "2026-10-15", calendar: calendar)
+        XCTAssertTrue(legacy.candidates.isEmpty, "no provenance means it could never retract")
+
+        let gone = WorkMemoryPromotion.evaluate(
+            memory: DreamMemory(updatedAt: now), sightings: sightings, dayKey: "2026-10-15", calendar: calendar)
+        XCTAssertTrue(gone.sightings.isEmpty)
     }
 }
 

@@ -171,6 +171,29 @@ final class PersonalModelController: ObservableObject {
         return outcome
     }
 
+    /// Suggests goals and projects the overnight review has kept for weeks.
+    @discardableResult
+    func promoteWorkMemory(_ memory: DreamMemory, dayKey: String,
+                           calendar: Calendar = .current) -> PersonalModel.LearningOutcome {
+        var outcome = PersonalModel.LearningOutcome()
+        _ = mutate { model, date in
+            let result = WorkMemoryPromotion.evaluate(
+                memory: memory, sightings: model.workSightings, dayKey: dayKey, calendar: calendar)
+            model.workSightings = result.sightings
+            outcome = model.learn(result.candidates, now: date)
+            return .success(())
+        }
+        return outcome
+    }
+
+    /// Deleting an Ask conversation takes back what was learned from it.
+    func retractLearned(fromConversation conversationID: UUID) {
+        _ = mutate { model, _ in
+            model.retract(learnedFromConversation: conversationID)
+            return .success(())
+        }
+    }
+
     @discardableResult
     func confirm(_ id: UUID) -> Result<PersonalClaim, PersonalModel.EditError> {
         mutate { model, date in model.confirm(id: id, now: date) }

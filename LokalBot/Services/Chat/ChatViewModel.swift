@@ -778,6 +778,7 @@ final class ChatViewModel: ObservableObject {
         }
         failedDeletionID = nil
         unsavedConversationIDs.remove(id)
+        personalModel?.retractLearned(fromConversation: id)
         updatePersistenceError()
         if isLoadingHistory { deletedDuringHydration.insert(id) }
         let deletedMessages = deletingCurrent

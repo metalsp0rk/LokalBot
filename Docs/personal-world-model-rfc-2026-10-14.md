@@ -337,6 +337,28 @@ agent access is the differentiator and is safe with stated claims alone.
        Serbian, and word overlap saved them.
      - Same-language items never reach the embedder. Without semantic search,
        translated items are dropped as before.
+   - **More sources (2026-10-15):** the learning call also reads the person's
+     typed words from the day:
+     - requests to Claude Code and Codex, from saved coding-agent bursts with
+       scheduled runs excluded;
+     - Ask questions, excluding "Remember …" messages.
+
+     Typed lines share the 40-line budget, capped at 15, so meetings aren't
+     crowded out.
+     - **Typed items** always wait for review. A coding-agent item depends on
+       its day's activity evidence. An Ask item has no Dream evidence and
+       retracts when its conversation is deleted.
+     - **Work-memory promotion:** a Dream goal or project seen for 14+ days,
+       and active in the last 7, becomes a review suggestion. A goal keeps its
+       text; a project becomes "I work on <name>.". It carries the Dream
+       provenance, and needs no model call. First sightings are stored as
+       hashes in the personal model.
+     - **Prompt check on Qwen3.5 4B:** at first it ignored personal items
+       inside typed requests. "Look inside them" plus "consider every line
+       on its own" fixed that. On a mixed set it picked the staff-engineer
+       goal, "I prefer small pull requests" and the Lisbon move. It skipped
+       the coding tasks and both lines about a colleague. The original trap
+       set still gave the same three correct items.
 4. **Decision journal.** Extend existing `decisionRecords` with an optional
    expected outcome and a review date. Today's weekly review asks "How did this
    turn out?", and the answer becomes evidence for later proposals. This is

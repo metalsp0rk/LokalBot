@@ -99,6 +99,10 @@ struct PersonalContextProjection: Codable, Equatable, Sendable {
             case addedInSettings = "added_in_settings"
             /// Saved automatically from something the user said in a meeting.
             case learnedFromMeeting = "learned_from_meeting"
+            /// From something the user typed to a coding agent or in Ask.
+            case learnedFromTyping = "learned_from_typing"
+            /// A goal or project LokalBot's overnight review kept for weeks.
+            case learnedFromWorkMemory = "learned_from_work_memory"
         }
 
         var id: UUID
@@ -312,6 +316,12 @@ enum PersonalContextTool {
             case .addedInSettings: source = "The user added this in LokalBot"
             case .learnedFromMeeting:
                 source = "LokalBot learned this from something the user said in a meeting; it may be out of date"
+                authority = "learned"
+            case .learnedFromTyping:
+                source = "LokalBot learned this from something the user typed; the user confirmed it"
+                authority = "learned"
+            case .learnedFromWorkMemory:
+                source = "LokalBot saw this in the user's work for weeks; the user confirmed it"
                 authority = "learned"
             }
             items.append(Report.Item(

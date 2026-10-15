@@ -32,8 +32,11 @@ struct AboutYouSettings: View {
             .settingTarget("settings.askMemoryEnabled", selected: app.focusedSettingID)
             .accessibilityIdentifier("settings.askMemory")
             Toggle(isOn: $app.settings.personalLearningEnabled) {
-                SettingsLabel("Learn about me from my meetings",
-                              help: "After the overnight review, LokalBot reads only what you said in that day's meetings and saves up to three new facts or goals about you. Preferences wait for your review below. It never learns your principles or values.")
+                SettingsLabel("Learn about me from my meetings and work",
+                              help: "After the overnight review, LokalBot reads your own words from that day: what you said in "
+                                  + "meetings, and what you typed to coding agents or in Ask. Up to three new facts or goals from "
+                                  + "meetings are saved. Preferences, items from your typing, and goals or projects your work memory "
+                                  + "has kept for two weeks wait for your review below. It never learns your principles or values.")
             }
             .settingTarget("settings.personalLearningEnabled", selected: app.focusedSettingID)
             .disabled(!app.settings.askMemoryEnabled)
@@ -119,7 +122,7 @@ struct AboutYouSettings: View {
                     .fixedSize(horizontal: false, vertical: true)
                 SettingsHelp(originLine(for: claim))
                 if claim.authority == .learned, let quote = claim.quote {
-                    quoteLine(quote)
+                    quoteLine(quote, for: claim)
                 }
             }
             Spacer(minLength: 8)
@@ -144,13 +147,13 @@ struct AboutYouSettings: View {
                     report(personalModel.update(
                         claim.id, sharing: claim.sharing == .agents ? .lokalBotOnly : .agents))
                 }
-                if case .learned(let meetingID, _) = claim.origin {
+                if claim.isLearned, claim.authority != .stated {
                     Divider()
-                    Button("Open Meeting") { app.openMeeting(meetingID) }
-                    if claim.evidence != nil {
-                        Button("Keep Even If the Meeting Is Deleted") {
-                            report(personalModel.keepAsStatement(claim.id))
-                        }
+                    if case .learned(let meetingID, _) = claim.origin {
+                        Button("Open Meeting") { app.openMeeting(meetingID) }
+                    }
+                    Button(Self.keepLabel(for: claim)) {
+                        report(personalModel.keepAsStatement(claim.id))
                     }
                 }
                 Divider()
@@ -200,7 +203,7 @@ struct AboutYouSettings: View {
                     .textSelection(.enabled)
                     .fixedSize(horizontal: false, vertical: true)
                 SettingsHelp(originLine(for: claim))
-                if let quote = claim.quote { quoteLine(quote) }
+                if let quote = claim.quote { quoteLine(quote, for: claim) }
                 HStack(spacing: 10) {
                     Button("Keep") { report(personalModel.confirm(claim.id)) }
                         .accessibilityIdentifier("settings.aboutYou.suggestion.keep")
@@ -218,8 +221,18 @@ struct AboutYouSettings: View {
         .accessibilityIdentifier("settings.aboutYou.suggestion")
     }
 
-    private func quoteLine(_ quote: String) -> some View {
-        Text("You said: “\(quote)”")
+    static func keepLabel(for claim: PersonalClaim) -> String {
+        switch claim.origin {
+        case .learned: "Keep Even If the Meeting Is Deleted"
+        case .typed(.ask, _): "Keep Even If the Conversation Is Deleted"
+        default: "Keep Even If the Source Is Deleted"
+        }
+    }
+
+    private func quoteLine(_ quote: String, for claim: PersonalClaim) -> some View {
+        let verb: String
+        if case .typed = claim.origin { verb = "You typed" } else { verb = "You said" }
+        return Text("\(verb): “\(quote)”")
             .font(.scaled(.caption))
             .italic()
             .settingsSecondary()
@@ -235,13 +248,25 @@ struct AboutYouSettings: View {
         case .added: origin = "Added in Settings"
         case .learned(let meetingID, _):
             let title = app.meetings.first { $0.id == meetingID }?.title ?? "a meeting"
-            switch claim.authority {
-            case .learned: origin = "Learned from \(title)"
-            case .confirmed: origin = "Learned from \(title), kept by you"
-            case .stated: origin = "Learned from \(title), now your own statement"
-            }
+            origin = Self.learnedOrigin("Learned from \(title)", claim.authority)
+        case .typed(.codingAgent(let name), _):
+            origin = Self.learnedOrigin("Learned from what you typed to \(name)", claim.authority)
+        case .typed(.ask, _):
+            origin = Self.learnedOrigin("Learned from a question you asked", claim.authority)
+        case .workMemory(let firstDay):
+            let since = DreamDay.date(fromKey: firstDay).map { $0.formatted(date: .abbreviated, time: .omitted) }
+                ?? firstDay
+            origin = Self.learnedOrigin("In your work memory since \(since)", claim.authority)
         }
         return "\(claim.kind.displayName) · \(origin) · \(day)"
+    }
+
+    private static func learnedOrigin(_ base: String, _ authority: PersonalClaim.Authority) -> String {
+        switch authority {
+        case .learned: base
+        case .confirmed: base + ", kept by you"
+        case .stated: base + ", now your own statement"
+        }
     }
 
     private func save(target: EditorTarget, text: String, kind: PersonalClaim.Kind,
