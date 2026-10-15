@@ -2,6 +2,25 @@ import XCTest
 @testable import LokalBot
 
 final class TextEngineTests: XCTestCase {
+    func testStructuredRequestBodyHasAStableKeyOrder() throws {
+        let engine = OpenAICompatibleEngine(baseURL: URL(string: "http://127.0.0.1:18781/v1")!, model: "synthetic")
+        let schema: [String: Any] = ["type": "object", "properties": [
+            "verdict": ["type": "string"], "issues": ["type": "array", "items": ["type": "string"]],
+            "evidence_check": ["type": "string"]], "required": ["evidence_check", "verdict", "issues"]]
+        let request = try engine.makeChatRequest(system: "s", prompt: "q", context: [], schema: schema,
+                                                options: .init(maxTokens: 512, temperature: 0))
+        let bytes = try XCTUnwrap(request.httpBody)
+        let reencoded = try JSONSerialization.data(withJSONObject: JSONSerialization.jsonObject(with: bytes),
+                                                   options: [.sortedKeys])
+        XCTAssertEqual(bytes, reencoded, "every object, the schema included, is in sorted key order")
+        let text = try XCTUnwrap(String(data: bytes, encoding: .utf8))
+        var positions: [String.Index] = []
+        for key in ["\"evidence_check\":", "\"issues\":", "\"verdict\":"] {
+            positions.append(try XCTUnwrap(text.range(of: key)).lowerBound)
+        }
+        XCTAssertEqual(positions, positions.sorted())
+    }
+
     func testStrippingReasoningRemovesThinkBlocks() {
         let text = """
         <think>hidden chain</think>
@@ -859,5 +878,19 @@ final class TextEngineTests: XCTestCase {
         XCTAssertEqual(body["top_p"] as? Double, 0.7)
         XCTAssertEqual(body["stop"] as? [String], ["\n"])
         XCTAssertEqual(body["stream"] as? Bool, true)
+        XCTAssertNil(body["provider"])
+    }
+
+    func testOpenRouterRawCompletionCarriesTheProviderDataPolicy() throws {
+        let request = CompletionRequest(prompt: "Thanks for the ", maxTokens: 8, temperature: 0.1, topP: 0.7,
+                                        topK: 20, minP: 0.08, repeatPenalty: 1.05, seed: 7, stop: ["\n"])
+        let url = try XCTUnwrap(URL(string: "https://openrouter.ai/api/v1"))
+        for policy in OpenRouterDataPolicy.allCases {
+            let engine = OpenAICompatibleEngine(
+                baseURL: url, model: "qwen/qwen3.8-27b", apiKey: "key",
+                sendsLlamaSamplingExtensions: false, chatDialect: .openRouter, openRouterDataPolicy: policy)
+            let provider = try XCTUnwrap(engine.completionBody(request, stream: true)["provider"] as? [String: Any])
+            XCTAssertEqual(provider["data_collection"] as? String, policy.providerDataCollectionValue)
+        }
     }
 }

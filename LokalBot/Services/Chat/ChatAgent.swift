@@ -94,6 +94,15 @@ protocol ChatToolRunner: AnyObject {
     /// the system prompt so simple questions can be answered without a tool call.
     func libraryOverview() -> String
     func run(_ call: ChatToolCall) async -> ChatToolResult
+    /// Which screens the user attached to the question the answer may cite.
+    func attachedScreenEvidence(ids: Set<Int64>, dayScopeKey: String?) -> ChatEvidence
+}
+
+extension ChatToolRunner {
+    /// A runner without a screen store can't check attachments; keep them all.
+    func attachedScreenEvidence(ids: Set<Int64>, dayScopeKey: String?) -> ChatEvidence {
+        ChatEvidence(screenIDs: ids)
+    }
 }
 
 // MARK: - Prompt + parsing (pure, unit-tested)
@@ -538,6 +547,9 @@ struct ChatAgent {
 
     let engine: TextEngine
     let runner: ChatToolRunner
+    /// The clock behind the prompt's current-time line. Tests and replays of
+    /// an older library can fix it; interactive callers keep the wall clock.
+    var now: () -> Date = Date.init
     /// Hard cap on tool calls before we force a final synthesis pass. Six
     /// leaves room to search, then read a long meeting in a few transcript
     /// windows; see `adaptLimits(to:)` for small-window engines.
@@ -600,7 +612,7 @@ struct ChatAgent {
                                              personalContext: personalContext,
                                              workMemory: workMemory,
                                              inferencePrivacy: ChatPrompt.inferencePrivacy(for: engine),
-                                             currentTime: ChatPrompt.currentTimeLine())
+                                             currentTime: ChatPrompt.currentTimeLine(now: now()))
         var evidence = initialEvidence
         var transcript: [String] = Self.replayedHistory(
             history, maxMessages: historyWindow, maxCharacters: historyCharacters).map {

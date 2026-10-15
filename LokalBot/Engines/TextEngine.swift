@@ -60,12 +60,18 @@ struct TextGenerationOptions: Equatable, Sendable {
     var maxTokens: Int?
     var reasoningBudgetTokens: Int?
     var temperature: Double?
+    /// A reply cut off at `maxTokens` returns the text it has instead of
+    /// failing as truncated; one cut off before any visible text still fails.
+    /// OpenAI-compatible chat honors it, for autocomplete, which keeps only
+    /// a phrase anyway.
+    var keepsTruncatedReply: Bool
 
     init(maxTokens: Int? = nil, reasoningBudgetTokens: Int? = nil,
-         temperature: Double? = nil) {
+         temperature: Double? = nil, keepsTruncatedReply: Bool = false) {
         self.maxTokens = maxTokens
         self.reasoningBudgetTokens = reasoningBudgetTokens
         self.temperature = temperature
+        self.keepsTruncatedReply = keepsTruncatedReply
     }
 }
 
@@ -447,7 +453,8 @@ struct OllamaEngine: TextEngine {
         let body = Self.chatBody(model: model, system: system, user: user, schema: schema, options: options,
                                  requestLevel: support.requestLevel(
                                     reasoningLevel, taskBudget: options?.reasoningBudgetTokens))
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        // Same per-launch key order problem as OpenAICompatibleEngine.
+        request.httpBody = try JSONSerialization.data(withJSONObject: body, options: schema == nil ? [] : [.sortedKeys])
 
         let (data, response) = try await sendInferenceRequest(request, base: baseURL)
         let httpResponse = response as? HTTPURLResponse
@@ -778,14 +785,18 @@ struct OpenAICompatibleEngine: TextEngine {
             metric.prefillSeconds = parsed.prefillSeconds
             metric.generationSeconds = parsed.generationSeconds
             metric.outcome = parsed.truncated ? "truncated" : "complete"
+            var reply = strippingReasoning(parsed.content)
             if parsed.truncated {
-                if budget != nil { throw TruncatedStructuredResponse(content: strippingReasoning(parsed.content)) }
-                throw TextEngineError.outputTruncated
+                if budget != nil { throw TruncatedStructuredResponse(content: reply) }
+                reply = Self.visibleText(ofTruncatedReply: reply)
+                guard options?.keepsTruncatedReply == true, !reply.isEmpty else {
+                    throw TextEngineError.outputTruncated
+                }
             }
             metric.wallSeconds = ProcessInfo.processInfo.systemUptime - started
             metric.log()
             if let reservation { await budget?.finish(reservation, metric: metric) }
-            return strippingReasoning(parsed.content)
+            return reply
         } catch {
             if error is CancellationError { metric.outcome = "cancelled" }
             metric.wallSeconds = ProcessInfo.processInfo.systemUptime - started
@@ -849,7 +860,11 @@ struct OpenAICompatibleEngine: TextEngine {
             body["provider"] = provider
         }
         body.merge(extraBody) { _, new in new }
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        // Grammar-constrained servers generate schema properties in wire order.
+        // Swift dictionaries hash in a per-launch order, so without sorting the
+        // same request could ask for a verdict before its evidence on one launch
+        // and after it on the next.
+        request.httpBody = try JSONSerialization.data(withJSONObject: body, options: schema == nil ? [] : [.sortedKeys])
         return request
     }
 
@@ -866,6 +881,13 @@ struct OpenAICompatibleEngine: TextEngine {
         var truncated = false
         var prefillSeconds: Double?
         var generationSeconds: Double?
+    }
+
+    /// What a reader would see of a reply cut off at its limit: a thinking
+    /// block that never closed is reasoning, not text.
+    static func visibleText(ofTruncatedReply reply: String) -> String {
+        guard let open = reply.range(of: "<think>") else { return reply }
+        return reply[..<open.lowerBound].trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     static func parseChatCompletion(_ data: Data, allowTruncation: Bool = false) throws -> ParsedChatCompletion {
@@ -1090,6 +1112,10 @@ struct OpenAICompatibleEngine: TextEngine {
             body["repeat_penalty"] = request.repeatPenalty
         }
         if !request.stop.isEmpty { body["stop"] = request.stop }
+        // The same provider data policy as chat: typed text is as private as Think's context.
+        if chatDialect == .openRouter {
+            body["provider"] = ["data_collection": openRouterDataPolicy.providerDataCollectionValue]
+        }
         body.merge(extraBody) { _, new in new }
         return body
     }

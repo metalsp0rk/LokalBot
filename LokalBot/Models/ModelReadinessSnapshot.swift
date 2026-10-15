@@ -17,7 +17,8 @@ struct ModelReadinessSnapshot: Equatable, Sendable {
             return Self(
                 downloadedTranscriptionIDs: TranscriptionModelStore.downloadedChoices(
                     graniteConfiguration: settings.graniteSpeechModel,
-                    funASRNanoDirectory: settings.funASRNanoModelDirectory),
+                    funASRNanoDirectory: settings.funASRNanoModelDirectory,
+                    remoteTranscriptionReady: settings.remoteTranscription.isReady),
                 thinkReady: ModelCatalog.entry(id: settings.builtInModelID, custom: settings.customBuiltInModels)
                     .flatMap { ModelCatalog.localURL(for: $0, storage: storage) } != nil,
                 autocompleteReady: ModelReadinessSnapshot.autocompleteReady(settings, storage: storage),
@@ -39,6 +40,8 @@ struct ModelReadinessSnapshot: Equatable, Sendable {
     var availableBytes: Int64?
     var activeDownloads: Int
     var failedDownloads: Int
+    /// Host of the approved transcription server, when Transcribe uses one.
+    var transcriptionHost: String?
 
     var coreReady: Bool {
         transcriptionReady && thinkReady && autocompleteReady
@@ -54,9 +57,13 @@ struct ModelReadinessSnapshot: Equatable, Sendable {
         if case .blockedThink(let reason) = provenance { return reason }
         if meetingReady {
             let location: String
+            let transcription = transcriptionHost.map { "Transcription uses \($0)." }
+                ?? "Transcription runs on this Mac."
             switch provenance {
-            case .local: location = "Transcription and Think run on this Mac."
-            case .externalThink(let host): location = "Transcription runs on this Mac. Think uses \(host)."
+            case .local:
+                location = transcriptionHost == nil
+                    ? "Transcription and Think run on this Mac." : "\(transcription) Think runs on this Mac."
+            case .externalThink(let host): location = "\(transcription) Think uses \(host)."
             case .blockedThink: location = ""
             }
             return location + (autocompleteReady ? " Autocomplete is also available." : " Autocomplete can be prepared separately.")
@@ -84,7 +91,8 @@ struct ModelReadinessSnapshot: Equatable, Sendable {
         TranscriptionModelStore.isDownloaded(
             settings.transcriptionModel,
             graniteConfiguration: settings.graniteSpeechModel,
-            funASRNanoDirectory: settings.funASRNanoModelDirectory)
+            funASRNanoDirectory: settings.funASRNanoModelDirectory,
+            remoteTranscriptionReady: settings.remoteTranscription.isReady)
     }
 
     /// True when the Think role can run without triggering a model download.
@@ -101,6 +109,11 @@ struct ModelReadinessSnapshot: Equatable, Sendable {
     }
 
     static func autocompleteReady(_ settings: AppSettings, storage: StorageManager) -> Bool {
+        // A server needs nothing downloaded; it is ready once it is set up.
+        guard settings.cotypingBackend == .onDevice else {
+            if case .server = settings.cotypingRoute(includingCredentials: false) { return true }
+            return false
+        }
         guard let entry = ModelCatalog.entry(
             id: settings.cotypingBuiltInModelID,
             custom: settings.customBuiltInModels) else { return false }
@@ -115,6 +128,7 @@ struct ModelReadinessSnapshot: Equatable, Sendable {
         old.transcriptionModel != new.transcriptionModel
             || old.graniteSpeechModel != new.graniteSpeechModel
             || old.funASRNanoModelDirectory != new.funASRNanoModelDirectory
+            || old.remoteTranscription != new.remoteTranscription
             || old.summarizerBackend != new.summarizerBackend
             || old.builtInModelID != new.builtInModelID
             || old.customBuiltInModels != new.customBuiltInModels
@@ -126,7 +140,7 @@ struct ModelReadinessSnapshot: Equatable, Sendable {
     /// still missing on disk. The Transcribe model downloads through its
     /// engine-specific path and is not included — callers name it separately.
     static func missingCoreModelBytes(_ settings: AppSettings, storage: StorageManager) -> Int64 {
-        var ids = [settings.cotypingBuiltInModelID]
+        var ids = settings.cotypingBackend == .onDevice ? [settings.cotypingBuiltInModelID] : []
         if settings.summarizerBackend == .builtIn { ids.append(settings.builtInModelID) }
         return ids.compactMap {
             ModelCatalog.entry(id: $0, custom: settings.customBuiltInModels)
@@ -149,7 +163,10 @@ struct ModelReadinessSnapshot: Equatable, Sendable {
         let thinkReady = settings.summarizerBackend == .builtIn
             ? (diskState?.thinkReady ?? thinkReady(settings, storage: storage))
             : thinkReady(settings, storage: storage)
-        let autocompleteReady = diskState?.autocompleteReady ?? autocompleteReady(settings, storage: storage)
+        // A server route reads settings only, so a disk check from older settings can't stand in for it.
+        let autocompleteReady = settings.cotypingBackend == .onDevice
+            ? diskState?.autocompleteReady ?? autocompleteReady(settings, storage: storage)
+            : autocompleteReady(settings, storage: storage)
         var provenance: Provenance
         switch InferencePresentation(settings: settings) {
         case .onDevice: provenance = .local
@@ -160,6 +177,8 @@ struct ModelReadinessSnapshot: Equatable, Sendable {
             provenance = .blockedThink(FoundationModelAvailability.current().reason ?? "Apple Intelligence is unavailable.")
         }
         let modelsFolder = storage.rootURL.appendingPathComponent("models", isDirectory: true)
+        var transcriptionHost: String?
+        if case .remote(let host) = settings.transcriptionPresentation { transcriptionHost = host }
         return Self(
             transcriptionReady: transcriptionReady,
             thinkReady: thinkReady,
@@ -168,7 +187,8 @@ struct ModelReadinessSnapshot: Equatable, Sendable {
             storedBytes: diskState?.storedBytes ?? storageInfo?.storedBytes ?? directoryBytes(modelsFolder),
             availableBytes: diskState.map(\.availableBytes) ?? storageInfo?.availableBytes ?? DiskSpacePrecheck.availableBytes(at: modelsFolder),
             activeDownloads: activeDownloads,
-            failedDownloads: failedDownloads)
+            failedDownloads: failedDownloads,
+            transcriptionHost: transcriptionHost)
     }
 
     private static func directoryBytes(_ root: URL) -> Int64 {

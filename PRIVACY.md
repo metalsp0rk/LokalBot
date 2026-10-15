@@ -209,9 +209,9 @@ The app may make these outbound connections:
   publisher's download host. Selected first-use models can download
   automatically; other downloads start when you request them.
   Nemotron speaker diarization, the default on fresh installs, downloads its
-  pinned CoreML model on first use. With Qwen3-ASR, speaker separation
-  also downloads a pinned Qwen3 forced aligner (about 1 GB) that times each word;
-  audio and speaker processing remain on this Mac. Remembering voices remains
+  pinned CoreML model on first use. With Qwen3-ASR or a transcription server,
+  speaker separation also downloads a pinned Qwen3 forced aligner (about 1 GB)
+  that times each word; alignment and speaker processing remain on this Mac. Remembering voices remains
   a separate opt-in and also uses the local Pyannote models.
 - **Updates:** the public GitHub Releases appcast and a signed update. Automatic
   checks are enabled for new installs and can be disabled in Settings; you can
@@ -257,6 +257,57 @@ The app may make these outbound connections:
   prompt each time. Missed runs catch up
   for at most the last seven days. Changing or revoking the server approval
   cancels pending scheduled work.
+- **Optional autocomplete server:** Autocomplete runs on this Mac unless you
+  choose Think's server or another OpenAI-compatible server under Settings →
+  Models → Autocomplete. A server on a loopback address keeps your typing on
+  this Mac. Any other server receives typing only after you approve its exact
+  origin for autocomplete there; an approval for Think does not cover
+  autocomplete, and one for autocomplete does not cover Think. Choosing and
+  approving a server is your consent to send it what autocomplete uses, so
+  your Settings → Writing choices apply as set. While you type where
+  autocomplete can suggest, each request sends the text before the caret,
+  your writing profile (name, style, languages, and notes), the API key you
+  configured, and whichever of these you have turned on: the app and window
+  title, the clipboard, visible text above the field, focused-window text,
+  meeting and work memory, screen-derived memory, and learned examples.
+  Settings → Writing → Context names the server they go to. Secure fields and
+  excluded apps and sites are never read. A server on the internet must
+  use HTTPS. A server on your own network (a private, link-local, or Tailscale
+  address, or a `.local`, `.home.arpa`, `.ts.net`, or single-label name) may
+  use plain HTTP once approved, and Settings warns that LokalBot does not
+  encrypt that traffic. macOS asks for Local Network access the first time
+  LokalBot reaches such a server. Requests use raw text completion, or the
+  server's chat endpoint for hosted chat APIs and for a server that answers
+  that it has no raw route; a request that fails or times out is not
+  repeated, except that a chat reply the model spent entirely on reasoning
+  is asked once more of the same server, with room for that reasoning.
+  With OpenRouter, the provider data policy chosen for Think applies. The
+  operator of that server controls its privacy terms.
+- **Optional transcription server:** Transcribe can use a speech-to-text
+  server you choose in Settings → Models → Transcribe, such as OpenAI, Groq,
+  OpenRouter, or whisper.cpp on another computer, instead of a model on this
+  Mac. It is off unless you select it. LokalBot then sends that server audio:
+  each meeting track as WAV clips of at most 30 seconds cut at pauses,
+  dictation recordings, the live preview while recording when you turn it on,
+  and the Transcribe model check's built-in spoken sample. Each clip carries
+  the model id, the language hint, and the transcription vocabulary, including
+  names added from your calendar, related meetings, and projects. The server
+  returns text; speaker separation, word timing, speech detection, echo
+  cancellation, and voice profiles still run on this Mac. A loopback server stays on your Mac.
+  Any other origin needs its own approval to receive audio, separate from the
+  Think server approval: approving one never approves the other. Internet
+  servers require HTTPS. A server on your own network (private and link-local
+  addresses, including USB networking, `.local` names, and Tailscale
+  `100.64.0.0/10` addresses or `.ts.net` names) may use plain HTTP, and
+  Settings warns that audio then crosses that network unencrypted. Requests
+  may redirect only within the approved origin. An API key you enter is kept
+  in the Keychain and sent only to that server; if you enter none and the
+  server's origin matches the Think OpenAI-compatible server, Think's key is
+  used. Once approved, recordings are transcribed automatically after each
+  meeting without a prompt each time. Revoking the approval in Settings →
+  Models, or choosing an on-device model, stops audio uploads; meetings then
+  wait for transcription. The operator of that server controls its privacy
+  terms and what it keeps.
 - **Optional subscription plans:** Think can run on your own ChatGPT or Claude
   plan instead of an API key. Each plan is set up and approved where you
   choose the Think model (Settings → Models → Think), separately from any
@@ -468,7 +519,8 @@ other inputs, sidebars, toolbars, secure fields, credential-bearing snippets,
 and excluded apps/sites do not enter the prompt, and private or incognito
 browser windows are never read. Unknown browser origins abstain. Shared capture exclusions and autocomplete exclusions both apply.
 This setting does not enable screen recording, screenshots, OCR, saved screen
-memory, or external access. Context is processed locally and held only in memory;
+memory, or external access. Context is processed locally and held only in memory,
+and leaves this Mac only inside requests to an autocomplete server you chose;
 context-grounded acceptances are excluded from saved learning. The setup preview
 never reads the screen: with this setting on, the rehearsal in Settings uses its
 own synthetic sample conversation as the nearby text. The nearby text is read
@@ -500,8 +552,9 @@ changed in the last few seconds, and lines that scrolled out of view can stay in
 use for up to a minute. The text is held in memory for the focused field only
 and forgotten when focus leaves it or moves to another field or window, or when
 this setting or an exclusion changes; a suggestion that used it is then
-discarded. It is never saved, sent, added to screen memory or used for local
-learning, and the completion model runs on this Mac. Once the window has been
+discarded. It is never saved, added to screen memory or used for local
+learning, and it leaves this Mac only inside requests to an autocomplete server
+you chose. Once the window has been
 read, its text replaces the nearby Accessibility text above.
 
 Some fields, such as text areas in Chrome, do not report where the caret is.
@@ -517,7 +570,7 @@ field instead.
 
 Autocomplete has separate, off-by-default **Use meeting and work memory** and
 **Use screen-derived work memory** settings. When enabled, it can include up to
-two short, relevant facts from the last 90 days in its local completion prompt.
+two short, relevant facts from the last 90 days in its completion prompt.
 Meeting sources include current notes, summaries, and outcomes with saved
 corrections. With both relevant settings enabled, selected visible excerpts can
 also supply project names for this local lookup; of window text, only the 600
@@ -531,7 +584,8 @@ Overnight review off stops new reviews without withdrawing either grant;
 **Clear work memory** deletes the saved facts. Facts combining meeting and screen
 sources require both autocomplete grants. Unattributed legacy memories are
 excluded. This does not enable new capture, read raw screenshot pixels or OCR,
-grant external-agent access, or send the context to a remote model.
+or grant external-agent access, and the facts reach a remote model only inside
+requests to an autocomplete server you chose.
 
 A saved fact is used only when the writing is about it. Either the writing names
 the fact's source — at least half of the distinctive words of the meeting title

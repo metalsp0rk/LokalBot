@@ -122,8 +122,9 @@ a live window. Accent text contrast in both appearances is covered by
 surface color.
 
 The README opens with a composite hero; [its notes](../Assets/hero/README.md)
-cover the captures and `Scripts/render_readme_hero.py`. It then uses `today.png`, `meetings-summary.png`, `quick-recall.png`,
-`timeline.png`, and `cotyping.png`, plus the separately produced real-app video. [Capture notes](../Assets/screenshots/README.md) and
+cover the captures and `Scripts/render_readme_hero.py`. It then uses `today.png`, `meetings-summary.png`, `quick-recall.png`, and
+`timeline.png`, plus the separately produced real-app video and
+`autocomplete-memory.gif`, a loop cut from the autocomplete launch film's footage. [Capture notes](../Assets/screenshots/README.md) and
 [the source manifest](../Assets/screenshots/readme.source.json) record the
 release revision, date, dimensions, and hashes for the published set. Update
 those records when replacing an image. The remaining stills support the

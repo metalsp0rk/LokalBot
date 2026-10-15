@@ -19,6 +19,10 @@ enum HeadlessCommand: Equatable {
     case chat(question: String)
     case agent(prompt: String)
     case cotypingBench
+    /// `--cotyping-bench --model-path <gguf> [--passes N]`: the benchmark on the
+    /// production autocomplete runtime and that model. Runs before SwiftUI
+    /// launches, with no settings, library or window.
+    case cotypingEngineBench(model: URL, passes: Int)
     case cotypingReplay(input: URL, engine: CotypingQualityReplay.Engine)
     /// Print the saved autocomplete counters and typing measurements and exit.
     /// Runs before SwiftUI launches and reads one preferences value.
@@ -65,7 +69,12 @@ enum HeadlessCommand: Equatable {
             let next = args.count > flag + 1 ? args[flag + 1] : nil
             return .dream(dayKey: next.flatMap { $0.hasPrefix("--") ? nil : $0 })
         }
-        if args.contains("--cotyping-bench") { return .cotypingBench }
+        if args.contains("--cotyping-bench") {
+            guard let flag = args.firstIndex(of: "--model-path"), args.count > flag + 1 else { return .cotypingBench }
+            let passes = args.firstIndex(of: "--passes").flatMap { args.count > $0 + 1 ? Int(args[$0 + 1]) : nil }
+            return .cotypingEngineBench(model: URL(fileURLWithPath: args[flag + 1]),
+                                        passes: min(20, max(1, passes ?? 5)))
+        }
         if args.contains("--cotyping-measurements") { return .cotypingMeasurements }
         if args.contains("--event-taps") { return .eventTaps }
         if let flag = args.firstIndex(of: "--dictation-replay"), args.count > flag + 1,
@@ -227,6 +236,8 @@ struct HeadlessCommandRunner {
         case .chat(let question): runChat(question: question)
         case .agent(let prompt): runAgent(prompt: prompt)
         case .cotypingBench: runCotypingBench()
+        case .cotypingEngineBench(let model, let passes):
+            Task { @MainActor in exit(await CotypingBenchmarkRunner.runEngine(model: model, passes: passes)) }
         case .cotypingReplay(let input, let engine):
             Task { @MainActor in exit(await CotypingQualityReplay.run(input: input, engine: engine)) }
         case .dictationReplay(let input, let endpoint):

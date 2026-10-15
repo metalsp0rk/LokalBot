@@ -27,9 +27,9 @@ enum ModelPickerRole: String, Identifiable {
     }
     var detail: String {
         switch self {
-        case .transcription: "Turn meeting audio into text on this Mac."
+        case .transcription: "Turn meeting audio into text on this Mac or a server you choose."
         case .assistant: "Power summaries, Ask, and Agent."
-        case .autocomplete: "Complete text as you type, using a model on this Mac."
+        case .autocomplete: "Complete text as you type, on this Mac or a server you choose."
         case .dictation: "Compose and rewrite spoken requests before insertion."
         }
     }
@@ -47,6 +47,8 @@ struct ModelSelectionPatch: Equatable {
     var transcription: TranscriptionModelChoice?
     var granite: GraniteSpeechModelConfiguration?
     var funASRNanoDirectory: String?
+    var remoteTranscriptionBaseURL: String?
+    var remoteTranscriptionModel: String?
     var language: TranscriptionLanguage?
     var backend: AppSettings.SummarizerBackend?
     var assistantModelID: String?
@@ -55,6 +57,11 @@ struct ModelSelectionPatch: Equatable {
     var chatGPTPlanModel: String?
     var claudePlanModel: String?
     var autocompleteModelID: String?
+    var cotypingBackend: CotypingBackend?
+    var cotypingServerBaseURL: String?
+    var cotypingServerModel: String?
+    var cotypingThinkServerModel: String?
+    var cotypingServerRequestStyle: CotypingServerRequestStyle?
     var dictationModelID: String?
 
     /// Clearing a path needs no runtime. Restoring it through Undo must still
@@ -70,6 +77,8 @@ struct ModelSelectionPatch: Equatable {
         if let transcription { next.transcriptionModel = transcription }
         if let granite { next.graniteSpeechModel = granite }
         if let funASRNanoDirectory { next.funASRNanoModelDirectory = funASRNanoDirectory }
+        if let remoteTranscriptionBaseURL { next.remoteTranscriptionBaseURL = remoteTranscriptionBaseURL }
+        if let remoteTranscriptionModel { next.remoteTranscriptionModel = remoteTranscriptionModel }
         if let language { next.transcriptionLanguage = language }
         if let backend { next.summarizerBackend = backend }
         if let assistantModelID { next.builtInModelID = assistantModelID }
@@ -78,6 +87,11 @@ struct ModelSelectionPatch: Equatable {
         if let chatGPTPlanModel { next.chatGPTPlanModel = chatGPTPlanModel }
         if let claudePlanModel { next.claudePlanModel = claudePlanModel }
         if let autocompleteModelID { next.cotypingBuiltInModelID = autocompleteModelID }
+        if let cotypingBackend { next.cotypingBackend = cotypingBackend }
+        if let cotypingServerBaseURL { next.cotypingServerBaseURL = cotypingServerBaseURL }
+        if let cotypingServerModel { next.cotypingServerModel = cotypingServerModel }
+        if let cotypingThinkServerModel { next.cotypingThinkServerModel = cotypingThinkServerModel }
+        if let cotypingServerRequestStyle { next.cotypingServerRequestStyle = cotypingServerRequestStyle }
         if let dictationModelID { next.dictationCompositionBuiltInModelID = dictationModelID }
         return next
     }
@@ -87,6 +101,8 @@ struct ModelSelectionPatch: Equatable {
             transcription: transcription.map { _ in settings.transcriptionModel },
             granite: granite.map { _ in settings.graniteSpeechModel },
             funASRNanoDirectory: funASRNanoDirectory.map { _ in settings.funASRNanoModelDirectory },
+            remoteTranscriptionBaseURL: remoteTranscriptionBaseURL.map { _ in settings.remoteTranscriptionBaseURL },
+            remoteTranscriptionModel: remoteTranscriptionModel.map { _ in settings.remoteTranscriptionModel },
             language: language.map { _ in settings.transcriptionLanguage },
             backend: backend.map { _ in settings.summarizerBackend },
             assistantModelID: assistantModelID.map { _ in settings.builtInModelID },
@@ -95,6 +111,11 @@ struct ModelSelectionPatch: Equatable {
             chatGPTPlanModel: chatGPTPlanModel.map { _ in settings.chatGPTPlanModel },
             claudePlanModel: claudePlanModel.map { _ in settings.claudePlanModel },
             autocompleteModelID: autocompleteModelID.map { _ in settings.cotypingBuiltInModelID },
+            cotypingBackend: cotypingBackend.map { _ in settings.cotypingBackend },
+            cotypingServerBaseURL: cotypingServerBaseURL.map { _ in settings.cotypingServerBaseURL },
+            cotypingServerModel: cotypingServerModel.map { _ in settings.cotypingServerModel },
+            cotypingThinkServerModel: cotypingThinkServerModel.map { _ in settings.cotypingThinkServerModel },
+            cotypingServerRequestStyle: cotypingServerRequestStyle.map { _ in settings.cotypingServerRequestStyle },
             dictationModelID: dictationModelID.map { _ in settings.dictationCompositionBuiltInModelID })
     }
 
@@ -163,7 +184,8 @@ enum ModelStackPreset: String, CaseIterable, Identifiable {
             transcription: transcription,
             backend: .builtIn,
             assistantModelID: mainModelID,
-            autocompleteModelID: autocompleteModelID)
+            autocompleteModelID: autocompleteModelID,
+            cotypingBackend: .onDevice)
     }
     static func matching(_ settings: AppSettings) -> Self? {
         allCases.first { $0.patch.matches(settings) }
@@ -184,14 +206,28 @@ enum ModelSettingsPresentation {
     static func destination(_ settings: AppSettings) -> String {
         switch InferencePresentation(settings: settings) {
         case .onDevice: "On this Mac"
-        case .remote(let host): host == "openrouter.ai" ? "OpenRouter · Remote" : "\(host) · Remote"
+        case .remote(let host): remote(host)
         case .blocked: "Connection needs attention"
         }
     }
 
+    /// Where the selected transcription server is, for the Core Roles row.
+    /// A loopback server still runs on this Mac.
+    static func transcriptionServerDestination(_ settings: AppSettings) -> String {
+        switch settings.remoteTranscription.presentation {
+        case .onDevice: "On this Mac · Local server"
+        case .remote(let host): remote(host)
+        case .blocked: "Connection needs attention"
+        }
+    }
+
+    private static func remote(_ host: String) -> String {
+        host == "openrouter.ai" ? "OpenRouter · Remote" : "\(host) · Remote"
+    }
+
     static func setupLocation(_ settings: AppSettings) -> String {
         switch InferencePresentation(settings: settings) {
-        case .onDevice: "On this Mac"
+        case .onDevice: settings.transcriptionPresentation.isRemote ? "On-device + remote" : "On this Mac"
         case .remote: "On-device + remote"
         case .blocked: "Connection needs attention"
         }
@@ -270,7 +306,7 @@ enum ModelSettingsPresentation {
         case .whisperLarge: 1_600_000_000
         case .graniteSpeech:
             safeCombinedBytes(granite.model.sizeBytes, granite.projector.sizeBytes)
-        case .cohere, .senseVoice, .gigaamRussian, .funASRNano: nil
+        case .cohere, .senseVoice, .gigaamRussian, .funASRNano, .remoteServer: nil
         }
     }
 

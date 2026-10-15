@@ -14,6 +14,7 @@ struct SettingDescriptor: Identifiable {
         if id == "settings.appTheme" { return language.localized(settings.appTheme.displayName) }
         if id == "settings.appLanguage" { return language.localized(settings.appLanguage.displayName) }
         if id == "settings.textSize" { return language.localized(settings.textSize.displayName) }
+        if id == "settings.cotypingBackend" { return language.localized(settings.cotypingBackend.title) }
         guard let data = try? JSONEncoder().encode(settings),
               let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let value = object[String(id.dropFirst("settings.".count))] else { return language.localized("Open details") }
@@ -86,6 +87,8 @@ struct SettingDescriptor: Identifiable {
         .init(id: "settings.transcriptionPrompt", title: "Transcription vocabulary", category: .models, aliases: "names acronyms spelling"),
         .init(id: "settings.autoTranscriptionVocabulary", title: "Add known names to transcription", category: .models, aliases: "names attendees calendar vocabulary spelling"),
         .init(id: "settings.cotypingBuiltInModelID", title: "Autocomplete model", category: .models, aliases: "writing code suggestions weights"),
+        .init(id: "settings.cotypingBackend", title: "Autocomplete server", category: .models,
+              aliases: "run autocomplete remote cloud api key url openrouter ollama lm studio llama-server tailscale network another computer think's server request type"),
         .init(id: "settings.menuBarOnly", title: "Menu bar only (hide Dock icon)", category: .general, aliases: "menuBarOnly"),
         .init(id: "settings.appTheme", title: "Theme", category: .general, aliases: "appearance dark mode light mode color scheme"),
         .init(id: "settings.appLanguage", title: "App language", category: .general, aliases: "interface language English Chinese 中文 简体中文 语言 界面"),

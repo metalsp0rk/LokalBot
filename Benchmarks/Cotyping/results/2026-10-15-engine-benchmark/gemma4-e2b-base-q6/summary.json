@@ -1,0 +1,89 @@
+{
+  "modelFile": "gemma-4-E2B.i1-Q6_K.gguf",
+  "checks": {
+    "exitCode": 0,
+    "loadMs": 645,
+    "maxWords": 4,
+    "consistentAcrossPasses": true,
+    "outcomes": {
+      "allowedSilence": 1,
+      "shown": 24,
+      "withheld": 3
+    },
+    "wordCompletions": [
+      12,
+      13
+    ],
+    "keywordHits": [
+      11,
+      64
+    ],
+    "firstPassLatency": {
+      "count": 28,
+      "maxMs": 162,
+      "meanMs": 64,
+      "medianMs": 63,
+      "p90Ms": 125,
+      "p95Ms": 129
+    },
+    "warmLatency": {
+      "count": 112,
+      "maxMs": 134,
+      "meanMs": 62,
+      "medianMs": 60,
+      "p90Ms": 98,
+      "p95Ms": 103
+    }
+  },
+  "accuracy": {
+    "overall": {
+      "checkpoints": 788,
+      "correct": 182,
+      "shown": 363,
+      "accuracy": 0.231,
+      "coverage": 0.4607,
+      "precision": 0.5014,
+      "errors": 0
+    },
+    "english": {
+      "checkpoints": 624,
+      "correct": 158,
+      "shown": 319,
+      "accuracy": 0.2532,
+      "coverage": 0.5112,
+      "precision": 0.4953,
+      "errors": 0
+    },
+    "otherLanguages": {
+      "checkpoints": 164,
+      "correct": 24,
+      "shown": 44,
+      "accuracy": 0.1463,
+      "coverage": 0.2683,
+      "precision": 0.5455,
+      "errors": 0
+    },
+    "latency": {
+      "count": 788,
+      "meanMs": 33.1,
+      "medianMs": 22.3,
+      "p90Ms": 62.2,
+      "p95Ms": 76.5,
+      "maxMs": 192.4
+    }
+  },
+  "typing": {
+    "keystrokes": 363,
+    "generated": 363,
+    "shown": 331,
+    "errors": 0,
+    "latency": {
+      "count": 363,
+      "meanMs": 54.3,
+      "medianMs": 55.6,
+      "p90Ms": 92.5,
+      "p95Ms": 102.2,
+      "maxMs": 189.0
+    }
+  }
+}

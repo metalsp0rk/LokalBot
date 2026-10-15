@@ -1,0 +1,16 @@
+{
+  "appSHA256": "aa0dcffe30c992551a3f30f19245f591d489a084c62d53aedf563d4c7717a433",
+  "modelFile": "LFM2.5-1.2B-Instruct-Q4_K_M.gguf",
+  "modelSHA256": "856aeee6d85ac684b1db8dee48795b44fc06731ecda03aee36ece682413a9b9a",
+  "settings": {
+    "cotypingBuiltInModelID": "lfm2.5-1.2b-instruct",
+    "cotypingInProcessRuntime": true,
+    "cotypingEnabled": false,
+    "cotypingMaxWords": 3,
+    "cotypingUseLocalLearning": false,
+    "cotypingUseClipboard": false,
+    "cotypingUseAppContext": true
+  },
+  "repetitions": 4,
+  "boundary": "Engine only; excludes input monitoring, debounce, AX validation, and overlay"
+}

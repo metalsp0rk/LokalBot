@@ -1219,3 +1219,27 @@
 
 "Keep Even If the Conversation Is Deleted" = "即使删除对话也保留";
 "Keep Even If the Source Is Deleted" = "即使删除来源也保留";
+"Autocomplete server" = "自动补全服务器";
+"Think's server" = "Think 的服务器";
+"Another server" = "其他服务器";
+"Request type" = "请求类型";
+"Text completion" = "文本补全";
+"Server URL" = "服务器网址";
+"API key" = "API 密钥";
+"Optional" = "可选";
+"Same as Think (%@)" = "与 Think 相同（%@）";
+"Leave empty to use Think's model, or name a smaller one for faster suggestions." = "留空则使用 Think 的模型；也可以填写更小的模型，以更快给出建议。";
+"Any OpenAI-compatible /v1 URL, such as OpenRouter, llama-server, LM Studio, or Ollama." = "任何兼容 OpenAI 的 /v1 地址，例如 OpenRouter、llama-server、LM Studio 或 Ollama。";
+"Automatic picks text completion or chat for the server." = "“自动”会为该服务器选择文本补全或对话。";
+"Runs on this Mac. What you type stays here." = "在这台 Mac 上运行。你输入的内容留在这里。";
+"Use HTTPS for a server outside your network or tailnet." = "你的网络或 tailnet 之外的服务器请使用 HTTPS。";
+"Send typing to %@" = "将输入内容发送到 %@";
+"What you type goes to this server as you type, with the context you turn on under Settings → Writing." = "你输入时，输入内容会连同你在“设置 → 写作”中开启的上下文一起发送到该服务器。";
+"Unencrypted HTTP: use it only on your own network or tailnet." = "未加密的 HTTP：仅在你自己的网络或 tailnet 上使用。";
+"The autocomplete server URL must start with http:// or https://." = "自动补全服务器地址必须以 http:// 或 https:// 开头。";
+"Autocomplete also sends what you type, with the context you turn on under Writing, to %@." = "自动补全还会把你输入的内容，连同你在“写作”中开启的上下文，发送到 %@。";
+"Context you turn on here is sent to %@ with what you type." = "你在此开启的上下文会连同输入内容一起发送到 %@。";
+"The model answered with no text." = "模型的回答没有文字。";
+"The model repeated text it was given, so its answer is hidden." = "模型重复了给它的文字，因此隐藏了它的回答。";
+"The answer did not fit at the cursor, so it is hidden." = "回答与光标处的文字不衔接，因此已隐藏。";
+"The model was unsure of the next word, so it suggested nothing." = "模型不确定下一个词，因此没有给出建议。";
