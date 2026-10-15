@@ -26,6 +26,8 @@ struct ModelPickerSheet: View {
     @State private var funASRNanoDirectory: String
     @State private var folderError: String?
     @State private var granite: GraniteSpeechModelConfiguration
+    /// Where autocomplete runs and its server setup; applied with Use model.
+    @State private var cotypingDraft: CotypingServerDraft
     @State private var query = ""
     @State private var installedOnly = false
     @State private var showingAdvanced = false
@@ -52,6 +54,7 @@ struct ModelPickerSheet: View {
         _claudeConsent = State(initialValue: SubscriptionPlan.claude.isApproved(in: settings))
         _funASRNanoDirectory = State(initialValue: settings.funASRNanoModelDirectory)
         _granite = State(initialValue: settings.graniteSpeechModel)
+        _cotypingDraft = State(initialValue: CotypingServerDraft(settings: settings))
     }
 
     private static func assignedID(for role: ModelPickerRole, in settings: AppSettings) -> String {
@@ -100,8 +103,29 @@ struct ModelPickerSheet: View {
                     ? chatGPTPlanModel.trimmingCharacters(in: .whitespacesAndNewlines) : nil,
                 claudePlanModel: backend == .claudePlan
                     ? claudePlanModel.trimmingCharacters(in: .whitespacesAndNewlines) : nil)
-        case .autocomplete: ModelSelectionPatch(autocompleteModelID: selectedID)
+        case .autocomplete: cotypingDraft.patch(onDeviceModelID: selectedID)
         case .dictation: ModelSelectionPatch(dictationModelID: selectedID)
+        }
+    }
+
+    private var editsAutocompleteServer: Bool { role == .autocomplete && cotypingDraft.backend != .onDevice }
+
+    /// A new key or approval is worth applying even when the server and model
+    /// themselves are unchanged.
+    private var changesAutocompleteAccess: Bool {
+        editsAutocompleteServer
+            && ((cotypingDraft.backend == .server && !cotypingDraft.apiKey.isEmpty)
+                || cotypingDraft.approvedOrigins(in: app.settings) != app.settings.approvedRemoteAutocompleteOrigins)
+    }
+
+    private func applyAutocompleteAccess() {
+        guard editsAutocompleteServer else { return }
+        if cotypingDraft.backend == .server, !cotypingDraft.apiKey.isEmpty {
+            app.settings.cotypingServerAPIKey = cotypingDraft.apiKey
+        }
+        let origins = cotypingDraft.approvedOrigins(in: app.settings)
+        if origins != app.settings.approvedRemoteAutocompleteOrigins {
+            app.settings.approvedRemoteAutocompleteOrigins = origins
         }
     }
 
@@ -125,7 +149,7 @@ struct ModelPickerSheet: View {
     }
 
     private var selectedBlocker: String? {
-        if clearsFunASRSelection { return nil }
+        if clearsFunASRSelection || editsAutocompleteServer { return nil }
         if role == .transcription, transcription == .funASRNano {
             do { _ = try FunASRNanoModel.load(directory: funASRNanoDirectory) } catch { return error.localizedDescription }
             return nil
@@ -155,14 +179,25 @@ struct ModelPickerSheet: View {
             case .builtIn, .chatGPTPlan, .claudePlan: return false
             }
         }
+        if editsAutocompleteServer {
+            if case .server = cotypingDraft.route(in: app.settings) { return true }
+            return false
+        }
         return role == .transcription || (role == .dictation && selectedID.isEmpty) || selectedEntry != nil
+    }
+
+    private var autocompleteServerName: String {
+        guard case .server(let endpoint) = cotypingDraft.route(in: app.settings) else {
+            return cotypingDraft.backend.title
+        }
+        return "\(endpoint.model) · \(endpoint.baseURL.host ?? endpoint.origin)"
     }
 
     private var selectedName: String {
         switch role {
         case .transcription: transcription == .graniteSpeech ? granite.displayName : transcription.displayName
         case .assistant: ModelSettingsPresentation.assistantName(patch.applying(to: app.settings))
-        case .autocomplete: selectedEntry?.displayName ?? selectedID
+        case .autocomplete: editsAutocompleteServer ? autocompleteServerName : selectedEntry?.displayName ?? selectedID
         case .dictation: selectedID.isEmpty ? "Think for dictation" : selectedEntry?.displayName ?? selectedID
         }
     }
@@ -176,13 +211,6 @@ struct ModelPickerSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             ModelSheetHeading(title: "\(role.title) model", subtitle: role.detail)
-            if role == .autocomplete, app.settings.cotypingBackend != .onDevice {
-                Label("Autocomplete runs on a server you chose under Settings → Writing. This model is used when it runs on this Mac again.",
-                      systemImage: "network")
-                    .font(.scaled(.callout)).foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.horizontal, 24).padding(.bottom, 12)
-            }
             if role == .assistant {
                 // Where Think runs, then that choice's own setup: one place
                 // to choose and configure, with no nested or segmented picks.
@@ -199,6 +227,24 @@ struct ModelPickerSheet: View {
                                     .padding(.horizontal, 24).padding(.bottom, 16)
                                     .frame(maxWidth: .infinity, alignment: .leading)
                             }
+                        }
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                }
+            } else if role == .autocomplete {
+                HStack(alignment: .top, spacing: 0) {
+                    autocompleteLocationList.frame(width: 228)
+                    Divider()
+                    VStack(alignment: .leading, spacing: 0) {
+                        if editsAutocompleteServer {
+                            ScrollView {
+                                AutocompleteServerSetup(app: app, draft: $cotypingDraft)
+                                    .padding(.horizontal, 24).padding(.bottom, 16)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                        } else {
+                            catalog
+                            selectionDetails
                         }
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -224,12 +270,14 @@ struct ModelPickerSheet: View {
                     .accessibilityIdentifier("models.picker.cancel")
                 Button(clearsFunASRSelection ? "Clear selection" : needsDownload ? "Download and use" : "Use model") {
                     approveSelectedPlan()
+                    applyAutocompleteAccess()
                     setup.apply(patch, title: selectedName)
                     dismiss()
                 }
                 .primaryActionButton()
                 .keyboardShortcut(.defaultAction)
-                .disabled(!canApply || (patch.matches(app.settings) && !needsDownload && !approvesSelectedPlan))
+                .disabled(!canApply || (patch.matches(app.settings) && !needsDownload && !approvesSelectedPlan
+                                        && !changesAutocompleteAccess))
                 .accessibilityIdentifier("models.picker.apply")
             }
             .padding(20)
@@ -287,7 +335,8 @@ struct ModelPickerSheet: View {
                         ModelChoiceRow(
                             title: entry.displayName,
                             detail: ModelSettingsPresentation.sizeLabel(entry) + " on disk",
-                            inUse: ModelSettingsPresentation.uses(of: entry.id, in: app.settings).contains(role.title),
+                            inUse: ModelSettingsPresentation.uses(of: entry.id, in: app.settings).contains(role.title)
+                                && (role != .autocomplete || app.settings.cotypingBackend == .onDevice),
                             available: isDownloaded(entry),
                             progress: downloads.progress[entry.id],
                             blocked: downloadBlocker(entry) != nil)
@@ -524,8 +573,6 @@ struct ModelPickerSheet: View {
         ]
     }
 
-    /// Plain rows with an explicit highlight: the selection reads the same in
-    /// a sheet whether or not its window is key.
     private var providerList: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
@@ -547,19 +594,45 @@ struct ModelPickerSheet: View {
     }
 
     private func providerRow(_ provider: ThinkProvider) -> some View {
-        let selected = ThinkProvider(backend) == provider
-        return Button {
+        locationRow(provider.title, icon: provider.icon,
+                    selected: ThinkProvider(backend) == provider,
+                    inUse: provider.backend == app.settings.summarizerBackend,
+                    identifier: "models.picker.provider.\(provider.rawValue)") {
             backend = provider.backend
-        } label: {
+        }
+    }
+
+    /// Where autocomplete runs: a model on this Mac, or a server whose setup
+    /// replaces the model list.
+    private var autocompleteLocationList: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            ForEach(CotypingBackend.allCases) { location in
+                locationRow(LocalizedStringKey(location.title), icon: location.icon,
+                            selected: cotypingDraft.backend == location,
+                            inUse: app.settings.cotypingBackend == location,
+                            identifier: "models.picker.autocomplete.\(location.rawValue)") {
+                    cotypingDraft.backend = location
+                }
+            }
+        }
+        .padding(.horizontal, 12).padding(.vertical, 4)
+        .frame(maxHeight: .infinity, alignment: .top)
+    }
+
+    /// Plain rows with an explicit highlight: the selection reads the same in
+    /// a sheet whether or not its window is key.
+    private func locationRow(_ title: LocalizedStringKey, icon: String, selected: Bool, inUse: Bool,
+                             identifier: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
             HStack(spacing: 8) {
-                Image(systemName: provider.icon)
+                Image(systemName: icon)
                     .frame(width: 20)
                     .foregroundStyle(selected ? AnyShapeStyle(Brand.teal) : AnyShapeStyle(.secondary))
-                Text(provider.title)
+                Text(title)
                     .font(.scaled(.body).weight(selected ? .semibold : .regular))
                     .lineLimit(1)
                 Spacer(minLength: 4)
-                if provider.backend == app.settings.summarizerBackend {
+                if inUse {
                     Image(systemName: "checkmark")
                         .font(.scaled(.caption).weight(.semibold))
                         .foregroundStyle(.secondary)
@@ -575,7 +648,7 @@ struct ModelPickerSheet: View {
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(selected ? .isSelected : [])
-        .accessibilityIdentifier("models.picker.provider.\(provider.rawValue)")
+        .accessibilityIdentifier(identifier)
     }
 
     private func consent(for plan: SubscriptionPlan) -> Binding<Bool> {
