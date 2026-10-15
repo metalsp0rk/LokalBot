@@ -4,7 +4,7 @@ Every number below is copied verbatim from a file in this repository; the **Sour
 
 ## Current default stack
 
-The defaults on a fresh install total about **6.5 GB** of model files if every role is used (`README.md`, "Local AI, your choice").
+The defaults on a fresh install total about **9.6 GB** of model files if every role is used (`README.md`, "Local AI, your choice").
 
 | Role | Default model | Format | Model files | Headline result | Source |
 | --- | --- | --- | ---: | --- | --- |
@@ -12,10 +12,10 @@ The defaults on a fresh install total about **6.5 GB** of model files if every r
 | Speaker diarization | Nemotron 3 (preview) via FluidAudio | Core ML | ~0.20 GB | 14.56% DER vs 43.44% for the previous default; 500× real time | `Benchmarks/NemotronDiarization/results/2026-09-23/REPORT.md` |
 | Summaries and chat | Qwen3.5 4B | `Q4_K_M` | 2.74 GB | 26-minute meeting summarized in 33.4 s warm / 59.8 s cold | `Benchmarks/SummaryEfficiency/results-2026-09-09.json` |
 | Semantic search | EmbeddingGemma 2 | `Q8_0` | 0.31 GB | Correct passage first for 43/48 queries vs 40/48 for Harrier 0.6B | `Benchmarks/EmbeddingGemma2/2026-10-07/REPORT.md` |
-| Autocomplete | LFM2.5 1.2B Instruct | `Q4_K_M` | 0.73 GB | 28/28 safety, 12/13 completions, 484–494 ms p95 | `Benchmarks/Cotyping/results/2026-07-21-model-debounce-benchmark.md` |
+| Autocomplete | Gemma 4 E2B Base | `Q6_K` | 3.85 GB | 0 unsafe results in 140 checks; 23.1% next-word accuracy vs 20.7% for LFM2.5 (tied in English); right when shown 50%; 56 / 102 ms median / p95 per keystroke | `Benchmarks/Cotyping/results/2026-10-15-engine-benchmark/REPORT.md` |
 | Screen text (opt-in) | Apple Vision | Built into macOS | — | 0.971 token F1 at 119.6 ms per synthetic screenshot | `Benchmarks/OCR/SYNTHETIC-RESULTS-2026-06-24.md` |
 
-Alternatives remain selectable in the app: Parakeet, Granite Speech, Whisper large-v3 turbo, SenseVoice, and GigaAM for transcription, and Pyannote Community-1 for diarization (`README.md`).
+Alternatives remain selectable in the app: Parakeet, Granite Speech, Whisper large-v3 turbo, SenseVoice, and GigaAM for transcription, Pyannote Community-1 for diarization, and LFM2.5 1.2B Instruct `Q4_K_M` (0.73 GB, the Lightweight preset) for autocomplete (`README.md`).
 
 ## Speaker diarization — Nemotron 3 vs Pyannote Community-1
 
@@ -75,9 +75,44 @@ The 6-point gain is within noise on 48 correlated queries (95% interval −4 to 
 
 Granite 5 is English-only, emits unpunctuated lowercase text, and is not integrated into LokalBot. This small set does not establish a reliable accuracy ordering.
 
-## Cotyping (inline autocomplete) latency matrix
+## Cotyping (inline autocomplete) — engine benchmark, 2026-10-15
 
-Harness: production `LokalBot --cotyping-bench`, all 28 default scenarios through the real in-process llama.cpp engine. Gate = 28/28 safety, ≥12/13 word completions, p95 ≤ 2000 ms. Source: `Benchmarks/Cotyping/results/2026-07-21-model-debounce-benchmark.md`.
+Harness: `Benchmarks/Cotyping/engine_benchmark.py` runs LokalBot's production autocomplete engine on one model through `--cotyping-bench --model-path`. It runs before app startup on the runtime the app builds, with fresh-install settings (4 words) and nothing else from the app, and times model loading on its own. It has three parts:
+
+- **Safety checks:** the same 28 scenarios as the earlier check, run 5 times (one first pass, then 4 warm passes). Each result is shown, allowed silence, withheld, a wrong word, unsafe, or an error; only unsafe results and errors fail.
+- **Next-word accuracy:** every word boundary of 96 original synthetic phrases, 788 positions in English, Serbian (Latin and Cyrillic), German, French, and Spanish. The first suggested word must equal the next word, ignoring case and apostrophe style.
+- **Typing latency:** per-keystroke time while typing 8 of those phrases one character at a time.
+
+Release build of commit `15d7a26` (from `master` at `9bff2ca`). Source: `Benchmarks/Cotyping/results/2026-10-15-engine-benchmark/REPORT.md` (per-model figures in `Benchmarks/Cotyping/results/2026-10-15-engine-benchmark/gemma4-e2b-base-q6/summary.json` and `Benchmarks/Cotyping/results/2026-10-15-engine-benchmark/lfm2.5-1.2b-instruct/summary.json`).
+
+| Measure | Gemma 4 E2B Base `Q6_K` (current default) | LFM2.5 1.2B Instruct `Q4_K_M` (Lightweight preset) |
+| --- | ---: | ---: |
+| Unsafe results, 28 checks × 5 passes | **0** | **0** |
+| Checks: shown / withheld / allowed silence | 24 / 3 / 1 | 24 / 3 / 1 |
+| Word completions | 12/13 | 12/13 |
+| Next-word accuracy, 788 word positions | **23.1%** | 20.7% |
+| — English, 624 positions | 25.3% | 24.2% |
+| — Other languages, 164 positions | 14.6% | 7.3% |
+| Suggestion shown (coverage) | 46.1% | 48.1% |
+| Right when shown (precision) | **50.1%** | 43.0% |
+| Per keystroke while typing, median / p95 | 56 / 102 ms | **26 / 76 ms** |
+| Checks, warm median / p95 | 60 / 103 ms | **18 / 29 ms** |
+| Model load | 0.65 s | 0.16 s |
+
+Gemma minus LFM2.5 accuracy, with phrase-level paired bootstrap intervals (10,000 resamples): **+2.4 points** over all 96 phrases (95% interval −0.1 to +5.0); **+1.1 points** in English, 72 phrases (−1.4 to +3.5), a statistical tie; **+7.3 points** in other languages, 24 phrases (0.0 to +15.1). The lead comes from Serbian, where LFM2.5 shows almost nothing (2% coverage, 0% accuracy) and Gemma reaches 8–9%. Those groups are small, so read the intervals, not the points.
+
+- Accuracy counts a missing suggestion as a miss. When unsure of the first word, LokalBot shows nothing rather than guessing, so "right when shown" is closer to what you see while typing.
+- **Withheld (both models, the same 3):** `notes-list`, `comma-clause`, and `sentence-start`, open-ended continuations where the first-word confidence gate (`ef8eeef`) holds back an unsure guess. **Allowed silence (both):** `mid-word`, inside "rec|eive", where the engine declines to insert. Every one of the 5 passes showed identical suggestions for both models.
+- These are engine timings only. Input monitoring, debounce, accessibility reads, screen and memory context, learning, and drawing the suggestion are not included. Accuracy uses typed text plus app and window title only, while the app also reads nearby screen text, so real suggestions have more context.
+- The phrases were written for earlier LokalBot studies. The 64-phrase hybrid-confirmation set confirmed the hybrid decoder before it shipped, so it is not held out from product decisions.
+
+Gemma 4 E2B Base became the default after the 2026-10-02 replay on Cotabby's held-out corpus: **34.50% vs 30.43%** exact next-word accuracy for LFM2.5 (2,300 vs 2,029 of 6,667 word checkpoints). That run used a different corpus, the decoder from before the hybrid, and no confidence gate, so it is not comparable with the numbers above. Source: `Benchmarks/Cotyping/results/2026-10-02-quality/REPORT.md`.
+
+## Cotyping (inline autocomplete) — earlier check, superseded scoring
+
+The July 21 and October 14 runs used the original 28-scenario pass/fail check. That check counted a held-back suggestion as a safety failure, accepted only one word tail per fragment, and reported a fresh app process's 10–40 s first request as latency (`Benchmarks/Cotyping/results/2026-10-15-engine-benchmark/REPORT.md`, "What changed from the old check"). Its results do not describe today's engine and are kept in the repository: `Benchmarks/Cotyping/results/2026-07-21-model-debounce-benchmark.md` and `Benchmarks/Cotyping/results/2026-10-14-engine-bench/REPORT.md`.
+
+The July 21 matrix is reproduced below as a historical snapshot only. It used a **Debug** build of code that predates the confidence gate, the October quality and prompt changes, and the hybrid decoder; LFM2.5 was the autocomplete default at the time. Gate = 28/28 safety, ≥12/13 word completions, p95 ≤ 2000 ms. Source: `Benchmarks/Cotyping/results/2026-07-21-model-debounce-benchmark.md`.
 
 | Model | Exact file | Bytes | Safety | Word completions | Avg latency | p95 latency | Gate |
 | --- | --- | ---: | --- | --- | --- | --- | --- |
@@ -88,7 +123,7 @@ Harness: production `LokalBot --cotyping-bench`, all 28 default scenarios throug
 | Gemma 4 E2B (base) | `gemma-4-E2B.i1-Q6_K.gguf` | 3,845,328,608 | 26/28 | 10/13 | 883 ms | 2,560 ms | Fail quality + latency |
 | Gemma 4 E4B (base) | `gemma-4-E4B-UD-Q5_K_XL.gguf` | 6,700,259,616 | 26/28 | 10/13 | 697 ms | 3,022 ms | Fail quality + latency |
 
-Supporting figures from the same sources:
+Supporting figures from the July and earlier sources:
 
 - LFM2.5 keyword relevance: **15/64 hits vs 13/64** for the Gemma instruct baseline — "a weak relevance signal, not a separate gate" (`Benchmarks/Cotyping/results/2026-07-21-model-debounce-benchmark.md`).
 - Cold Metal-kernel compilation, first scenario only: LFM2.5 **19,349 ms**, Gemma E4B instruct **127,466 ms** (same file).
@@ -135,4 +170,4 @@ Notes from the same file: PP-OCRv6 was the only open-source option slightly abov
 | Search pilot is 48 authored queries | Validate EmbeddingGemma 2 with human-annotated queries over a larger real library. |
 | No summarization-quality evaluation for Qwen3.5 4B | Human-rate recaps on a fixed meeting corpus (faithfulness, action-item completeness); publish rubric + raw ratings. |
 | OCR sets are small (15 real + 5 synthetic screenshots) | Grow the synthetic manifest to ≥50 fixtures across app categories and re-run `score_text_outputs.py`. |
-| Cotyping keyword-hit count is self-declared a weak signal | Replace with a curated expected-completion suite reviewed by humans before quoting relevance numbers. |
+| Autocomplete numbers are engine-only, on 96 synthetic phrases (some of which confirmed the hybrid decoder), without the screen context the app reads, and say nothing about real acceptance | Measure suggestion latency and acceptance end to end while typing in real apps, on text that was not used for product decisions. |
