@@ -1,6 +1,6 @@
 # LokalBot Privacy Policy
 
-Effective: October 2, 2026
+Effective: October 15, 2026
 
 LokalBot is a local-first macOS application. It has no LokalBot account,
 analytics service, advertising SDK, or telemetry backend. The project does not
