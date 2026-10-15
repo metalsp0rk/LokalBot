@@ -2330,6 +2330,7 @@ final class AppState: ObservableObject {
                 self.latestDreamReport = report
                 self.refreshDreamMemory()
                 await self.learnAboutPerson(target: target)
+                await self.rollUpReviews(target: target)
             },
             onError: { [weak self] message in
                 self?.lastError = message
@@ -2375,6 +2376,33 @@ final class AppState: ObservableObject {
             return
         } catch {
             lokalbotLog("personal learning skipped: \(error.localizedDescription)")
+        }
+    }
+
+    /// After the overnight review: refresh the one-line week and month
+    /// summaries the agent briefing shows below recent days. Stale lines are
+    /// always removed; new ones cost a model call, so they are written only
+    /// while agents may read screen memory, which the briefing's timeline
+    /// needs. Best effort.
+    private func rollUpReviews(target: DreamScheduler.Target) async {
+        let engineSettings = settings
+        let limit = screenMemoryAccess.isEnabled ? DreamRollupService.maximumPerNight : 0
+        do {
+            let outcome = try await DreamRollupService.run(
+                root: storage.rootURL, now: Date(), calendar: target.calendar, limit: limit
+            ) { [weak self] in
+                guard let self else { throw TextEngineError.unavailable("LokalBot is shutting down.") }
+                if target.isAutomatic && !engineSettings.allowsAutomaticMainInference { throw CancellationError() }
+                return try await self.thinkExecution.makeTextEngine(
+                    engineSettings, priority: .background, purpose: "dream rollup")
+            }
+            if !outcome.written.isEmpty || !outcome.removed.isEmpty {
+                lokalbotLog("dream rollups: written=\(outcome.written.map(\.key)) removed=\(outcome.removed)")
+            }
+        } catch is CancellationError {
+            return
+        } catch {
+            lokalbotLog("dream rollups skipped: \(error.localizedDescription)")
         }
     }
 

@@ -144,6 +144,7 @@ final class FileLibraryToolProviderTests: XCTestCase {
         XCTAssertEqual(
             provider.tools.map(\.name),
             [
+                "get_briefing",
                 "list_meetings", "get_meeting", "search_meetings", "ask_library",
                 "get_action_items", "list_people", "get_person",
                 "search_screen", "get_timeline", "get_recent_activity", "get_app_usage",

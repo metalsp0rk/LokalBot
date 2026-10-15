@@ -251,6 +251,47 @@ discussion's "show why it influenced the answer".
   Until then every claim is one the person typed, and sensitivity matters
   most for proposed claims.
 
+## Start-of-session briefing (2026-10-15)
+
+The user's aim: agents should always get the context they need and know what
+LokalBot can give them, so the user spends less time approving and
+re-explaining. Three pieces, adapted from OptMem's `wake` and age-decay
+layout:
+
+- **`get_briefing` / `lokalbot-cli brief`** returns one short read (at most
+  12,000 characters). First comes a capability index: each grant, on or off,
+  with how to turn it on. With every grant off, that index is all the
+  briefing returns, with no counts. Each other section needs the grant that
+  covers its source:
+  - shared About you items (About you grant);
+  - the user's open action items and the newest meeting (meeting grant);
+  - work-memory projects and goals. Each source kind needs its grant, screen
+    sources also need the history window, and unattributed entries are
+    skipped;
+  - Claude Code and Codex sessions by project, last 7 days at most,
+    scheduled runs excluded (screen grant);
+  - the review timeline (meeting and screen grants, clamped to the screen
+    profile).
+
+  While a revocation is pending, work memory and the timeline are withheld.
+- **Age-decay timeline.** Today and yesterday get two review sentences, the
+  rest of the last week one each, then one line per earlier week and per
+  month. `DreamRollupService` writes the week and month lines after each
+  overnight review: the newest finished periods first, at most three Think
+  calls a night, only while screen access is on. Each line stores a SHA-256
+  stamp of its reviews (day plus `generatedAt`). Readers recompute it, so a
+  deleted or regenerated review makes the line stale at once.
+  `DreamStore.invalidateReport` deletes covering lines, and Clear work memory
+  removes the folder.
+- **Proactive use.** The bundled skill's description tells agents to run
+  `brief` first and to search LokalBot before asking the user about past work.
+  `initialize` returns MCP `instructions` saying the same.
+  `get_briefing` is listed first.
+
+Not adopted from OptMem: per-agent memory files, or a write path for agents.
+LokalBot stays read-only to agents, and its memory comes from what the user
+did, not from what an agent decided to save.
+
 ## My World UI
 
 - **Phase 1:** an "About you" section in Settings → Day Memory, which is the

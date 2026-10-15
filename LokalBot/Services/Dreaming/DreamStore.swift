@@ -186,6 +186,8 @@ struct DreamStore {
             for url in urls where fileManager.fileExists(atPath: url.path) {
                 try fileManager.removeItem(at: url)
             }
+            // Week and month lines drawn from this day go with it.
+            DreamRollupService.removeRollups(covering: key, root: root)
         }
     }
 

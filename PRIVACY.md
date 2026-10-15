@@ -80,7 +80,13 @@ entries. Scheduled retention is not a deletion for this purpose: when screen
 text, activity titles, or coding-agent records expire, the Dream reports and
 work memory derived from them remain, so they can outlast the screen-retention
 window. **Clear work memory** under Settings → Overnight review deletes every
-report and all work memory, including pinned entries. Older memory without
+report and all work memory, including pinned entries. After a review, and only
+while screen-memory agent access is on, LokalBot also condenses up to three
+finished weeks or months of reports into one line each, kept in the library's
+`dreams/rollups` folder for the agent briefing. It uses the same Think model and
+approved-server rule as the review. A line records which reports it came from:
+deleting or rebuilding one of those reports deletes the line, and Clear work
+memory deletes them all. Older memory without
 source attribution is conservatively retracted when its sources are deleted or
 corrected. If cleanup fails, a durable revocation record blocks that memory
 from further use until cleanup succeeds. Exported copies remain where you saved
@@ -421,6 +427,21 @@ without the encryption key. The copy is rewritten whenever you edit, unshare,
 or forget an item. It is deleted when you turn the grant off, and when LokalBot
 can't read About you. `get_personal_context` and `lokalbot-cli personal-context`
 return at most 12 items, the most relevant to the agent's stated task.
+
+`get_briefing` and `lokalbot-cli brief` give an agent one short overview to
+start a session with. With every grant off they still answer, but say only
+which grants are off and how to turn them on, not how much the library holds.
+Each other part needs the grant that covers its source. Shared About you items
+need the About you grant. The meeting count, the newest meeting's title, and
+your own open action items need meeting access. Current projects and goals from
+the overnight review need meeting access for meeting sources and screen access,
+within its history profile, for screen, activity, and digest sources; entries
+without source records are left out. Recent Claude Code and Codex session
+titles, projects, and pull-request counts need screen access and cover at most
+the last seven days. The review timeline, a sentence or two per recent day and
+one line per earlier week and month, needs both meeting and screen access and
+stays within the screen history profile. While a deletion is still being
+cleaned up, work memory and the timeline are left out.
 
 **Open in Claude** and **Open in Codex**, in a meeting's More menu, start a new
 conversation in that installed app with the meeting's title, summary, and as much

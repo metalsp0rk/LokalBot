@@ -37,6 +37,7 @@ struct FileLibraryToolProvider: LibraryToolProvider {
 
     var tools: [ToolDefinition] {
         [
+            Briefing.definition,
             ToolDefinition(
                 name: "list_meetings",
                 description: "List recorded meetings, newest first. Returns id, title, date, and duration for each.",
@@ -260,6 +261,8 @@ struct FileLibraryToolProvider: LibraryToolProvider {
             return getScreenshotDetail(arguments)
         case PersonalContextTool.name:
             return getPersonalContext(arguments)
+        case Briefing.toolName:
+            return .text(briefing())
         default:
             return .error(
                 .unknownTool,
@@ -275,6 +278,19 @@ struct FileLibraryToolProvider: LibraryToolProvider {
         "search_screen", "get_timeline", "get_recent_activity", "get_app_usage",
         "get_screenshot_detail",
     ]
+
+    /// Never refused: with no grants it still says which permissions are off,
+    /// so an agent learns what it could ask for. Each section checks its own
+    /// grant inside `Briefing`.
+    func briefing() -> String {
+        Briefing.render(Briefing.Context(
+            root: gate.root,
+            meetingAccess: gate.isAuthorized(),
+            screenGate: screenGate,
+            personalGate: personalGate,
+            screenReader: screenReader,
+            now: now()))
+    }
 
     /// Independent of meeting and screen access, and of Agent Mode
     /// capabilities: only the Personal context marker and its projection.
