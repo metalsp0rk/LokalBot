@@ -27,6 +27,11 @@ enum LokalBotMain {
             RunLoop.main.run()
             return
         }
+        if case .cotypingEngineBench(let model, let passes)? = HeadlessCommand.parse(CommandLine.arguments) {
+            Task { @MainActor in exit(await CotypingBenchmarkRunner.runEngine(model: model, passes: passes)) }
+            RunLoop.main.run()
+            return
+        }
         if case .dictationReplay(let input, let endpoint)? = HeadlessCommand.parse(CommandLine.arguments) {
             Task { @MainActor in exit(await DictationContextReplay.run(input: input, endpoint: endpoint)) }
             RunLoop.main.run()

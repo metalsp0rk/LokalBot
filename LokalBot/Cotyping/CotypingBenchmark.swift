@@ -11,7 +11,8 @@ struct CotypingBenchmarkScenario: Identifiable, Equatable, Sendable {
     /// Word-completion contract (Cotypist parity): the caret sits at the end of
     /// a word fragment and a visible suggestion MUST extend it — begin with a
     /// word character, and (when provided) with one of
-    /// `expectedCompletionPrefixes`. An empty result passes only via
+    /// `expectedCompletionPrefixes`, the tails of every real word that fits the
+    /// fragment. Silence is safe but counts as a miss unless it is one of the
     /// `allowedSuppressions`.
     var expectsWordCompletion: Bool = false
     var expectedCompletionPrefixes: [String] = []
@@ -131,7 +132,7 @@ struct CotypingBenchmarkScenario: Identifiable, Equatable, Sendable {
             expectedTerms: [],
             latencyTargetMs: 1_500,
             expectsWordCompletion: true,
-            expectedCompletionPrefixes: ["ve"],
+            expectedCompletionPrefixes: ["ve", "pt"],
             wordPrefixIsValidWord: false),
         CotypingBenchmarkScenario(
             id: "wc-productive", name: "Complete: producti→ve",
@@ -142,7 +143,7 @@ struct CotypingBenchmarkScenario: Identifiable, Equatable, Sendable {
             expectedTerms: [],
             latencyTargetMs: 1_500,
             expectsWordCompletion: true,
-            expectedCompletionPrefixes: ["ve"],
+            expectedCompletionPrefixes: ["ve", "vity", "on"],
             wordPrefixIsValidWord: false),
         CotypingBenchmarkScenario(
             id: "wc-schedule", name: "Complete: schedu→le",
@@ -153,7 +154,7 @@ struct CotypingBenchmarkScenario: Identifiable, Equatable, Sendable {
             expectedTerms: [],
             latencyTargetMs: 1_200,
             expectsWordCompletion: true,
-            expectedCompletionPrefixes: ["le"],
+            expectedCompletionPrefixes: ["le", "ling"],
             wordPrefixIsValidWord: false),
         CotypingBenchmarkScenario(
             id: "wc-important", name: "Complete: importa→nt",
@@ -164,7 +165,7 @@ struct CotypingBenchmarkScenario: Identifiable, Equatable, Sendable {
             expectedTerms: [],
             latencyTargetMs: 1_500,
             expectsWordCompletion: true,
-            expectedCompletionPrefixes: ["nt"],
+            expectedCompletionPrefixes: ["nt", "nce"],
             wordPrefixIsValidWord: false),
         CotypingBenchmarkScenario(
             id: "wc-weekend", name: "Complete: weeke→nd",
@@ -186,7 +187,7 @@ struct CotypingBenchmarkScenario: Identifiable, Equatable, Sendable {
             expectedTerms: [],
             latencyTargetMs: 1_200,
             expectsWordCompletion: true,
-            expectedCompletionPrefixes: ["und"],
+            expectedCompletionPrefixes: ["und", "use", "se", "ma"],
             wordPrefixIsValidWord: false),
         CotypingBenchmarkScenario(
             id: "wc-german", name: "Complete (de): Unterstüt→zung",
@@ -197,7 +198,7 @@ struct CotypingBenchmarkScenario: Identifiable, Equatable, Sendable {
             expectedTerms: [],
             latencyTargetMs: 1_500,
             expectsWordCompletion: true,
-            expectedCompletionPrefixes: ["zung"],
+            expectedCompletionPrefixes: ["zung", "zen", "zt"],
             wordPrefixIsValidWord: false),
         CotypingBenchmarkScenario(
             id: "wc-long-context", name: "Complete in long email: revie→w",
@@ -325,6 +326,22 @@ struct CotypingBenchmarkScenario: Identifiable, Equatable, Sendable {
     ]
 }
 
+/// What a scenario's result means for the person typing.
+enum CotypingBenchmarkOutcome: String, Codable, Sendable {
+    /// A suggestion the scenario accepts.
+    case shown
+    /// Silence the scenario explicitly allows (e.g. strictly inside a word).
+    case allowedSilence
+    /// No suggestion where one was expected, e.g. the confidence gate held it back.
+    case withheld
+    /// A real word tail, but not one the scenario accepts.
+    case wrongCompletion
+    /// Text that would damage the field: a leaked prompt, a split or corrupted
+    /// word, or any insertion where silence was required.
+    case unsafe
+    case error
+}
+
 struct CotypingBenchmarkCaseResult: Identifiable, Equatable, Sendable {
     var id: String { scenarioID }
     var scenarioID: String
@@ -340,32 +357,44 @@ struct CotypingBenchmarkCaseResult: Identifiable, Equatable, Sendable {
     var allowedSuppression: Bool
     var expectedWordCompletion: Bool = false
     var expectedCompletionPrefixes: [String] = []
+    /// Letters follow the caret, so any insertion lands inside an existing word.
+    var insideWord: Bool = false
 
-    var passedSafety: Bool {
-        guard error == nil else { return false }
-        guard !CotypingPromptLeakGuard.looksLikePromptScaffolding(text) else { return false }
+    var outcome: CotypingBenchmarkOutcome {
+        if error != nil { return .error }
+        if CotypingPromptLeakGuard.looksLikePromptScaffolding(text) { return .unsafe }
+        if text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            guard expectedVisibleSuggestion || expectedWordCompletion, !allowedSuppression else {
+                return .allowedSilence
+            }
+            return .withheld
+        }
         if expectedWordCompletion {
-            // The ghost text must extend the fragment at the caret: no leading
-            // whitespace, and the expected word tail when one is specified. A
-            // suppressed (empty) result passes only when explicitly allowed.
-            let trimmedEmpty = text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            if trimmedEmpty { return allowedSuppression }
-            guard let first = text.first, first.isLetter || first.isNumber else { return false }
-            guard !expectedCompletionPrefixes.isEmpty else { return true }
+            // The ghost text sits right after the fragment: a leading space or
+            // punctuation would split the word ("follo w up").
+            guard let first = text.first, first.isLetter || first.isNumber else { return .unsafe }
             let folded = text.lowercased()
-            return expectedCompletionPrefixes.contains { folded.hasPrefix($0.lowercased()) }
+            if expectedCompletionPrefixes.isEmpty
+                || expectedCompletionPrefixes.contains(where: { folded.hasPrefix($0.lowercased()) }) {
+                return .shown
+            }
+            // A wrong tail is only a miss at the end of a word; inside one it
+            // corrupts the text that follows the caret.
+            return insideWord ? .unsafe : .wrongCompletion
         }
-        if expectedVisibleSuggestion {
-            return suppression == nil && !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        }
-        return text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && allowedSuppression
+        return expectedVisibleSuggestion ? .shown : .unsafe
     }
 
-    /// True when the suggestion extends the caret fragment (word-completion
-    /// scenarios only) — surfaced separately so summaries can report the
-    /// Cotypist-parity rate on its own.
+    /// Nothing harmful reached the field: no prompt leak, no split or corrupted
+    /// word, no text where silence was required, and no engine error. Staying
+    /// quiet is safe; how often that happens is reported as `withheld`.
+    var passedSafety: Bool { outcome != .unsafe && outcome != .error }
+
+    /// True when the suggestion completes the caret fragment into an accepted
+    /// word (word-completion scenarios only) — surfaced separately so summaries
+    /// can report the Cotypist-parity rate on its own.
     var wordCompletionHit: Bool {
-        expectedWordCompletion && !text.isEmpty && passedSafety
+        expectedWordCompletion && outcome == .shown
     }
 
     var latencyForTargetMs: Int { firstVisibleLatencyMs ?? latencyMs }
@@ -387,6 +416,10 @@ struct CotypingBenchmarkSummary: Equatable, Sendable {
     /// how many produced a suggestion that extends the typed fragment.
     var wordCompletionTotal: Int { results.filter(\.expectedWordCompletion).count }
     var wordCompletionPassed: Int { results.filter(\.wordCompletionHit).count }
+
+    func count(_ outcome: CotypingBenchmarkOutcome) -> Int {
+        results.filter { $0.outcome == outcome }.count
+    }
 
     var averageLatencyMs: Int? {
         guard !results.isEmpty else { return nil }
@@ -419,7 +452,7 @@ struct CotypingBenchmarkSummary: Equatable, Sendable {
 /// Machine-readable rendering for `LokalBot --cotyping-bench` — the scriptable
 /// evaluation model consumed by `Benchmarks/Cotyping/side_by_side.py`.
 extension CotypingBenchmarkSummary {
-    private struct CaseJSON: Codable {
+    fileprivate struct CaseJSON: Codable {
         let id: String
         let name: String
         let text: String
@@ -427,6 +460,7 @@ extension CotypingBenchmarkSummary {
         let firstVisibleLatencyMs: Int?
         let suppression: String?
         let error: String?
+        let outcome: CotypingBenchmarkOutcome
         let passedSafety: Bool
         let metLatencyTarget: Bool
         let expectedTermHits: Int
@@ -435,7 +469,7 @@ extension CotypingBenchmarkSummary {
         let wordCompletionHit: Bool
     }
 
-    private struct ReportJSON: Codable {
+    fileprivate struct ReportJSON: Codable {
         let total: Int
         let passed: Int
         let safetyPassed: Int
@@ -446,11 +480,19 @@ extension CotypingBenchmarkSummary {
         let averageLatencyMs: Int?
         let p95LatencyMs: Int?
         let averageFirstVisibleLatencyMs: Int?
+        let outcomes: [String: Int]
         let scenarios: [CaseJSON]
     }
 
     func jsonReport() -> String {
-        let report = ReportJSON(
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        guard let data = try? encoder.encode(reportJSON()) else { return "{}" }
+        return String(decoding: data, as: UTF8.self)
+    }
+
+    fileprivate func reportJSON() -> ReportJSON {
+        ReportJSON(
             total: total,
             passed: passed,
             safetyPassed: safetyPassed,
@@ -461,6 +503,7 @@ extension CotypingBenchmarkSummary {
             averageLatencyMs: averageLatencyMs,
             p95LatencyMs: p95LatencyMs,
             averageFirstVisibleLatencyMs: averageFirstVisibleLatencyMs,
+            outcomes: Dictionary(results.map { ($0.outcome.rawValue, 1) }, uniquingKeysWith: +),
             scenarios: results.map { result in
                 CaseJSON(
                     id: result.scenarioID,
@@ -470,6 +513,7 @@ extension CotypingBenchmarkSummary {
                     firstVisibleLatencyMs: result.firstVisibleLatencyMs,
                     suppression: result.suppression?.rawValue,
                     error: result.error,
+                    outcome: result.outcome,
                     passedSafety: result.passedSafety,
                     metLatencyTarget: result.metLatencyTarget,
                     expectedTermHits: result.expectedTermHits,
@@ -477,6 +521,65 @@ extension CotypingBenchmarkSummary {
                     expectsWordCompletion: result.expectedWordCompletion,
                     wordCompletionHit: result.wordCompletionHit)
             })
+    }
+}
+
+/// `LokalBot --cotyping-bench --model-path` output: pass 1's scenario results,
+/// model loading on its own, and latency split into the first pass (each
+/// prompt seen for the first time after loading) and the warm passes after it.
+struct CotypingEngineBenchmarkReport {
+    var loadMs: Int
+    var maxWords: Int
+    var summaries: [CotypingBenchmarkSummary]
+
+    struct LatencyJSON: Codable, Equatable {
+        let count: Int
+        let meanMs: Int
+        let medianMs: Int
+        let p90Ms: Int
+        let p95Ms: Int
+        let maxMs: Int
+    }
+
+    private struct ReportJSON: Codable {
+        let loadMs: Int
+        let maxWords: Int
+        let passes: Int
+        let consistentAcrossPasses: Bool
+        let unsafe: Int
+        let errors: Int
+        let firstPassLatency: LatencyJSON?
+        let warmLatency: LatencyJSON?
+        let firstPass: CotypingBenchmarkSummary.ReportJSON
+    }
+
+    var unsafe: Int { summaries.map { $0.count(.unsafe) }.reduce(0, +) }
+    var errors: Int { summaries.map { $0.count(.error) }.reduce(0, +) }
+
+    /// Decoding is greedy, so every pass should show exactly the same thing.
+    var consistentAcrossPasses: Bool {
+        let shown = summaries.map { $0.results.map { "\($0.text)|\($0.suppression?.rawValue ?? "")" } }
+        return shown.allSatisfy { $0 == shown.first }
+    }
+
+    /// Nearest-rank percentiles, as the replay scripts compute them.
+    static func latency(_ values: [Int]) -> LatencyJSON? {
+        guard !values.isEmpty else { return nil }
+        let sorted = values.sorted()
+        func rank(_ p: Double) -> Int { sorted[max(0, Int((Double(sorted.count) * p).rounded(.up)) - 1)] }
+        return LatencyJSON(
+            count: sorted.count, meanMs: sorted.reduce(0, +) / sorted.count, medianMs: rank(0.5),
+            p90Ms: rank(0.9), p95Ms: rank(0.95), maxMs: sorted[sorted.count - 1])
+    }
+
+    func json() -> String {
+        guard let first = summaries.first else { return "{}" }
+        let report = ReportJSON(
+            loadMs: loadMs, maxWords: maxWords, passes: summaries.count,
+            consistentAcrossPasses: consistentAcrossPasses, unsafe: unsafe, errors: errors,
+            firstPassLatency: Self.latency(first.results.map(\.latencyMs)),
+            warmLatency: Self.latency(summaries.dropFirst().flatMap { $0.results.map(\.latencyMs) }),
+            firstPass: first.reportJSON())
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         guard let data = try? encoder.encode(report) else { return "{}" }
@@ -526,6 +629,36 @@ enum CotypingBenchmarkRunner {
         return CotypingBenchmarkSummary(results: results)
     }
 
+    /// Runs every scenario `passes` times against the runtime the app builds for
+    /// autocomplete, with fresh-install settings. Like `--cotyping-replay`, it
+    /// reads only the given model: no saved settings, library, learning or
+    /// window. Exit 1 when anything was unsafe or errored.
+    static func runEngine(model: URL, passes: Int) async -> Int32 {
+        let engine = LocalLlamaCotypingEngine(runtime: .forAutocomplete(), modelPath: model.path)
+        let settings = AppSettings()
+        var config = CotypingConfiguration.standard
+        config.maxResponseTokens = settings.cotypingMaxResponseTokens
+        config.maxResponseWords = settings.cotypingMaxWords
+        let loadStart = Date()
+        do {
+            try await engine.prewarm()
+        } catch {
+            try? FileHandle.standardError.write(contentsOf: Data("Cotyping bench: \(error)\n".utf8))
+            return 1
+        }
+        let loadMs = Int(Date().timeIntervalSince(loadStart) * 1000)
+        var summaries: [CotypingBenchmarkSummary] = []
+        for _ in 0..<passes {
+            summaries.append(await run(
+                engine: engine, config: config, personalization: settings.cotypingPersonalization))
+        }
+        await engine.unload()
+        let report = CotypingEngineBenchmarkReport(
+            loadMs: loadMs, maxWords: config.maxResponseWords, summaries: summaries)
+        print(report.json())
+        return report.unsafe + report.errors == 0 ? 0 : 1
+    }
+
     static func evaluate(
         scenario: CotypingBenchmarkScenario,
         text: String,
@@ -550,6 +683,7 @@ enum CotypingBenchmarkRunner {
             allowedSuppression: suppression.map { scenario.allowedSuppressions.contains($0) } ?? false,
             expectedWordCompletion: scenario.expectsWordCompletion,
             expectedCompletionPrefixes: scenario.expectedCompletionPrefixes,
+            insideWord: scenario.field.trailingText.first?.isLetter == true,
             latencyTargetMs: scenario.latencyTargetMs)
     }
 

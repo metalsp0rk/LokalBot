@@ -1,0 +1,89 @@
+{
+  "modelFile": "LFM2.5-1.2B-Instruct-Q4_K_M.gguf",
+  "checks": {
+    "exitCode": 0,
+    "loadMs": 162,
+    "maxWords": 4,
+    "consistentAcrossPasses": true,
+    "outcomes": {
+      "allowedSilence": 1,
+      "shown": 24,
+      "withheld": 3
+    },
+    "wordCompletions": [
+      12,
+      13
+    ],
+    "keywordHits": [
+      8,
+      64
+    ],
+    "firstPassLatency": {
+      "count": 28,
+      "maxMs": 38,
+      "meanMs": 19,
+      "medianMs": 18,
+      "p90Ms": 34,
+      "p95Ms": 38
+    },
+    "warmLatency": {
+      "count": 112,
+      "maxMs": 37,
+      "meanMs": 19,
+      "medianMs": 18,
+      "p90Ms": 28,
+      "p95Ms": 29
+    }
+  },
+  "accuracy": {
+    "overall": {
+      "checkpoints": 788,
+      "correct": 163,
+      "shown": 379,
+      "accuracy": 0.2069,
+      "coverage": 0.481,
+      "precision": 0.4301,
+      "errors": 0
+    },
+    "english": {
+      "checkpoints": 624,
+      "correct": 151,
+      "shown": 359,
+      "accuracy": 0.242,
+      "coverage": 0.5753,
+      "precision": 0.4206,
+      "errors": 0
+    },
+    "otherLanguages": {
+      "checkpoints": 164,
+      "correct": 12,
+      "shown": 20,
+      "accuracy": 0.0732,
+      "coverage": 0.122,
+      "precision": 0.6,
+      "errors": 0
+    },
+    "latency": {
+      "count": 788,
+      "meanMs": 16.1,
+      "medianMs": 11.3,
+      "p90Ms": 28.2,
+      "p95Ms": 63.5,
+      "maxMs": 76.7
+    }
+  },
+  "typing": {
+    "keystrokes": 363,
+    "generated": 363,
+    "shown": 341,
+    "errors": 0,
+    "latency": {
+      "count": 363,
+      "meanMs": 33.0,
+      "medianMs": 26.0,
+      "p90Ms": 74.9,
+      "p95Ms": 75.5,
+      "maxMs": 80.7
+    }
+  }
+}

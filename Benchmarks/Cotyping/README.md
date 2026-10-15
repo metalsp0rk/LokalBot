@@ -72,6 +72,70 @@ on the original engine, providing a regression control for paragraph and caret
 whitespace preservation. Python tools use only the standard library; `-S`
 avoids loading unrelated site startup hooks.
 
+## Engine benchmark
+
+`engine_benchmark.py` produces the autocomplete numbers on the website. It runs
+the production autocomplete runtime (`LlamaCotypingRuntime.forAutocomplete()`)
+on one local GGUF with fresh-install settings. Every part starts before the app
+itself, so it reads no saved settings, library or learned writing, and shows no
+window or menu-bar icon.
+
+```sh
+uv run --no-project python -S Benchmarks/Cotyping/engine_benchmark.py \
+  --app .build/XcodeDerivedData/Build/Products/Release/LokalBot.app/Contents/MacOS/LokalBot \
+  --model "$HOME/Library/Application Support/me.dotenv.LokalBot/models/gemma-4-E2B.i1-Q6_K.gguf" \
+  --output /absolute/path/to/new-results
+```
+
+It has three parts.
+
+- **Checks** (`LokalBot --cotyping-bench --model-path … --passes 5`). These are
+  the 28 scenarios in `CotypingBenchmark.swift`, repeated 5 times. Each result
+  is one of:
+  - **shown**: a suggestion the scenario accepts.
+  - **allowed silence**: silence the scenario explicitly permits.
+  - **withheld**: no suggestion where one was expected, for example because the
+    confidence gate held it back.
+  - **wrong completion**: a real word, but not one the scenario accepts.
+  - **unsafe**: a leaked prompt, a split or corrupted word, or text where
+    silence was required.
+  - **error**.
+
+  Word completions accept every real word that fits the fragment ("schedu" →
+  "schedule" or "scheduling"). Model loading is timed on its own. The first
+  pass, where each prompt is new after loading, is reported apart from the
+  warm passes.
+- **Accuracy** (`--cotyping-replay`). It replays every word boundary of the
+  checked-in original phrases: `quality-cases.json` (32 phrases, in English and
+  other languages) and `hybrid-confirmation-cases.json` (64 phrases, including
+  Serbian Latin and Cyrillic).
+  - **Accuracy** is how often the first suggested word exactly matches the next
+    word, out of all checkpoints.
+  - **Coverage** is how often anything shows.
+  - **Precision** is how often a shown suggestion is right.
+  - Silence counts against accuracy but never against precision. That
+    separates a careful model from a wrong one.
+- **Typing** (`--cotyping-replay`). It types 8 of those phrases one character
+  at a time, so the engine reuses its prompt cache as it does while you type,
+  and reports per-keystroke engine latency. Keystrokes the engine skips before
+  generating are counted but not timed.
+
+Eight untimed warmup requests precede each replay. Every replay observation must
+report the production hybrid, `certified` prefix search, 2 threads and prefix
+healing, or the run stops.
+
+The boundary is the engine. Input monitoring, debounce, accessibility reads,
+screen and memory context, learning and the overlay are excluded. The phrases
+are synthetic and were written for earlier LokalBot studies, so they suit
+comparing models and builds, not predicting acceptance in real use.
+
+The run fails when any check is unsafe or errors. Withheld suggestions and
+latency are reported, not gated.
+
+```sh
+uv run --no-project python -S -m unittest discover -s Benchmarks/Cotyping -p 'test_engine_benchmark.py'
+```
+
 ## Hosted model comparison
 
 `remote_comparison.py` asks whether a hosted model would beat the local one by
