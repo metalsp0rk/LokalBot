@@ -114,6 +114,7 @@ enum ParallelRangeDownloader {
         session: URLSession,
         partSize: Int64 = defaultPartSize,
         maxConcurrentParts: Int = defaultMaxConcurrentParts,
+        minimumRangedBytes: Int64 = ParallelRangeDownloader.minimumAcceleratedSize,
         stashDirectory: URL? = nil,
         progress: @escaping @Sendable (Progress) -> Void
     ) async throws -> URL {
@@ -121,6 +122,7 @@ enum ParallelRangeDownloader {
             return try await downloadRanged(
                 from: url, session: session, partSize: partSize,
                 maxConcurrentParts: maxConcurrentParts,
+                minimumRangedBytes: minimumRangedBytes,
                 stashDirectory: stashDirectory, progress: progress)
         } catch is FallbackRequired {
             return try await downloadWhole(from: url, session: session, progress: progress)
@@ -157,13 +159,14 @@ enum ParallelRangeDownloader {
         session: URLSession,
         partSize: Int64,
         maxConcurrentParts: Int,
+        minimumRangedBytes: Int64,
         stashDirectory: URL?,
         progress: @escaping @Sendable (Progress) -> Void
     ) async throws -> URL {
         try Task.checkCancellation()
         let probe = try await probe(url: url, session: session)
         guard probe.supportsByteRanges,
-              probe.totalBytes >= minimumAcceleratedSize else {
+              probe.totalBytes >= minimumRangedBytes else {
             throw FallbackRequired.unsupported
         }
 
