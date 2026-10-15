@@ -231,8 +231,10 @@ The app may make these outbound connections:
   LokalBot reaches such a server. Requests use raw text completion, or the
   server's chat endpoint for hosted chat APIs and for a server that answers
   that it has no raw route; a request that fails or times out is not
-  repeated. With OpenRouter, the provider data policy chosen for Think
-  applies. The operator of that server controls its privacy terms.
+  repeated, except that a chat reply the model spent entirely on reasoning
+  is asked once more of the same server, with room for that reasoning.
+  With OpenRouter, the provider data policy chosen for Think applies. The
+  operator of that server controls its privacy terms.
 - **Optional subscription plans:** Think can run on your own ChatGPT or Claude
   plan instead of an API key. Each plan is set up and approved where you
   choose the Think model (Settings → Models → Think), separately from any
