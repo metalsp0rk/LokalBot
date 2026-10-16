@@ -64,6 +64,8 @@ struct ActionThreadRow: View {
     @EnvironmentObject var app: AppState
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let thread: ActionThread
+    /// Projects show whose work it is when it is someone else's.
+    var showsOwner = false
     @State private var showingSources = false
     @State private var showingStatusConfirmation = false
     @State private var pendingStatus: OutcomeStatus = .done
@@ -90,6 +92,11 @@ struct ActionThreadRow: View {
                     .strikethrough(thread.status == .done)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 HStack(spacing: 6) {
+                    if showsOwner {
+                        Text(thread.owner.map { SpeakerDisplayName.label($0) } ?? "Owner unclear")
+                            .font(AppFont.scaled(.callout))
+                            .foregroundStyle(.secondary)
+                    }
                     if thread.hasMixedStatus {
                         Text("Mixed status")
                             .font(AppFont.scaled(.callout))

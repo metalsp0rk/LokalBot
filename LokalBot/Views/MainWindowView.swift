@@ -118,7 +118,7 @@ struct MainWindowView: View {
             PeopleWorkspaceView(connections: app.connections)
                 .id("workspace.people")
         case .projects:
-            ProjectsWorkspaceView(connections: app.connections)
+            ProjectsWorkspaceView(connections: app.connections, store: app.projectStore)
                 .id("workspace.projects")
         case .ask:
             HSplitView {

@@ -309,6 +309,9 @@ final class AppState: ObservableObject {
     @Published var selectedPersonID: String?
     @Published var selectedProjectID: String?
     private(set) lazy var connections = WorkMemoryConnections()
+    /// Tracked projects and their "Where it stands" notes.
+    private(set) lazy var projectStore = ProjectStore(
+        directory: storage.rootURL.appendingPathComponent("projects", isDirectory: true))
 
     /// The meeting whose follow-up draft sheet is open, from any entry point.
     @Published var followUpDraftMeeting: Meeting?
@@ -372,12 +375,44 @@ final class AppState: ObservableObject {
     }
 
     func refreshConnections() {
+        let library = meetings.filter { !$0.isMergedSource }
+        if libraryReady { projectStore.withdrawSummaries(missingFrom: Set(meetings.map(\.id))) }
         connections.refresh(.init(
-            meetings: meetings.filter { !$0.isMergedSource },
+            meetings: library,
             projections: outcomeIndex.all,
             memory: dreamMemory,
+            curation: projectStore.curation,
             root: storage.rootURL,
             activityDatabaseURL: activityStore.databaseURL))
+    }
+
+    /// Writes a tracked project's "Where it stands" note with the Think model.
+    /// An automatic write (opening a project whose note is missing or out of
+    /// date) runs only under the same approval as scheduled digests and
+    /// Dream runs, and never starts a model download.
+    func writeProjectSummary(for project: ProjectProfile, automatic: Bool) {
+        guard project.isTracked else { return }
+        if automatic {
+            guard settings.allowsAutomaticMainInference,
+                  ModelReadinessSnapshot.thinkReady(settings, storage: storage),
+                  projectStore.shouldWriteAutomatically(project) else { return }
+        }
+        let provenance = DreamInferenceProvenance(settings: settings)
+        let location: String
+        if provenance.location == .local {
+            location = "this Mac"
+        } else {
+            location = provenance.origin.flatMap { URL(string: $0)?.host } ?? provenance.origin ?? "a server"
+        }
+        Task { [weak self] in
+            guard let self else { return }
+            await self.projectStore.writeSummary(for: project, automatic: automatic, location: location) { [weak self] in
+                guard let self else { throw TextEngineError.unavailable("LokalBot is shutting down.") }
+                if automatic && !self.settings.allowsAutomaticMainInference { throw CancellationError() }
+                return try await self.thinkExecution.makeTextEngine(
+                    self.settings, priority: automatic ? .background : .interactive, purpose: "project summary")
+            }
+        }
     }
     private static let typeTabDefaultsKey = "lokalbotv3.type.selectedTab"
     private static var navigationDefaults: UserDefaults {
@@ -1912,10 +1947,13 @@ final class AppState: ObservableObject {
         if settings.cotypingUseMeetingMemory || settings.cotypingUseScreenMemory { cotyping.invalidateMemoryContext() }
         defer { primaryEvidenceDidChange(for: meetings) }
         purgeDigestSegmentAnswers(for: meetings.map(\.startedAt))
-        return try dreamStore.withMeetingEvidenceMutation(for: meetings) {
+        let result = try dreamStore.withMeetingEvidenceMutation(for: meetings) {
             if change == .removal { try dayDigest.retractGeneratedJournals(for: meetings.map(\.startedAt)) }
             return try mutation()
         }
+        // A deleted meeting withdraws every project note that used it.
+        if change == .removal { projectStore.withdrawSummaries(citing: Set(meetings.map(\.id))) }
+        return result
     }
 
     /// Deleted or corrected evidence must not survive in reused digest answers.

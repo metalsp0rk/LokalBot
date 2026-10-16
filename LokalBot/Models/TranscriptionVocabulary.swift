@@ -91,6 +91,8 @@ enum TranscriptionVocabulary {
         if let memory {
             sources.projectNames = Self.endorsedProjectNames(memory)
         }
+        // Names the person tracks in Projects are confirmed spellings too.
+        sources.projectNames += ProjectCuration.load(libraryRoot: root)?.trackedNames ?? []
         sources.titleTerms = titleTerms(meeting.calendarTitle ?? meeting.title)
         return sources
     }
