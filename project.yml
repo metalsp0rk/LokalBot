@@ -372,6 +372,7 @@ targets:
       - path: LokalBot/Models/ActionDueResolver.swift
       - path: LokalBot/Models/ActionDuePresentation.swift
       - path: LokalBot/Models/PeopleDirectory.swift
+      - path: LokalBot/Models/PeopleCuration.swift
       - path: LokalBot/Services/MeetingOutcomeStore.swift
       - path: LokalBot/Support/OutcomeProse.swift
     dependencies:

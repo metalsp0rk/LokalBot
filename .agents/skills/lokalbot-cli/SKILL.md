@@ -68,7 +68,7 @@ lokalbot-cli people --query ana
 lokalbot-cli people "Ana Petrović"
 ```
 
-People are joined from calendar attendee names, speaker names applied in LokalBot, and action owners. Only names are returned; never ask for or infer email addresses.
+People are joined from calendar attendee names, speaker names applied in LokalBot, and action owners. Names chosen, people merged, and entries hidden on the app's People page apply here too, and `meeting_count` counts a call recorded in several parts once. Only names are returned; never ask for or infer email addresses.
 
 ## Path lookup
 

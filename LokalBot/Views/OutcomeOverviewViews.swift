@@ -66,6 +66,9 @@ struct ActionThreadRow: View {
     let thread: ActionThread
     /// Projects show whose work it is when it is someone else's.
     var showsOwner = false
+    /// People show deferred work as deferred and ask about open work nobody
+    /// has mentioned for weeks.
+    var showsStaleness = false
     @State private var showingSources = false
     @State private var showingStatusConfirmation = false
     @State private var pendingStatus: OutcomeStatus = .done
@@ -99,6 +102,10 @@ struct ActionThreadRow: View {
                     }
                     if thread.hasMixedStatus {
                         Text("Mixed status")
+                            .font(AppFont.scaled(.callout))
+                            .foregroundStyle(.secondary)
+                    } else if showsStaleness && thread.status == .deferred {
+                        Text("Deferred")
                             .font(AppFont.scaled(.callout))
                             .foregroundStyle(.secondary)
                     }
@@ -156,6 +163,11 @@ struct ActionThreadRow: View {
                         onDone: { set(.done) },
                         onView: { app.openScreenSnapshot(hint.snapshotID) },
                         onDismiss: { app.dismissActionCompletionHint(hint) })
+                } else if showsStaleness && thread.isStale() {
+                    StillOpenLine(
+                        lastMentioned: thread.latestReference.meetingStartedAt,
+                        onDone: { set(.done) },
+                        onDefer: { set(.deferred) })
                 }
             }
 
@@ -272,6 +284,39 @@ private struct ActionCompletionHintLine: View {
         let time = hint.capturedAt.formatted(.dateTime.weekday(.abbreviated).hour().minute())
         let title = hint.title.isEmpty ? "" : " · \(hint.title)"
         return "“\(hint.cue)” in \(hint.app) · \(time)\(title)"
+    }
+}
+
+/// Asks about open work nobody has mentioned for weeks. Either answer goes
+/// through the normal status path; deferred work stops asking.
+private struct StillOpenLine: View {
+    let lastMentioned: Date
+    let onDone: () -> Void
+    let onDefer: () -> Void
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Label("Still open?", systemImage: "clock.badge.questionmark")
+                .font(AppFont.scaled(.callout).weight(.semibold))
+                .foregroundStyle(LBTokens.Palette.attentionText)
+            Text(age)
+                .font(AppFont.scaled(.callout))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+            Spacer(minLength: 4)
+            Button("Mark Done", action: onDone).buttonStyle(.workspaceLink)
+            Button("Defer", action: onDefer).buttonStyle(.workspaceLink)
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Still open? \(age)")
+        .accessibilityIdentifier("outcome.thread.stillOpen")
+        .help("Nobody has mentioned this in a meeting for a while. Mark it done, or defer it to stop this question.")
+    }
+
+    private var age: String {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .full
+        return "Last mentioned " + formatter.localizedString(for: lastMentioned, relativeTo: Date())
     }
 }
 

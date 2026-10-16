@@ -115,7 +115,7 @@ struct MainWindowView: View {
             .detailSplitMinimumWidth([LBTokens.Metric.contentColumnMinWidth, LBTokens.Metric.contentDetailMinWidth])
             .id("workspace.meetings")
         case .people:
-            PeopleWorkspaceView(connections: app.connections)
+            PeopleWorkspaceView(connections: app.connections, store: app.peopleStore)
                 .id("workspace.people")
         case .projects:
             ProjectsWorkspaceView(connections: app.connections, store: app.projectStore)
