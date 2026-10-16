@@ -30,6 +30,9 @@ struct PersonalClaim: Codable, Identifiable, Equatable, Sendable, PersonalContex
         case codingAgent(name: String)
         /// A question asked in Ask or Quick Recall.
         case ask(conversationID: UUID)
+        /// Words dictated into another app, kept by Learn from my dictation
+        /// only until the night's pass read them.
+        case dictation(app: String)
     }
 
     /// Who may read the claim besides LokalBot itself.
@@ -169,6 +172,7 @@ extension PersonalContextProjection.Claim {
         case .said: source = .askedToRemember
         case .added: source = .addedInSettings
         case .learned: source = claim.authority == .stated ? .addedInSettings : .learnedFromMeeting
+        case .typed(.dictation, _): source = claim.authority == .stated ? .addedInSettings : .learnedFromDictation
         case .typed: source = claim.authority == .stated ? .addedInSettings : .learnedFromTyping
         case .workMemory: source = claim.authority == .stated ? .addedInSettings : .learnedFromWorkMemory
         }

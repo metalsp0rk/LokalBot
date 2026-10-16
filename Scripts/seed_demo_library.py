@@ -400,7 +400,8 @@ def seed_chats(root, now):
 def seed_about_you(root, now):
     """Plaintext About you items, one per origin the app can store: stated in
     Settings, said in Ask, learned from a meeting line, a typed-request
-    suggestion, and a work-memory suggestion, plus a tombstone and a work
+    suggestion, a dictation suggestion, and a work-memory suggestion, plus a
+    tombstone and a work
     sighting. PersonalModelStore reads plaintext and seals it on its next
     save, so the screenshot library and upgrade fixtures need no key."""
     memory = os.path.join(root, "memory")
@@ -445,6 +446,10 @@ def seed_about_you(root, now):
                   now - timedelta(minutes=20), status="proposed", authority="learned",
                   evidence=provenance("screenDay", review_day, review_day),
                   quote="I prefer small pull requests, so split this change into two PRs."),
+            claim("bbbbbbb1-0000-4000-8000-000000000006", "preference", "I prefer to get the agenda the day before.",
+                  {"typed": {"source": {"dictation": {"app": "Slack"}}, "dayKey": review_day}},
+                  now - timedelta(minutes=15), status="proposed", authority="learned",
+                  quote="Hi Marko, could you send the agenda the day before? I prefer to read it ahead of the call."),
             claim("bbbbbbb1-0000-4000-8000-000000000005", "goal", "Ship the Northwind SSO rollout this quarter.",
                   {"workMemory": {"dayKey": first_seen}},
                   now - timedelta(minutes=10), status="proposed", authority="learned",

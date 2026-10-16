@@ -54,7 +54,7 @@ final class SeedLibraryCompatibilityTests: XCTestCase {
 
         let store = PersonalModelStore(root: root, encryptionKey: { SymmetricKey(size: .bits256) })
         let model = try store.load()
-        XCTAssertEqual(model.claims.count, 5)
+        XCTAssertEqual(model.claims.count, 6)
         XCTAssertEqual(model.tombstones.count, 1)
         XCTAssertEqual(model.workSightings.count, 1)
         var origins: [String] = []
@@ -65,13 +65,14 @@ final class SeedLibraryCompatibilityTests: XCTestCase {
             case .learned: origins.append("learned")
             case .typed(.codingAgent, _): origins.append("typed")
             case .typed(.ask, _): origins.append("typed-ask")
+            case .typed(.dictation, _): origins.append("typed-dictation")
             case .workMemory: origins.append("workMemory")
             }
         }
-        XCTAssertEqual(origins, ["added", "said", "learned", "typed", "workMemory"])
+        XCTAssertEqual(origins, ["added", "said", "learned", "typed", "typed-dictation", "workMemory"])
 
         let controller = PersonalModelController(store: store)
         XCTAssertEqual(controller.usableClaims().count, 3)
-        XCTAssertEqual(controller.suggestions.count, 2)
+        XCTAssertEqual(controller.suggestions.count, 3)
     }
 }

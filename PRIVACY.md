@@ -39,7 +39,9 @@ captured text, screenshot titles, URLs, and document names follow the same
 retention unless you explicitly choose to keep screen text and metadata forever.
 Activity titles expire on the configured schedule even with that exception;
 app names and duration totals remain. Saved moments remain until you unsave or delete them. Dictation scratch
-audio is deleted after transcription by default. You can delete an individual
+audio is deleted after transcription by default. Dictated text is not kept,
+except briefly for learning while **Learn from my dictation** is on (see About
+you below). You can delete an individual
 meeting in the app or remove the entire LokalBot Application Support directory.
 
 **Read coding agent sessions** is on by default and can be turned off in
@@ -111,14 +113,15 @@ and items you add there. With **Learn about me from my meetings and work**
 After each review, LokalBot sends your own words from that day to your Think
 model. That means your transcript lines from meetings, the requests you
 typed to Claude Code or Codex (only while **Read coding agent sessions** is
-on), and the questions you asked in Ask. Only lines with first-person words
+on), the questions you asked in Ask, and, only with **Learn from my
+dictation** on, what you dictated into other apps. Only lines with first-person words
 such as "I" or "my" are sent, at most 40 lines (15 of them typed) and 6,000
 characters, plus what About you already holds. Other speakers' lines are
 never sent, nor your lines from a microphone several people shared. This
 follows the same approved-server rule as the overnight review. Up to three
 items a night come from this. Facts and goals from meetings are saved and
-used without review. Preferences, and anything learned from what you typed,
-wait for you to keep or dismiss them. A goal or project the overnight
+used without review. Preferences, and anything learned from what you typed
+or dictated, wait for you to keep or dismiss them. A goal or project the overnight
 review's work memory has kept for two weeks, and seen in the last week, is
 also suggested for review; that step makes no model call. Principles and
 values are never learned. Each learned item must come from one of your lines, shows
@@ -134,6 +137,22 @@ The exception is an item you chose to keep with **Keep Even If the … Is
 Deleted**. Forgetting a learned item, or dismissing a
 suggestion, keeps a one-way hash for 180 days so the same text isn't
 learned again. Unreviewed suggestions are dropped after 14 days.
+
+**Learn from my dictation** is off by default and needs the learning setting
+above. While it is on, LokalBot keeps the words you dictate into other apps
+until that night's learning pass reads them, and never more than two days.
+It keeps only what you spoke, never a Compose draft, and only when the text
+was pasted into a field it could identify. Excluded apps and websites,
+private and incognito windows, password fields, LokalBot itself, and browser
+pages whose address it can't read are skipped. To check that, it reads the
+window title and page address once, right after the paste, and keeps neither.
+Card numbers and IBANs are redacted first. At most 200 dictations are kept,
+in `memory/dictation-for-learning.json.enc`, encrypted with the same key as
+About you. The learning pass deletes them once it has read their day; a
+dictation that is also a request you sent to a coding agent is read only
+once. Items found there always wait for your review and stay until you
+forget them, since the dictated words are already gone. Turning the setting
+off, or Forget everything, deletes what is kept.
 The items are AES-GCM encrypted with the same per-install key as
 saved Ask conversations, in the library's `memory` folder. Each Ask question
 includes the relevant items in its prompt to your Think model, which may be
@@ -662,7 +681,9 @@ same focused field once or a few times within about a second, to confirm the tex
 arrived. It reads only the exact field the text was pasted into, identified when
 dictation started, and never a secure field; when that field could not be
 identified, nothing is read back. The read is compared in memory and discarded; nothing from it is saved,
-logged or sent anywhere. Apps on the shared exclusion list are not read, and a
+logged or sent anywhere. With **Learn from my dictation** on, it also reads
+that window's title and page address once, under the same rules, to apply
+the exclusions described under About you. Apps on the shared exclusion list are not read, and a
 field that cannot be read is left unchecked. When the text is missing, the
 dictation overlay offers to copy it. The chosen dictation microphone is stored as
 a device identifier in Settings.

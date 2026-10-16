@@ -41,6 +41,17 @@ struct AboutYouSettings: View {
             .settingTarget("settings.personalLearningEnabled", selected: app.focusedSettingID)
             .disabled(!app.settings.askMemoryEnabled)
             .accessibilityIdentifier("settings.personalLearning")
+            Toggle(isOn: $app.settings.personalLearningFromDictation) {
+                SettingsLabel("Learn from my dictation",
+                              help: "Also reads what you dictate into other apps. LokalBot keeps the words you spoke, "
+                                  + "encrypted, until that night's learning reads them, and never more than two days. "
+                                  + "Only text pasted into a field it could identify is kept; excluded apps and websites, "
+                                  + "private windows, and password fields are skipped. Items from dictation always wait "
+                                  + "for your review. Turning this off deletes what is kept.")
+            }
+            .settingTarget("settings.personalLearningFromDictation", selected: app.focusedSettingID)
+            .disabled(!app.settings.askMemoryEnabled || !app.settings.personalLearningEnabled)
+            .accessibilityIdentifier("settings.personalLearningFromDictation")
             if app.settings.personalLearningEnabled, app.settings.askMemoryEnabled, !app.settings.dreamingEnabled {
                 SettingsHelp("Learning runs after the overnight review, which is off.")
             }
@@ -103,6 +114,7 @@ struct AboutYouSettings: View {
                 } else {
                     error = nil
                 }
+                app.forgetDictationForLearning()
             }
             Button("Cancel", role: .cancel) {}
         } message: {
@@ -147,7 +159,7 @@ struct AboutYouSettings: View {
                     report(personalModel.update(
                         claim.id, sharing: claim.sharing == .agents ? .lokalBotOnly : .agents))
                 }
-                if claim.isLearned, claim.authority != .stated {
+                if claim.isLearned, claim.authority != .stated, Self.hasRemovableSource(claim) {
                     Divider()
                     if case .learned(let meetingID, _) = claim.origin {
                         Button("Open Meeting") { app.openMeeting(meetingID) }
@@ -221,6 +233,12 @@ struct AboutYouSettings: View {
         .accessibilityIdentifier("settings.aboutYou.suggestion")
     }
 
+    /// Dictated words are gone once read, so nothing can retract the item.
+    static func hasRemovableSource(_ claim: PersonalClaim) -> Bool {
+        if case .typed(.dictation, _) = claim.origin { return false }
+        return true
+    }
+
     static func keepLabel(for claim: PersonalClaim) -> String {
         switch claim.origin {
         case .learned: "Keep Even If the Meeting Is Deleted"
@@ -231,7 +249,11 @@ struct AboutYouSettings: View {
 
     private func quoteLine(_ quote: String, for claim: PersonalClaim) -> some View {
         let verb: String
-        if case .typed = claim.origin { verb = "You typed" } else { verb = "You said" }
+        switch claim.origin {
+        case .typed(.dictation, _): verb = "You dictated"
+        case .typed: verb = "You typed"
+        default: verb = "You said"
+        }
         return Text("\(verb): “\(quote)”")
             .font(.scaled(.caption))
             .italic()
@@ -253,6 +275,10 @@ struct AboutYouSettings: View {
             origin = Self.learnedOrigin("Learned from what you typed to \(name)", claim.authority)
         case .typed(.ask, _):
             origin = Self.learnedOrigin("Learned from a question you asked", claim.authority)
+        case .typed(.dictation(let appName), _):
+            origin = Self.learnedOrigin(
+                appName.isEmpty ? "Learned from your dictation" : "Learned from what you dictated in \(appName)",
+                claim.authority)
         case .workMemory(let firstDay):
             let since = DreamDay.date(fromKey: firstDay).map { $0.formatted(date: .abbreviated, time: .omitted) }
                 ?? firstDay

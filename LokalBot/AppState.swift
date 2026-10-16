@@ -191,6 +191,9 @@ final class AppState: ObservableObject {
                 if Self.dreamingChanged(from: oldValue, to: settings) {
                     applyDreamingSetting()
                 }
+                if settings.learnsFromDictation != oldValue.learnsFromDictation {
+                    applyDictationLearningSetting()
+                }
             }
         }
     }
@@ -742,6 +745,8 @@ final class AppState: ObservableObject {
         },
         onMicPermissionDenied: { [weak self] in
             self?.micRecoveryNeeded = true
+        }, onDictatedForLearning: { [weak self] spokenText, appName in
+            self?.keepDictationForLearning(spokenText, appName: appName)
         }, memoryContextProvider: { [weak self] field, settings in
             guard let self, self.libraryReady else { return .empty }
             let root = self.storage.rootURL
@@ -838,6 +843,10 @@ final class AppState: ObservableObject {
 
     /// What the person told LokalBot about themselves: Ask and Quick Recall
     /// read and add to it, Settings → Day Memory → About you edits it.
+    /// Dictated words waiting for the overnight learning pass, while Learn
+    /// from my dictation is on.
+    private(set) lazy var dictationLearningLog = DictationLearningLog(root: storage.rootURL)
+
     private(set) lazy var personalModel: PersonalModelController = {
         let controller = PersonalModelController(
             store: PersonalModelStore(root: storage.rootURL),
@@ -1165,6 +1174,7 @@ final class AppState: ObservableObject {
         applyCodingAgentEvidenceSetting()
         applyMemoryRoutineSetting()
         applyDreamingSetting()
+        applyDictationLearningSetting()
         applyHealthCheckSetting()
         bindBackgroundActivity()
         // First-run check. A genuinely-new user with missing permissions gets
@@ -2352,8 +2362,11 @@ final class AppState: ObservableObject {
         let engineSettings = settings
         if target.isAutomatic && !engineSettings.allowsAutomaticMainInference { return }
         let bursts = engineSettings.codingAgentEvidenceEnabled ? activityStore.codingAgentBursts(on: target.day) : []
+        let dictated = engineSettings.learnsFromDictation
+            ? dictationLearningLog.entries(on: target.day, calendar: target.calendar) : []
         let typed = PersonalLearning.typedLines(
-            bursts: bursts, conversations: chat.conversations, day: target.day, calendar: target.calendar)
+            bursts: bursts, conversations: chat.conversations, dictations: dictated,
+            day: target.day, calendar: target.calendar)
         do {
             let revision = try dreamStore.evidenceRevision()
             let engine = try await thinkExecution.makeTextEngine(
@@ -2368,6 +2381,10 @@ final class AppState: ObservableObject {
             let candidates = try await PersonalLearning.run(
                 day: target.day, storageRoot: storage.rootURL, known: known, revision: revision,
                 engine: engine, embed: embed, typed: typed, calendar: target.calendar)
+            // Read once, then gone: the day's dictation is never kept past its pass.
+            if !dictated.isEmpty {
+                try? dictationLearningLog.removeEntries(through: target.day, calendar: target.calendar)
+            }
             guard !candidates.isEmpty else { return }
             let outcome = personalModel.learn(candidates)
             lokalbotLog("personal learning: day=\(target.dayKey) saved=\(outcome.saved.count) "
@@ -2403,6 +2420,37 @@ final class AppState: ObservableObject {
             return
         } catch {
             lokalbotLog("dream rollups skipped: \(error.localizedDescription)")
+        }
+    }
+
+    func keepDictationForLearning(_ spokenText: String, appName: String) {
+        guard settings.learnsFromDictation else { return }
+        do {
+            try dictationLearningLog.append(spokenText, appName: appName)
+        } catch {
+            lokalbotLog("dictation for learning not kept: \(error.localizedDescription)")
+        }
+    }
+
+    /// Off deletes every kept dictation at once; on drops expired ones.
+    func applyDictationLearningSetting() {
+        do {
+            if settings.learnsFromDictation {
+                try dictationLearningLog.prune()
+            } else {
+                try dictationLearningLog.deleteAll()
+            }
+        } catch {
+            lokalbotLog("dictation learning log cleanup failed: \(error.localizedDescription)")
+        }
+    }
+
+    /// About you → Forget everything also drops dictation not yet read.
+    func forgetDictationForLearning() {
+        do {
+            try dictationLearningLog.deleteAll()
+        } catch {
+            lokalbotLog("dictation learning log delete failed: \(error.localizedDescription)")
         }
     }
 

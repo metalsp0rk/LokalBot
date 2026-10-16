@@ -101,6 +101,8 @@ struct PersonalContextProjection: Codable, Equatable, Sendable {
             case learnedFromMeeting = "learned_from_meeting"
             /// From something the user typed to a coding agent or in Ask.
             case learnedFromTyping = "learned_from_typing"
+            /// From something the user dictated into another app.
+            case learnedFromDictation = "learned_from_dictation"
             /// A goal or project LokalBot's overnight review kept for weeks.
             case learnedFromWorkMemory = "learned_from_work_memory"
         }
@@ -319,6 +321,9 @@ enum PersonalContextTool {
                 authority = "learned"
             case .learnedFromTyping:
                 source = "LokalBot learned this from something the user typed; the user confirmed it"
+                authority = "learned"
+            case .learnedFromDictation:
+                source = "LokalBot learned this from something the user dictated; the user confirmed it"
                 authority = "learned"
             case .learnedFromWorkMemory:
                 source = "LokalBot saw this in the user's work for weeks; the user confirmed it"

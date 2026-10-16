@@ -3,7 +3,8 @@ import NaturalLanguage
 
 /// The overnight learning pass (personal world model, Phase 3). After the
 /// day's review, it reads only the person's own words from that day: their
-/// lines in meetings, and what they typed to coding agents or in Ask. It asks
+/// lines in meetings, what they typed to coding agents or in Ask, and, when
+/// Learn from my dictation is on, what they dictated into other apps. It asks
 /// the Think model for at most three durable things about them. Every result
 /// must point at one of those lines and be grounded in it; anything else is
 /// dropped. Facts and goals from meetings are saved; preferences, and
@@ -43,7 +44,7 @@ enum PersonalLearning {
         }
     }
 
-    /// Something the person typed that day, gathered by the app.
+    /// Something the person typed or dictated that day, gathered by the app.
     struct TypedLine: Equatable, Sendable {
         var source: PersonalClaim.TypedSource
         var text: String
@@ -52,6 +53,7 @@ enum PersonalLearning {
             switch source {
             case .codingAgent(let name): "typed to \(name)"
             case .ask: "typed in Ask"
+            case .dictation(let app): app.isEmpty ? "dictated" : "dictated in \(app)"
             }
         }
     }
@@ -123,9 +125,12 @@ enum PersonalLearning {
     }
 
     /// The day's typed lines: requests the person sent to coding agents
-    /// (scheduled runs excluded) and questions asked in Ask. A "Remember …"
-    /// message is already saved, so it is skipped.
-    static func typedLines(bursts: [CodingAgentBurst], conversations: [Conversation], day: Date,
+    /// (scheduled runs excluded), questions asked in Ask, and dictation kept
+    /// for learning. A "Remember …" message is already saved, so it is
+    /// skipped, and a dictation that became one of those requests is read
+    /// once, from the request.
+    static func typedLines(bursts: [CodingAgentBurst], conversations: [Conversation],
+                           dictations: [DictationLearningLog.Entry] = [], day: Date,
                            calendar: Calendar = .current) -> [TypedLine] {
         var lines: [TypedLine] = []
         for burst in bursts where !burst.isScheduledRun && calendar.isDate(burst.start, inSameDayAs: day) {
@@ -143,7 +148,21 @@ enum PersonalLearning {
                 lines.append(TypedLine(source: .ask(conversationID: conversation.id), text: message.text))
             }
         }
+        let typedSoFar = lines.map { foldedForDuplicate($0.text) }
+        for entry in dictations where calendar.isDate(entry.dictatedAt, inSameDayAs: day) {
+            let folded = foldedForDuplicate(entry.text)
+            guard !folded.isEmpty, !typedSoFar.contains(where: { $0.contains(folded) || folded.contains($0) })
+            else { continue }
+            lines.append(TypedLine(source: .dictation(app: entry.appName), text: entry.text))
+        }
         return lines
+    }
+
+    /// Letters and digits only, case- and accent-folded, so a dictation and
+    /// the request it was pasted into compare equal despite punctuation.
+    private static func foldedForDuplicate(_ text: String) -> String {
+        let folded = text.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: nil)
+        return String(folded.unicodeScalars.filter { CharacterSet.alphanumerics.contains($0) }.map(Character.init))
     }
 
     /// Joins consecutive segments of the person's own speech into turns.
@@ -196,7 +215,7 @@ enum PersonalLearning {
 
     static let system = """
         You keep a small private profile of the user from things they said about themselves. \
-        You read only the user's own words: lines they said in meetings and things they typed. \
+        You read only the user's own words: lines they said in meetings and things they typed or dictated. \
         Nobody else's words are included. Reply with JSON only.
         """
 
@@ -218,13 +237,14 @@ enum PersonalLearning {
             - Skip health, money, religion, politics, and sexuality.
             - Typed lines are usually requests or questions. Look inside them too: the user often mentions \
             a fact or preference about themselves while asking for something. Keep only that part.
+            - Dictated lines are often messages to someone else. Keep only what they say about the user.
             - Skip anything already in the known list, even if worded differently.
             - Write each item as one short first-person sentence under 200 characters, built from the \
             line's own words: shorten it rather than rephrase it, and never translate it (a Serbian line stays \
             Serbian, an English line stays English). Drop filler \
             ("honestly", "so", "haha"). Turn a relative time into the year it means ("next year" becomes \
             "in 2027"); never invent a day or month.
-            - Consider every line on its own, typed lines included.
+            - Consider every line on its own, typed and dictated lines included.
             - Return {"items": []} when nothing qualifies. That is the usual answer.
 
             Reply as {"items": [{"line": "U3", "kind": "fact", "text": "I live in Belgrade."}]}.
@@ -237,7 +257,7 @@ enum PersonalLearning {
             }
         }
         lines.append("")
-        lines.append("The user's lines from \(utterances.first?.dayKey ?? "the reviewed day"), each with where they said or typed it:")
+        lines.append("The user's lines from \(utterances.first?.dayKey ?? "the reviewed day"), each with where they said, typed, or dictated it:")
         for utterance in utterances {
             let title = PromptContextSanitizer.sanitize(utterance.label, maxCharacters: 80)
             lines.append("\(utterance.handle) (\(title)): \(utterance.text)")
@@ -448,7 +468,7 @@ enum PersonalLearning {
             return DreamEvidenceProvenance(
                 sources: [DreamEvidenceSource(kind: .screenDay, id: utterance.dayKey, dayKey: utterance.dayKey)],
                 revision: revision)
-        case .typed(.ask):
+        case .typed(.ask), .typed(.dictation):
             return nil
         }
     }

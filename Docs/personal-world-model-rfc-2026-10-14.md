@@ -389,6 +389,18 @@ agent access is the differentiator and is safe with stated claims alone.
      - **Typed items** always wait for review. A coding-agent item depends on
        its day's activity evidence. An Ask item has no Dream evidence and
        retracts when its conversation is deleted.
+     - **Dictation (2026-10-16):** off by default ("Learn from my
+       dictation"), since it is the first time LokalBot keeps dictated text.
+       Only the raw spoken words of a paste into an identified field are
+       kept, never a Compose draft. The same exclusions as nearby-text
+       context apply. The words are sealed with the chat key until that
+       night's pass and never kept more than 2 days. Items always wait for
+       review, and a dictated agent request is read once, from the request.
+       A local Qwen3.5 4B check on 3 good dictated lines and 7 traps (a
+       request, someone's family news, health, a joke, someone else's goal,
+       a task, a coding request) picked all 3 and skipped every trap. Without
+       "Dictated lines are often messages to someone else", it added a year
+       to "moving to Lisbon".
      - **Work-memory promotion:** a Dream goal or project seen for 14+ days,
        and active in the last 7, becomes a review suggestion. A goal keeps its
        text; a project becomes "I work on <name>.". It carries the Dream
