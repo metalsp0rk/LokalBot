@@ -17,6 +17,8 @@ LokalBot can store the following under its Application Support directory:
   only when you turn on **Use invitation agendas**, the invitation's agenda
   with joining details, links, phone numbers, and addresses removed;
 - the names LokalBot added to a meeting's transcription vocabulary;
+- the projects you track in Projects, suggestions you mark **Not a Project**,
+  and the "Where it stands" notes written for tracked projects;
 - downloaded transcription, embedding, speech, and language models;
 - permission-gated app/window activity history;
 - permission-gated visible screen text and encrypted screenshots;
@@ -202,11 +204,15 @@ The app may make these outbound connections:
   invited participants' names, titles of documents on screen during the call,
   and, when enabled, the invitation agenda; each has its own setting.
   Follow-up drafts and pre-meeting briefs are written only by an on-device
-  Think model.
+  Think model. A tracked project's "Where it stands" note uses the Think model
+  you chose: **Write Note** or **Update** sends the project's names, the lines
+  of its ten most recent meetings that name it, the decisions and open actions
+  that name it, and its overnight review notes.
   The same origin approval covers scheduled daily summaries and overnight Dream
   runs, which may send activity titles, captured screen text, meeting evidence,
   saved coding-agent session records, and retained Dream memory without a
-  prompt each time. Missed runs catch up
+  prompt each time. It also lets opening a tracked project write its note when
+  the note is missing or older than its evidence. Missed runs catch up
   for at most the last seven days. Changing or revoking the server approval
   cancels pending scheduled work.
 - **Optional autocomplete server:** Autocomplete runs on this Mac unless you
@@ -408,8 +414,14 @@ Pausing, changing exclusions, or disabling capture invalidates pending work
 before any pixel file or text record is committed.
 
 People and Projects are derived on this Mac from meeting metadata, summaries,
-outcomes, applied speaker names, Dream projects, and activity titles each time
-they are shown; nothing new is stored for them. Your Mac account name is read
+transcripts, outcomes, applied speaker names, Dream projects, and activity
+titles each time they are shown. Projects stores only what you choose in it:
+the names of projects you track and suggestions you mark **Not a Project**
+(`projects/tracked.json`), and the "Where it stands" notes
+(`projects/summaries.json`). Deleting a meeting withdraws every note that used
+it; **Stop Tracking** deletes the project's note. Tracked project names are
+also added to meeting transcription vocabulary when **Add names LokalBot
+already knows** is on. Your Mac account name is read
 only to leave you out of People. **Suggest actions that look done**
 reads retained screen text locally to offer Mark Done on an open action; it
 never changes an action by itself and sends nothing. Captures you dismiss are
