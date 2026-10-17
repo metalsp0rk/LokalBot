@@ -212,6 +212,30 @@ Models auto-download on first use (Hugging Face; the ONNX specialists fetch sher
 
 ## Configuration
 
+### Interface languages
+
+Settings → General → App language and the setup wizard offer English, Simplified
+Chinese, Hindi, Spanish, Arabic, French, Bengali, Portuguese, Indonesian, and Urdu.
+This covers the ten largest languages by total speakers (first and second
+language users) in the [2026 Ethnologue ranking](https://www.ethnologue.com/insights/ethnologue200/).
+Chinese uses the existing Simplified Chinese catalog. Portuguese uses broadly
+understandable Brazilian terminology for both Brazilian and European locales.
+
+Follow System selects the first supported macOS language preference, including
+regional variants, and falls back to English. Explicit selection updates open
+windows immediately, including right-to-left layout for Arabic and Urdu. Language
+names remain in their native scripts. This setting changes interface text only;
+transcription, generated notes, model prompts, and saved user content keep their
+own languages.
+
+`LokalBot/Resources/en.lproj/Localizable.strings` is the source catalog. Keep every
+language's keys, printf arguments, and embedded line breaks aligned when changing
+interface copy. Run `uv run --no-project python -m unittest discover -s Scripts/tests -p test_localization.py`
+and `xcodegen generate` after adding a language. AppLanguageTests also checks that
+every supported catalog ships in binary form in the built app. New translations
+are machine-assisted and have not had a native-speaker editorial review.
+
+
 ### Fun-ASR-Nano local transcription
 
 Choose **Settings → Models → Transcribe → Fun-ASR-Nano-2512 → Choose model

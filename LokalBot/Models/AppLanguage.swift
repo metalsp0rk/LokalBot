@@ -6,15 +6,31 @@ enum AppLanguage: String, Codable, CaseIterable, Identifiable, Sendable {
     case system
     case english = "en"
     case simplifiedChinese = "zh-Hans"
+    case hindi = "hi"
+    case spanish = "es"
+    case arabic = "ar"
+    case french = "fr"
+    case bengali = "bn"
+    case portuguese = "pt"
+    case indonesian = "id"
+    case urdu = "ur"
 
     var id: String { rawValue }
 
-    /// Native names keep the language picker recognizable in either language.
+    /// Native names keep the language picker recognizable regardless of the current interface language.
     var displayName: String {
         switch self {
         case .system: "Follow System"
         case .english: "English"
         case .simplifiedChinese: "简体中文"
+        case .hindi: "हिन्दी"
+        case .spanish: "Español"
+        case .arabic: "العربية"
+        case .french: "Français"
+        case .bengali: "বাংলা"
+        case .portuguese: "Português"
+        case .indonesian: "Bahasa Indonesia"
+        case .urdu: "اردو"
         }
     }
 
@@ -23,12 +39,23 @@ enum AppLanguage: String, Codable, CaseIterable, Identifiable, Sendable {
         for language in preferredLanguages {
             let code = language.replacingOccurrences(of: "_", with: "-").lowercased()
             if code == "zh" || code.hasPrefix("zh-") { return "zh-Hans" }
-            if code == "en" || code.hasPrefix("en-") { return "en" }
+            let base = String(code.split(separator: "-").first ?? "")
+            if let supported = Self(rawValue: base), supported != .system { return supported.rawValue }
         }
         return "en"
     }
 
     var locale: Locale { Locale(identifier: localizationIdentifier()) }
+
+    var isRightToLeft: Bool {
+        ["ar", "ur"].contains(localizationIdentifier())
+    }
+
+    /// Translate only the system option; language names remain native so a
+    /// person can recover from accidentally selecting an unfamiliar language.
+    func pickerLabel(in interfaceLanguage: Self) -> String {
+        self == .system ? interfaceLanguage.localized(displayName) : displayName
+    }
 
     /// Native text-field bridges receive the locale from their SwiftUI parent.
     static func matching(_ locale: Locale) -> Self {

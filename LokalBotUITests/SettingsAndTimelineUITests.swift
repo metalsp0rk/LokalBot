@@ -49,6 +49,41 @@ final class SettingsUITests: XCTestCase {
             .waitForExistence(timeout: 6), "The same host must switch back to English without relaunch")
     }
 
+    func testEveryNewInterfaceLanguageRendersAndUrduPersists() throws {
+        UITestHarness.clickSidebar("sidebar.settings", in: app)
+        let languages = [
+            ("hi", "हिन्दी", "थीम", "ऐप की भाषा"),
+            ("es", "Español", "Tema", "Idioma de la app"),
+            ("ar", "العربية", "السمة", "لغة التطبيق"),
+            ("fr", "Français", "Thème", "Langue de l’app"),
+            ("bn", "বাংলা", "থিম", "অ্যাপের ভাষা"),
+            ("pt", "Português", "Tema", "Idioma do app"),
+            ("id", "Bahasa Indonesia", "Tema", "Bahasa aplikasi"),
+            ("ur", "اردو", "تھیم", "ایپ کی زبان")
+        ]
+        for (identifier, nativeName, theme, languageLabel) in languages {
+            UITestHarness.scrollTo(app.popUpButtons["settings.appLanguage"], in: app)
+            UITestHarness.selectSegment(nativeName, pickerIdentifier: "settings.appLanguage", in: app)
+            XCTAssertTrue(UITestHarness.staticText(containing: theme, in: app).waitForExistence(timeout: 6),
+                          "The existing settings host must render \(identifier)")
+            XCTAssertTrue(UITestHarness.staticText(containing: languageLabel, in: app).waitForExistence(timeout: 6))
+            let screenshot = XCTAttachment(screenshot: app.windows.firstMatch.screenshot())
+            screenshot.name = "settings-interface-\(identifier)"
+            screenshot.lifetime = .keepAlways
+            add(screenshot)
+        }
+
+        app.terminate()
+        app = try UITestHarness.relaunch(
+            storageRoot: fixture.root, defaultsSuiteName: XCTUnwrap(defaultsSuiteName))
+        UITestHarness.clickSidebar("sidebar.settings", in: app)
+        XCTAssertTrue(UITestHarness.staticText(containing: "تھیم", in: app).waitForExistence(timeout: 6),
+                      "The Urdu interface must survive relaunch")
+        UITestHarness.scrollTo(app.popUpButtons["settings.appLanguage"], in: app)
+        UITestHarness.selectSegment("English", pickerIdentifier: "settings.appLanguage", in: app)
+        XCTAssertTrue(UITestHarness.staticText(containing: "Theme", in: app).waitForExistence(timeout: 6))
+    }
+
     func testPermissionRepairPaneRendersCorePermissions() {
         UITestHarness.clickSidebar("sidebar.settings", in: app)
 
