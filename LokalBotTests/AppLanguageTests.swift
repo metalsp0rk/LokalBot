@@ -7,25 +7,35 @@ final class AppLanguageTests: XCTestCase {
         XCTAssertEqual(AppLanguage.system.localizationIdentifier(preferredLanguages: ["zh-TW"]), "zh-Hans")
         XCTAssertEqual(AppLanguage.system.localizationIdentifier(preferredLanguages: ["fr-FR", "zh_CN"]), "fr")
         XCTAssertEqual(AppLanguage.system.localizationIdentifier(preferredLanguages: ["en-GB", "zh-Hans"]), "en")
-        XCTAssertEqual(AppLanguage.system.localizationIdentifier(preferredLanguages: ["de-DE"]), "en")
+        XCTAssertEqual(AppLanguage.system.localizationIdentifier(preferredLanguages: ["it-IT"]), "en")
         XCTAssertEqual(AppLanguage.system.localizationIdentifier(preferredLanguages: []), "en")
     }
 
     func testRegionalAndScriptVariantsResolveToSupportedCatalogs() {
         let variants = ["hi-IN": "hi", "es-MX": "es", "ar-SA": "ar", "fr_CA": "fr",
                         "bn-BD": "bn", "pt-BR": "pt", "pt-PT": "pt", "id-ID": "id",
-                        "ur-Arab-PK": "ur", "AR_eg": "ar"]
+                        "ur-Arab-PK": "ur", "AR_eg": "ar-EG", "ar-Arab-EG": "ar-EG", "arz": "ar-EG",
+                        "ru-RU": "ru", "de-AT": "de", "ja-JP": "ja", "pcm-NG": "pcm",
+                        "mr-IN": "mr", "vi-VN": "vi", "te-IN": "te", "sw-KE": "sw", "ha-Latn-NG": "ha"]
         for (variant, expected) in variants {
             XCTAssertEqual(AppLanguage.system.localizationIdentifier(preferredLanguages: [variant]), expected)
             XCTAssertEqual(AppLanguage.matching(Locale(identifier: variant)).rawValue, expected)
         }
-        XCTAssertEqual(AppLanguage.system.localizationIdentifier(preferredLanguages: ["de-DE", "ur-PK", "en"]), "ur")
+        XCTAssertEqual(AppLanguage.system.localizationIdentifier(preferredLanguages: ["it-IT", "ur-PK", "en"]), "ur")
     }
 
-    func testOnlyArabicAndUrduUseRightToLeftLayout() {
+    func testArabicVarietiesAndUrduUseRightToLeftLayout() {
         for language in AppLanguage.allCases where language != .system {
-            XCTAssertEqual(language.isRightToLeft, language == .arabic || language == .urdu)
+            XCTAssertEqual(language.isRightToLeft, language == .arabic || language == .egyptianArabic || language == .urdu)
         }
+    }
+
+    func testEgyptianArabicAndStandardArabicRemainDistinct() {
+        XCTAssertEqual(AppLanguage.system.localizationIdentifier(preferredLanguages: ["ar-EG", "ar"]), "ar-EG")
+        XCTAssertEqual(AppLanguage.system.localizationIdentifier(preferredLanguages: ["ar", "ar-EG"]), "ar")
+        XCTAssertEqual(AppLanguage.system.localizationIdentifier(preferredLanguages: ["ar-SA"]), "ar")
+        XCTAssertNotEqual(AppLanguage.egyptianArabic.localized("Enable the Access You Need"),
+                          AppLanguage.arabic.localized("Enable the Access You Need"))
     }
 
     func testNativeLanguageNamesRemainRecognizable() {

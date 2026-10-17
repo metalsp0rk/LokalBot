@@ -14,6 +14,16 @@ enum AppLanguage: String, Codable, CaseIterable, Identifiable, Sendable {
     case portuguese = "pt"
     case indonesian = "id"
     case urdu = "ur"
+    case russian = "ru"
+    case german = "de"
+    case japanese = "ja"
+    case nigerianPidgin = "pcm"
+    case egyptianArabic = "ar-EG"
+    case marathi = "mr"
+    case vietnamese = "vi"
+    case telugu = "te"
+    case swahili = "sw"
+    case hausa = "ha"
 
     var id: String { rawValue }
 
@@ -31,6 +41,16 @@ enum AppLanguage: String, Codable, CaseIterable, Identifiable, Sendable {
         case .portuguese: "Português"
         case .indonesian: "Bahasa Indonesia"
         case .urdu: "اردو"
+        case .russian: "Русский"
+        case .german: "Deutsch"
+        case .japanese: "日本語"
+        case .nigerianPidgin: "Naijá"
+        case .egyptianArabic: "مصري"
+        case .marathi: "मराठी"
+        case .vietnamese: "Tiếng Việt"
+        case .telugu: "తెలుగు"
+        case .swahili: "Kiswahili"
+        case .hausa: "Hausa"
         }
     }
 
@@ -39,7 +59,13 @@ enum AppLanguage: String, Codable, CaseIterable, Identifiable, Sendable {
         for language in preferredLanguages {
             let code = language.replacingOccurrences(of: "_", with: "-").lowercased()
             if code == "zh" || code.hasPrefix("zh-") { return "zh-Hans" }
-            let base = String(code.split(separator: "-").first ?? "")
+            let components = code.split(separator: "-")
+            let base = String(components.first ?? "")
+            // macOS uses ar-EG; accept the ISO language code arz as well.
+            // Other Arabic regions retain the Modern Standard Arabic catalog.
+            if base == "arz" || (base == "ar" && components.dropFirst().contains("eg")) {
+                return Self.egyptianArabic.rawValue
+            }
             if let supported = Self(rawValue: base), supported != .system { return supported.rawValue }
         }
         return "en"
@@ -48,7 +74,7 @@ enum AppLanguage: String, Codable, CaseIterable, Identifiable, Sendable {
     var locale: Locale { Locale(identifier: localizationIdentifier()) }
 
     var isRightToLeft: Bool {
-        ["ar", "ur"].contains(localizationIdentifier())
+        ["ar", "ar-EG", "ur"].contains(localizationIdentifier())
     }
 
     /// Translate only the system option; language names remain native so a

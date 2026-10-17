@@ -11,7 +11,9 @@ final class AppLanguageRootTests: XCTestCase {
         var initialSettings = AppSettings()
         initialSettings.appLanguage = .english
         let store = SettingsStore(initialSettings: initialSettings)
-        let languages: [AppLanguage] = [.english, .simplifiedChinese, .arabic, .urdu, .french, .english]
+        let languages: [AppLanguage] = [
+            .english, .simplifiedChinese, .arabic, .egyptianArabic, .urdu, .nigerianPidgin, .japanese, .swahili, .french, .english
+        ]
         let steps = languages.enumerated().map { expectation(description: "\($0.offset): \($0.element.rawValue)") }
         for step in steps { step.expectedFulfillmentCount = 2 }
         var observed = [[String](), [String]()]
@@ -45,7 +47,10 @@ final class AppLanguageRootTests: XCTestCase {
             await fulfillment(of: [steps[index]], timeout: 3)
         }
         let expectedLocales = languages.map(\.rawValue)
-        let expectedDirections: [LayoutDirection] = [.leftToRight, .leftToRight, .rightToLeft, .rightToLeft, .leftToRight, .leftToRight]
+        let expectedDirections: [LayoutDirection] = [
+            .leftToRight, .leftToRight, .rightToLeft, .rightToLeft, .rightToLeft,
+            .leftToRight, .leftToRight, .leftToRight, .leftToRight, .leftToRight
+        ]
         XCTAssertEqual(observed, [expectedLocales, expectedLocales])
         XCTAssertEqual(directions, [expectedDirections, expectedDirections])
         XCTAssertEqual(creations, [1, 1], "Switching language must preserve the hosted content's identity")

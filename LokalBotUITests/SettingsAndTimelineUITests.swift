@@ -84,6 +84,52 @@ final class SettingsUITests: XCTestCase {
         XCTAssertTrue(UITestHarness.staticText(containing: "Theme", in: app).waitForExistence(timeout: 6))
     }
 
+    func testRussianGermanJapanesePidginAndEgyptianArabicRender() throws {
+        try assertInterfaceLanguagesRenderAndPersist([
+            ("ru", "Русский", "Тема", "Язык приложения"),
+            ("de", "Deutsch", "Design", "App-Sprache"),
+            ("ja", "日本語", "テーマ", "アプリの言語"),
+            ("pcm", "Naijá", "How e look", "Language wey app dey use"),
+            ("ar-EG", "مصري", "شكل الواجهة", "لغة التطبيق")
+        ])
+    }
+
+    func testMarathiVietnameseTeluguSwahiliAndHausaRender() throws {
+        try assertInterfaceLanguagesRenderAndPersist([
+            ("mr", "मराठी", "थीम", "अ‍ॅपची भाषा"),
+            ("vi", "Tiếng Việt", "Chủ đề", "Ngôn ngữ ứng dụng"),
+            ("te", "తెలుగు", "థీమ్", "యాప్ భాష"),
+            ("sw", "Kiswahili", "Mandhari", "Lugha ya programu"),
+            ("ha", "Hausa", "Jigo", "Harshen manhaja")
+        ])
+    }
+
+    private func assertInterfaceLanguagesRenderAndPersist(_ languages: [(String, String, String, String)]) throws {
+        UITestHarness.clickSidebar("sidebar.settings", in: app)
+        for (identifier, nativeName, theme, languageLabel) in languages {
+            UITestHarness.scrollTo(app.popUpButtons["settings.appLanguage"], in: app)
+            UITestHarness.selectSegment(nativeName, pickerIdentifier: "settings.appLanguage", in: app)
+            XCTAssertTrue(UITestHarness.staticText(containing: theme, in: app).waitForExistence(timeout: 6),
+                          "The existing settings host must render \(identifier)")
+            XCTAssertTrue(UITestHarness.staticText(containing: languageLabel, in: app).waitForExistence(timeout: 6))
+            let screenshot = XCTAttachment(screenshot: app.windows.firstMatch.screenshot())
+            screenshot.name = "settings-interface-\(identifier)"
+            screenshot.lifetime = .keepAlways
+            add(screenshot)
+        }
+        let (identifier, _, theme, languageLabel) = try XCTUnwrap(languages.last)
+        app.terminate()
+        app = try UITestHarness.relaunch(
+            storageRoot: fixture.root, defaultsSuiteName: XCTUnwrap(defaultsSuiteName))
+        UITestHarness.clickSidebar("sidebar.settings", in: app)
+        XCTAssertTrue(UITestHarness.staticText(containing: theme, in: app).waitForExistence(timeout: 6),
+                      "The \(identifier) interface must survive relaunch")
+        XCTAssertTrue(UITestHarness.staticText(containing: languageLabel, in: app).waitForExistence(timeout: 6))
+        UITestHarness.scrollTo(app.popUpButtons["settings.appLanguage"], in: app)
+        UITestHarness.selectSegment("English", pickerIdentifier: "settings.appLanguage", in: app)
+        XCTAssertTrue(UITestHarness.staticText(containing: "Theme", in: app).waitForExistence(timeout: 6))
+    }
+
     func testPermissionRepairPaneRendersCorePermissions() {
         UITestHarness.clickSidebar("sidebar.settings", in: app)
 

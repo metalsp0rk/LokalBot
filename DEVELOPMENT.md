@@ -215,15 +215,21 @@ Models auto-download on first use (Hugging Face; the ONNX specialists fetch sher
 ### Interface languages
 
 Settings → General → App language and the setup wizard offer English, Simplified
-Chinese, Hindi, Spanish, Arabic, French, Bengali, Portuguese, Indonesian, and Urdu.
-This covers the ten largest languages by total speakers (first and second
-language users) in the [2026 Ethnologue ranking](https://www.ethnologue.com/insights/ethnologue200/).
-Chinese uses the existing Simplified Chinese catalog. Portuguese uses broadly
+Chinese, Hindi, Spanish, Modern Standard Arabic, French, Bengali, Portuguese,
+Indonesian, Urdu, Russian, German, Japanese, Nigerian Pidgin, Egyptian Arabic,
+Marathi, Vietnamese, Telugu, Swahili, and Hausa. These are the first twenty entries
+by total speakers (first and second language users) in the 2026 Ethnologue ranking
+([methodology](https://shop.ethnologue.com/products/2026-ethnologue-200),
+[public ranking table](https://en.wikipedia.org/w/index.php?title=List_of_languages_by_total_number_of_speakers&oldid=1380301586)).
+The ranking counts Nigerian Pidgin and Egyptian Arabic separately, so both have
+full catalogs. Egyptian Arabic uses the macOS locale `ar-EG` (also matched from
+`arz`); other Arabic regions use the Modern Standard Arabic `ar` catalog. Nigerian
+Pidgin uses `pcm`. Chinese retains Simplified Chinese. Portuguese uses broadly
 understandable Brazilian terminology for both Brazilian and European locales.
 
 Follow System selects the first supported macOS language preference, including
 regional variants, and falls back to English. Explicit selection updates open
-windows immediately, including right-to-left layout for Arabic and Urdu. Language
+windows immediately, including right-to-left layout for both Arabic varieties and Urdu. Language
 names remain in their native scripts. This setting changes interface text only;
 transcription, generated notes, model prompts, and saved user content keep their
 own languages.
@@ -281,23 +287,24 @@ when running through `xcodebuild`.
 ### Interface language
 
 Choose **Settings → General → Appearance → App language** (or the picker in
-first-run setup) to follow the system, use English, or use Simplified Chinese.
+first-run setup) to follow the system or choose any of the twenty supported
+[interface languages](#interface-languages).
 The choice is saved with app settings and updates open windows without a restart.
 It does not change transcription or notes languages, model prompts, or saved content.
 System mode uses the first supported language in the macOS preference list,
 maps Chinese variants to Simplified Chinese, and falls back to English.
 
-Interface translations live in `LokalBot/Resources/{en,zh-Hans}.lproj/Localizable.strings`.
+Interface translations live in `LokalBot/Resources/<locale>.lproj/Localizable.strings`.
 SwiftUI and AppKit hosting roots use `appLanguageRoot(settingsStore)` to observe
 the selected locale, including already-open dictation overlays and the UI test
 host; app-owned dynamic labels explicitly
 use `LocalizedStringKey`, while native menus use `AppLanguage.localized`.
-Keep user content verbatim and add matching entries to both tables.
+Keep user content verbatim and add matching entries to every table.
 `AppLanguageTests` covers preference migration, persistence, language resolution,
 bundled lookup, and translated settings search. `AppLanguageRootTests` verifies
 live locale propagation and preserved content identity in offscreen hosting
 views. Hosted Settings and Onboarding UI tests cover switching and relaunch. Run
-`python3 -m unittest discover -s Scripts/tests -p test_localization.py` to check
+`uv run --no-project python -m unittest discover -s Scripts/tests -p test_localization.py` to check
 translation key parity and format arguments without building the app.
 
 ### Settings categories

@@ -56,6 +56,7 @@ final class OnboardingUITests: XCTestCase {
         app.buttons["Continue"].click()
         let languages = [
             ("ar", "العربية", "تفعيل الوصول الذي تحتاجه"),
+            ("ar-EG", "مصري", "فعّل الصلاحيات اللي محتاجها"),
             ("ur", "اردو", "درکار رسائی فعال کریں")
         ]
         for (identifier, nativeName, title) in languages {
