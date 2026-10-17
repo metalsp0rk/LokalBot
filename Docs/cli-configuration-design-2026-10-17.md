@@ -247,10 +247,9 @@ no app answers, the CLI starts one:
 - The new flag is not a headless command. The process is the normal GUI: it
   takes the instance lock and starts its usual services (meeting detection,
   activity tracking, schedulers), exactly as the person configured them.
-- `AppDelegate` treats it like a login launch:
-  - menu-bar-only installs start silently, through
-    `DockPolicy.beginLaunchSuppression()`, instead of opening the main window;
-  - Dock-mode installs also skip the main window.
+- `AppDelegate` treats it like a login launch: menu-bar-only installs start
+  silently, through `DockPolicy.beginLaunchSuppression()`, instead of opening
+  the main window. Dock-mode installs launch hidden (`open -j`).
 - The listener starts once `AppState` and its settings are ready. It does not
   wait for the library to finish loading, because settings don't depend on it.
 
@@ -263,8 +262,8 @@ no app answers, the CLI starts one:
 
 **Version skew**
 
-- The first request is `hello`, which returns the app version and the
-  protocol version.
+- Every request carries the protocol version, and the app refuses one it
+  does not know. `hello` returns the app and protocol versions.
 - A Sparkle update replaces the bundle while the old app keeps running. In
   that case the CLI returns `[app_outdated]`: "Restart LokalBot to finish the
   update".
@@ -431,6 +430,20 @@ skill keeps telling agents never to write into the meetings folder.
   - never use `defaults write` or edit `control/`;
   - tell the person when approval is waiting in the app;
   - do not retry a denied request.
+
+## Implementation status
+
+Phase 1, with the registry part of Phase 0, is implemented on branch
+`ccr-c1452663-cvoqi1`:
+
+- `SettingRegistry` covers all 130 settings keys; the 5 bookkeeping keys are
+  listed in `internalKeys`. `SettingRegistryTests` checks it against
+  `AppSettings`. `SettingDescriptor` keeps its own table for now; a test keeps
+  their titles and categories equal.
+- The settings grant, the control socket, background launch, and
+  `config schema|describe|search|list|get`, `status`, and `open` are in place.
+- Moving the UI couplings into `AppState` is deferred to Phase 2, because
+  only writes need them.
 
 ## Phases
 
