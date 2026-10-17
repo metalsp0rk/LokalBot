@@ -121,9 +121,12 @@ final class SelectionActionsControllerTests: XCTestCase {
             report: { [unowned self] message in self.reports.append(message) }))
     }
 
+    /// Waits up to about a second for `condition`.
     private func waitFor(_ controller: SelectionActionsController,
-                         _ condition: @escaping (SelectionActionsController) -> Bool) async {
-        for _ in 0..<200 where !condition(controller) {
+                         _ condition: @MainActor (SelectionActionsController) -> Bool) async {
+        var attempts = 0
+        while !condition(controller), attempts < 200 {
+            attempts += 1
             try? await Task.sleep(for: .milliseconds(5))
         }
     }
