@@ -2,9 +2,9 @@ import Foundation
 
 /// Builds the People and Projects read models off the main actor from local
 /// meeting metadata, summaries, transcripts, outcomes, applied speaker names,
-/// tracked projects, Dream projects, and activity titles. Nothing is
-/// persisted here; every refresh derives from the current library, so
-/// deletions and corrections are reflected immediately.
+/// tracked projects, People corrections, Dream projects, and activity
+/// titles. Nothing is persisted here; every refresh derives from the current
+/// library, so deletions and corrections are reflected immediately.
 @MainActor
 final class WorkMemoryConnections: ObservableObject {
     @Published private(set) var people: [PersonProfile] = []
@@ -21,6 +21,7 @@ final class WorkMemoryConnections: ObservableObject {
         var projections: [MeetingOutcomeProjection]
         var memory: DreamMemory?
         var curation = ProjectCuration()
+        var peopleCuration = PeopleCuration()
         var root: URL
         var activityDatabaseURL: URL
         var now = Date()
@@ -88,8 +89,9 @@ final class WorkMemoryConnections: ObservableObject {
             if !names.names.isEmpty { appliedNames[meeting.id] = names }
         }
 
-        let people = PeopleDirectory.build(
-            .init(meetings: input.meetings, projections: input.projections, appliedNames: appliedNames),
+        var people = PeopleDirectory.build(
+            .init(meetings: input.meetings, projections: input.projections, appliedNames: appliedNames,
+                  curation: input.peopleCuration),
             now: input.now)
 
         let meetingCutoff = input.now.addingTimeInterval(-TimeInterval(projectMeetingLookbackDays) * 86_400)
@@ -129,6 +131,17 @@ final class WorkMemoryConnections: ObservableObject {
             projections: input.projections.filter { recentIDs.contains($0.meeting.id) },
             activity: activity, people: people,
             excludedTopicWords: excludedTopicWords(people: people, activity: activity)), now: input.now)
+
+        // What the newest notes say about each person, and the projects
+        // named around them.
+        var summaryLines: [UUID: [PersonNotes.SummaryLine]] = [:]
+        for (id, summary) in summaries { summaryLines[id] = PersonNotes.lines(fromSummary: summary) }
+        for index in people.indices {
+            people[index].recentNotes = PersonNotes.recentNotes(
+                for: people[index], lines: summaryLines, appliedNames: appliedNames)
+            people[index].projects = PersonNotes.projects(
+                for: people[index], lines: summaryLines, appliedNames: appliedNames, projects: projects)
+        }
         return (people, projects, nextCache)
     }
 

@@ -309,6 +309,9 @@ final class AppState: ObservableObject {
     /// Tracked projects and their "Where it stands" notes.
     private(set) lazy var projectStore = ProjectStore(
         directory: storage.rootURL.appendingPathComponent("projects", isDirectory: true))
+    /// Names, merges, and hidden entries chosen in People.
+    private(set) lazy var peopleStore = PeopleStore(
+        directory: storage.rootURL.appendingPathComponent(PeopleCuration.directoryName, isDirectory: true))
 
     /// The meeting whose follow-up draft sheet is open, from any entry point.
     @Published var followUpDraftMeeting: Meeting?
@@ -379,6 +382,7 @@ final class AppState: ObservableObject {
             projections: outcomeIndex.all,
             memory: dreamMemory,
             curation: projectStore.curation,
+            peopleCuration: peopleStore.curation,
             root: storage.rootURL,
             activityDatabaseURL: activityStore.databaseURL))
     }
