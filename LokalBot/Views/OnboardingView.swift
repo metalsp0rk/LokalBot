@@ -145,6 +145,7 @@ struct OnboardingView: View {
                     }.accessibilityIdentifier("onboarding.meetingMode")
                     Text("Ask via notification waits for you to start recording. Manual mode keeps Record Now available.")
                         .workspaceTextRole(.supporting)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 Divider()
                 Toggle(isOn: $draft.dayMemory) {
@@ -167,6 +168,7 @@ struct OnboardingView: View {
                         Text("Coding Agent Sessions")
                         Text("Read your Claude Code and Codex sessions so LokalBot remembers what your agents did. Files stay on this Mac.")
                             .workspaceTextRole(.supporting)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
                 .accessibilityLabel("Read coding agent sessions")
