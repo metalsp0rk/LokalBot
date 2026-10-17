@@ -222,7 +222,8 @@ by total speakers (first and second language users) in the 2026 Ethnologue ranki
 ([methodology](https://shop.ethnologue.com/products/2026-ethnologue-200),
 [public ranking table](https://en.wikipedia.org/w/index.php?title=List_of_languages_by_total_number_of_speakers&oldid=1380301586)).
 The ranking counts Nigerian Pidgin and Egyptian Arabic separately, so both have
-full catalogs. Egyptian Arabic uses the macOS locale `ar-EG` (also matched from
+full catalogs. Korean (`ko`, 한국어) is also available, bringing the total to 21.
+Egyptian Arabic uses the macOS locale `ar-EG` (also matched from
 `arz`); other Arabic regions use the Modern Standard Arabic `ar` catalog. Nigerian
 Pidgin uses `pcm`. Chinese retains Simplified Chinese. Portuguese uses broadly
 understandable Brazilian terminology for both Brazilian and European locales.
@@ -287,7 +288,7 @@ when running through `xcodebuild`.
 ### Interface language
 
 Choose **Settings → General → Appearance → App language** (or the picker in
-first-run setup) to follow the system or choose any of the twenty supported
+first-run setup) to follow the system or choose any of the 21 supported
 [interface languages](#interface-languages).
 The choice is saved with app settings and updates open windows without a restart.
 It does not change transcription or notes languages, model prompts, or saved content.

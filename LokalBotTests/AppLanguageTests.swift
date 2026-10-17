@@ -16,7 +16,8 @@ final class AppLanguageTests: XCTestCase {
                         "bn-BD": "bn", "pt-BR": "pt", "pt-PT": "pt", "id-ID": "id",
                         "ur-Arab-PK": "ur", "AR_eg": "ar-EG", "ar-Arab-EG": "ar-EG", "arz": "ar-EG",
                         "ru-RU": "ru", "de-AT": "de", "ja-JP": "ja", "pcm-NG": "pcm",
-                        "mr-IN": "mr", "vi-VN": "vi", "te-IN": "te", "sw-KE": "sw", "ha-Latn-NG": "ha"]
+                        "mr-IN": "mr", "vi-VN": "vi", "te-IN": "te", "sw-KE": "sw", "ha-Latn-NG": "ha",
+                        "ko-KR": "ko", "ko_KP": "ko", "ko-Hang-KR": "ko"]
         for (variant, expected) in variants {
             XCTAssertEqual(AppLanguage.system.localizationIdentifier(preferredLanguages: [variant]), expected)
             XCTAssertEqual(AppLanguage.matching(Locale(identifier: variant)).rawValue, expected)
@@ -117,7 +118,7 @@ final class AppLanguageTests: XCTestCase {
 
     @MainActor
     func testSettingsSearchFindsTranslatedLabelsAndLanguageAliases() {
-        for query in ["语言", "中文", "English", "界面语言"] + AppLanguage.allCases.map(\.displayName) {
+        for query in ["语言", "中文", "English", "界面语言", "Korean"] + AppLanguage.allCases.map(\.displayName) {
             XCTAssertTrue(SettingDescriptor.search(query, language: .simplifiedChinese).contains { $0.id == "settings.appLanguage" })
         }
         XCTAssertTrue(SettingDescriptor.search("文字大小", language: .simplifiedChinese).contains { $0.id == "settings.textSize" })

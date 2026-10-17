@@ -90,7 +90,7 @@ struct SettingDescriptor: Identifiable {
         .init(id: "settings.menuBarOnly", title: "Menu bar only (hide Dock icon)", category: .general, aliases: "menuBarOnly"),
         .init(id: "settings.appTheme", title: "Theme", category: .general, aliases: "appearance dark mode light mode color scheme"),
         .init(id: "settings.appLanguage", title: "App language", category: .general, aliases: "interface language English Chinese Hindi Spanish Arabic French Bengali Portuguese Indonesian Urdu "
-                + "Russian German Japanese Nigerian Pidgin Egyptian Arabic Marathi Vietnamese Telugu Swahili Hausa 中文 简体中文 语言 界面 "
+                + "Russian German Japanese Nigerian Pidgin Egyptian Arabic Marathi Vietnamese Telugu Swahili Hausa Korean 中文 简体中文 语言 界面 "
                 + AppLanguage.allCases.map(\.displayName).joined(separator: " ")),
         .init(id: "settings.textSize", title: "Text size", category: .general, aliases: "font size larger text smaller text zoom readability"),
         .init(id: "settings.quickRecallEnabled", title: "Enable the system-wide Ask shortcut", category: .general, aliases: "quickRecallEnabled"),

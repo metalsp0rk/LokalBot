@@ -24,6 +24,7 @@ enum AppLanguage: String, Codable, CaseIterable, Identifiable, Sendable {
     case telugu = "te"
     case swahili = "sw"
     case hausa = "ha"
+    case korean = "ko"
 
     var id: String { rawValue }
 
@@ -51,6 +52,7 @@ enum AppLanguage: String, Codable, CaseIterable, Identifiable, Sendable {
         case .telugu: "తెలుగు"
         case .swahili: "Kiswahili"
         case .hausa: "Hausa"
+        case .korean: "한국어"
         }
     }
 

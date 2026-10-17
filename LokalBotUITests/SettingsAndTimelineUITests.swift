@@ -104,6 +104,12 @@ final class SettingsUITests: XCTestCase {
         ])
     }
 
+    func testKoreanInterfaceRendersAndPersists() throws {
+        try assertInterfaceLanguagesRenderAndPersist([
+            ("ko", "한국어", "테마", "앱 언어")
+        ])
+    }
+
     private func assertInterfaceLanguagesRenderAndPersist(_ languages: [(String, String, String, String)]) throws {
         UITestHarness.clickSidebar("sidebar.settings", in: app)
         for (identifier, nativeName, theme, languageLabel) in languages {

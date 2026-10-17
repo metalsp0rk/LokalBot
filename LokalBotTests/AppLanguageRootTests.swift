@@ -12,7 +12,7 @@ final class AppLanguageRootTests: XCTestCase {
         initialSettings.appLanguage = .english
         let store = SettingsStore(initialSettings: initialSettings)
         let languages: [AppLanguage] = [
-            .english, .simplifiedChinese, .arabic, .egyptianArabic, .urdu, .nigerianPidgin, .japanese, .swahili, .french, .english
+            .english, .simplifiedChinese, .arabic, .egyptianArabic, .urdu, .nigerianPidgin, .japanese, .korean, .swahili, .french, .english
         ]
         let steps = languages.enumerated().map { expectation(description: "\($0.offset): \($0.element.rawValue)") }
         for step in steps { step.expectedFulfillmentCount = 2 }
@@ -49,7 +49,7 @@ final class AppLanguageRootTests: XCTestCase {
         let expectedLocales = languages.map(\.rawValue)
         let expectedDirections: [LayoutDirection] = [
             .leftToRight, .leftToRight, .rightToLeft, .rightToLeft, .rightToLeft,
-            .leftToRight, .leftToRight, .leftToRight, .leftToRight, .leftToRight
+            .leftToRight, .leftToRight, .leftToRight, .leftToRight, .leftToRight, .leftToRight
         ]
         XCTAssertEqual(observed, [expectedLocales, expectedLocales])
         XCTAssertEqual(directions, [expectedDirections, expectedDirections])

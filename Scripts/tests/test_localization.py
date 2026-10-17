@@ -31,7 +31,7 @@ class LocalizationTests(unittest.TestCase):
         declared = set(re.findall(r'case \w+ = "([^"]+)"', (APP / "Models/AppLanguage.swift").read_text()))
         self.assertEqual(set(LANGUAGES), declared)
         self.assertTrue({"en", "zh-Hans", "hi", "es", "ar", "fr", "bn", "pt", "id", "ur",
-                         "ru", "de", "ja", "pcm", "ar-EG", "mr", "vi", "te", "sw", "ha"} <= declared)
+                         "ru", "de", "ja", "pcm", "ar-EG", "mr", "vi", "te", "sw", "ha", "ko"} <= declared)
 
     def test_languages_have_matching_nonempty_entries(self):
         english = read_strings("en")
