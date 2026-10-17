@@ -1,6 +1,7 @@
 # Configuring LokalBot from the terminal
 
-Date: 2026-10-17. Status: exploration and proposal, not yet approved.
+Date: 2026-10-17. Status: design. The four open decisions were settled on
+2026-10-17; see [Decisions](#decisions).
 
 ## Goal
 
@@ -213,24 +214,67 @@ struct SettingSpec {
   `$TMPDIR` can exceed that. In that case, bind under a short per-uid
   directory and record its path in `control/app.sock.path`.
 
-**When the app isn't running**
+**When the app isn't running: launch it in the background**
 
-The instance lock is free and there is no socket. The CLI runs the embedded
-app binary with a new early-exit flag that stops before SwiftUI launches, as
-`--cotyping-measurements` already does:
+Every read and write goes through the running app. There is no offline edit
+path, so the decoding, coupling, and approval rules live in one place. When
+no app answers, the CLI starts one:
 
-```
-Contents/MacOS/LokalBot --settings-request -   # JSON request on stdin, JSON result on stdout
-```
+1. **Check the grant first.** The CLI reads `control/settings-control-enabled`
+   itself. If the grant is off, it returns `[settings_access_disabled]` and
+   launches nothing.
+2. **Check whether a copy is already running.** The CLI probes
+   `.instance.lock` with a non-blocking `flock`:
+   - **Lock held:** a GUI is running or starting. The CLI waits for the socket.
+   - **Lock free:** the CLI launches the app.
+3. **Launch its own bundle.** The CLI launches the `.app` that contains it,
+   resolved through symlinks the way `AppIdentifiers` resolves identity:
 
-- It takes `.instance.lock` without waiting, so a GUI launch cannot race it.
-- It loads `AppSettings` with the real decoder, applies the same pure
-  `SettingsChangeApplier`, and saves.
-- Preference changes are allowed. Requests that need approval, and retention
-  reductions, are refused with `[app_not_running]`, because nobody is there to
-  approve them.
-- Reads use the same path, so the CLI never decodes the blob itself and
-  legacy-default rules live in one place.
+   ```
+   /usr/bin/open -g -j <enclosing LokalBot.app> --args --lokalbot-background-launch
+   ```
+
+   - `-g -j` keeps the app in the background and hidden.
+   - It is never `open -a LokalBot`, which could start a different copy
+     (Dev, a local build) with another library.
+   - A CLI that is not inside a bundle returns `[app_not_running]` with a hint.
+4. **Wait for the socket.** The CLI polls the socket up to `--launch-timeout`
+   (default 30 s), then sends the request.
+5. **The app stays running** afterwards as a normal menu-bar app.
+
+**What the background-launch flag does in the app**
+
+- The new flag is not a headless command. The process is the normal GUI: it
+  takes the instance lock and starts its usual services (meeting detection,
+  activity tracking, schedulers), exactly as the person configured them.
+- `AppDelegate` treats it like a login launch:
+  - menu-bar-only installs start silently, through
+    `DockPolicy.beginLaunchSuppression()`, instead of opening the main window;
+  - Dock-mode installs also skip the main window.
+- The listener starts once `AppState` and its settings are ready. It does not
+  wait for the library to finish loading, because settings don't depend on it.
+
+**Approvals in a background app**
+
+- A widening request posts a notification and appears in the menu bar menu.
+- If notifications are off, the app opens its approval window directly. An
+  approval needs the person, so bringing that one window forward is
+  intentional.
+
+**Version skew**
+
+- The first request is `hello`, which returns the app version and the
+  protocol version.
+- A Sparkle update replaces the bundle while the old app keeps running. In
+  that case the CLI returns `[app_outdated]`: "Restart LokalBot to finish the
+  update".
+- A running copy that holds the lock but never opens a socket (a build from
+  before this feature) gets the same answer.
+
+**Opting out**
+
+`--no-launch` returns `[app_not_running]` instead of starting the app, for
+scripts that must not start background services.
 
 **Alternatives considered**
 
@@ -241,6 +285,7 @@ Contents/MacOS/LokalBot --settings-request -   # JSON request on stdin, JSON res
 | URL scheme | One-way, brings the app forward, returns no result |
 | App Intents / Shortcuts | Good later for Shortcuts users and could be generated from the registry, but `shortcuts run` is clumsy for agents and needs a typed intent per action |
 | `defaults write` + KVO in the app | Hazards 2–5 above remain, and there is still no reply or validation |
+| Offline edits through the app binary (an early-exit `--settings-request` flag) | A second code path, and changes that need approval would be refused because nobody is there to approve them. Replaced by background launch |
 
 ### 3. Authorization and consent tiers
 
@@ -256,6 +301,7 @@ Contents/MacOS/LokalBot --settings-request -   # JSON request on stdin, JSON res
   instructions, and folder paths. URL user info and queries are redacted with
   `DiagnosticsSettingsSanitizer`.
 - `config schema`, `describe`, and `search` show no values and need no grant.
+  They are answered from the registry in the CLI, without launching the app.
 
 **Tiers**
 
@@ -290,7 +336,7 @@ Contents/MacOS/LokalBot --settings-request -   # JSON request on stdin, JSON res
 
 **Audit and undo**
 
-- Every applied change from the socket or the offline path appends
+- Every change applied through the socket appends
   `{time, caller, key, previous, new, tier}` to
   `diagnostics/settings-changes.jsonl` and to `AppLog`.
 - Settings → Privacy → External agents lists recent agent changes with
@@ -320,7 +366,13 @@ lokalbot-cli config reset cotypingMaxWords   # back to the default
 lokalbot-cli config export > lokalbot-settings.json
 lokalbot-cli config import lokalbot-settings.json --dry-run  # diff + tiers, then apply
 lokalbot-cli secret set openai-compatible --stdin           # write-only; needs approval
+lokalbot-cli open settings dictationShortcut  # Settings, focused on that control, for what
+                                              # only the person can do (permissions, sign-in)
 ```
+
+- **Launching:** any command that needs values starts the app in the
+  background when it isn't running. `--no-launch` and `--launch-timeout <s>`
+  apply to every such command.
 
 - **Atomic:** `set` applies all of its pairs or none.
 - **`--dry-run`:** prints the diff, the tier of each change, and how each
@@ -335,15 +387,18 @@ lokalbot-cli secret set openai-compatible --stdin           # write-only; needs 
   - `[needs_approval]`
   - `[denied]`
   - `[expired]`
-  - `[app_not_running]`
+  - `[app_not_running]`: `--no-launch` was given, the launch failed, or the
+    CLI is not inside an app bundle
+  - `[app_outdated]`: the running app predates the CLI's protocol version
 - **Results:** each result reports `previous`, `effective` (after couplings),
   `applies`, and warnings. For example: "Accessibility is not granted;
   capture starts once it is."
 
-### 5. Actions beyond settings (later phase)
+### 5. Actions beyond settings (not in the first release)
 
-The same socket can carry the actions agents ask for most. Running them in the
-live app fixes today's headless conflict with the model server.
+The first release is settings, secrets, `status`, and `open`. The same socket
+can later carry the actions agents ask for most. Running them in the live app
+fixes today's headless conflict with the model server.
 
 | Method | Today |
 | --- | --- |
@@ -353,17 +408,15 @@ live app fixes today's headless conflict with the model server.
 | `models.list` / `download` / `delete` / `check` | Settings → Models |
 | `ui.open settings --tab models`, `ui.open meeting <id>` | Settings search and deep links |
 
-Edits to library content need their own decision before they are exposed, and
-probably their own grant scope:
+Edits to library content are out of scope for this design:
 
 - action status;
 - People rename, merge, or hide;
 - project tracking;
 - speaker names.
 
-The skill currently tells agents never to write into the meetings folder.
-Edits made by the app through the socket would respect its locks and
-journals.
+They would need their own decision and probably their own grant scope. The
+skill keeps telling agents never to write into the meetings folder.
 
 ### 6. MCP and skill
 
@@ -384,11 +437,11 @@ journals.
 | Phase | Scope | Size |
 | --- | --- | --- |
 | 0 | Registry and coverage tests; `SettingDescriptor` built from it; UI couplings moved into `AppState` methods. No behavior change | Medium, mostly mechanical (135 keys) |
-| 1 | `config schema/describe/search` (no grant). Settings grant toggle and marker; `config list/get` and `status` through the socket or `--settings-request` | Small–medium |
-| 2 | Preference writes (live and offline), audit log, Undo list; PRIVACY.md, DEVELOPMENT.md, Settings copy, and skill updated | Medium |
-| 3 | Approval requests and card, `--wait`, `secret set`, retention review through approval | Medium |
-| 4 | Actions over the socket; headless flags forward to a running app when one exists | Medium–large, depending on scope |
-| 5 | MCP tools; optional App Intents generated from the registry | Small–medium |
+| 1 | `config schema/describe/search` (no grant, no app). Settings grant toggle and marker; control socket with `hello` and the peer check; background launch; `config list/get`, `status`, and `open` | Medium |
+| 2 | Preference writes, audit log, Undo list; PRIVACY.md, DEVELOPMENT.md, Settings copy, and skill updated | Medium |
+| 3 | Approval requests (notification, menu bar, approval window), `--wait`, `secret set`, retention review through approval | Medium |
+| 4 | MCP tools; optional App Intents generated from the registry | Small–medium |
+| Later | Actions over the socket (recording, processing, digest, Dream, models); headless flags forward to a running app. Only if wanted after settings ship | Medium–large |
 
 ## Tests
 
@@ -405,8 +458,15 @@ journals.
 - **Integration:**
   - Start the embedded CLI against a socket served in the test host, as
     `MCPServerIntegrationTests` does.
-  - Run the offline path via `--settings-request` with `LOKALBOT_STORAGE_ROOT`
-    and `LOKALBOT_DEFAULTS_SUITE` in `Scripts/e2e.sh`.
+  - In `Scripts/e2e.sh`, with a temporary `LOKALBOT_STORAGE_ROOT` and
+    `LOKALBOT_DEFAULTS_SUITE`:
+    - background launch from a stopped app;
+    - a second CLI call reusing the running copy;
+    - `--no-launch` returning `[app_not_running]`;
+    - a disabled grant returning `[settings_access_disabled]` without
+      launching anything.
+  - Launch-flag unit tests: the background-launch flag is not parsed as a
+    headless command, and it suppresses the main window.
 - **Privacy regressions:**
   - No CLI path writes a `control/` marker.
   - A widening change never applies without approval.
@@ -422,14 +482,16 @@ journals.
 - **SettingsView Agent CLI copy:** "Read-only by design" changes.
 - **`.agents/skills/lokalbot-cli/SKILL.md`:** see the MCP and skill section.
 
-## Open decisions
+## Decisions
 
-1. **Grant model.** A separate "change settings" toggle (recommended), or
-   reuse the meeting-library toggle?
-2. **Widening changes.** An approval card in the app (recommended), or refuse
-   them from the terminal entirely?
-3. **App not running.** Edit offline through the app binary (recommended),
-   require the app to run, or launch it in the background with `open -g`?
-4. **Scope of "everything".** Settings and status first (recommended), or
-   include library edits (People, projects, action status) in the first
-   release?
+Settled on 2026-10-17:
+
+1. **Grant model:** a separate "Allow external agents to change LokalBot
+   settings" toggle, independent of the meeting and screen toggles.
+2. **Widening changes:** allowed from the terminal, applied only after the
+   person approves them in the app.
+3. **App not running:** the CLI launches the app in the background and sends
+   the request to it. There is no offline edit path.
+4. **Scope:** mostly settings. The first release is settings, secrets,
+   `status`, and `open`. Actions come later if wanted. Library edits are out
+   of scope.
