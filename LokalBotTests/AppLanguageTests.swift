@@ -14,7 +14,7 @@ final class AppLanguageTests: XCTestCase {
     func testRegionalAndScriptVariantsResolveToSupportedCatalogs() {
         let variants = ["hi-IN": "hi", "es-MX": "es", "ar-SA": "ar", "fr_CA": "fr",
                         "bn-BD": "bn", "pt-BR": "pt", "pt-PT": "pt", "id-ID": "id",
-                        "ur-Arab-PK": "ur", "AR_eg": "ar-EG", "ar-Arab-EG": "ar-EG", "arz": "ar-EG",
+                        "ur-Arab-PK": "ur", "arz": "ar-EG",
                         "ru-RU": "ru", "de-AT": "de", "ja-JP": "ja", "pcm-NG": "pcm",
                         "mr-IN": "mr", "vi-VN": "vi", "te-IN": "te", "sw-KE": "sw", "ha-Latn-NG": "ha",
                         "ko-KR": "ko", "ko_KP": "ko", "ko-Hang-KR": "ko"]
@@ -32,9 +32,14 @@ final class AppLanguageTests: XCTestCase {
     }
 
     func testEgyptianArabicAndStandardArabicRemainDistinct() {
-        XCTAssertEqual(AppLanguage.system.localizationIdentifier(preferredLanguages: ["ar-EG", "ar"]), "ar-EG")
+        XCTAssertEqual(AppLanguage.system.localizationIdentifier(preferredLanguages: ["ar-EG", "ar"]), "ar")
         XCTAssertEqual(AppLanguage.system.localizationIdentifier(preferredLanguages: ["ar", "ar-EG"]), "ar")
-        XCTAssertEqual(AppLanguage.system.localizationIdentifier(preferredLanguages: ["ar-SA"]), "ar")
+        for regionalArabic in ["AR_eg", "ar-Arab-EG", "ar-SA"] {
+            XCTAssertEqual(AppLanguage.system.localizationIdentifier(preferredLanguages: [regionalArabic]), "ar")
+        }
+        XCTAssertEqual(AppLanguage.system.localizationIdentifier(preferredLanguages: ["arz-EG", "ar"]), "ar-EG")
+        XCTAssertEqual(AppLanguage.egyptianArabic.localizationIdentifier(preferredLanguages: ["ar"]), "ar-EG")
+        XCTAssertEqual(AppLanguage.matching(AppLanguage.egyptianArabic.locale), .egyptianArabic)
         XCTAssertNotEqual(AppLanguage.egyptianArabic.localized("Enable the Access You Need"),
                           AppLanguage.arabic.localized("Enable the Access You Need"))
     }

@@ -1184,7 +1184,7 @@
 "%@ per suggestion used" = "প্রতি ব্যবহৃত প্রস্তাবে %@";
 "%@ taken back" = "%@ ফিরিয়ে নেওয়া হয়েছে";
 "None accepted yet" = "এখনো কিছু গ্রহণ করা হয়নি";
-"%@ of %@ shown" = "%@টি দেখানো হয়েছে, মোট %@টি";
+"%@ of %@ shown" = "%@টি ব্যবহৃত, মোট %@টি দেখানো";
 "%@ of %@ characters written" = "%@টি অক্ষর লেখা হয়েছে, মোট %@টি";
 "%@ keystrokes at your %@ words a minute" = "%@টি কী চাপা, আপনার মিনিটে %@ শব্দের গতিতে";
 "%@ keystrokes at 40 words a minute until your speed is measured" = "%@টি কী চাপা, আপনার গতি মাপা না হওয়া পর্যন্ত মিনিটে ৪০ শব্দ ধরে";

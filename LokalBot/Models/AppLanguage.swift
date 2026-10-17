@@ -61,11 +61,10 @@ enum AppLanguage: String, Codable, CaseIterable, Identifiable, Sendable {
         for language in preferredLanguages {
             let code = language.replacingOccurrences(of: "_", with: "-").lowercased()
             if code == "zh" || code.hasPrefix("zh-") { return "zh-Hans" }
-            let components = code.split(separator: "-")
-            let base = String(components.first ?? "")
-            // macOS uses ar-EG; accept the ISO language code arz as well.
-            // Other Arabic regions retain the Modern Standard Arabic catalog.
-            if base == "arz" || (base == "ar" && components.dropFirst().contains("eg")) {
+            let base = String(code.split(separator: "-").first ?? "")
+            // A system ar-EG preference is Arabic with region Egypt, not a
+            // dialect choice. Only the language code arz selects Egyptian Arabic.
+            if base == "arz" {
                 return Self.egyptianArabic.rawValue
             }
             if let supported = Self(rawValue: base), supported != .system { return supported.rawValue }
@@ -87,6 +86,9 @@ enum AppLanguage: String, Codable, CaseIterable, Identifiable, Sendable {
 
     /// Native text-field bridges receive the locale from their SwiftUI parent.
     static func matching(_ locale: Locale) -> Self {
+        // These bridges receive the selected catalog locale, so an explicit
+        // Egyptian Arabic choice must stay ar-EG instead of following system rules.
+        if let selected = Self(rawValue: locale.identifier), selected != .system { return selected }
         let identifier = Self.system.localizationIdentifier(preferredLanguages: [locale.identifier])
         return Self(rawValue: identifier) ?? .english
     }

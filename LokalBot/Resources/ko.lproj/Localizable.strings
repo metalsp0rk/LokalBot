@@ -1184,8 +1184,8 @@
 "%@ per suggestion used" = "사용한 제안당 %@";
 "%@ taken back" = "%@ 취소됨";
 "None accepted yet" = "아직 적용한 항목 없음";
-"%@ of %@ shown" = "%@ / %@ 표시됨";
-"%@ of %@ characters written" = "작성한 문자 %@ / %@";
+"%@ of %@ shown" = "%@개 사용 / %@개 표시";
+"%@ of %@ characters written" = "자동 완성으로 입력한 %@자 / 전체 %@자";
 "%@ keystrokes at your %@ words a minute" = "키 입력 %@회, 본인의 분당 %@단어 속도 기준";
 "%@ keystrokes at 40 words a minute until your speed is measured" = "키 입력 %@회, 속도가 측정될 때까지 분당 40단어 기준";
 "Used in %@ of %@ months" = "사용한 개월 수 %@ / %@";

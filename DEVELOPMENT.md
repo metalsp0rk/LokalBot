@@ -223,9 +223,10 @@ by total speakers (first and second language users) in the 2026 Ethnologue ranki
 [public ranking table](https://en.wikipedia.org/w/index.php?title=List_of_languages_by_total_number_of_speakers&oldid=1380301586)).
 The ranking counts Nigerian Pidgin and Egyptian Arabic separately, so both have
 full catalogs. Korean (`ko`, 한국어) is also available, bringing the total to 21.
-Egyptian Arabic uses the macOS locale `ar-EG` (also matched from
-`arz`); other Arabic regions use the Modern Standard Arabic `ar` catalog. Nigerian
-Pidgin uses `pcm`. Chinese retains Simplified Chinese. Portuguese uses broadly
+Egyptian Arabic uses the `ar-EG` catalog when explicitly selected, or when
+Follow System encounters the language code `arz`. System `ar-EG` and other
+`ar-*` preferences mean Arabic with a region and use Modern Standard Arabic.
+Nigerian Pidgin uses `pcm`. Chinese retains Simplified Chinese. Portuguese uses broadly
 understandable Brazilian terminology for both Brazilian and European locales.
 
 Follow System selects the first supported macOS language preference, including
@@ -233,7 +234,9 @@ regional variants, and falls back to English. Explicit selection updates open
 windows immediately, including right-to-left layout for both Arabic varieties and Urdu. Language
 names remain in their native scripts. This setting changes interface text only;
 transcription, generated notes, model prompts, and saved user content keep their
-own languages.
+own languages. Existing Follow System preferences adopt newly supported languages;
+explicit language choices remain unchanged. Native macOS menus and panels follow
+macOS language preferences independently of the app-owned interface.
 
 `LokalBot/Resources/en.lproj/Localizable.strings` is the source catalog. Keep every
 language's keys, printf arguments, and embedded line breaks aligned when changing

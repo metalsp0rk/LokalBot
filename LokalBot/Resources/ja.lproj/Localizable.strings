@@ -1184,8 +1184,8 @@
 "%@ per suggestion used" = "使用した候補1件あたり %@";
 "%@ taken back" = "%@ 取り消し";
 "None accepted yet" = "まだ採用していません";
-"%@ of %@ shown" = "%@ / %@ を表示";
-"%@ of %@ characters written" = "入力した %@ / %@ 文字";
+"%@ of %@ shown" = "使用 %@ 件 / 表示 %@ 件";
+"%@ of %@ characters written" = "候補による入力 %@ 文字 / 全 %@ 文字";
 "%@ keystrokes at your %@ words a minute" = "%@ 回のキー入力（あなたの速度：毎分 %@ 語）";
 "%@ keystrokes at 40 words a minute until your speed is measured" = "%@ 回のキー入力（速度測定までは毎分40語で計算）";
 "Used in %@ of %@ months" = "%@ / %@ か月で使用";
