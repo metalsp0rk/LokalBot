@@ -49,6 +49,8 @@ pub(crate) struct DayModel {
 pub(crate) enum Selection {
     Session(String),
     Meeting(Uuid),
+    /// "Browse Raw Capture": every activity block and screen moment.
+    RawCapture,
 }
 
 pub struct TimelinePage {
@@ -435,6 +437,7 @@ impl TimelinePage {
                     ))
                 })
                 .child(v_flex().gap(px(8.)).children(rows))
+                .child(self.render_raw_capture_row(model, cx))
                 .into_any_element()
         };
         v_flex()
@@ -449,6 +452,58 @@ impl TimelinePage {
                 ))
             })
             .child(sessions_block)
+            .into_any_element()
+    }
+
+    /// The rail's last row, opening raw activity in the context panel.
+    fn render_raw_capture_row(&self, model: &DayModel, cx: &mut Context<Self>) -> AnyElement {
+        let lb = cx.lb().clone();
+        let selected = self.selection == Some(Selection::RawCapture);
+        let (fill, stroke) = if selected {
+            (lb.accent_text.opacity(0.11), lb.accent_text.opacity(0.8))
+        } else {
+            (lb.text.opacity(0.035), lb.text.opacity(0.10))
+        };
+        h_flex()
+            .id("timeline-raw-capture")
+            .mt(px(4.))
+            .w_full()
+            .p(px(10.))
+            .gap(px(10.))
+            .items_center()
+            .rounded(metric::GROUP_RADIUS)
+            .bg(fill)
+            .border_1()
+            .border_color(stroke)
+            .cursor_pointer()
+            .hover(move |s| s.bg(fill.opacity(1.6)))
+            .child(div().w(px(24.)).flex().justify_center().child(ui::icon(
+                Ico::Activity,
+                px(16.),
+                lb.text_secondary,
+            )))
+            .child(
+                v_flex()
+                    .flex_1()
+                    .min_w_0()
+                    .gap(px(2.))
+                    .child(
+                        div()
+                            .text_size(ty::BODY)
+                            .font_weight(FontWeight::MEDIUM)
+                            .text_color(lb.text)
+                            .child("Browse Raw Capture"),
+                    )
+                    .child(
+                        div()
+                            .truncate()
+                            .text_size(ty::CAPTION)
+                            .text_color(lb.text_secondary)
+                            .child(context::capture_counts(model)),
+                    ),
+            )
+            .child(ui::icon(Ico::ChevronRight, px(13.), lb.text_tertiary))
+            .on_click(cx.listener(|this, _, _, cx| this.select(Some(Selection::RawCapture), cx)))
             .into_any_element()
     }
 

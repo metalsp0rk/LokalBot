@@ -77,6 +77,7 @@ impl TimelinePage {
                 .find(|s| &s.id == id)
                 .map(|session| self.render_session(model, session, drawer, cx)),
             Some(Selection::Meeting(_)) => Some(self.render_meeting(drawer, cx)),
+            Some(Selection::RawCapture) => Some(self.render_raw_capture(model, drawer, cx)),
             None => None,
         };
         let content = content.unwrap_or_else(|| {
@@ -453,6 +454,177 @@ impl TimelinePage {
             .into_any_element()
     }
 
+    /// Raw activity blocks by hour, then the day's screen moments.
+    fn render_raw_capture(
+        &self,
+        model: &DayModel,
+        drawer: bool,
+        cx: &mut Context<Self>,
+    ) -> AnyElement {
+        let lb = cx.lb().clone();
+        let mut hours: Vec<(String, Vec<&lokalbot_core::ActivityBlock>)> = Vec::new();
+        for block in &model.activity.blocks {
+            let hour = block
+                .start
+                .with_timezone(&chrono::Local)
+                .format("%-I:00 %p")
+                .to_string();
+            match hours.last_mut() {
+                Some((label, blocks)) if *label == hour => blocks.push(block),
+                _ => hours.push((hour, vec![block])),
+            }
+        }
+        let empty = model.activity.blocks.is_empty() && model.moments.is_empty();
+        let activity = (!model.activity.blocks.is_empty()).then(|| {
+            context_section(
+                Ico::ChartGantt,
+                "App activity",
+                v_flex()
+                    .gap(px(12.))
+                    .children(hours.into_iter().map(|(hour, blocks)| {
+                        h_flex()
+                            .items_start()
+                            .gap(px(10.))
+                            .child(
+                                div()
+                                    .w(px(64.))
+                                    .flex_none()
+                                    .pt(px(2.))
+                                    .text_size(ty::CAPTION)
+                                    .text_color(lb.text_secondary)
+                                    .child(hour),
+                            )
+                            .child(v_flex().flex_1().min_w_0().gap(px(6.)).children(
+                                blocks.into_iter().map(|block| {
+                                    let color = lb.app_color(&block.app);
+                                    let title = if block.title.trim().is_empty() {
+                                        block.app.clone()
+                                    } else {
+                                        block.title.clone()
+                                    };
+                                    h_flex()
+                                        .gap(px(8.))
+                                        .items_start()
+                                        .child(
+                                            div()
+                                                .w(px(4.))
+                                                .h(px(34.))
+                                                .flex_none()
+                                                .rounded(px(2.))
+                                                .bg(color.opacity(0.85)),
+                                        )
+                                        .child(
+                                            v_flex()
+                                                .flex_1()
+                                                .min_w_0()
+                                                .gap(px(2.))
+                                                .child(
+                                                    div()
+                                                        .truncate()
+                                                        .text_size(ty::BODY)
+                                                        .text_color(lb.text)
+                                                        .child(title),
+                                                )
+                                                .child(
+                                                    div()
+                                                        .truncate()
+                                                        .text_size(ty::CAPTION)
+                                                        .text_color(lb.text_secondary)
+                                                        .child(format!(
+                                                            "{} · {}–{} · {}",
+                                                            block.app,
+                                                            lokalbot_core::time::clock_time(
+                                                                block.start
+                                                            ),
+                                                            lokalbot_core::time::clock_time(
+                                                                block.end
+                                                            ),
+                                                            crate::pages::today::digest::hm(
+                                                                block.duration_seconds()
+                                                            )
+                                                        )),
+                                                ),
+                                        )
+                                }),
+                            ))
+                    })),
+                cx,
+            )
+        });
+        let moments = (!model.moments.is_empty()).then(|| {
+            context_section(
+                Ico::ScanText,
+                "Screen moments",
+                v_flex()
+                    .gap(px(9.))
+                    .children(model.moments.iter().map(|moment| {
+                        let title = if !moment.document_name.is_empty() {
+                            moment.document_name.clone()
+                        } else if !moment.window_title.is_empty() {
+                            moment.window_title.clone()
+                        } else {
+                            moment.app.clone()
+                        };
+                        h_flex()
+                            .gap(px(10.))
+                            .items_center()
+                            .child(ui::icon_tile(
+                                Ico::ScanText,
+                                lb.app_color(&moment.app),
+                                px(28.),
+                            ))
+                            .child(
+                                v_flex()
+                                    .flex_1()
+                                    .min_w_0()
+                                    .gap(px(2.))
+                                    .child(
+                                        div()
+                                            .truncate()
+                                            .text_size(ty::BODY)
+                                            .text_color(lb.text)
+                                            .child(title),
+                                    )
+                                    .child(
+                                        div()
+                                            .text_size(ty::CAPTION)
+                                            .text_color(lb.text_secondary)
+                                            .child(format!(
+                                                "{} · {}",
+                                                moment.app,
+                                                moment
+                                                    .ts
+                                                    .with_timezone(&chrono::Local)
+                                                    .format("%-I:%M:%S %p")
+                                            )),
+                                    ),
+                            )
+                            .when(moment.is_saved, |this| {
+                                this.child(ui::icon(Ico::Bookmark, px(14.), lb.attention_text))
+                            })
+                    })),
+                cx,
+            )
+        });
+        v_flex()
+            .gap(px(16.))
+            .child(self.panel_header(Ico::Activity, "Raw capture".into(), capture_counts(model), drawer, cx))
+            .child(div().text_size(ty::SECONDARY).text_color(lb.text_secondary).child(
+                "Individual app activity and retained screen moments. Use this for exact evidence or cleanup.",
+            ))
+            .when(empty, |this| {
+                this.child(ui::empty_state(
+                    Ico::Activity,
+                    "No raw capture",
+                    "No activity or screen moments were retained for this day.",
+                    cx,
+                ))
+            })
+            .children(activity)
+            .children(moments)
+            .into_any_element()
+    }
+
     fn render_meeting(&self, drawer: bool, cx: &mut Context<Self>) -> AnyElement {
         let lb = cx.lb().clone();
         let Some(preview) = self.meeting_preview.as_ref() else {
@@ -632,6 +804,25 @@ impl TimelinePage {
             )
             .into_any_element()
     }
+}
+
+/// "12 activity entries · 6 screen moments".
+pub(super) fn capture_counts(model: &DayModel) -> String {
+    let blocks = model.activity.blocks.len();
+    let moments = model.moments.len();
+    format!(
+        "{blocks} {} · {moments} {}",
+        if blocks == 1 {
+            "activity entry"
+        } else {
+            "activity entries"
+        },
+        if moments == 1 {
+            "screen moment"
+        } else {
+            "screen moments"
+        }
+    )
 }
 
 /// `TimelineContextSection`: icon + headline over grouped content.
