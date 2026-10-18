@@ -325,10 +325,9 @@ impl AskPage {
                     .px(px(4.))
                     .child(self.render_sources_menu(cx))
                     .child(self.render_date_scope(cx))
-                    .child(div().flex_1())
+                    .child(div().flex_1().min_w_0())
                     .child(
                         h_flex()
-                            .w(px(196.))
                             .flex_none()
                             .gap(px(8.))
                             .justify_end()
@@ -449,7 +448,7 @@ impl AskPage {
                             Button::new(SharedString::from(format!("ask-date-{label}")))
                                 .outline()
                                 .small()
-                                .flex_1()
+                                .flex_1().min_w_0()
                                 .icon(Icon::new(if selected { Ico::Check } else { Ico::Calendar }))
                                 .label(label)
                                 .on_click(move |_, window, cx| {

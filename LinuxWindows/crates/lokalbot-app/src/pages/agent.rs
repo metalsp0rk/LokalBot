@@ -85,7 +85,7 @@ impl AgentPage {
                 })
                 .await;
             if let Err(err) = result {
-                let _ = data.update(cx, |data, cx| {
+                data.update(cx, |data, cx| {
                     data.show_error(format!("Could not change agent access: {err}"), cx)
                 });
             }
@@ -333,7 +333,7 @@ impl Render for AgentPage {
                             .child(ui::icon(Ico::ShieldCheck, px(14.), lb.text_secondary))
                             .child(
                                 v_flex()
-                                    .flex_1()
+                                    .flex_1().min_w_0()
                                     .gap(px(6.))
                                     .child(ui::settings_row::help(
                                         "Read-only by design: agents can read what you allow and nothing else. LokalBot never sends your library anywhere; your agent decides what to do with what it reads.",

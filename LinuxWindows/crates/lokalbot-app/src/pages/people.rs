@@ -114,7 +114,7 @@ impl PeoplePage {
                 .background_spawn(async move { library.save_people_curation(&curation) })
                 .await;
             if let Err(err) = result {
-                let _ = data.update(cx, |data, cx| {
+                data.update(cx, |data, cx| {
                     data.show_error(format!("Could not save People changes: {err:#}"), cx)
                 });
             }
@@ -199,7 +199,7 @@ impl PeoplePage {
                                     window.close_dialog(cx);
                                 },
                             ))
-                            .child(div().flex_1())
+                            .child(div().flex_1().min_w_0())
                             .child(Button::new("people-rename-cancel").outline().label("Cancel").on_click(|_, window, cx| {
                                 window.close_dialog(cx)
                             }))
@@ -275,7 +275,7 @@ impl PeoplePage {
             .copied()
             .filter(|p| !p.last_met().is_some_and(|d| d >= cutoff))
             .collect();
-        earlier.sort_by(|a, b| b.last_met().cmp(&a.last_met()));
+        earlier.sort_by_key(|p| std::cmp::Reverse(p.last_met()));
         [
             ("Open Work", open),
             ("Last 2 Weeks", recent),
@@ -568,6 +568,8 @@ impl PeoplePage {
                         .child(ui::avatar(profile::initials(&person.name), tint, px(56.)))
                         .child(
                             v_flex()
+                                .flex_1()
+                                .min_w_0()
                                 .gap(px(4.))
                                 .child(
                                     div()
@@ -943,6 +945,7 @@ impl PeoplePage {
                     .child(
                         div()
                             .flex_1()
+                            .min_w_0()
                             .text_size(ty::SECONDARY)
                             .text_color(lb.text)
                             .child(
@@ -975,7 +978,7 @@ fn row_context(person: &PersonProfile) -> String {
         return projects.join(" · ");
     }
     let mut series = series(&person.meetings);
-    series.sort_by(|a, b| b.1.len().cmp(&a.1.len()));
+    series.sort_by_key(|(_, meetings)| std::cmp::Reverse(meetings.len()));
     let titles: Vec<&str> = series.iter().take(2).map(|(t, _)| t.as_str()).collect();
     if !titles.is_empty() {
         return titles.join(", ");
@@ -1023,7 +1026,7 @@ fn series(meetings: &[MeetingRef]) -> Vec<(String, Vec<MeetingRef>)> {
     let mut series: Vec<(String, Vec<MeetingRef>)> = by_title
         .into_iter()
         .map(|(title, mut meetings)| {
-            meetings.sort_by(|a, b| b.started_at.cmp(&a.started_at));
+            meetings.sort_by_key(|m| std::cmp::Reverse(m.started_at));
             (title, meetings)
         })
         .collect();

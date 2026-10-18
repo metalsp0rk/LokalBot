@@ -221,7 +221,7 @@ impl Onboarding {
                                         h_flex()
                                             .gap(px(12.))
                                             .items_center()
-                                            .child(div().flex_1().text_size(ty::BODY).text_color(lb.text).child("Detected Meetings"))
+                                            .child(div().flex_1().min_w_0().text_size(ty::BODY).text_color(lb.text).child("Detected Meetings"))
                                             .child(meeting_picker),
                                     )
                                     .child(text(
@@ -236,7 +236,7 @@ impl Onboarding {
                                     .items_center()
                                     .child(
                                         v_flex()
-                                            .flex_1()
+                                            .flex_1().min_w_0()
                                             .gap(px(4.))
                                             .child(div().text_size(ty::BODY).text_color(lb.text).child("Day Memory"))
                                             .child(text("Remember app and window activity.", lb.text_secondary)),
@@ -259,7 +259,7 @@ impl Onboarding {
                                         h_flex()
                                             .gap(px(12.))
                                             .items_center()
-                                            .child(div().flex_1().text_size(ty::BODY).text_color(lb.text).child("Day-Memory Detail"))
+                                            .child(div().flex_1().min_w_0().text_size(ty::BODY).text_color(lb.text).child("Day-Memory Detail"))
                                             .child(detail_picker),
                                     )
                                     .child(text(mode_detail(draft.context_mode), lb.text_secondary)),
@@ -406,7 +406,7 @@ impl Onboarding {
                 h_flex()
                     .gap(px(12.))
                     .items_center()
-                    .child(div().flex_1().text_size(ty::BODY).text_color(lb.text).child("Also prepare Autocomplete (optional)"))
+                    .child(div().flex_1().min_w_0().text_size(ty::BODY).text_color(lb.text).child("Also prepare Autocomplete (optional)"))
                     .child(Switch::new("onboarding-autocomplete").checked(self.include_autocomplete).on_click(move |on, _, cx| {
                         let on = *on;
                         toggle_page.update(cx, |this, cx| {
@@ -465,6 +465,7 @@ impl Onboarding {
                 .child(
                     div()
                         .flex_1()
+                        .min_w_0()
                         .text_size(ty::BODY)
                         .text_color(lb.text)
                         .child(label),
@@ -533,6 +534,7 @@ impl Render for Onboarding {
                     .child(
                         div()
                             .flex_1()
+                            .min_w_0()
                             .flex()
                             .justify_center()
                             .text_size(ty::SECONDARY)
@@ -585,7 +587,7 @@ impl Render for Onboarding {
                             .text_color(lb.text_secondary)
                             .child(format!("Step {} of 4", step.index() + 1)),
                     )
-                    .child(div().flex_1())
+                    .child(div().flex_1().min_w_0())
                     .child(
                         Button::new("onboarding-back")
                             .outline()

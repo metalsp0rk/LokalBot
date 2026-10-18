@@ -37,7 +37,7 @@ impl SettingsPage {
                 })
                 .await;
             if let Err(err) = result {
-                let _ = data.update(cx, |data, cx| {
+                data.update(cx, |data, cx| {
                     data.show_error(format!("Could not change agent access: {err}"), cx)
                 });
             }
@@ -58,7 +58,7 @@ impl SettingsPage {
                 )
                 .await;
             if let Err(err) = result {
-                let _ = data.update(cx, |data, cx| {
+                data.update(cx, |data, cx| {
                     data.show_error(format!("Could not change screen access: {err}"), cx)
                 });
             }

@@ -197,6 +197,9 @@ pub struct AppData {
     pub last_dictation: Option<SharedString>,
     /// Microphone names for the device pickers in Settings, filled by the engine.
     pub audio_inputs: Vec<SharedString>,
+    /// Settings is recording a new shortcut: global shortcuts should pause
+    /// so the keystroke reaches the recorder.
+    pub shortcut_recording: bool,
 }
 
 /// Progress of an answer in Ask.
@@ -292,6 +295,7 @@ impl AppData {
             project_notes_running: Vec::new(),
             last_dictation: None,
             audio_inputs: Vec::new(),
+            shortcut_recording: false,
         }
     }
 

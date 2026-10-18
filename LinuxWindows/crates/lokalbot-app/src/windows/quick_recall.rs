@@ -702,6 +702,7 @@ impl QuickRecall {
                     .child(
                         div()
                             .flex_1()
+                            .min_w_0()
                             .truncate()
                             .text_size(ty::BODY)
                             .text_color(lb.text)
@@ -754,7 +755,7 @@ impl QuickRecall {
                         .child("↩ Open"),
                 )
             })
-            .child(div().flex_1())
+            .child(div().flex_1().min_w_0())
             .when(!query.is_empty(), |this| {
                 let label: SharedString = format!("Ask about “{query}”").into();
                 this.child(

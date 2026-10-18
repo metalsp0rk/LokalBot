@@ -22,111 +22,62 @@ use crate::state::{AppData, AppEvent};
 use crate::theme::{LbThemeExt as _, ty};
 use crate::ui::{self, Ico, settings_row};
 
-/// A model the roles can use.
-pub struct ModelInfo {
+/// A transcription model (`lokalbot_speech::models::transcription_models`).
+/// The app does not link the speech runtime, so the names and download sizes
+/// are mirrored here.
+pub struct SpeechModel {
     pub id: &'static str,
     pub name: &'static str,
     pub bytes: u64,
 }
 
-pub const SPEECH_MODELS: &[ModelInfo] = &[
-    ModelInfo {
-        id: "qwen3-asr-1.7b",
-        name: "Qwen3-ASR 1.7B",
-        bytes: 2_463_307_541,
-    },
-    ModelInfo {
+pub const SPEECH_MODELS: &[SpeechModel] = &[
+    SpeechModel {
         id: "qwen3-asr-0.6b",
         name: "Qwen3-ASR 0.6B",
-        bytes: 708_236_945,
+        bytes: 878_702_423,
     },
-    ModelInfo {
+    SpeechModel {
+        id: "parakeet-v3",
+        name: "Parakeet TDT 0.6B v3",
+        bytes: 487_170_055,
+    },
+    SpeechModel {
         id: "sense-voice",
         name: "SenseVoice (zh/ja/ko/yue/en)",
         bytes: 165_783_878,
     },
-    ModelInfo {
-        id: "gigaam-russian",
-        name: "GigaAM (Russian)",
-        bytes: 163_286_197,
+    SpeechModel {
+        id: "whisper-large-v3-turbo",
+        name: "Whisper large-v3 turbo",
+        bytes: 563_790_207,
     },
 ];
 
-pub const TEXT_MODELS: &[ModelInfo] = &[
-    ModelInfo {
-        id: "qwen3.5-0.8b",
-        name: "Qwen3.5 0.8B",
-        bytes: 532_517_120,
-    },
-    ModelInfo {
-        id: "lfm2.5-1.2b-instruct",
-        name: "LFM2.5 1.2B Instruct",
-        bytes: 730_895_584,
-    },
-    ModelInfo {
-        id: "qwen3.5-2b",
-        name: "Qwen3.5 2B",
-        bytes: 1_280_835_840,
-    },
-    ModelInfo {
-        id: "lfm2.5-2.6b",
-        name: "LFM2.5 2.6B Reasoning",
-        bytes: 1_674_454_848,
-    },
-    ModelInfo {
-        id: "qwen3.5-4b",
-        name: "Qwen3.5 4B",
-        bytes: 2_740_937_888,
-    },
-    ModelInfo {
-        id: "gemma4-e2b-base-q6",
-        name: "Gemma 4 E2B Base (Autocomplete)",
-        bytes: 3_845_328_608,
-    },
-    ModelInfo {
-        id: "lfm2.5-8b-a1b",
-        name: "LFM2.5 8B (MoE)",
-        bytes: 5_155_564_768,
-    },
-    ModelInfo {
-        id: "gemma4-12b",
-        name: "Gemma 4 12B",
-        bytes: 7_121_860_000,
-    },
-    ModelInfo {
-        id: "qwen3.6-27b",
-        name: "Qwen3.6 27B",
-        bytes: 16_817_244_384,
-    },
-    ModelInfo {
-        id: "qwen3.6-35b-a3b",
-        name: "Qwen 3.6 · 35B-A3B",
-        bytes: 17_730_509_792,
-    },
-];
+/// A picker entry: label, whether it is current, and how to select it.
+type ModelChoice = (SharedString, bool, Box<dyn Fn(&mut Settings)>);
 
-/// Autocomplete models are small and quick (`Autocomplete picker rules`).
-const AUTOCOMPLETE_MODELS: [&str; 5] = [
-    "qwen3.5-0.8b",
-    "lfm2.5-1.2b-instruct",
-    "qwen3.5-2b",
-    "qwen3.5-4b",
-    "gemma4-e2b-base-q6",
-];
+/// The default transcription model on Linux and Windows.
+const DEFAULT_SPEECH_MODEL: &str = "qwen3-asr-0.6b";
 
+/// Display name of a speech or text model id.
 pub fn model_name(id: &str) -> String {
+    if let Some(entry) = lokalbot_ai::catalog::entry(id) {
+        return entry.display_name.to_string();
+    }
     SPEECH_MODELS
         .iter()
-        .chain(TEXT_MODELS)
         .find(|m| m.id == id)
         .map(|m| m.name.to_string())
         .unwrap_or_else(|| id.to_string())
 }
 
 fn model_bytes(id: &str) -> u64 {
+    if let Some(entry) = lokalbot_ai::catalog::entry(id) {
+        return entry.size_bytes;
+    }
     SPEECH_MODELS
         .iter()
-        .chain(TEXT_MODELS)
         .find(|m| m.id == id)
         .map(|m| m.bytes)
         .unwrap_or(0)
@@ -153,24 +104,26 @@ impl Preset {
 
     pub fn title(self) -> &'static str {
         match self {
-            Preset::Balanced => "Balanced local",
-            Preset::Lightweight => "Lightweight local",
+            Preset::Balanced => lokalbot_ai::catalog::PRESETS[0].name,
+            Preset::Lightweight => lokalbot_ai::catalog::PRESETS[1].name,
         }
     }
 
     fn subtitle(self) -> &'static str {
         match self {
-            Preset::Balanced => "Balanced local models for everyday work.",
-            Preset::Lightweight => "Smaller downloads and a lighter memory footprint.",
+            Preset::Balanced => lokalbot_ai::catalog::PRESETS[0].description,
+            Preset::Lightweight => lokalbot_ai::catalog::PRESETS[1].description,
         }
     }
 
-    /// Transcribe, Think and Autocomplete model ids.
+    /// Transcribe, Think and Autocomplete model ids (`lokalbot_ai::catalog::PRESETS`).
     fn models(self) -> (&'static str, &'static str, &'static str) {
-        match self {
-            Preset::Balanced => ("qwen3-asr-1.7b", "qwen3.5-4b", "gemma4-e2b-base-q6"),
-            Preset::Lightweight => ("qwen3-asr-0.6b", "qwen3.5-0.8b", "lfm2.5-1.2b-instruct"),
-        }
+        let index = match self {
+            Preset::Balanced => 0,
+            Preset::Lightweight => 1,
+        };
+        let preset = &lokalbot_ai::catalog::PRESETS[index];
+        (DEFAULT_SPEECH_MODEL, preset.think, preset.autocomplete)
     }
 
     fn summary(self) -> String {
@@ -655,6 +608,7 @@ impl SettingsPage {
                     .child(
                         h_flex()
                             .flex_1()
+                            .min_w_0()
                             .gap(px(8.))
                             .items_center()
                             .child(ui::icon(Ico::ShieldCheck, px(15.), lb.text_secondary))
@@ -711,7 +665,7 @@ impl SettingsPage {
                                 .gap(px(8.))
                                 .items_center()
                                 .child(ui::icon(Ico::Network, px(15.), lb.attention_text))
-                                .child(div().flex_1().text_size(ty::BODY).text_color(lb.text).child(origin.clone()))
+                                .child(div().flex_1().min_w_0().text_size(ty::BODY).text_color(lb.text).child(origin.clone()))
                                 .child(Button::new(SharedString::from(format!("revoke-{origin}"))).outline().small().label("Revoke…").on_click(
                                     move |_, window, cx| confirm_revoke(data.clone(), revoke.clone(), window, cx),
                                 )),
@@ -884,7 +838,7 @@ impl SettingsPage {
                 _ => None,
             };
         let data = self.data.clone();
-        let options: Vec<(SharedString, bool, Box<dyn Fn(&mut Settings)>)> = match choices {
+        let options: Vec<ModelChoice> = match choices {
             RoleChoices::Speech => SPEECH_MODELS
                 .iter()
                 .map(|m| {
@@ -898,12 +852,15 @@ impl SettingsPage {
                 })
                 .collect(),
             RoleChoices::Think => {
-                let mut items: Vec<(SharedString, bool, Box<dyn Fn(&mut Settings)>)> = TEXT_MODELS
-                    .iter()
+                let mut items: Vec<ModelChoice> = lokalbot_ai::catalog::think_entries()
                     .map(|m| {
                         let id = m.id;
                         (
-                            SharedString::from(format!("{} · {}", m.name, size_label(m.bytes))),
+                            SharedString::from(format!(
+                                "{} · {}",
+                                m.display_name,
+                                size_label(m.size_bytes)
+                            )),
                             settings.summarizer_backend == SummarizerBackend::BuiltIn
                                 && settings.built_in_model_id == id,
                             Box::new(move |s: &mut Settings| {
@@ -927,19 +884,23 @@ impl SettingsPage {
                 ));
                 items
             }
-            RoleChoices::Autocomplete => TEXT_MODELS
-                .iter()
-                .filter(|m| AUTOCOMPLETE_MODELS.contains(&m.id))
-                .map(|m| {
-                    let id = m.id;
-                    (
-                        SharedString::from(format!("{} · {}", m.name, size_label(m.bytes))),
-                        settings.cotyping_built_in_model_id == id,
-                        Box::new(move |s: &mut Settings| s.cotyping_built_in_model_id = id.into())
-                            as Box<dyn Fn(&mut Settings)>,
-                    )
-                })
-                .collect(),
+            RoleChoices::Autocomplete => lokalbot_ai::catalog::autocomplete_entries(Some(
+                &settings.cotyping_built_in_model_id,
+            ))
+            .map(|m| {
+                let id = m.id;
+                (
+                    SharedString::from(format!(
+                        "{} · {}",
+                        m.display_name,
+                        size_label(m.size_bytes)
+                    )),
+                    settings.cotyping_built_in_model_id == id,
+                    Box::new(move |s: &mut Settings| s.cotyping_built_in_model_id = id.into())
+                        as Box<dyn Fn(&mut Settings)>,
+                )
+            })
+            .collect(),
         };
         let options = std::rc::Rc::new(options);
         let change = Button::new(SharedString::from(format!("{}-change", row.id)))
@@ -1187,7 +1148,7 @@ impl SettingsPage {
                         .child(
                             h_flex()
                                 .gap(px(8.))
-                                .child(div().flex_1().child(Input::new(&self.models.api_key).mask_toggle()))
+                                .child(div().flex_1().min_w_0().child(Input::new(&self.models.api_key).mask_toggle()))
                                 .child(Button::new("settings-save-key").outline().small().label("Save key").on_click(move |_, window, cx| {
                                     let key = key_input.read(cx).value().trim().to_string();
                                     if key.is_empty() {
@@ -1304,7 +1265,7 @@ impl SettingsPage {
                 h_flex()
                     .gap(px(10.))
                     .items_center()
-                    .child(div().flex_1().text_size(ty::BODY).text_color(lb.text).child(format!("Allow sending context to {origin}")))
+                    .child(div().flex_1().min_w_0().text_size(ty::BODY).text_color(lb.text).child(format!("Allow sending context to {origin}")))
                     .child(settings_row::switch("settings-remote-consent", approved, move |on, _, cx| {
                         let origin = toggle_origin.clone();
                         data.update(cx, |data, cx| {

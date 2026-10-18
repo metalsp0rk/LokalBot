@@ -740,6 +740,7 @@ impl AskPage {
                     .child(
                         div()
                             .flex_1()
+                            .min_w_0()
                             .text_size(ty::BODY)
                             .text_color(lb.text)
                             .child(*suggestion),
@@ -822,7 +823,7 @@ fn date_divider_row(title: String, cx: &App) -> Div {
                 .text_color(lb.text_secondary)
                 .child(title),
         )
-        .child(div().flex_1().h(px(1.)).bg(lb.text.opacity(0.10)))
+        .child(div().flex_1().min_w_0().h(px(1.)).bg(lb.text.opacity(0.10)))
 }
 
 fn status_row(title: &str, detail: &str, icon: Ico, tint: gpui_kit::Hsla, cx: &App) -> Div {

@@ -391,7 +391,7 @@ fn choose_export_folder(
             .and_then(|result| result.ok())
             .flatten()
             .and_then(|paths| paths.into_iter().next());
-        let _ = data.update(cx, |data, cx| match chosen {
+        data.update(cx, |data, cx| match chosen {
             Some(path) => data.update_settings(
                 |s| s.meeting_note_export_folder = path.to_string_lossy().to_string(),
                 cx,

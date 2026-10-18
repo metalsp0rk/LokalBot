@@ -114,7 +114,7 @@ impl ProjectsPage {
                 .background_spawn(async move { library.save_project_curation(&curation) })
                 .await;
             if let Err(err) = result {
-                let _ = data.update(cx, |data, cx| {
+                data.update(cx, |data, cx| {
                     data.show_error(format!("Could not save project changes: {err:#}"), cx)
                 });
             }
@@ -245,7 +245,7 @@ impl ProjectsPage {
                         h_flex()
                             .gap(px(8.))
                             .pt(px(4.))
-                            .child(div().flex_1())
+                            .child(div().flex_1().min_w_0())
                             .child(Button::new("project-sheet-cancel").outline().label("Cancel").on_click(|_, window, cx| window.close_dialog(cx)))
                             .child(Button::new("project-sheet-save").primary().label(action).on_click(move |_, window, cx| {
                                 let name = save_name.read(cx).value().to_string();
@@ -417,6 +417,7 @@ impl ProjectsPage {
                     .child(
                         v_flex()
                             .flex_1()
+                            .min_w_0()
                             .gap(px(2.))
                             .child(
                                 div()
@@ -529,6 +530,8 @@ impl ProjectsPage {
                         .child(profile::monogram(&project.name, px(56.), cx))
                         .child(
                             v_flex()
+                                .flex_1()
+                                .min_w_0()
                                 .gap(px(4.))
                                 .child(
                                     h_flex()
@@ -977,7 +980,7 @@ impl ProjectsPage {
                                 .gap(px(8.))
                                 .items_start()
                                 .child(div().text_color(lb.text_secondary).child("?"))
-                                .child(div().flex_1().text_size(ty::BODY).text_color(lb.text).child(question.clone())),
+                                .child(div().flex_1().min_w_0().text_size(ty::BODY).text_color(lb.text).child(question.clone())),
                         );
                     }
                 }
@@ -1072,6 +1075,7 @@ fn value_row(label: &str, value: String, color: gpui_kit::Hsla, cx: &App) -> gpu
         .child(
             div()
                 .flex_1()
+                .min_w_0()
                 .text_size(ty::BODY)
                 .text_color(color)
                 .child(label.to_string()),

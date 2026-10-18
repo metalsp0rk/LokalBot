@@ -56,11 +56,7 @@ impl RuleList {
             window,
             |this, _, event: &InputEvent, window, cx| match event {
                 InputEvent::PressEnter { .. } => this.add(window, cx),
-                InputEvent::Change => {
-                    if this.error.take().is_some() {
-                        cx.notify();
-                    }
-                }
+                InputEvent::Change if this.error.take().is_some() => cx.notify(),
                 _ => {}
             },
         );
@@ -249,7 +245,7 @@ impl Render for RuleList {
                     h_flex()
                         .gap(px(6.))
                         .items_center()
-                        .child(div().flex_1().child(Input::new(&self.input).small()))
+                        .child(div().flex_1().min_w_0().child(Input::new(&self.input).small()))
                         .child(Button::new("rule-cancel").outline().small().label("Cancel").on_click(cx.listener(
                             |this, _, window, cx| {
                                 this.adding = false;

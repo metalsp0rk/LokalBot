@@ -94,19 +94,6 @@ impl Section {
         self.rows.push(element.into_any_element());
         self
     }
-
-    pub fn row_if(
-        self,
-        condition: bool,
-        id: &'static str,
-        element: impl FnOnce() -> AnyElement,
-    ) -> Self {
-        if condition {
-            self.row(id, element())
-        } else {
-            self
-        }
-    }
 }
 
 pub struct SettingsPage {
@@ -253,20 +240,34 @@ impl SettingsPage {
             cx.subscribe_in(
                 &quick_recall_shortcut,
                 window,
-                |this, _, event: &ShortcutEvent, _, cx| {
-                    if let ShortcutEvent::Changed(value) = event {
+                |this, _, event: &ShortcutEvent, _, cx| match event {
+                    ShortcutEvent::Changed(value) => {
                         let value = value.clone();
                         this.update_settings(move |s| s.quick_recall_shortcut = value, cx);
+                    }
+                    ShortcutEvent::Recording(recording) => {
+                        let recording = *recording;
+                        this.data.update(cx, |data, cx| {
+                            data.shortcut_recording = recording;
+                            cx.notify();
+                        });
                     }
                 },
             ),
             cx.subscribe_in(
                 &dictation_shortcut,
                 window,
-                |this, _, event: &ShortcutEvent, _, cx| {
-                    if let ShortcutEvent::Changed(value) = event {
+                |this, _, event: &ShortcutEvent, _, cx| match event {
+                    ShortcutEvent::Changed(value) => {
                         let value = value.clone();
                         this.update_settings(move |s| s.dictation_shortcut = value, cx);
+                    }
+                    ShortcutEvent::Recording(recording) => {
+                        let recording = *recording;
+                        this.data.update(cx, |data, cx| {
+                            data.shortcut_recording = recording;
+                            cx.notify();
+                        });
                     }
                 },
             ),
@@ -581,6 +582,7 @@ impl SettingsPage {
     }
 
     /// A row with a pop-up picker over `options`.
+    #[allow(clippy::too_many_arguments)]
     fn choice<T: Copy + PartialEq + 'static>(
         &self,
         id: &'static str,

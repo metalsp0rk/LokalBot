@@ -153,6 +153,7 @@ impl SettingsPage {
                     .child(
                         div()
                             .flex_1()
+                            .min_w_0()
                             .text_size(ty::SECONDARY)
                             .text_color(lb.text_secondary)
                             .child(hint),

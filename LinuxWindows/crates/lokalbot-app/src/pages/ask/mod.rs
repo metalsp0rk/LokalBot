@@ -297,7 +297,7 @@ impl AskPage {
                 .background_spawn(async move { library.delete_conversation(id) })
                 .await;
             if let Err(err) = result {
-                let _ = data.update(cx, |data, cx| {
+                data.update(cx, |data, cx| {
                     data.show_error(format!("Could not delete the question: {err:#}"), cx)
                 });
                 let _ = this.update(cx, |this, cx| this.reload_conversations(cx));

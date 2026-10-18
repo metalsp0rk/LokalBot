@@ -144,7 +144,7 @@ pub fn result_body(
                             .child(date),
                     )
                 })
-                .child(div().flex_1())
+                .child(div().flex_1().min_w_0())
                 .child(kind_chip(kind, cx)),
         )
         .when_some(match_label, |this, label| {
