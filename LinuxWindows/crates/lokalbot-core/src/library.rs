@@ -72,6 +72,7 @@ CREATE TABLE IF NOT EXISTS screen_embeddings (
     vec BLOB NOT NULL, model_id TEXT NOT NULL DEFAULT '',
     FOREIGN KEY(snapshot_id) REFERENCES screenshots(id) ON DELETE CASCADE);
 CREATE INDEX IF NOT EXISTS idx_screen_embeddings_ts ON screen_embeddings(ts);
+CREATE INDEX IF NOT EXISTS idx_screen_embeddings_app_ts ON screen_embeddings(app, ts);
 
 CREATE TABLE IF NOT EXISTS pipeline_jobs (meeting_id TEXT PRIMARY KEY, transcribe INTEGER NOT NULL,
     transcription_completed INTEGER NOT NULL DEFAULT 0, summarize INTEGER NOT NULL,
@@ -99,6 +100,7 @@ pub struct MeetingAudio {
 }
 
 /// Result of resolving a CLI/MCP meeting reference.
+#[allow(clippy::large_enum_variant)]
 #[derive(Clone, Debug, PartialEq)]
 pub enum MeetingLookup {
     Found(Meeting),
@@ -120,6 +122,8 @@ impl Library {
         db.execute_batch(SCHEMA).context("creating schema")?;
         // Older pipeline_jobs tables predate last_error.
         let _ = db.execute("ALTER TABLE pipeline_jobs ADD COLUMN last_error TEXT", []);
+        migrate_ocr_metadata(&db).context("indexing screen text metadata")?;
+        crate::search::migrate(&db).context("migrating the search index")?;
         Ok(Self {
             inner: Arc::new(Inner {
                 paths,
@@ -173,10 +177,10 @@ impl Library {
         for meta in meeting_meta_files(&self.paths().meetings_dir()) {
             match read_json::<Meeting>(&meta) {
                 Ok(Some(mut meeting)) => {
-                    if let Some(folder) = meta.parent() {
-                        if let Ok(relative) = folder.strip_prefix(self.paths().root()) {
-                            meeting.relative_path = relative.to_string_lossy().replace('\\', "/");
-                        }
+                    if let Some(folder) = meta.parent()
+                        && let Ok(relative) = folder.strip_prefix(self.paths().root())
+                    {
+                        meeting.relative_path = relative.to_string_lossy().replace('\\', "/");
                     }
                     meetings.push(meeting);
                 }
@@ -194,7 +198,7 @@ impl Library {
             })
             .collect();
         meetings.retain(|m| !m.is_merged_source() && !parents.contains_key(&m.id));
-        meetings.sort_by(|a, b| b.started_at.cmp(&a.started_at));
+        meetings.sort_by_key(|m| std::cmp::Reverse(m.started_at));
         Ok(meetings)
     }
 
@@ -207,10 +211,10 @@ impl Library {
         let mut out = Vec::new();
         for meta in meeting_meta_files(&self.paths().meetings_dir()) {
             if let Ok(Some(mut meeting)) = read_json::<Meeting>(&meta) {
-                if let Some(folder) = meta.parent() {
-                    if let Ok(relative) = folder.strip_prefix(self.paths().root()) {
-                        meeting.relative_path = relative.to_string_lossy().replace('\\', "/");
-                    }
+                if let Some(folder) = meta.parent()
+                    && let Ok(relative) = folder.strip_prefix(self.paths().root())
+                {
+                    meeting.relative_path = relative.to_string_lossy().replace('\\', "/");
                 }
                 out.push(meeting);
             }
@@ -329,11 +333,7 @@ impl Library {
                 "INSERT OR REPLACE INTO deleted_meetings(meeting_id, deleted_at) VALUES (?1, ?2)",
                 rusqlite::params![id, crate::time::to_epoch(Utc::now())],
             )?;
-            db.execute("DELETE FROM docs WHERE meeting_id = ?1", [&id])?;
-            db.execute(
-                "DELETE FROM search_document_rows WHERE meeting_id = ?1",
-                [&id],
-            )?;
+            crate::search::delete_documents(db, &id)?;
             db.execute("DELETE FROM indexed_meetings WHERE meeting_id = ?1", [&id])?;
             db.execute("DELETE FROM embeddings WHERE meeting_id = ?1", [&id])?;
             db.execute("DELETE FROM embedded_meetings WHERE meeting_id = ?1", [&id])?;
@@ -394,8 +394,16 @@ impl Library {
         Ok(())
     }
 
+    /// Extracted outcomes in display order (`MeetingOutcomes.load`).
+    ///
+    /// macOS treats outcomes whose `transcriptRevision` no longer matches the
+    /// transcript's SHA-256 (over Swift's exact JSON bytes) as stale. This
+    /// port cannot reproduce those bytes, so it treats outcomes as current.
     pub fn outcomes(&self, meeting: &Meeting) -> Result<Option<MeetingOutcomes>> {
-        read_json(&self.meeting_dir(meeting).join(OUTCOMES_FILE))
+        Ok(
+            read_json::<MeetingOutcomes>(&self.meeting_dir(meeting).join(OUTCOMES_FILE))?
+                .map(MeetingOutcomes::prioritized),
+        )
     }
 
     pub fn save_outcomes(&self, meeting: &Meeting, outcomes: &MeetingOutcomes) -> Result<()> {
@@ -446,7 +454,7 @@ impl Library {
                 }
             }
         }
-        out.sort_by(|a, b| b.updated_at.cmp(&a.updated_at));
+        out.sort_by_key(|c| std::cmp::Reverse(c.updated_at));
         Ok(out)
     }
 
@@ -490,25 +498,67 @@ impl Library {
         )
     }
 
-    /// Writes the journal and its sidecar (journal first, as on macOS).
+    /// Writes the journal and its sidecar (journal first, as on macOS). An
+    /// empty `journal_digest` and a missing `journal_modified_at` are filled
+    /// in from the written journal.
     pub fn save_digest(
         &self,
         day: chrono::NaiveDate,
         markdown: &str,
         meta: &DigestMeta,
     ) -> Result<()> {
-        write_atomic(&self.journal_path(day), markdown.as_bytes())?;
+        let journal = self.journal_path(day);
+        write_atomic(&journal, markdown.as_bytes())?;
+        let mut meta = meta.clone();
+        if meta.journal_digest.is_empty() {
+            meta.journal_digest = sha256_hex(markdown.as_bytes());
+        }
+        if meta.journal_modified_at.is_none() {
+            meta.journal_modified_at = fs::metadata(&journal)
+                .and_then(|m| m.modified())
+                .ok()
+                .map(DateTime::<Utc>::from);
+        }
         write_json(
             &self
                 .paths()
                 .journal_dir()
                 .join(format!("{}.meta.json", day.format("%Y-%m-%d"))),
-            meta,
+            &meta,
         )
     }
 }
 
 // ------------------------------------------------------------------ helpers
+
+/// SHA-256 hex, as `ContentFingerprint.digest`.
+pub fn sha256_hex(bytes: &[u8]) -> String {
+    use sha2::Digest as _;
+    hex::encode(sha2::Sha256::digest(bytes))
+}
+
+/// Creates and backfills `ocr_metadata` once (`OCRMetadataIndex.migrate`).
+fn migrate_ocr_metadata(db: &Connection) -> Result<()> {
+    let exists = db
+        .query_row(
+            "SELECT 1 FROM sqlite_master WHERE name = 'ocr_metadata'",
+            [],
+            |_| Ok(()),
+        )
+        .is_ok();
+    if exists {
+        return Ok(());
+    }
+    db.execute_batch(
+        "BEGIN IMMEDIATE;
+         CREATE TABLE ocr_metadata (rowid INTEGER PRIMARY KEY, snapshot_id INTEGER NOT NULL, ts REAL NOT NULL);
+         CREATE INDEX idx_ocr_metadata_snapshot ON ocr_metadata(snapshot_id, rowid);
+         CREATE INDEX idx_ocr_metadata_ts ON ocr_metadata(ts, snapshot_id);
+         INSERT INTO ocr_metadata SELECT rowid, CAST(snapshot_id AS INTEGER), CAST(ts AS REAL) FROM ocr_fts;
+         COMMIT;",
+    )?;
+    Ok(())
+}
 
 /// `meetings/YYYY/MM/<folder>/meta.json` paths.
 fn meeting_meta_files(meetings_dir: &Path) -> Vec<PathBuf> {
