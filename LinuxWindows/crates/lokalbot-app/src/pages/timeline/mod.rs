@@ -28,7 +28,7 @@ use self::context::MeetingPreview;
 use crate::pages::Page;
 use crate::pages::today::digest::{self, DigestMode};
 use crate::pages::today::threads;
-use crate::state::{AppData, AppEvent, Section};
+use crate::state::{AppData, AppEvent};
 use crate::theme::{LbThemeExt as _, metric, ty};
 use crate::ui::{self, Ico};
 
@@ -81,7 +81,10 @@ impl TimelinePage {
             state
         });
         let subscriptions = vec![
-            cx.observe(&data, |this, _, cx| this.on_data_changed(cx)),
+            cx.observe(&data, |this, _, cx| {
+                this.on_data_changed(cx);
+                cx.notify();
+            }),
             cx.subscribe(&calendar, |this, _, event: &CalendarEvent, cx| {
                 let CalendarEvent::Selected(Date::Single(Some(day))) = event else {
                     return;
@@ -250,12 +253,11 @@ impl TimelinePage {
                     cx.notify();
                 });
             })
-            .trigger(
-                Button::new("timeline-day")
-                    .outline()
-                    .icon(Icon::new(Ico::Calendar))
-                    .label(day_label),
-            )
+            .trigger(ui::controls::bordered_icon(
+                "timeline-day",
+                Ico::Calendar,
+                day_label,
+            ))
             .content(move |_, _, _| div().p(px(4.)).child(Calendar::new(&calendar)));
         let controls = h_flex()
             .gap(px(7.))
@@ -272,9 +274,7 @@ impl TimelinePage {
             )
             .child(date_button)
             .child(
-                Button::new("timeline-today")
-                    .outline()
-                    .label("Today")
+                ui::controls::bordered("timeline-today", "Today")
                     .disabled(is_today)
                     .on_click(
                         cx.listener(|this, _, _, cx| this.set_day(Local::now().date_naive(), cx)),
@@ -371,16 +371,11 @@ impl TimelinePage {
             let data = self.data.clone();
             ui::section(
                 "Needs Attention",
-                v_flex().children(rows).child(
-                    h_flex().pt(px(8.)).child(
-                        Button::new("timeline-review-actions")
-                            .outline()
-                            .label("Review Actions…")
-                            .on_click(move |_, _, cx| {
-                                data.update(cx, |data, cx| data.open_actions(cx))
-                            }),
+                v_flex().children(rows).child(h_flex().pt(px(8.)).child(
+                    ui::controls::bordered("timeline-review-actions", "Review Actions…").on_click(
+                        move |_, _, cx| data.update(cx, |data, cx| data.open_actions(cx)),
                     ),
-                ),
+                )),
                 cx,
             )
         });

@@ -61,7 +61,10 @@ impl TodayPage {
         let data = AppData::global(cx);
         let actions = cx.new(|cx| ActionsWorkspace::new(window, cx));
         let subscriptions = vec![
-            cx.observe(&data, |this, _, cx| this.on_data_changed(cx)),
+            cx.observe(&data, |this, _, cx| {
+                this.on_data_changed(cx);
+                cx.notify();
+            }),
             cx.observe(&actions, |_, _, cx| cx.notify()),
             cx.subscribe(&actions, |this, _, _: &actions::BackToToday, cx| {
                 this.showing_actions = false;
@@ -246,19 +249,16 @@ impl TodayPage {
                         ),
                 )
                 .child(
-                    Button::new("now-live")
-                        .outline()
-                        .label("Live Transcript & Notes")
-                        .on_click(move |_, _, cx| {
+                    ui::controls::bordered("now-live", "Live Transcript & Notes").on_click(
+                        move |_, _, cx| {
                             open.update(cx, |data, cx| {
                                 data.open_meeting(id, Default::default(), None, cx)
                             })
-                        }),
+                        },
+                    ),
                 )
                 .child(
-                    Button::new("now-stop")
-                        .outline()
-                        .label("Stop Recording")
+                    ui::controls::bordered("now-stop", "Stop Recording")
                         .text_color(lb.recording_text)
                         .on_click(move |_, _, cx| {
                             stop.update(cx, |data, cx| data.stop_recording(cx))
@@ -280,12 +280,9 @@ impl TodayPage {
                     .child("Nothing recording right now"),
             )
             .child(
-                Button::new("now-record")
-                    .outline()
-                    .label("Record Now")
-                    .on_click(move |_, _, cx| {
-                        start.update(cx, |data, cx| data.start_recording(cx))
-                    }),
+                ui::controls::bordered("now-record", "Record Now").on_click(move |_, _, cx| {
+                    start.update(cx, |data, cx| data.start_recording(cx))
+                }),
             )
             .into_any_element()
     }
@@ -309,16 +306,14 @@ impl TodayPage {
                     this.child(div().h(px(1.)).bg(lb.separator))
                 })
         });
-        let content = v_flex().children(rows).child(
-            h_flex().pt(px(8.)).gap(px(8.)).child(
-                Button::new("review-actions")
-                    .outline()
-                    .label("Review Actions…")
-                    .on_click(
+        let content =
+            v_flex()
+                .children(rows)
+                .child(h_flex().pt(px(8.)).gap(px(8.)).child(
+                    ui::controls::bordered("review-actions", "Review Actions…").on_click(
                         cx.listener(|this, _, window, cx| this.show_actions(true, window, cx)),
                     ),
-            ),
-        );
+                ));
         Some(ui::section("Needs Attention", content, cx).into_any_element())
     }
 

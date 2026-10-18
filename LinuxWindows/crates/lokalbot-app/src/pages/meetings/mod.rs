@@ -143,7 +143,8 @@ impl MeetingsPage {
 
         let mut subscriptions = vec![
             cx.observe_in(&data, window, |this, _, window, cx| {
-                this.on_data_changed(window, cx)
+                this.on_data_changed(window, cx);
+                cx.notify();
             }),
             cx.subscribe_in(&search, window, |this, input, event: &InputEvent, _, cx| {
                 if let InputEvent::Change = event {
@@ -787,10 +788,7 @@ impl Page for MeetingsPage {
             let data = self.data.clone();
             let red = crate::theme::LbThemeExt::lb(&**cx).recording_text;
             return Some(
-                Button::new("live-stop")
-                    .outline()
-                    .icon(Icon::new(Ico::CircleStop))
-                    .label("Stop Recording")
+                ui::controls::bordered_icon("live-stop", Ico::CircleStop, "Stop Recording")
                     .text_color(red)
                     .on_click(move |_, _, cx| data.update(cx, |data, cx| data.stop_recording(cx)))
                     .into_any_element(),
@@ -816,9 +814,7 @@ impl Page for MeetingsPage {
                     .tooltip("Ask This Meeting")
                     .on_click(cx.listener(|this, _, _, cx| this.ask_meeting(cx)))
             } else {
-                Button::new("meeting-ask")
-                    .outline()
-                    .label("Ask This Meeting")
+                ui::controls::bordered("meeting-ask", "Ask This Meeting")
                     .on_click(cx.listener(|this, _, _, cx| this.ask_meeting(cx)))
             })
             .child(

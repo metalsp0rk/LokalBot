@@ -260,11 +260,8 @@ pub(crate) fn digest_controls(
     });
     let ask = show_ask.then(|| {
         let data = data.clone();
-        Button::new("digest-ask")
-            .outline()
-            .icon(Icon::new(Ico::TextSearch))
-            .label("Ask About This Day")
-            .on_click(move |_, _, cx| {
+        ui::controls::bordered_icon("digest-ask", Ico::TextSearch, "Ask About This Day").on_click(
+            move |_, _, cx| {
                 let question = format!("What happened on {}?", day.format("%A, %B %-d"));
                 data.update(cx, |data, cx| {
                     data.ask(
@@ -276,7 +273,8 @@ pub(crate) fn digest_controls(
                         cx,
                     )
                 })
-            })
+            },
+        )
     });
     h_flex()
         .gap(px(8.))

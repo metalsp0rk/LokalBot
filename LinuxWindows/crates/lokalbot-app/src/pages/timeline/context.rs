@@ -436,17 +436,18 @@ impl TimelinePage {
             .child(details)
             .child(
                 h_flex().justify_end().child(
-                    Button::new("ask-session")
-                        .outline()
-                        .icon(Icon::new(Ico::Sparkles))
-                        .label("Ask about this session")
-                        .on_click(cx.listener(move |this, _, _, cx| {
-                            this.ask_day(
-                                format!("What matters from my work session on {title}?"),
-                                Vec::new(),
-                                cx,
-                            )
-                        })),
+                    ui::controls::bordered_icon(
+                        "ask-session",
+                        Ico::Sparkles,
+                        "Ask about this session",
+                    )
+                    .on_click(cx.listener(move |this, _, _, cx| {
+                        this.ask_day(
+                            format!("What matters from my work session on {title}?"),
+                            Vec::new(),
+                            cx,
+                        )
+                    })),
                 ),
             )
             .into_any_element()
@@ -606,17 +607,18 @@ impl TimelinePage {
                     .gap(px(8.))
                     .justify_end()
                     .child(
-                        Button::new("ask-meeting")
-                            .outline()
-                            .icon(Icon::new(Ico::Sparkles))
-                            .label("Ask about this meeting")
-                            .on_click(cx.listener(move |this, _, _, cx| {
-                                this.ask_day(
-                                    format!("What matters from {title}?"),
-                                    vec![meeting_id],
-                                    cx,
-                                )
-                            })),
+                        ui::controls::bordered_icon(
+                            "ask-meeting",
+                            Ico::Sparkles,
+                            "Ask about this meeting",
+                        )
+                        .on_click(cx.listener(move |this, _, _, cx| {
+                            this.ask_day(
+                                format!("What matters from {title}?"),
+                                vec![meeting_id],
+                                cx,
+                            )
+                        })),
                     )
                     .child(
                         Button::new("open-meeting")
