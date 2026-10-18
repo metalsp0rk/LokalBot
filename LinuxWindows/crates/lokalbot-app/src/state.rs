@@ -178,6 +178,71 @@ pub struct AppData {
     pub day_memory_paused: bool,
     pub inference_label: SharedString,
     pub remote_hosts: Vec<SharedString>,
+    /// The answer being written right now, if any. The engine appends text
+    /// as it streams and saves the finished turn into the conversation file.
+    pub ask_stream: Option<AskStream>,
+    /// Model downloads by catalog id.
+    pub downloads: HashMap<String, DownloadProgress>,
+    /// Which models are present and which runtime the Think role uses.
+    pub models: ModelStatus,
+    /// Day whose digest is being written.
+    pub digest_running: Option<chrono::NaiveDate>,
+    /// Project ids whose "Where it stands" note is being written.
+    pub project_notes_running: Vec<String>,
+    /// Text of the last dictation shown in LokalBot (output mode "Show in LokalBot").
+    pub last_dictation: Option<SharedString>,
+}
+
+/// Progress of an answer in Ask.
+#[derive(Clone, Debug, PartialEq)]
+pub struct AskStream {
+    pub conversation_id: Uuid,
+    pub question: String,
+    /// Assistant text so far, with `[meeting:…]` citations inline.
+    pub text: String,
+    /// Steps shown as "worked: searched meetings · read “Design review”".
+    pub activity: Vec<String>,
+    /// "Preparing Qwen3.5 4B" while the model loads.
+    pub status: Option<SharedString>,
+    pub error: Option<SharedString>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct DownloadProgress {
+    pub done_bytes: u64,
+    pub total_bytes: u64,
+    pub error: Option<SharedString>,
+}
+
+impl DownloadProgress {
+    pub fn fraction(&self) -> f32 {
+        if self.total_bytes == 0 { 0.0 } else { self.done_bytes as f32 / self.total_bytes as f32 }
+    }
+}
+
+/// Readiness of each model role, refreshed by the engine.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ModelStatus {
+    /// Catalog ids that are fully downloaded.
+    pub installed: Vec<String>,
+    pub transcription_ready: bool,
+    pub think_ready: bool,
+    pub autocomplete_ready: bool,
+    pub embeddings_ready: bool,
+    /// "Vulkan" or "CPU" for the built-in llama.cpp runtime, once installed.
+    pub runtime_backend: Option<SharedString>,
+}
+
+/// Sources and date range for a question in Ask.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AskScope {
+    /// Empty means every meeting.
+    pub meeting_ids: Vec<Uuid>,
+    pub include_meetings: bool,
+    pub include_activity: bool,
+    pub include_screen: bool,
+    pub since: Option<DateTime<Utc>>,
+    pub until: Option<DateTime<Utc>>,
 }
 
 pub struct AppHandle(pub Entity<AppData>);
@@ -208,7 +273,19 @@ impl AppData {
             day_memory_paused: false,
             inference_label,
             remote_hosts,
+            ask_stream: None,
+            downloads: HashMap::new(),
+            models: ModelStatus::default(),
+            digest_running: None,
+            project_notes_running: Vec::new(),
+            last_dictation: None,
         }
+    }
+
+    /// Asks the engine for work. Pages call this instead of emitting directly
+    /// so every request goes through one place.
+    pub fn request(&mut self, event: AppEvent, cx: &mut Context<Self>) {
+        cx.emit(event);
     }
 
     // ------------------------------------------------------------ navigation
@@ -359,13 +436,37 @@ impl AppData {
     }
 }
 
-/// Requests that the engine bridge (in `main.rs`) handles.
+/// Requests that the engine bridge (in `main.rs`) handles. Results come back
+/// as changes to `AppData` fields (`processing`, `ask_stream`, `downloads`,
+/// `digest_running`, …) followed by `revision` bumps when files changed.
 #[derive(Clone, Debug, PartialEq)]
 pub enum AppEvent {
     StartRecording,
     StopRecording,
     SettingsChanged,
     AppearanceChanged,
+    /// Transcribe and/or summarize a meeting again (Retry, "Transcribe & Summarize", "Summarize again").
+    ProcessMeeting { meeting_id: Uuid, transcribe: bool, summarize: bool },
+    /// Write or rewrite the day digest.
+    RegenerateDigest(chrono::NaiveDate),
+    /// Ask a question in a conversation (a new id starts a new conversation).
+    AskQuestion { conversation_id: Uuid, question: String, scope: AskScope },
+    StopAnswer,
+    /// Download a model by catalog id (Think, Autocomplete, embeddings or speech).
+    DownloadModel(String),
+    CancelDownload(String),
+    DeleteModel(String),
+    /// Download every model the current settings need.
+    PrepareModels,
+    SetDayMemoryPaused(bool),
+    /// Write the "Where it stands" note for a project id.
+    WriteProjectNote(String),
+    OpenQuickRecall,
+    OpenOnboarding,
+    /// Install `lokalbot-cli` for coding agents (PATH + skill folders).
+    InstallCli,
+    /// Start or stop dictation from the UI ("Try here").
+    ToggleDictation,
 }
 
 impl gpui_kit::EventEmitter<AppEvent> for AppData {}

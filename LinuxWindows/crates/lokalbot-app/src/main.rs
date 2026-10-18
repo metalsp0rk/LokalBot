@@ -139,9 +139,10 @@ fn apply_appearance(data: &Entity<AppData>, window: &mut Window, cx: &mut App) {
 fn handle_event(data: &Entity<AppData>, event: &AppEvent, window: &mut Window, cx: &mut App) {
     match event {
         AppEvent::AppearanceChanged => apply_appearance(data, window, cx),
-        AppEvent::StartRecording | AppEvent::StopRecording => {
-            data.update(cx, |data, cx| data.show_message("Recording is not connected yet in this build.", cx));
-        }
         AppEvent::SettingsChanged => {}
+        other => {
+            log::info!("engine request not wired yet: {other:?}");
+            data.update(cx, |data, cx| data.show_message("This action is not connected yet in this build.", cx));
+        }
     }
 }
