@@ -9,7 +9,11 @@
 //! macOS decode loop applies:
 //!
 //! - token healing: a grammar re-types the text cut from the prompt
-//!   ([`healing`](super::healing)), and only what follows is shown;
+//!   ([`healing`](super::healing)), and only what follows is shown. When
+//!   the grammar's token-by-token path through a word fragment ("to", then
+//!   "mo", then "r…") is less likely than one token that spells the whole
+//!   fragment ("tomorrow"), the request is restarted from that token: the
+//!   case macOS's prefix search exists for;
 //! - the first-word confidence gate and its one-word fallback;
 //! - stop when the most likely next token ends the text, even if the
 //!   sampler picked another;
@@ -36,9 +40,10 @@ use crate::error::AiError;
 use crate::http;
 
 /// Probabilities asked for per token. The gate sums boundary mass over
-/// these; the argmax check needs one.
+/// these; healing a word fragment looks among them for a token that spells
+/// the whole fragment.
 const GATED_PROBABILITIES: u32 = 20;
-const UNGATED_PROBABILITIES: u32 = 1;
+const FRAGMENT_PROBABILITIES: u32 = 40;
 /// A space before the first word is one constrained token more; a word
 /// fragment can take a few (`CotypingEngine.completionRequest`).
 const HEALED_SPACE_TOKENS: usize = 1;
@@ -129,13 +134,43 @@ impl Completer {
             request.preceding_ends_with_whitespace(),
         );
         let gated = request.word_prefix.is_empty();
+        let mut decoder = Decoder::new(request, &healed.required_prefix, gated);
+        let mut timings = Timings::default();
         let body = request_body(request, &healed, gated);
-        let mut stream = http::post_stream(&self.agent, &self.url(), Some(&self.token), &body)?;
+        self.drive(&body, &mut decoder, &mut timings, started, cancelled)?;
+        if let Some(cover) = decoder.restart.take() {
+            // Go on from the token that spells the whole fragment, which the
+            // server now reads as part of the prompt.
+            let mut continued = Decoder::new(request, "", gated);
+            continued.start_from(&cover, healed.required_prefix.len());
+            if !continued.stopped {
+                let body = cover_body(request, &healed, &cover, gated);
+                self.drive(&body, &mut continued, &mut timings, started, cancelled)?;
+            }
+            decoder = continued;
+        }
+        timings.total_ms = elapsed_ms(started);
+        Ok(Completion {
+            result: decoder.result(),
+            raw: decoder.output.clone(),
+            hit_limit: decoder.hit_limit,
+            timings,
+        })
+    }
+
+    /// Streams one request into `decoder` until it ends or the decoder stops.
+    fn drive(
+        &self,
+        body: &Value,
+        decoder: &mut Decoder,
+        timings: &mut Timings,
+        started: Instant,
+        cancelled: &dyn Fn() -> bool,
+    ) -> Result<()> {
+        let mut stream = http::post_stream(&self.agent, &self.url(), Some(&self.token), body)?;
         if let Some(reply) = stream.error.take() {
             return Err(reply.status_error().into());
         }
-        let mut decoder = Decoder::new(request, &healed.required_prefix, gated);
-        let mut timings = Timings::default();
         let mut finished = false;
         while let Some(line) = stream.next_line(&self.root_url)? {
             if cancelled() {
@@ -153,21 +188,20 @@ impl Completer {
             if let Some(error) = event.get("error") {
                 return Err(anyhow!("llama-server: {error}"));
             }
-            if timings.first_token_ms.is_none()
-                && event.get("stop").and_then(Value::as_bool) != Some(true)
-            {
+            let stop = event.get("stop").and_then(Value::as_bool) == Some(true);
+            if timings.first_token_ms.is_none() && !stop {
                 timings.first_token_ms = Some(elapsed_ms(started));
             }
-            read_timings(&event, &mut timings);
+            read_timings(&event, timings);
             let flow = decoder.feed_event(&event);
-            if event.get("stop").and_then(Value::as_bool) == Some(true) {
+            if stop {
                 if event.get("stop_type").and_then(Value::as_str) == Some("limit") {
                     decoder.hit_limit = true;
                 }
                 finished = true;
                 break;
             }
-            if flow == Flow::Stop {
+            if flow != Flow::Continue {
                 finished = true;
                 break;
             }
@@ -178,13 +212,7 @@ impl Completer {
         if !finished && decoder.output.is_empty() && !decoder.stopped {
             return Err(AiError::BadResponse("the completion stream ended early".into()).into());
         }
-        timings.total_ms = elapsed_ms(started);
-        Ok(Completion {
-            result: decoder.result(),
-            raw: decoder.output.clone(),
-            hit_limit: decoder.hit_limit,
-            timings,
-        })
+        Ok(())
     }
 }
 
@@ -226,7 +254,7 @@ pub fn request_body(request: &Request, healed: &healing::Split, gated: bool) -> 
         "repeat_penalty": sampling.repeat_penalty,
         "repeat_last_n": sampling.repeat_last_n,
         "seed": sampling.seed,
-        "n_probs": if gated { GATED_PROBABILITIES } else { UNGATED_PROBABILITIES },
+        "n_probs": if gated { GATED_PROBABILITIES } else { FRAGMENT_PROBABILITIES },
         // The prompt and generation counts arrive with every token, so they
         // are known however early the stream is left.
         "timings_per_token": true,
@@ -237,15 +265,41 @@ pub fn request_body(request: &Request, healed: &healing::Split, gated: bool) -> 
     body
 }
 
+/// The request that goes on after a whole-fragment token: the healed prompt
+/// with that token appended (llama-server takes text and token ids mixed),
+/// and no constraint left.
+fn cover_body(request: &Request, healed: &healing::Split, cover: &Cover, gated: bool) -> Value {
+    let unconstrained = healing::Split {
+        healed_prompt: healed.healed_prompt.clone(),
+        required_prefix: String::new(),
+    };
+    let mut body = request_body(request, &unconstrained, gated);
+    body["prompt"] = json!([healed.healed_prompt, cover.id]);
+    body
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Flow {
     Continue,
     Stop,
+    /// Start again from [`Decoder::restart`].
+    Restart,
 }
 
 /// One candidate token of a step, as llama-server reports it.
 struct Candidate {
+    id: Option<i64>,
     bytes: Vec<u8>,
+    logprob: f64,
+    probability: f32,
+}
+
+/// A token that spells the whole word fragment at the caret.
+#[derive(Clone, Debug, PartialEq)]
+struct Cover {
+    id: i64,
+    bytes: Vec<u8>,
+    logprob: f64,
     probability: f32,
 }
 
@@ -265,13 +319,17 @@ fn candidate(value: &Value) -> Option<Candidate> {
             .collect(),
         None => value.get("token")?.as_str()?.as_bytes().to_vec(),
     };
-    let probability = value
+    let logprob = value
         .get("logprob")
         .and_then(Value::as_f64)
-        .map(f64::exp)
-        .or_else(|| value.get("prob").and_then(Value::as_f64))
-        .unwrap_or(0.0) as f32;
-    Some(Candidate { bytes, probability })
+        .or_else(|| value.get("prob").and_then(Value::as_f64).map(f64::ln))
+        .unwrap_or(f64::NEG_INFINITY);
+    Some(Candidate {
+        id: value.get("id").and_then(Value::as_i64),
+        bytes,
+        logprob,
+        probability: logprob.exp() as f32,
+    })
 }
 
 /// The streamed decode loop of `LlamaCotypingRuntime.generate`, fed with
@@ -288,6 +346,14 @@ struct Decoder<'a> {
     malformed: bool,
     stopped: bool,
     hit_limit: bool,
+    /// Healing a word fragment (`searchPrefixPath`): the log probability of
+    /// the grammar's path through it so far, whether its first token covered
+    /// only part of it, and the best first-step token that spells all of it.
+    path_logprob: f64,
+    constrained_steps: usize,
+    partial_first: bool,
+    best_cover: Option<Cover>,
+    restart: Option<Cover>,
 }
 
 impl<'a> Decoder<'a> {
@@ -303,6 +369,20 @@ impl<'a> Decoder<'a> {
             malformed: false,
             stopped: false,
             hit_limit: false,
+            path_logprob: 0.0,
+            constrained_steps: 0,
+            partial_first: false,
+            best_cover: None,
+            restart: None,
+        }
+    }
+
+    /// Starts after a whole-fragment token: its text past the fragment is
+    /// the first visible text.
+    fn start_from(&mut self, cover: &Cover, fragment_len: usize) {
+        let extra = cover.bytes.get(fragment_len..).unwrap_or_default().to_vec();
+        if !extra.is_empty() && self.emit(&extra, cover.probability, &[]) != Flow::Continue {
+            self.stopped = true;
         }
     }
 
@@ -316,9 +396,13 @@ impl<'a> Decoder<'a> {
         {
             Some(steps) if !steps.is_empty() => {
                 for step in steps {
-                    if self.feed_step(step) == Flow::Stop {
-                        self.stopped = true;
-                        return Flow::Stop;
+                    match self.feed_step(step) {
+                        Flow::Continue => {}
+                        Flow::Stop => {
+                            self.stopped = true;
+                            return Flow::Stop;
+                        }
+                        Flow::Restart => return Flow::Restart,
                     }
                 }
                 Flow::Continue
@@ -331,7 +415,9 @@ impl<'a> Decoder<'a> {
                     return Flow::Continue;
                 }
                 let step = Candidate {
+                    id: None,
                     bytes: content.as_bytes().to_vec(),
+                    logprob: f64::NEG_INFINITY,
                     probability: 0.0,
                 };
                 let flow = self.feed_token(&step, &[]);
@@ -361,6 +447,34 @@ impl<'a> Decoder<'a> {
         if !self.remaining.is_empty() {
             if token.is_end() {
                 return Flow::Stop;
+            }
+            let fragment = !self.remaining.iter().all(u8::is_ascii_whitespace);
+            let first = self.constrained_steps == 0;
+            self.constrained_steps += 1;
+            self.path_logprob += token.logprob;
+            if first && fragment {
+                self.partial_first = !covers(&token.bytes, &self.remaining);
+                self.best_cover = top
+                    .iter()
+                    .filter(|c| {
+                        c.id.is_some() && c.id != token.id && covers(&c.bytes, &self.remaining)
+                    })
+                    .max_by(|a, b| a.logprob.total_cmp(&b.logprob))
+                    .map(|c| Cover {
+                        id: c.id.unwrap_or_default(),
+                        bytes: c.bytes.clone(),
+                        logprob: c.logprob,
+                        probability: c.probability,
+                    });
+            }
+            // Each further token only lowers the path's probability: once it
+            // is below a single whole-fragment token, that token wins.
+            if self.partial_first
+                && let Some(cover) = &self.best_cover
+                && cover.logprob > self.path_logprob
+            {
+                self.restart = Some(cover.clone());
+                return Flow::Restart;
             }
             match healing::match_piece(&token.bytes, &self.remaining) {
                 healing::PrefixMatch::Consumes(count) => {
@@ -463,6 +577,15 @@ impl<'a> Decoder<'a> {
     }
 }
 
+/// Whether a token spells all of the remaining fragment (and maybe more).
+fn covers(bytes: &[u8], remaining: &[u8]) -> bool {
+    match healing::match_piece(bytes, remaining) {
+        healing::PrefixMatch::Consumes(count) => count == remaining.len(),
+        healing::PrefixMatch::Overshoots(_) => true,
+        healing::PrefixMatch::Mismatch => false,
+    }
+}
+
 /// The probability that a new word starts or the text ends, summed over the
 /// reported candidates (`LlamaCotypingRuntime.boundaryMass`).
 fn boundary_mass(top: &[Candidate]) -> f32 {
@@ -532,14 +655,20 @@ mod tests {
         }
     }
 
+    /// A token id for tests: the same text, the same id.
+    fn id(text: &str) -> u64 {
+        text.bytes()
+            .fold(7u64, |h, b| h.wrapping_mul(31).wrapping_add(u64::from(b)))
+            % 100_000
+    }
+
     fn token(text: &str, logprob: f64, top: &[(&str, f64)]) -> String {
-        let entry =
-            |t: &str, lp: f64| json!({"id": 1, "token": t, "bytes": t.as_bytes(), "logprob": lp});
+        let entry = |t: &str, lp: f64| json!({"id": id(t), "token": t, "bytes": t.as_bytes(), "logprob": lp});
         json!({
             "content": text,
             "stop": false,
             "completion_probabilities": [{
-                "id": 1, "token": text, "bytes": text.as_bytes(), "logprob": logprob,
+                "id": id(text), "token": text, "bytes": text.as_bytes(), "logprob": logprob,
                 "top_logprobs": top.iter().map(|(t, lp)| entry(t, *lp)).collect::<Vec<_>>(),
             }],
         })
@@ -592,6 +721,53 @@ mod tests {
         );
         let auth = server.requests()[0].header("authorization");
         assert_eq!(auth.as_deref(), Some("Bearer token"));
+    }
+
+    #[test]
+    fn a_whole_fragment_token_beats_an_unlikely_path_through_the_fragment() {
+        // The grammar takes " to", the most likely token compatible with
+        // " tomor", and must then force "mo": far less likely than " tomorrow".
+        let first = vec![
+            token(
+                " to",
+                -1.6,
+                &[(" to", -1.6), (".", -2.2), (" tomorrow", -3.2)],
+            ),
+            token("mo", -14.2, &[(" you", -0.7)]),
+            done("limit"),
+        ];
+        let second = vec![
+            token(".", -1.0, &[(".", -1.0)]),
+            token(" Thanks", -0.5, &[(" Thanks", -0.5)]),
+            done("limit"),
+        ];
+        let server = StubServer::start(move |request| {
+            if request.json()["prompt"].is_array() {
+                Reply::Sse(second.clone())
+            } else {
+                Reply::Sse(first.clone())
+            }
+        });
+        let tomor = request("I'll send the mockups over tomor", "tomor");
+        let completion = complete(&server, &tomor);
+        assert_eq!(completion.result, Normalized::shown("row."));
+        let continued = server.last_json("/completion");
+        assert_eq!(
+            continued["prompt"],
+            json!(["I'll send the mockups over", id(" tomorrow")])
+        );
+        assert!(continued.get("grammar").is_none());
+        assert_eq!(continued["n_predict"], 6);
+        // A likely path through the fragment is kept.
+        let kept = serve(vec![
+            token(" fol", -0.3, &[(" fol", -0.3), (" follower", -6.0)]),
+            token("low", -0.1, &[("low", -0.1)]),
+            token(" up", -0.1, &[(" up", -0.1)]),
+            done("limit"),
+        ]);
+        let completion = complete(&kept, &request("I wanted to follo", "follo"));
+        assert_eq!(completion.result, Normalized::shown("w up"));
+        assert_eq!(kept.requests().len(), 1);
     }
 
     #[test]

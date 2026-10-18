@@ -398,12 +398,18 @@ fn main() -> Result<()> {
             tail(case.before, 40)
         );
         for step in steps {
+            // A used-up suggestion is followed by a new one, not topped up.
+            let what = if step.used_up {
+                "next suggestion"
+            } else {
+                "topped up"
+            };
             println!(
                 "- Tab takes `{}`, ghost now `{}`{}",
                 step.chunk,
                 step.ghost,
                 step.grew_ms
-                    .map(|ms| format!(" (topped up {ms:.0} ms after the Tab)"))
+                    .map(|ms| format!(" ({what} {ms:.0} ms after the Tab)"))
                     .unwrap_or_default()
             );
         }
@@ -473,6 +479,8 @@ struct Step {
     chunk: String,
     ghost: String,
     grew_ms: Option<f64>,
+    /// The Tab took the rest of the suggestion.
+    used_up: bool,
 }
 
 /// Types a case, then presses Tab `presses` times the way the desktop does:
@@ -537,6 +545,7 @@ fn accept_word_by_word(
             chunk,
             ghost: latest.clone(),
             grew_ms,
+            used_up: expected.is_empty(),
         });
         ghost = latest;
     }
