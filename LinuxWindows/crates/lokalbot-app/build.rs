@@ -1,5 +1,6 @@
-//! Embeds the app icon, version details and the DPI-aware manifest into the
-//! Windows executable.
+//! Embeds the app icon and version details into the Windows executable.
+//! GPUI already embeds the application manifest (per-monitor DPI awareness,
+//! common controls v6), so this adds no manifest of its own.
 
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
@@ -12,13 +13,10 @@ fn main() {
 fn windows_resources() {
     let packaging = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../packaging");
     let icon = packaging.join("icons/lokalbot.ico");
-    let manifest = packaging.join("windows/lokalbot.exe.manifest");
     println!("cargo:rerun-if-changed={}", icon.display());
-    println!("cargo:rerun-if-changed={}", manifest.display());
     let mut resource = winresource::WindowsResource::new();
     resource
         .set_icon(&icon.to_string_lossy())
-        .set_manifest_file(&manifest.to_string_lossy())
         .set("ProductName", "LokalBot")
         .set("FileDescription", "LokalBot")
         .set("CompanyName", "LokalBot")
