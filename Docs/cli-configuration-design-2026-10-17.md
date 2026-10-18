@@ -1,7 +1,8 @@
 # Configuring LokalBot from the terminal
 
-Date: 2026-10-17. Status: design. The four open decisions were settled on
-2026-10-17; see [Decisions](#decisions).
+Date: 2026-10-17, extended 2026-10-18. Status: design; Phase 1 implemented.
+Decisions are recorded in [Decisions](#decisions) and
+[Decisions (agent-led setup)](#decisions-agent-led-setup).
 
 ## Goal
 
@@ -687,14 +688,15 @@ Settled on 2026-10-17:
    permissions, onboarding, restart) join Phase 4. Recording, processing, and
    library edits stay out.
 
-## Open decisions (agent-led setup)
+## Decisions (agent-led setup)
 
-1. **Bootstrap.** An agent-requested approval in LokalBot at first launch
-   (recommended), or the person turns on the settings toggle themselves?
-2. **Read access in the setup step.** Offer meeting-library and screen-memory
-   access as separate checkboxes, off by default (recommended); pre-tick them
-   when the agent asks; or leave them to Settings?
-3. **Consent changes during setup.** One combined review card (recommended),
-   or one approval per change?
-4. **Delivery.** Merge PR #281 as Phase 1 now and continue in follow-up PRs
-   (recommended), or keep growing #281?
+Settled on 2026-10-18:
+
+1. **Bootstrap:** the agent asks with `setup start`, and the person approves
+   in LokalBot. The terminal can request access but never give it.
+2. **Read access in the setup step:** meeting-library and screen-memory access
+   appear as separate checkboxes, off by default.
+3. **Consent changes during setup:** one combined review card, with
+   "Review individually" as a fallback.
+4. **Delivery:** PR #281 merges as Phase 1, and Phases 2–4 follow in their own
+   PRs.
