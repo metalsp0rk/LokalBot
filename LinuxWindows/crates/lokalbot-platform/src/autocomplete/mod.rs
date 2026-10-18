@@ -392,6 +392,21 @@ pub fn place_overlay(window: NativeWindow, frame: Option<Rect>) -> anyhow::Resul
     }
 }
 
+/// Device pixels per logical pixel on the monitor showing `rect`, where the
+/// system keeps a scale per monitor (Windows). `None` elsewhere: X11 has one
+/// scale for the whole screen, which the ghost window already reports.
+pub fn scale_at(rect: &Rect) -> Option<f32> {
+    #[cfg(windows)]
+    {
+        win32::scale_at(rect)
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = rect;
+        None
+    }
+}
+
 /// The work area of the monitor showing `rect`, in screen pixels, so ghost
 /// text and pills stay on screen.
 pub fn screen_containing(rect: &Rect) -> Option<Rect> {

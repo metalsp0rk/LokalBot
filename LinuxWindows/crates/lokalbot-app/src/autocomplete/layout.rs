@@ -103,10 +103,15 @@ pub fn place(
             };
             let make = |candidate: &str| InlineLayout::make(candidate, &input, None, &measure);
             let (shown, layout) = InlineLayout::longest_drawable(text, true, &make)?;
-            let bounds = layout
+            let drawn = layout
                 .bounds()?
                 .inset(-INLINE_PADDING, -INLINE_PADDING)
                 .integral();
+            // Room past the measured end, so a glyph wider than measured (or
+            // rounding at another scale) is never cut off; the window is
+            // transparent there.
+            let slack = (size * 0.5).ceil().max(2.0);
+            let bounds = Rect::new(drawn.x, drawn.y, drawn.width + slack, drawn.height);
             let paint = geometry::ghost_paint(style, appearance.dark, sampled_luminance);
             let lines = layout
                 .lines
@@ -210,17 +215,17 @@ pub fn place(
 }
 
 /// A string's width in `family` at `size` logical pixels, from GPUI's text
-/// system (advances, so no layout cache grows with every suggestion).
+/// system: the font's advances (so no layout cache grows with every
+/// suggestion), and for a character the font lacks (an emoji, another
+/// script) the width it is drawn at from a fallback font.
 pub fn measurer(cx: &App, family: &SharedString, size: f32) -> impl Fn(&str) -> f32 + use<> {
     let text_system = cx.text_system().clone();
     let font_id = text_system.resolve_font(&font(family.clone()));
     move |text: &str| {
         text.chars()
-            .map(|c| {
-                text_system
-                    .advance(font_id, px(size), c)
-                    .map(|advance| f32::from(advance.width))
-                    .unwrap_or(size * 0.5)
+            .map(|c| match text_system.advance(font_id, px(size), c) {
+                Ok(advance) => f32::from(advance.width),
+                Err(_) => f32::from(text_system.layout_width(font_id, px(size), c)),
             })
             .sum()
     }

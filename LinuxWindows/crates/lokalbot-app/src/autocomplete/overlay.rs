@@ -59,6 +59,13 @@ pub struct Overlay {
     exclude_from_capture: bool,
     /// The scale factor GPUI reported for the window last time.
     scale: f32,
+    /// Windows: the newest native move asked for; an older one still
+    /// waiting is skipped (see [`Overlay::move_native`]).
+    #[cfg(windows)]
+    latest_move: std::rc::Rc<std::cell::Cell<u64>>,
+    /// Windows: the window has been given its styles.
+    #[cfg(windows)]
+    prepared: bool,
 }
 
 impl Overlay {
@@ -69,6 +76,10 @@ impl Overlay {
             visible: false,
             exclude_from_capture,
             scale: 1.0,
+            #[cfg(windows)]
+            latest_move: Default::default(),
+            #[cfg(windows)]
+            prepared: false,
         }
     }
 
@@ -106,33 +117,80 @@ impl Overlay {
                 }
             }
         }
-        if let Some(native) = self.native
-            && let Err(err) = platform::place_overlay(native, Some(frame))
-        {
-            log::debug!("autocomplete: placing the ghost failed: {err:#}");
-        }
+        self.move_native(Some(frame), cx);
         self.visible = true;
+        // Windows keeps a scale per monitor: the one the ghost moves to.
+        if let Some(scale) = platform::scale_at(&frame) {
+            self.scale = scale;
+        }
         self.scale
     }
 
-    pub fn hide(&mut self, _cx: &mut App) {
+    pub fn hide(&mut self, cx: &mut App) {
         if !self.visible {
             return;
         }
         self.visible = false;
-        if let Some(native) = self.native
-            && let Err(err) = platform::place_overlay(native, None)
-        {
-            log::debug!("autocomplete: hiding the ghost failed: {err:#}");
-        }
+        self.move_native(None, cx);
     }
 
     /// Closes the window, when autocomplete stops.
     pub fn close(&mut self, cx: &mut App) {
         self.visible = false;
         self.native = None;
+        #[cfg(windows)]
+        {
+            // A move still waiting must not touch the closing window.
+            self.latest_move.set(self.latest_move.get() + 1);
+            self.prepared = false;
+        }
         if let Some(window) = self.window.take() {
             let _ = window.update(cx, |_, window, _| window.remove_window());
+        }
+    }
+
+    /// Moves and sizes the native window to `frame` and shows it, or hides
+    /// it with `None`.
+    ///
+    /// Windows answers `SetWindowPos` and style changes with messages GPUI
+    /// handles on the spot, and those handlers need the app, which is busy
+    /// with the update that called this: GPUI logged "RefCell already
+    /// borrowed" and missed the window's new size, so the ghost kept drawing
+    /// at its old size. There the native calls wait for the next turn of the
+    /// event loop, and only the newest one runs. X11 requests go out on a
+    /// connection of their own and GPUI reads the results later, so they are
+    /// made at once.
+    fn move_native(&mut self, frame: Option<Rect>, cx: &mut App) {
+        let Some(native) = self.native else {
+            return;
+        };
+        #[cfg(windows)]
+        {
+            let prepare = (!self.prepared).then_some(self.exclude_from_capture);
+            self.prepared = true;
+            let id = self.latest_move.get() + 1;
+            self.latest_move.set(id);
+            let latest = self.latest_move.clone();
+            cx.spawn(async move |_| {
+                if let Some(exclude) = prepare
+                    && let Err(err) = platform::prepare_overlay(native, exclude)
+                {
+                    log::debug!("autocomplete: preparing the ghost window failed: {err:#}");
+                }
+                if latest.get() == id
+                    && let Err(err) = platform::place_overlay(native, frame)
+                {
+                    log::debug!("autocomplete: placing the ghost failed: {err:#}");
+                }
+            })
+            .detach();
+        }
+        #[cfg(not(windows))]
+        {
+            let _ = cx;
+            if let Err(err) = platform::place_overlay(native, frame) {
+                log::debug!("autocomplete: placing the ghost failed: {err:#}");
+            }
         }
     }
 
@@ -149,7 +207,9 @@ impl Overlay {
             titlebar: None,
             kind: WindowKind::PopUp,
             focus: false,
-            show: true,
+            // On Windows the first move shows it, once it has lost the frame
+            // Windows gives it (see `move_native`).
+            show: !cfg!(windows),
             is_movable: false,
             is_resizable: false,
             is_minimizable: false,
@@ -157,7 +217,6 @@ impl Overlay {
             app_id: Some(lokalbot_platform::APP_ID.into()),
             ..Default::default()
         };
-        let exclude = self.exclude_from_capture;
         let mut native = None;
         let mut window_scale = scale;
         let opened = cx.open_window(options, |window, cx| {
@@ -170,8 +229,14 @@ impl Overlay {
                 self.window = Some(handle);
                 self.scale = window_scale;
                 self.native = native;
+                // Windows prepares it with its first move.
+                #[cfg(windows)]
+                {
+                    self.prepared = false;
+                }
+                #[cfg(not(windows))]
                 if let Some(native) = native
-                    && let Err(err) = platform::prepare_overlay(native, exclude)
+                    && let Err(err) = platform::prepare_overlay(native, self.exclude_from_capture)
                 {
                     log::debug!("autocomplete: preparing the ghost window failed: {err:#}");
                 }

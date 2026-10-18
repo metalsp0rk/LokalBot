@@ -18,23 +18,31 @@ use std::thread::JoinHandle;
 use anyhow::Context as _;
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use windows::Win32::Foundation::{HWND, LPARAM, LRESULT, POINT, WPARAM};
+use windows::Win32::Graphics::Dwm::{
+    DWM_WINDOW_CORNER_PREFERENCE, DWMNCRENDERINGPOLICY, DWMNCRP_DISABLED, DWMWA_BORDER_COLOR,
+    DWMWA_COLOR_NONE, DWMWA_NCRENDERING_POLICY, DWMWA_WINDOW_CORNER_PREFERENCE, DWMWCP_DONOTROUND,
+    DwmSetWindowAttribute,
+};
 use windows::Win32::Graphics::Gdi::{
     GetDC, GetMonitorInfoW, GetPixel, MONITOR_DEFAULTTONEAREST, MONITORINFO, MonitorFromPoint,
     ReleaseDC,
 };
 use windows::Win32::System::LibraryLoader::GetModuleHandleW;
+use windows::Win32::UI::HiDpi::{GetDpiForMonitor, MDT_EFFECTIVE_DPI};
 use windows::Win32::UI::Input::KeyboardAndMouse::{
     GetAsyncKeyState, INPUT, INPUT_0, INPUT_KEYBOARD, KEYBD_EVENT_FLAGS, KEYBDINPUT,
     KEYEVENTF_EXTENDEDKEY, KEYEVENTF_KEYUP, KEYEVENTF_UNICODE, SendInput, VIRTUAL_KEY, VK_BACK,
     VK_CONTROL, VK_DELETE, VK_ESCAPE, VK_LWIN, VK_MENU, VK_RETURN, VK_RWIN, VK_SHIFT, VK_TAB,
 };
 use windows::Win32::UI::WindowsAndMessaging::{
-    CallNextHookEx, GWL_EXSTYLE, GetForegroundWindow, GetWindowLongPtrW, GetWindowThreadProcessId,
-    HC_ACTION, HHOOK, HWND_TOPMOST, KBDLLHOOKSTRUCT, LWA_ALPHA, SW_HIDE, SWP_NOACTIVATE,
-    SWP_SHOWWINDOW, SetLayeredWindowAttributes, SetWindowDisplayAffinity, SetWindowLongPtrW,
-    SetWindowPos, SetWindowsHookExW, ShowWindow, UnhookWindowsHookEx, WDA_EXCLUDEFROMCAPTURE,
-    WH_KEYBOARD_LL, WINDOW_EX_STYLE, WM_KEYDOWN, WM_KEYUP, WM_SYSKEYDOWN, WM_SYSKEYUP,
-    WS_EX_LAYERED, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TOPMOST, WS_EX_TRANSPARENT,
+    CallNextHookEx, GWL_EXSTYLE, GWL_STYLE, GetForegroundWindow, GetWindowLongPtrW,
+    GetWindowThreadProcessId, HC_ACTION, HHOOK, HWND_TOPMOST, KBDLLHOOKSTRUCT, LWA_ALPHA, SW_HIDE,
+    SWP_FRAMECHANGED, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SWP_NOZORDER, SWP_SHOWWINDOW,
+    SetLayeredWindowAttributes, SetWindowDisplayAffinity, SetWindowLongPtrW, SetWindowPos,
+    SetWindowsHookExW, ShowWindow, UnhookWindowsHookEx, WDA_EXCLUDEFROMCAPTURE, WH_KEYBOARD_LL,
+    WINDOW_EX_STYLE, WINDOW_STYLE, WM_KEYDOWN, WM_KEYUP, WM_SYSKEYDOWN, WM_SYSKEYUP, WS_BORDER,
+    WS_CAPTION, WS_DLGFRAME, WS_EX_LAYERED, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TOPMOST,
+    WS_EX_TRANSPARENT, WS_MAXIMIZEBOX, WS_MINIMIZEBOX, WS_POPUP, WS_SYSMENU, WS_THICKFRAME,
 };
 
 use super::geometry::Rect;
@@ -354,13 +362,31 @@ pub(super) fn insert(field: &FieldSnapshot, edit: &Edit) -> anyhow::Result<()> {
     send(&batch)
 }
 
-/// No activation on click, clicks pass through, never in the taskbar or
-/// Alt+Tab, and (when asked) left out of screenshots and recordings.
+/// No frame or border, no activation on click, clicks pass through, never
+/// in the taskbar or Alt+Tab, and (when asked) left out of screenshots and
+/// recordings.
+///
+/// GPUI creates pop-up windows as overlapped windows, which Windows gives a
+/// caption and a border: the client area then sits inside the frame the
+/// ghost is placed at, so its text was shifted and clipped, and DWM drew a
+/// thin border around it. A plain `WS_POPUP` without DWM's frame, rounded
+/// corners and border is exactly the ghost's frame. Call it outside a GPUI
+/// update: the frame change reaches GPUI as a new client size.
 pub(super) fn prepare_overlay(hwnd: isize, exclude_from_capture: bool) -> anyhow::Result<()> {
     let window = HWND(hwnd as *mut core::ffi::c_void);
+    let frame = WS_CAPTION
+        | WS_BORDER
+        | WS_DLGFRAME
+        | WS_THICKFRAME
+        | WS_SYSMENU
+        | WS_MINIMIZEBOX
+        | WS_MAXIMIZEBOX;
     // SAFETY: `window` is LokalBot's own ghost window; these calls only
-    // change its styles.
+    // change its styles and DWM attributes, each value passed by pointer
+    // with its size.
     unsafe {
+        let style = WINDOW_STYLE(GetWindowLongPtrW(window, GWL_STYLE) as u32);
+        SetWindowLongPtrW(window, GWL_STYLE, ((style & !frame) | WS_POPUP).0 as isize);
         let style = WINDOW_EX_STYLE(GetWindowLongPtrW(window, GWL_EXSTYLE) as u32);
         let style = style
             | WS_EX_NOACTIVATE
@@ -369,8 +395,41 @@ pub(super) fn prepare_overlay(hwnd: isize, exclude_from_capture: bool) -> anyhow
             | WS_EX_TOOLWINDOW
             | WS_EX_TOPMOST;
         SetWindowLongPtrW(window, GWL_EXSTYLE, style.0 as isize);
+        // Older Windows lacks some of these; the window still works.
+        let policy = DWMNCRP_DISABLED;
+        let _ = DwmSetWindowAttribute(
+            window,
+            DWMWA_NCRENDERING_POLICY,
+            (&raw const policy).cast(),
+            size_of::<DWMNCRENDERINGPOLICY>() as u32,
+        );
+        let corners = DWMWCP_DONOTROUND;
+        let _ = DwmSetWindowAttribute(
+            window,
+            DWMWA_WINDOW_CORNER_PREFERENCE,
+            (&raw const corners).cast(),
+            size_of::<DWM_WINDOW_CORNER_PREFERENCE>() as u32,
+        );
+        let border = DWMWA_COLOR_NONE;
+        let _ = DwmSetWindowAttribute(
+            window,
+            DWMWA_BORDER_COLOR,
+            (&raw const border).cast(),
+            size_of::<u32>() as u32,
+        );
         SetLayeredWindowAttributes(window, Default::default(), 255, LWA_ALPHA)
             .context("SetLayeredWindowAttributes")?;
+        // The new styles take effect with the next frame calculation.
+        SetWindowPos(
+            window,
+            None,
+            0,
+            0,
+            0,
+            0,
+            SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE,
+        )
+        .context("SetWindowPos")?;
         if exclude_from_capture
             && let Err(err) = SetWindowDisplayAffinity(window, WDA_EXCLUDEFROMCAPTURE)
         {
@@ -378,6 +437,21 @@ pub(super) fn prepare_overlay(hwnd: isize, exclude_from_capture: bool) -> anyhow
         }
     }
     Ok(())
+}
+
+/// Device pixels per logical pixel on the monitor showing `rect`.
+pub(super) fn scale_at(rect: &Rect) -> Option<f32> {
+    let point = POINT {
+        x: (rect.x + rect.width / 2.0) as i32,
+        y: rect.mid_y() as i32,
+    };
+    let (mut dpi_x, mut dpi_y) = (0u32, 0u32);
+    // SAFETY: both out-parameters outlive the call.
+    unsafe {
+        let monitor = MonitorFromPoint(point, MONITOR_DEFAULTTONEAREST);
+        GetDpiForMonitor(monitor, MDT_EFFECTIVE_DPI, &mut dpi_x, &mut dpi_y).ok()?;
+    }
+    (dpi_x > 0).then(|| dpi_x as f32 / 96.0)
 }
 
 pub(super) fn place_overlay(hwnd: isize, frame: Option<Rect>) -> anyhow::Result<()> {
