@@ -209,6 +209,7 @@ fn dispatch(shared: Arc<Shared>, commands: Sender<Command>, receiver: Receiver<C
             Command::PrepareModels => models.prepare_for_settings(),
             Command::SetDayMemoryPaused(paused) => day_memory.set_paused(paused),
             Command::WriteProjectNote(project_id) => ask.write_project_note(project_id),
+            Command::WriteFollowUp(meeting_id) => ask.write_follow_up(meeting_id),
             Command::UpdateSettings(settings) => {
                 *shared.settings.write() = *settings;
                 models.publish_status();

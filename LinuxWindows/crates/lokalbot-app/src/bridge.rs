@@ -7,12 +7,12 @@ use std::time::{Duration, Instant};
 use gpui_kit::{App, Context, Entity, Global, SharedString};
 use lokalbot_engine::{
     AskUpdate, BackgroundKind as EngineBackgroundKind, Command, DictationCommand, DictationUpdate,
-    Engine, EngineEvent, RecordingUpdate, Stage,
+    Engine, EngineEvent, FollowUpUpdate, RecordingUpdate, Stage,
 };
 
 use crate::state::{
     AppData, AppEvent, AskStream, BackgroundItem, BackgroundKind, DictationHud, DownloadProgress,
-    ModelStatus, ProcessingStage, RecordingState,
+    FollowUpWriting, ModelStatus, ProcessingStage, RecordingState,
 };
 
 pub struct EngineHandle(pub Arc<Engine>);
@@ -91,6 +91,7 @@ pub fn handle_request(event: &AppEvent, cx: &mut App) -> bool {
         AppEvent::PrepareModels => Command::PrepareModels,
         AppEvent::SetDayMemoryPaused(paused) => Command::SetDayMemoryPaused(*paused),
         AppEvent::WriteProjectNote(id) => Command::WriteProjectNote(id.clone()),
+        AppEvent::WriteFollowUp(meeting_id) => Command::WriteFollowUp(*meeting_id),
         AppEvent::ToggleDictation => Command::Dictation(DictationCommand::Toggle),
         AppEvent::CancelDictation => Command::Dictation(DictationCommand::Cancel),
         AppEvent::SettingsChanged => {
@@ -283,6 +284,28 @@ fn apply(data: &mut AppData, event: EngineEvent, cx: &mut Context<AppData>) {
         }
         EngineEvent::MeetingDetected { app_name, title } => {
             cx.emit(AppEvent::MeetingDetected { app_name, title });
+        }
+        EngineEvent::FollowUp(update) => {
+            data.follow_up = Some(match update {
+                FollowUpUpdate::Writing { meeting_id } => (meeting_id, FollowUpWriting::Writing),
+                FollowUpUpdate::Written {
+                    meeting_id,
+                    subject,
+                    body,
+                    model,
+                } => (
+                    meeting_id,
+                    FollowUpWriting::Written {
+                        subject: subject.into(),
+                        body: body.into(),
+                        model: model.into(),
+                    },
+                ),
+                FollowUpUpdate::Failed {
+                    meeting_id,
+                    message,
+                } => (meeting_id, FollowUpWriting::Failed(message.into())),
+            });
         }
         EngineEvent::Dictation(update) => {
             data.dictation = match update {

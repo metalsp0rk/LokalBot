@@ -11,7 +11,7 @@ use lokalbot_ai::ask::AskEvent;
 use lokalbot_core::{ChatMessage, ChatRole, Conversation};
 
 use crate::models::Models;
-use crate::{AskScope, AskUpdate, EngineEvent, Shared};
+use crate::{AskScope, AskUpdate, EngineEvent, FollowUpUpdate, Shared};
 
 pub struct AskWorker {
     shared: Arc<Shared>,
@@ -100,6 +100,54 @@ impl AskWorker {
                 running: false,
             });
             shared.emit(EngineEvent::LibraryChanged);
+        });
+    }
+}
+
+impl AskWorker {
+    /// Rewrites a meeting's follow-up outline with Think. Like macOS, only a
+    /// model running on this PC may write it; the outline stays available.
+    pub fn write_follow_up(&self, meeting_id: Uuid) {
+        let shared = self.shared.clone();
+        let models = self.models.clone();
+        std::thread::spawn(move || {
+            shared.emit(EngineEvent::FollowUp(FollowUpUpdate::Writing {
+                meeting_id,
+            }));
+            let result = (|| -> Result<(lokalbot_ai::follow_up::FollowUpDraft, String)> {
+                if !models.missing(&models.think_requirements()).is_empty() {
+                    return Err(anyhow!(
+                        "Download the Think model in Settings → Models to write follow-ups. The outline stays available."
+                    ));
+                }
+                let settings = shared.settings();
+                let think = shared.think(&settings)?;
+                if !think.is_local() {
+                    return Err(anyhow!(
+                        "Choose a Think model on this PC to write follow-ups. The outline stays available."
+                    ));
+                }
+                let meeting = shared
+                    .library
+                    .list_meetings()?
+                    .into_iter()
+                    .find(|m| m.id == meeting_id)
+                    .ok_or_else(|| anyhow!("That meeting no longer exists."))?;
+                let draft = lokalbot_ai::follow_up::generate(&think, &shared.library, &meeting)?;
+                Ok((draft, think.model_label()))
+            })();
+            shared.emit(EngineEvent::FollowUp(match result {
+                Ok((draft, model)) => FollowUpUpdate::Written {
+                    meeting_id,
+                    subject: draft.subject,
+                    body: draft.body,
+                    model,
+                },
+                Err(err) => FollowUpUpdate::Failed {
+                    meeting_id,
+                    message: format!("{err:#}"),
+                },
+            }));
         });
     }
 }

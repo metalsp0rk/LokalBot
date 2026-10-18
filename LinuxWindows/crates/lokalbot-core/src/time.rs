@@ -190,6 +190,13 @@ pub fn to_epoch(value: DateTime<Utc>) -> f64 {
     value.timestamp() as f64 + f64::from(value.timestamp_subsec_nanos()) / 1e9
 }
 
+/// Current time at millisecond precision, as ISO-8601 millisecond files
+/// store it (`outcomePersistedTimestamp`).
+pub fn now_millis() -> DateTime<Utc> {
+    let now = Utc::now();
+    DateTime::from_timestamp_millis(now.timestamp_millis()).unwrap_or(now)
+}
+
 /// Current time truncated to whole seconds, for values written to `meta.json`.
 pub fn now_seconds() -> DateTime<Utc> {
     let now = Utc::now();

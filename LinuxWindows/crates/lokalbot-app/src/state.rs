@@ -200,6 +200,21 @@ pub struct AppData {
     pub dictation: DictationHud,
     /// "Mic · Receiving audio" / "System · Not attached" while recording.
     pub recording_statuses: Option<(SharedString, SharedString)>,
+    /// The latest "Write with Think" for a meeting's follow-up.
+    pub follow_up: Option<(Uuid, FollowUpWriting)>,
+}
+
+/// A follow-up being rewritten with Think (`FollowUpDraftSheet`).
+#[derive(Clone, Debug, PartialEq)]
+pub enum FollowUpWriting {
+    Writing,
+    Written {
+        subject: SharedString,
+        body: SharedString,
+        /// "Qwen3.5 4B", for "Written on this PC by …".
+        model: SharedString,
+    },
+    Failed(SharedString),
 }
 
 /// What the dictation overlay shows.
@@ -315,6 +330,7 @@ impl AppData {
             last_dictation: None,
             dictation: DictationHud::Idle,
             recording_statuses: None,
+            follow_up: None,
             audio_inputs: Vec::new(),
             shortcut_recording: false,
         }
@@ -582,6 +598,8 @@ pub enum AppEvent {
     SetDayMemoryPaused(bool),
     /// Write the "Where it stands" note for a project id.
     WriteProjectNote(String),
+    /// Rewrite a meeting's follow-up outline with the local Think model.
+    WriteFollowUp(Uuid),
     OpenOnboarding,
     /// Install `lokalbot-cli` for coding agents (PATH + skill folders).
     InstallCli,

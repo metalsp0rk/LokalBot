@@ -418,6 +418,20 @@ impl Library {
         write_json(&self.meeting_dir(meeting).join(OUTCOME_STATE_FILE), state)
     }
 
+    /// The saved follow-up draft (`follow-up-draft.json`), if any.
+    pub fn follow_up_draft(&self, meeting: &Meeting) -> Result<Option<FollowUpDraft>> {
+        read_json(&self.meeting_dir(meeting).join(FOLLOW_UP_FILE))
+    }
+
+    /// Saves the draft the user reviewed, as macOS does (`saveFollowUp`).
+    pub fn save_follow_up_draft(&self, meeting: &Meeting, draft: &FollowUpDraft) -> Result<()> {
+        let mut draft = draft.clone();
+        draft.updated_at = crate::time::now_millis();
+        draft.seeded = false;
+        draft.source_meeting_id = Some(meeting.id);
+        write_json(&self.meeting_dir(meeting).join(FOLLOW_UP_FILE), &draft)
+    }
+
     /// Marks one extracted action open, done or deferred.
     pub fn set_action_status(
         &self,

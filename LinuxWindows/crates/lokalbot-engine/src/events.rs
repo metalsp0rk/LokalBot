@@ -31,6 +31,9 @@ pub enum Command {
     PrepareModels,
     SetDayMemoryPaused(bool),
     WriteProjectNote(String),
+    /// Writes a meeting's follow-up with the local Think model. Nothing is
+    /// sent or saved; the draft comes back for review.
+    WriteFollowUp(Uuid),
     UpdateSettings(Box<Settings>),
     Dictation(DictationCommand),
     Shutdown,
@@ -87,6 +90,26 @@ pub enum EngineEvent {
         title: String,
     },
     Dictation(DictationUpdate),
+    FollowUp(FollowUpUpdate),
+}
+
+/// Progress of one follow-up written with Think (`FollowUpDraftSheet`).
+#[derive(Clone, Debug)]
+pub enum FollowUpUpdate {
+    Writing {
+        meeting_id: Uuid,
+    },
+    Written {
+        meeting_id: Uuid,
+        subject: String,
+        body: String,
+        /// "Qwen3.5 4B" for "Written on this PC by …".
+        model: String,
+    },
+    Failed {
+        meeting_id: Uuid,
+        message: String,
+    },
 }
 
 #[derive(Clone, Debug)]
