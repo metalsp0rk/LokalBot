@@ -1,3 +1,8 @@
+// Contains code ported from Cotabby (https://github.com/FuJacob/cotabby),
+// copyright the Cotabby authors, under the GNU AGPL v3.0
+// (LICENSES/AGPL-3.0.txt). Modified for LokalBot since 18 October 2026.
+// See THIRD_PARTY_NOTICES.md.
+
 //! From a suggestion and the field it is for to the ghost window's frame and
 //! lines (`CotypingOverlayController.show`): inline right after the caret in
 //! the field's own font when the caret is exact and ends its line, else a

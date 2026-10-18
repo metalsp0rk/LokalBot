@@ -1,3 +1,8 @@
+// Contains code ported from Cotabby (https://github.com/FuJacob/cotabby),
+// copyright the Cotabby authors, under the GNU AGPL v3.0
+// (LICENSES/AGPL-3.0.txt). Modified for LokalBot since 18 October 2026.
+// See THIRD_PARTY_NOTICES.md.
+
 //! Autocomplete in other apps (`CotypingCoordinator*.swift`): the field
 //! watcher's snapshots go to the engine as [`FieldContext`]s, the engine's
 //! suggestions come back as ghost text after the caret, Tab types the next
@@ -256,10 +261,6 @@ impl Autocomplete {
     /// What the field watcher cannot read on this desktop, if anything.
     pub fn limitation(&self) -> Option<String> {
         self.watcher.as_ref().and_then(FieldWatcher::limitation)
-    }
-
-    pub fn is_running(&self) -> bool {
-        self.running
     }
 
     fn settings<'a>(&self, cx: &'a App) -> &'a Settings {
@@ -719,6 +720,7 @@ impl Autocomplete {
     }
 
     fn on_tab(&mut self, cx: &mut Context<Self>) {
+        log::debug!("autocomplete: Tab taken from the focused app");
         let Some(keys) = self.keys.clone() else {
             return;
         };
@@ -857,6 +859,7 @@ impl Autocomplete {
         if active == self.keys_active {
             return;
         }
+        log::debug!("autocomplete: taking Tab and Esc: {active}");
         self.keys_active = active;
         if let Some(keys) = &self.keys {
             keys.set_active(active);

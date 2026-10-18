@@ -1,7 +1,7 @@
 //! Models (`ModelsView.swift`, `ModelStackOverviewView.swift`,
-//! `ModelConnectionsView.swift`): the Transcribe and Think roles, presets,
-//! remote servers, storage, the processing budget and server connections.
-//! Autocomplete is macOS-only, so it has no role here.
+//! `ModelConnectionsView.swift`): the Transcribe, Think and Autocomplete
+//! roles, presets, remote servers, storage, the processing budget and server
+//! connections.
 //!
 //! Names and sizes come from the catalogs: `lokalbot_ai::catalog` for text
 //! models, `lokalbot_speech::models` for speech, `lokalbot_ai::runtime` for
@@ -66,8 +66,8 @@ pub fn model_bytes(id: &str) -> u64 {
 }
 
 /// Model ids the current settings use on this PC: the engine's meeting,
-/// dictation and search requirements. Autocomplete is macOS-only, so its
-/// model is never among them.
+/// dictation and search requirements, and Autocomplete's model while
+/// autocomplete is on.
 pub fn models_in_use(settings: &Settings) -> Vec<String> {
     let mut ids = vec![settings.transcription_model.clone()];
     ids.extend(lokalbot_speech::models::supporting_ids(
@@ -80,10 +80,21 @@ pub fn models_in_use(settings: &Settings) -> Vec<String> {
     if settings.semantic_search_enabled {
         ids.push(lokalbot_ai::catalog::EMBEDDING_MODEL_ID.to_string());
     }
-    if built_in || settings.semantic_search_enabled {
+    if settings.cotyping_enabled {
+        ids.push(settings.cotyping_built_in_model_id.clone());
+    }
+    if built_in || settings.semantic_search_enabled || settings.cotyping_enabled {
         ids.push(RUNTIME_ID.to_string());
     }
     ids
+}
+
+/// What Autocomplete downloads: its model and the llama.cpp runtime.
+pub fn autocomplete_needs(settings: &Settings) -> Vec<String> {
+    vec![
+        settings.cotyping_built_in_model_id.clone(),
+        RUNTIME_ID.to_string(),
+    ]
 }
 
 /// Downloaded models the current settings don't use, in catalog order.
@@ -99,7 +110,7 @@ pub fn unused_models(settings: &Settings, installed: &[String]) -> Vec<String> {
 /// What a downloaded model is for, for the storage list.
 fn model_purpose(id: &str) -> &'static str {
     if id == RUNTIME_ID {
-        return "Runs Think and search models";
+        return "Runs Think, Autocomplete and search models";
     }
     if id == lokalbot_ai::catalog::EMBEDDING_MODEL_ID {
         return "Search by meaning";
@@ -108,7 +119,7 @@ fn model_purpose(id: &str) -> &'static str {
         return if entry.think {
             "Think model"
         } else {
-            "Autocomplete model (macOS only)"
+            "Autocomplete model"
         };
     }
     match lokalbot_speech::models::find(id).map(|m| m.kind) {
@@ -152,8 +163,9 @@ impl Preset {
         }
     }
 
-    /// Transcribe and Think model ids (`lokalbot_ai::catalog::PRESETS`). The
-    /// presets' Autocomplete model is left alone: autocomplete is macOS-only.
+    /// Transcribe and Think model ids (`lokalbot_ai::catalog::PRESETS`).
+    /// Autocomplete keeps its own model here: its lighter default suits
+    /// suggestions on a CPU, and a preset should not swap it unasked.
     fn models(self) -> (&'static str, &'static str) {
         let index = match self {
             Preset::Balanced => 0,
@@ -509,6 +521,26 @@ impl SettingsPage {
                     installed: status.installed.clone(),
                 },
                 RoleChoices::Think,
+                cx,
+            ),
+        );
+        let autocomplete_needs = autocomplete_needs(&settings);
+        roles = roles.row(
+            "settings.cotypingBuiltInModelID",
+            self.role_row(
+                RoleRow {
+                    id: "settings.cotypingBuiltInModelID",
+                    icon: Ico::TextCursorInput,
+                    title: "Autocomplete",
+                    detail: "Suggestions as you type",
+                    model: model_name(&settings.cotyping_built_in_model_id),
+                    remote: None,
+                    ready: status.autocomplete_ready,
+                    downloading: progress(&autocomplete_needs),
+                    needs: autocomplete_needs.clone(),
+                    installed: status.installed.clone(),
+                },
+                RoleChoices::Autocomplete,
                 cx,
             ),
         );
@@ -1010,6 +1042,23 @@ impl SettingsPage {
                 ));
                 items
             }
+            RoleChoices::Autocomplete => lokalbot_ai::catalog::autocomplete_entries(Some(
+                &settings.cotyping_built_in_model_id,
+            ))
+            .map(|m| {
+                let id = m.id;
+                (
+                    SharedString::from(format!(
+                        "{} · {}",
+                        m.display_name,
+                        size_label(m.size_bytes)
+                    )),
+                    settings.cotyping_built_in_model_id == id,
+                    Box::new(move |s: &mut Settings| s.cotyping_built_in_model_id = id.into())
+                        as Box<dyn Fn(&mut Settings)>,
+                )
+            })
+            .collect(),
         };
         let options = std::rc::Rc::new(options);
         let change = Button::new(SharedString::from(format!("{}-change", row.id)))
@@ -1477,6 +1526,7 @@ struct RoleRow {
 enum RoleChoices {
     Speech,
     Think,
+    Autocomplete,
 }
 
 /// "On this PC · Downloaded", or a remote origin in an amber capsule.

@@ -1,3 +1,8 @@
+// Contains code ported from Cotabby (https://github.com/FuJacob/cotabby),
+// copyright the Cotabby authors, under the GNU AGPL v3.0
+// (LICENSES/AGPL-3.0.txt). Modified for LokalBot since 18 October 2026.
+// See THIRD_PARTY_NOTICES.md.
+
 //! Autocomplete's desktop side (`LokalBot/Cotyping`): reading the text field
 //! the user types in, taking Tab and Esc while ghost text shows, and typing
 //! an accepted suggestion into the field. Prediction lives in the engine.

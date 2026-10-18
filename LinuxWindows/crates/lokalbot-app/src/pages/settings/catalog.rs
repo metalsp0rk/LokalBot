@@ -198,11 +198,67 @@ pub const ENTRIES: &[Entry] = &[
         value: |s| text(&s.day_digest_custom_prompt),
     },
     Entry {
-        id: "settings.autocompleteAvailability",
-        title: "Autocomplete",
+        id: "settings.cotypingEnabled",
+        title: "Enable autocomplete",
         category: Writing,
-        aliases: "cotyping suggestions autocomplete typing macos",
-        value: |_| "macOS only for now".into(),
+        aliases: "cotyping suggestions autocomplete typing ghost inline completion",
+        value: |s| on_off(s.cotyping_enabled),
+    },
+    Entry {
+        id: "settings.autocompletePreview",
+        title: "Try the real autocomplete",
+        category: Writing,
+        aliases: "autocomplete practice preview rehearsal try test",
+        value: details,
+    },
+    Entry {
+        id: "settings.cotypingMaxWords",
+        title: "Suggestion length",
+        category: Writing,
+        aliases: "autocomplete words length max words",
+        value: |s| format!("up to {} words", s.cotyping_max_words),
+    },
+    Entry {
+        id: "settings.cotypingMultiLine",
+        title: "Allow multi-line suggestions",
+        category: Writing,
+        aliases: "autocomplete lines",
+        value: |s| on_off(s.cotyping_multi_line),
+    },
+    Entry {
+        id: "settings.cotypingDebounceMs",
+        title: "Pause before suggesting",
+        category: Writing,
+        aliases: "autocomplete delay latency milliseconds debounce",
+        value: |s| format!("{} ms", s.cotyping_debounce_ms),
+    },
+    Entry {
+        id: "settings.cotypingAcceptGranularity",
+        title: "Each accept takes",
+        category: Writing,
+        aliases: "autocomplete accept tab word phrase",
+        value: |s| super::writing::granularity_label(s.cotyping_accept_granularity).into(),
+    },
+    Entry {
+        id: "settings.cotypingUseVisibleContext",
+        title: "Use visible text above the field",
+        category: Writing,
+        aliases: "autocomplete screen context reply message email conversation",
+        value: |s| on_off(s.cotyping_use_visible_context),
+    },
+    Entry {
+        id: "settings.cotypingExcludedApps",
+        title: "Never suggest in these apps",
+        category: Writing,
+        aliases: "exclude autocomplete applications exclusions",
+        value: |s| format!("{} selected", s.cotyping_excluded_app_list().len()),
+    },
+    Entry {
+        id: "settings.cotypingExcludedDomains",
+        title: "Never suggest on these sites",
+        category: Writing,
+        aliases: "exclude autocomplete websites domains exclusions",
+        value: |s| format!("{} selected", s.cotyping_excluded_domain_list().len()),
     },
     Entry {
         id: "settings.cotypingUserName",
@@ -267,8 +323,15 @@ pub const ENTRIES: &[Entry] = &[
         id: "settings.models",
         title: "Models",
         category: Models,
-        aliases: "transcribe think model llm whisper qwen download",
+        aliases: "transcribe think autocomplete model llm whisper qwen download",
         value: details,
+    },
+    Entry {
+        id: "settings.cotypingBuiltInModelID",
+        title: "Autocomplete model",
+        category: Models,
+        aliases: "autocomplete writing suggestions weights lfm",
+        value: |s| super::models::model_name(&s.cotyping_built_in_model_id),
     },
     Entry {
         id: "settings.summarizerBackend",
@@ -421,7 +484,9 @@ mod tests {
             assert!(search(word).is_empty(), "{word}");
         }
         let autocomplete: Vec<&str> = search("autocomplete").iter().map(|e| e.id).collect();
-        assert_eq!(autocomplete, ["settings.autocompleteAvailability"]);
+        assert!(autocomplete.contains(&"settings.cotypingEnabled"));
+        assert!(autocomplete.contains(&"settings.cotypingBuiltInModelID"));
+        assert!(!autocomplete.contains(&"settings.autocompleteAvailability"));
         let updates: Vec<&str> = search("updates").iter().map(|e| e.id).collect();
         assert_eq!(updates, ["settings.currentVersion"]);
     }

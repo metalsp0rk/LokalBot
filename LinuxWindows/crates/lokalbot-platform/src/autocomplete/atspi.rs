@@ -1,3 +1,8 @@
+// Contains code ported from Cotabby (https://github.com/FuJacob/cotabby),
+// copyright the Cotabby authors, under the GNU AGPL v3.0
+// (LICENSES/AGPL-3.0.txt). Modified for LokalBot since 18 October 2026.
+// See THIRD_PARTY_NOTICES.md.
+
 //! Linux: the focused field through AT-SPI2, the accessibility bus GTK,
 //! Qt, Firefox, Chromium and Electron apps publish to (`CotypingAXHelper`,
 //! `CotypingFocusTracker`).

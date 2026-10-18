@@ -61,11 +61,11 @@ fn category_subtitle(category: SettingsCategory) -> &'static str {
         SettingsCategory::General => "Startup, appearance, the Ask shortcut, and the version.",
         SettingsCategory::Meetings => "Meeting capture, detection, processing, and summaries.",
         SettingsCategory::DayMemory => "App and window activity, and the daily digest.",
-        SettingsCategory::Writing => "Your writing profile for Compose dictation.",
+        SettingsCategory::Writing => "Autocomplete and your writing profile.",
         SettingsCategory::Dictation => {
             "The dictation shortcut, Transcribe or Compose, and where the text goes."
         }
-        SettingsCategory::Models => "Choose the models behind Transcribe and Think.",
+        SettingsCategory::Models => "Choose the models behind Transcribe, Think, and Autocomplete.",
         SettingsCategory::Privacy => "Control retention, exclusions, and remote processing.",
         SettingsCategory::Advanced => "Setup, the Agent CLI, logs, and details about this build.",
     }
@@ -111,6 +111,14 @@ pub struct SettingsPage {
     excluded_apps: Entity<RuleList>,
     excluded_sites: Entity<RuleList>,
     retention_slider: Entity<SliderState>,
+    /// Writing: the practice editor, autocomplete's exclusions and pause.
+    practice: Entity<TextareaState>,
+    practice_text: (String, String),
+    /// The practice editor's origin in the window, from its last paint.
+    practice_origin: std::rc::Rc<std::cell::Cell<Option<gpui_kit::Point<gpui_kit::Pixels>>>>,
+    cotyping_excluded_apps: Entity<RuleList>,
+    cotyping_excluded_sites: Entity<RuleList>,
+    debounce_slider: Entity<SliderState>,
     /// External-agent markers, read from disk off the main thread.
     meetings_access: Option<bool>,
     screen_access: Option<Option<ScreenScope>>,
@@ -194,6 +202,36 @@ impl SettingsPage {
                 .step(1.)
                 .default_value(settings.retention_days as f32)
         });
+        let practice = cx.new(|cx| {
+            TextareaState::new(window, cx)
+                .rows(3)
+                .default_value(writing::PRACTICE_OPENING)
+        });
+        let cotyping_excluded_apps = cx.new(|cx| {
+            RuleList::new(
+                "Never suggest in these apps",
+                RuleKind::Applications,
+                &settings.cotyping_excluded_apps,
+                window,
+                cx,
+            )
+        });
+        let cotyping_excluded_sites = cx.new(|cx| {
+            RuleList::new(
+                "Never suggest on these sites",
+                RuleKind::Domains,
+                &settings.cotyping_excluded_domains,
+                window,
+                cx,
+            )
+        });
+        let debounce_slider = cx.new(|_| {
+            SliderState::new()
+                .min(20.)
+                .max(1000.)
+                .step(20.)
+                .default_value(settings.cotyping_debounce_ms as f32)
+        });
 
         let mut subscriptions = vec![
             cx.observe_in(&data, window, Self::on_data_changed),
@@ -276,6 +314,12 @@ impl SettingsPage {
             (&excluded_sites, |s: &mut Settings, v: String| {
                 s.excluded_screen_domains = v
             }),
+            (&cotyping_excluded_apps, |s: &mut Settings, v: String| {
+                s.cotyping_excluded_apps = v
+            }),
+            (&cotyping_excluded_sites, |s: &mut Settings, v: String| {
+                s.cotyping_excluded_domains = v
+            }),
         ] {
             subscriptions.push(cx.subscribe_in(
                 list,
@@ -296,6 +340,20 @@ impl SettingsPage {
                 this.update_settings(move |s| s.retention_days = days, cx);
             },
         ));
+        subscriptions.push(cx.subscribe_in(
+            &debounce_slider,
+            window,
+            |this, _, event: &SliderEvent, _, cx| {
+                let (SliderEvent::Change(value) | SliderEvent::Release(value)) = event;
+                let ms = value.start().round() as u32;
+                this.update_settings(move |s| s.cotyping_debounce_ms = ms, cx);
+            },
+        ));
+        // Typing and caret moves in the practice editor go to the engine.
+        subscriptions.push(cx.observe(&practice, |this, _, cx| this.practice_sync(cx)));
+        if let Some(autocomplete) = crate::autocomplete::global(cx) {
+            subscriptions.push(cx.observe(&autocomplete, |_, _, cx| cx.notify()));
+        }
 
         let models = models::ModelsState::new(&settings, window, cx);
         subscriptions.extend(models::ModelsState::subscribe(&models, window, cx));
@@ -315,6 +373,12 @@ impl SettingsPage {
             excluded_apps,
             excluded_sites,
             retention_slider,
+            practice,
+            practice_text: (String::new(), String::new()),
+            practice_origin: Default::default(),
+            cotyping_excluded_apps,
+            cotyping_excluded_sites,
+            debounce_slider,
             meetings_access: None,
             screen_access: None,
             cli_installed: None,
@@ -383,6 +447,23 @@ impl SettingsPage {
             window,
             cx,
         );
+        self.cotyping_excluded_apps.update(cx, |list, cx| {
+            list.set_value(&settings.cotyping_excluded_apps, cx)
+        });
+        self.cotyping_excluded_sites.update(cx, |list, cx| {
+            list.set_value(&settings.cotyping_excluded_domains, cx)
+        });
+        sync_slider(
+            &self.debounce_slider,
+            settings.cotyping_debounce_ms as f32,
+            window,
+            cx,
+        );
+        if !old.cotyping_enabled && settings.cotyping_enabled {
+            // Turned on: the practice editor's text is a context to suggest for.
+            self.practice_text = Default::default();
+            self.practice_sync(cx);
+        }
         self.models.sync(&old, &settings, window, cx);
         cx.notify();
     }

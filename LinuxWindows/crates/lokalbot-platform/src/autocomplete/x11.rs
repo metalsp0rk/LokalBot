@@ -1,3 +1,8 @@
+// Contains code ported from Cotabby (https://github.com/FuJacob/cotabby),
+// copyright the Cotabby authors, under the GNU AGPL v3.0
+// (LICENSES/AGPL-3.0.txt). Modified for LokalBot since 18 October 2026.
+// See THIRD_PARTY_NOTICES.md.
+
 //! X11 for autocomplete: `XGrabKey` on Tab and Escape while ghost text shows
 //! (`CotypingInputMonitor`'s consuming tap), the active window for matching a
 //! focused field to its window, and moving LokalBot's ghost window.
