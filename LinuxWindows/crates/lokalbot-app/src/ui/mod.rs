@@ -6,7 +6,11 @@
 //! Page code should compose these instead of restyling raw `div`s so every
 //! page keeps the same radii, paddings and colors.
 
+pub mod answer_text;
+pub mod citations;
 pub mod controls;
+pub mod glyphs;
+pub mod result_row;
 
 pub use gpui_kit::assets::IconName as Ico;
 use gpui_kit::component::{Icon, h_flex, v_flex};

@@ -8,7 +8,8 @@ use gpui_kit::{App, AssetSource, Result, SharedString};
 // using `Icon::new(LbIcon::…)` with it; unknown names render as nothing.
 gpui_kit::assets::icon_assets!(pub ExtraIcons, [
     Activity, AppWindow, ArrowDownLeft, ArrowUpRight, AudioLines, AudioWaveform, BadgeCheck,
-    Bookmark, Brain, Briefcase, CalendarClock, CalendarRange, ChartGantt, Circle, CircleCheckBig,
+    Bookmark, Brain, Briefcase, CalendarClock, CircleArrowDown, CircleArrowUp, CornerDownLeft, Crosshair,
+    Key, MessageSquareText, SquareArrowOutUpRight, Trash, CalendarRange, ChartGantt, Circle, CircleCheckBig,
     CircleDot, CirclePause, CirclePlay, CircleQuestionMark, CircleStop, Clock, Disc, FileSearch,
     Hourglass, Keyboard, Layers, LayoutGrid, Link, ListChecks, Lock, LockKeyhole, MessageSquareQuote,
     MessagesSquare, MicOff, Monitor, MoonStar, Package, Pencil, Pin, Quote, Radio, RotateCcw, ScanText,
