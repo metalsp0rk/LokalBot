@@ -251,8 +251,8 @@ pub fn apply(dark: bool, text_scale: f32, window: Option<&mut Window>, cx: &mut 
         window,
         cx,
     );
-    // `Theme::update` carries color edits over to the component tokens
-    // (buttons read `tokens.button_primary`, not `colors.primary`).
+    // `Theme::update` reconciles the component tokens (buttons, tabs, sidebar)
+    // with these colors; editing through `global_mut` alone leaves them stale.
     Theme::update(cx, |theme| {
         theme.font_family = FONT_FAMILY.into();
         theme.font_size = px(14. * text_scale);
@@ -273,6 +273,10 @@ pub fn apply(dark: bool, text_scale: f32, window: Option<&mut Window>, cx: &mut 
         c.primary_hover = palette.accent_fill_hover;
         c.primary_active = palette.accent_fill_hover;
         c.primary_foreground = rgb(0xFFFFFF).into();
+        c.button_primary = palette.accent_fill;
+        c.button_primary_hover = palette.accent_fill_hover;
+        c.button_primary_active = palette.accent_fill_hover;
+        c.button_primary_foreground = rgb(0xFFFFFF).into();
         c.secondary = palette.chip_fill;
         c.secondary_hover = palette.hover.opacity(1.8);
         c.secondary_active = palette.hover.opacity(2.4);
@@ -313,11 +317,6 @@ pub fn apply(dark: bool, text_scale: f32, window: Option<&mut Window>, cx: &mut 
         c.scrollbar_thumb = palette.text_tertiary.opacity(0.6);
         c.scrollbar_thumb_hover = palette.text_tertiary;
         c.window_border = palette.separator;
-        c.button_primary = palette.accent_fill;
-        c.button_primary_hover = palette.accent_fill_hover;
-        c.button_primary_active = palette.accent_fill_hover;
-        c.button_primary_foreground = rgb(0xFFFFFF).into();
-        c.switch_thumb = rgb(0xFFFFFF).into();
     });
     cx.set_global(LbTheme(palette));
     cx.refresh_windows();
