@@ -176,6 +176,23 @@ jobs:
           $settings | ConvertTo-Json -Depth 10 | Set-Content -Encoding utf8 $settingsPath
           ./scripts/ci/capture-windows.ps1 -Exe $exe -Root $root -OutDir $out -Pages today,meetings,ask -Suffix "-dark" -WaitSeconds 8
 
+      # Checks screen capture, UI Automation text and OCR on the runner's real
+      # desktop (an SSH session has none). Downloads the 12 MB OCR model.
+      - name: Check screen capture
+        shell: pwsh
+        run: |
+          $out = Join-Path $env:RUNNER_TEMP "screenshots"
+          New-Item -ItemType Directory -Force $out | Out-Null
+          cargo run --release --locked -p lokalbot-engine --example screen_capture -- --download-ocr `
+            --notepad "LokalBot screen check: the Zephyr invoice is 4821 euros." --delay 4 `
+            --save (Join-Path $out "screen-check.jpg") 2>&1 | Tee-Object (Join-Path $out "screen-check.txt")
+          if ($LASTEXITCODE -ne 0) { throw "screen_capture failed with $LASTEXITCODE" }
+          if (-not (Select-String -Path (Join-Path $out "screen-check.txt") -Pattern "4821" -Quiet)) {
+            throw "the known sentence was not read back"
+          }
+          cargo run --release --locked -p lokalbot-platform --example screen_text -- --delay 3 2>&1 |
+            Tee-Object (Join-Path $out "screen-text.txt")
+
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         if: always()
         with:
