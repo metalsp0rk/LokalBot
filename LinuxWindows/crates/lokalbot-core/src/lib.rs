@@ -21,6 +21,7 @@ pub mod paths;
 pub mod people;
 pub mod projects;
 pub mod retention;
+pub mod screen;
 pub mod search;
 pub mod settings;
 pub mod time;
