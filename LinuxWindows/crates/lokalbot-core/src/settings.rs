@@ -116,6 +116,9 @@ pub struct Settings {
     /// Use the text shown just above the field, such as the conversation
     /// being answered (`cotypingUseVisibleContext`, on as on macOS).
     pub cotyping_use_visible_context: bool,
+    /// Let suggestions use relevant facts from saved meetings. A grant of
+    /// its own, off by default, as on macOS.
+    pub cotyping_use_meeting_memory: bool,
 }
 
 impl Default for Settings {
@@ -201,6 +204,7 @@ impl Default for Settings {
             cotyping_excluded_apps: "1Password, Bitwarden, KeePassXC, KeePass".into(),
             cotyping_excluded_domains: String::new(),
             cotyping_use_visible_context: true,
+            cotyping_use_meeting_memory: false,
         }
     }
 }

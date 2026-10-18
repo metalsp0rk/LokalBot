@@ -15,7 +15,7 @@ impl MeetingsPage {
     pub(super) fn open_player(&mut self, cx: &mut Context<Self>) {
         self.stop_playback();
         let Some(doc) = self.doc.clone() else { return };
-        if !doc.has_audio {
+        if !doc.has_audio || doc.meeting.is_live() {
             return;
         }
         let (mic, system, id) = (doc.mic.clone(), doc.system.clone(), doc.meeting.id);

@@ -37,6 +37,7 @@ pub enum Command {
     UpdateSettings(Box<Settings>),
     Dictation(DictationCommand),
     Autocomplete(AutocompleteCommand),
+    LivePreview(LivePreviewCommand),
     Shutdown,
 }
 
@@ -93,6 +94,48 @@ pub enum EngineEvent {
     Dictation(DictationUpdate),
     FollowUp(FollowUpUpdate),
     Autocomplete(AutocompleteUpdate),
+    /// The whole live transcript preview, sent on every change.
+    LivePreview(LivePreview),
+}
+
+/// The opt-in live transcript preview while recording (`LiveMeetingTranscriber`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum LivePreviewCommand {
+    /// Start, resume or retry. The start position applies to the first start only.
+    Start {
+        from_beginning: bool,
+    },
+    Pause,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub enum LivePreviewState {
+    #[default]
+    Off,
+    Running,
+    Paused,
+    Failed(String),
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct LiveLine {
+    /// Seconds from the start of the recording.
+    pub time: f64,
+    /// From the microphone ("Me") rather than system audio.
+    pub mine: bool,
+    pub text: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LivePreview {
+    pub state: LivePreviewState,
+    /// "Preparing the transcription model…", "Retrying live preview… (1/3)".
+    pub status: Option<String>,
+    /// Where the preview starts, in seconds from the start of the recording.
+    pub start: Option<f64>,
+    /// A chunk is being transcribed.
+    pub working: bool,
+    pub lines: Vec<LiveLine>,
 }
 
 /// The text field the user is typing in, as the desktop integration reads

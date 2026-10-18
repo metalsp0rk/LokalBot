@@ -114,6 +114,14 @@ impl Recording {
         self.finish(true);
     }
 
+    /// The folder of the meeting being recorded, if any.
+    pub fn active_folder(&self) -> Option<std::path::PathBuf> {
+        let active = self.active.lock();
+        active
+            .as_ref()
+            .map(|active| self.shared.library.meeting_dir(&active.meeting))
+    }
+
     /// On quit: save what was recorded and leave processing for the next launch.
     pub fn stop_for_shutdown(&self) {
         self.finish(false);

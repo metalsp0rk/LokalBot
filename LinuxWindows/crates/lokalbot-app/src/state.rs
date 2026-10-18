@@ -202,6 +202,8 @@ pub struct AppData {
     pub recording_statuses: Option<(SharedString, SharedString)>,
     /// The latest "Write with Think" for a meeting's follow-up.
     pub follow_up: Option<(Uuid, FollowUpWriting)>,
+    /// The opt-in live transcript preview of the meeting being recorded.
+    pub live_preview: lokalbot_engine::LivePreview,
 }
 
 /// A follow-up being rewritten with Think (`FollowUpDraftSheet`).
@@ -331,6 +333,7 @@ impl AppData {
             dictation: DictationHud::Idle,
             recording_statuses: None,
             follow_up: None,
+            live_preview: Default::default(),
             audio_inputs: Vec::new(),
             shortcut_recording: false,
         }
@@ -600,6 +603,8 @@ pub enum AppEvent {
     WriteProjectNote(String),
     /// Rewrite a meeting's follow-up outline with the local Think model.
     WriteFollowUp(Uuid),
+    /// Start, pause, resume or retry the live transcript preview.
+    LivePreview(lokalbot_engine::LivePreviewCommand),
     OpenOnboarding,
     /// Install `lokalbot-cli` for coding agents (PATH + skill folders).
     InstallCli,
