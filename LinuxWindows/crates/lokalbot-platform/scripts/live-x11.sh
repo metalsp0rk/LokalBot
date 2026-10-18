@@ -1,8 +1,14 @@
 #!/usr/bin/env bash
-# Runs the ignored live desktop tests on a private Xvfb display with xfwm4 and
-# a titled xmessage window. Needs Xvfb, xfwm4, xmessage (x11-apps) and xdotool.
+# Runs the ignored live tests on a private Xvfb display and D-Bus session:
+# the X11 sampler, idle time, shortcuts (press and release), paste and typing
+# into GTK and terminal windows, and notification and tray round trips.
+# Needs Xvfb, xfwm4, xdotool, xmessage (x11-apps), zenity, xsel,
+# xfce4-terminal and dbus-run-session.
 # Usage: crates/lokalbot-platform/scripts/live-x11.sh [display number]
 set -euo pipefail
+if [ -z "${LOKALBOT_LIVE_BUS:-}" ]; then
+  exec env LOKALBOT_LIVE_BUS=1 dbus-run-session -- "$0" "$@"
+fi
 cd "$(dirname "$0")/../../.."
 export DISPLAY=":${1:-97}"
 unset WAYLAND_DISPLAY
@@ -28,5 +34,5 @@ done
 [ -n "$window" ] || { echo "the test window did not appear" >&2; exit 1; }
 xdotool windowactivate --sync "$window"
 
-LOKALBOT_EXPECT_TITLE="$title" cargo test -p lokalbot-platform --test live_desktop \
-  -- --ignored --test-threads=1 --nocapture
+LOKALBOT_EXPECT_TITLE="$title" cargo test -p lokalbot-platform \
+  --test live_desktop --test live_dbus -- --ignored --test-threads=1 --nocapture

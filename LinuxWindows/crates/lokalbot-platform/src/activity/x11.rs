@@ -17,6 +17,7 @@ const MAX_PROPERTY_WORDS: u32 = 2048;
 
 struct Atoms {
     net_active_window: Atom,
+    net_client_list: Atom,
     net_wm_name: Atom,
     net_wm_pid: Atom,
     utf8_string: Atom,
@@ -44,6 +45,7 @@ impl Session {
             .root;
         let atoms = Atoms {
             net_active_window: intern(&conn, b"_NET_ACTIVE_WINDOW")?,
+            net_client_list: intern(&conn, b"_NET_CLIENT_LIST")?,
             net_wm_name: intern(&conn, b"_NET_WM_NAME")?,
             net_wm_pid: intern(&conn, b"_NET_WM_PID")?,
             utf8_string: intern(&conn, b"UTF8_STRING")?,
@@ -159,6 +161,26 @@ impl Session {
         }))
     }
 
+    /// Class (or instance) and title of every managed window.
+    fn client_titles(&self) -> Result<Vec<(String, String)>, ConnectionError> {
+        let windows: Vec<Window> = self
+            .property(self.root, self.atoms.net_client_list, AtomEnum::WINDOW)?
+            .and_then(|reply| reply.value32().map(|values| values.collect()))
+            .unwrap_or_default();
+        let mut titles = Vec::with_capacity(windows.len());
+        for window in windows {
+            let title = self.title(window)?;
+            if title.is_empty() {
+                continue;
+            }
+            let (instance, class) = self.class(window)?;
+            if let Some(app) = class.or(instance) {
+                titles.push((app, title));
+            }
+        }
+        Ok(titles)
+    }
+
     fn idle_ms(&self) -> anyhow::Result<u32> {
         Ok(self
             .conn
@@ -244,6 +266,34 @@ impl WindowProbe for X11Probe {
 
     fn name(&self) -> &'static str {
         "x11"
+    }
+}
+
+/// Every window's title, for meeting detection.
+pub(super) struct ClientList {
+    session: Option<Session>,
+}
+
+impl ClientList {
+    pub(super) fn new() -> Self {
+        Self { session: None }
+    }
+
+    pub(super) fn list(&mut self) -> Vec<(String, String)> {
+        if self.session.is_none() {
+            self.session = Session::open().ok();
+        }
+        let Some(session) = &self.session else {
+            return Vec::new();
+        };
+        match session.client_titles() {
+            Ok(titles) => titles,
+            Err(err) => {
+                log::debug!("x11 client list: {err}");
+                self.session = None;
+                Vec::new()
+            }
+        }
     }
 }
 

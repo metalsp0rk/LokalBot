@@ -129,3 +129,46 @@ impl ActivitySource for LinuxSource {
         (!parts.is_empty()).then(|| parts.join(" "))
     }
 }
+
+/// Titles of all windows, where the desktop can list them (X11, Hyprland,
+/// Sway). Elsewhere meeting detection relies on observed focus changes.
+pub(crate) struct WindowLister {
+    desktop: Desktop,
+    x11: super::x11::ClientList,
+}
+
+impl WindowLister {
+    pub(crate) fn new() -> Self {
+        Self {
+            desktop: crate::session::desktop(),
+            x11: super::x11::ClientList::new(),
+        }
+    }
+
+    /// `(class or app id, title)` pairs.
+    pub(crate) fn list(&mut self) -> Vec<(String, String)> {
+        let listed = match self.desktop {
+            Desktop::X11 => Ok(self.x11.list()),
+            Desktop::Hyprland => super::wayland::hyprland_windows(),
+            Desktop::Sway => super::wayland::sway_windows(),
+            _ => Ok(Vec::new()),
+        };
+        listed.unwrap_or_else(|err| {
+            log::debug!("window list: {err:#}");
+            Vec::new()
+        })
+    }
+}
+
+pub(super) fn focused_app_hint() -> Option<String> {
+    let window = match crate::session::desktop() {
+        Desktop::X11 => super::x11::X11Probe::connect().ok()?.focused().ok()??,
+        Desktop::Hyprland => super::wayland::Hyprland::new().ok()?.focused().ok()??,
+        Desktop::Sway => super::wayland::Sway::new().ok()?.focused().ok()??,
+        _ => return None,
+    };
+    window
+        .class
+        .or(window.instance)
+        .map(|class| class.to_lowercase())
+}
