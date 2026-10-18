@@ -1,0 +1,22 @@
+[package]
+name = "lokalbot-ai"
+description = "Think, Autocomplete and embeddings: model catalog, downloads, llama.cpp runtime, prompts."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+lokalbot-core.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
+uuid.workspace = true
+log.workspace = true
+parking_lot.workspace = true
+ureq.workspace = true
+sha2.workspace = true
+hex.workspace = true

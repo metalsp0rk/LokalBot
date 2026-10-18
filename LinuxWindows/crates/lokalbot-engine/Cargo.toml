@@ -1,0 +1,17 @@
+[package]
+name = "lokalbot-engine"
+description = "Background work: recording, processing pipeline, digests, day memory, dictation."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+lokalbot-core.workspace = true
+anyhow.workspace = true
+log.workspace = true
+parking_lot.workspace = true
+crossbeam-channel.workspace = true
+chrono.workspace = true
+uuid.workspace = true

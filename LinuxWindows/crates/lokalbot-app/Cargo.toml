@@ -1,0 +1,25 @@
+[package]
+name = "lokalbot-app"
+description = "LokalBot for Linux and Windows: private work memory with on-device AI."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[[bin]]
+name = "lokalbot"
+path = "src/main.rs"
+
+[dependencies]
+lokalbot-core.workspace = true
+gpui-kit.workspace = true
+anyhow.workspace = true
+log.workspace = true
+env_logger.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
+uuid.workspace = true
+parking_lot.workspace = true
+smol = "2"

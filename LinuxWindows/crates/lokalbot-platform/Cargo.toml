@@ -1,0 +1,15 @@
+[package]
+name = "lokalbot-platform"
+description = "OS integration: activity sampling, global shortcuts, text insertion, tray, notifications."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+lokalbot-core.workspace = true
+anyhow.workspace = true
+log.workspace = true
+parking_lot.workspace = true
+crossbeam-channel.workspace = true
