@@ -3,7 +3,7 @@
 //! `LiveMeetingDetailView.swift`).
 
 mod detail;
-mod dialogs;
+pub(crate) mod dialogs;
 mod list;
 mod live;
 pub mod model;

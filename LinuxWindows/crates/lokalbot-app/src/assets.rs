@@ -15,7 +15,8 @@ gpui_kit::assets::icon_assets!(pub ExtraIcons, [
     SearchCheck, Share2, ShieldCheck, SlidersHorizontal, Sparkle, Sparkles, SquarePen, SquareStop,
     Terminal, TextCursorInput, TextSearch, Users, Video, Volume2, WandSparkles, X,
     // Today, Meetings and Timeline.
-    ArrowRightLeft, CircleArrowDown, CircleEllipsis, CircleMinus, MessageSquareText, Share, UserRoundCheck,
+    ArrowRightLeft, ArrowUpDown, CircleArrowDown, CircleEllipsis, CircleMinus, Contrast, CornerDownRight,
+    MessageSquareText, Share, SquareArrowOutUpRight, UserRoundCheck,
 ]);
 
 /// Serves LokalBot's own files first, then the extra icons, then GPUI Kit's defaults.

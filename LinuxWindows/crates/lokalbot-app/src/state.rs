@@ -151,6 +151,14 @@ pub struct AskRequest {
     pub submit: bool,
 }
 
+/// A request to show a day on Timeline, optionally with a work session open.
+#[derive(Clone, Debug, PartialEq)]
+pub struct TimelineFocus {
+    pub day: chrono::NaiveDate,
+    /// `WorkSession::id`.
+    pub session_id: Option<String>,
+}
+
 /// A request to show a meeting, optionally at a moment of its transcript.
 #[derive(Clone, Debug, PartialEq)]
 pub struct MeetingFocus {
@@ -171,6 +179,7 @@ pub struct AppData {
     pub settings_category: SettingsCategory,
     pub meeting_focus: Option<MeetingFocus>,
     pub ask_request: Option<AskRequest>,
+    pub timeline_focus: Option<TimelineFocus>,
     pub recording: RecordingState,
     pub processing: HashMap<Uuid, ProcessingStage>,
     pub background: Vec<BackgroundItem>,
@@ -270,6 +279,7 @@ impl AppData {
             settings_category: SettingsCategory::General,
             meeting_focus: None,
             ask_request: None,
+            timeline_focus: None,
             recording: RecordingState::Idle,
             processing: HashMap::new(),
             background: Vec::new(),
@@ -312,6 +322,17 @@ impl AppData {
             at,
         });
         self.section = Section::Meetings;
+        cx.notify();
+    }
+
+    pub fn open_timeline(
+        &mut self,
+        day: chrono::NaiveDate,
+        session_id: Option<String>,
+        cx: &mut Context<Self>,
+    ) {
+        self.timeline_focus = Some(TimelineFocus { day, session_id });
+        self.section = Section::Timeline;
         cx.notify();
     }
 
