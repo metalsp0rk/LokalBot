@@ -469,6 +469,18 @@ one line per earlier week and month, needs both meeting and screen access and
 stays within the screen history profile. While a deletion is still being
 cleaned up, work memory and the timeline are left out.
 
+Another separate toggle, **Allow external agents to change LokalBot settings**,
+lets `lokalbot-cli config`, `status`, and `open` read your LokalBot settings and
+app status from the running app, and open Settings at a setting. They talk to the
+app over a local socket in the library's private `control/` folder that exists
+only while the toggle is on and accepts only your macOS user. Settings can
+include your writing profile, digest instructions, and folder paths; server URLs
+are shown without user names, passwords, or query strings, and API keys are
+never returned. When LokalBot is not running, these commands start it in the
+background, which also starts the capture and schedules you have turned on.
+This toggle grants no meeting-library, screen-memory, or personal-context
+access, and none of those grants it. These commands do not change settings.
+
 **Open in Claude** and **Open in Codex**, in a meeting's More menu, start a new
 conversation in that installed app with the meeting's title, summary, and as much
 of its transcript as fits already typed into the composer. LokalBot hands the
