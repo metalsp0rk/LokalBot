@@ -26,6 +26,8 @@ unicode-normalization.workspace = true
 fancy-regex = "0.19"
 # "Match transcript" summary language detection.
 whatlang = "0.18"
+# Autocomplete: word bounds for scripts without spaces, grapheme counts.
+unicode-segmentation = "1"
 # Runtime and model archives: llama.cpp ships .zip (Windows) and .tar.gz
 # (Linux); sherpa-onnx models are .tar.bz2. All decoders are pure Rust.
 zip = { version = "9", default-features = false, features = ["deflate-flate2"] }
