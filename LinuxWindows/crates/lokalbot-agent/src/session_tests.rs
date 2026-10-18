@@ -476,6 +476,43 @@ fn terminal_provider_failure_pauses_the_queue() {
 }
 
 #[test]
+fn send_next_resumes_a_paused_queue() {
+    let mut h = Harness::new();
+    h.send("first");
+    h.ack(true);
+    h.event(r#"{"type":"agent_start"}"#);
+    h.session.draft = "second".into();
+    h.session.submit(false);
+    h.event(r#"{"type":"message_end","message":{"role":"assistant","content":[],"stopReason":"error","errorMessage":"502 Bad Gateway"}}"#);
+    h.event(r#"{"type":"agent_settled"}"#);
+    assert!(h.session.queue_is_paused);
+    h.session.send_next_queued();
+    h.pump();
+    assert!(!h.session.queue_is_paused);
+    assert!(h.session.queued_prompts.is_empty());
+    let line = h.last_line();
+    assert_eq!(line["type"], "prompt");
+    assert_eq!(line["message"], "second");
+}
+
+#[test]
+fn send_next_starts_an_idle_task_and_delivers_its_restored_queue() {
+    let mut h = Harness::new();
+    h.session
+        .restore_queue(vec![crate::tasks::QueuedPrompt::new(
+            "restored follow-up",
+            Vec::new(),
+        )]);
+    assert!(h.session.queue_is_paused);
+    h.session.send_next_queued();
+    h.pump();
+    assert!(h.session.queued_prompts.is_empty());
+    let line = h.last_line();
+    assert_eq!(line["type"], "prompt");
+    assert_eq!(line["message"], "restored follow-up");
+}
+
+#[test]
 fn stop_cancels_pending_approvals_before_aborting_and_keeps_follow_ups() {
     let mut h = Harness::new();
     h.send("first");

@@ -17,6 +17,7 @@ winresource = "0.1"
 [dependencies]
 lokalbot-core.workspace = true
 lokalbot-ai.workspace = true
+lokalbot-agent.workspace = true
 lokalbot-audio.workspace = true
 lokalbot-engine.workspace = true
 lokalbot-platform.workspace = true
@@ -31,5 +32,6 @@ chrono.workspace = true
 uuid.workspace = true
 directories.workspace = true
 parking_lot.workspace = true
+async-channel = "2"
 smol = "2"
 image = { version = "0.25", default-features = false, features = ["png"] }

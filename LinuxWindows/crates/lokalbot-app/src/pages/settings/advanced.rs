@@ -33,6 +33,104 @@ pub fn cli_install_path() -> PathBuf {
     }
 }
 
+/// Commands that connect a coding agent to LokalBot over MCP, each with a
+/// Copy button (the external-agent setup that sat on the Agent page before
+/// Agent Mode).
+fn mcp_commands(
+    path: &std::path::Path,
+    data: &gpui_kit::Entity<crate::state::AppData>,
+    cx: &mut Context<SettingsPage>,
+) -> gpui_kit::Div {
+    use crate::theme::{LbThemeExt as _, ty};
+    use gpui_kit::component::button::ButtonVariants as _;
+    use gpui_kit::{ClipboardItem, FontWeight};
+    let path_text = path.display().to_string();
+    let command = if cfg!(target_os = "windows") {
+        format!("\"{path_text}\"")
+    } else {
+        path_text.clone()
+    };
+    let entries = [
+        (
+            "claude",
+            "Claude Code",
+            format!("claude mcp add lokalbot -- {command} mcp"),
+        ),
+        (
+            "codex",
+            "Codex",
+            format!("codex mcp add lokalbot -- {command} mcp"),
+        ),
+        (
+            "json",
+            "Other MCP clients",
+            format!(
+                "{{\"mcpServers\": {{\"lokalbot\": {{\"command\": \"{}\", \"args\": [\"mcp\"]}}}}}}",
+                path_text.replace('\\', "\\\\")
+            ),
+        ),
+    ];
+    let lb = cx.lb().clone();
+    let mono = {
+        use gpui_kit::component::ActiveTheme as _;
+        cx.theme().mono_font_family.clone()
+    };
+    let mut column = v_flex().gap(px(10.)).child(
+        gpui_kit::div()
+            .text_size(ty::BODY)
+            .font_weight(FontWeight::MEDIUM)
+            .text_color(lb.text)
+            .child("Connect a coding agent over MCP"),
+    );
+    for (key, label, text) in entries {
+        let copy = text.clone();
+        let data = data.clone();
+        column = column.child(
+            v_flex()
+                .gap(px(4.))
+                .child(
+                    gpui_kit::div()
+                        .text_size(ty::SECONDARY)
+                        .text_color(lb.text_secondary)
+                        .child(label),
+                )
+                .child(
+                    h_flex()
+                        .gap(px(8.))
+                        .items_center()
+                        .px(px(10.))
+                        .py(px(6.))
+                        .rounded(px(8.))
+                        .bg(lb.chip_fill)
+                        .child(
+                            gpui_kit::div()
+                                .flex_1()
+                                .min_w_0()
+                                .font_family(mono.clone())
+                                .text_size(ty::SECONDARY)
+                                .text_color(lb.text)
+                                .child(text),
+                        )
+                        .child(
+                            Button::new(SharedString::from(format!("settings-mcp-copy-{key}")))
+                                .ghost()
+                                .xsmall()
+                                .icon(Icon::new(Ico::Copy))
+                                .label("Copy")
+                                .on_click(move |_, _, cx| {
+                                    cx.write_to_clipboard(ClipboardItem::new_string(copy.clone()));
+                                    data.update(cx, |data, cx| data.show_message("Copied.", cx));
+                                }),
+                        ),
+                ),
+        );
+    }
+    column.child(settings_row::help(
+        "Agents also need \"Allow external agents to read your meeting library\" in Privacy & Data. Try it in a terminal with: lokalbot-cli brief",
+        cx,
+    ))
+}
+
 /// "Linux · x86_64" / "Windows · x86_64".
 pub fn platform_line() -> String {
     let os = match std::env::consts::OS {
@@ -104,6 +202,15 @@ impl SettingsPage {
                             ),
                             cx,
                         )),
+                    false,
+                    cx,
+                ),
+            )
+            .row(
+                "settings.agentMCP",
+                settings_row::content_row(
+                    "settings.agentMCP",
+                    mcp_commands(&path, &data, cx),
                     false,
                     cx,
                 ),

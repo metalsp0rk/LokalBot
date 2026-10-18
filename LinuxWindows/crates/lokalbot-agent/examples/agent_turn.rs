@@ -126,7 +126,7 @@ fn main() -> Result<()> {
                 &lokalbot_ai::catalog::download_spec(&paths, entry),
                 &cancel,
                 &mut |done, total| {
-                    let now = if total == 0 { 0 } else { done * 10 / total };
+                    let now = (done * 10).checked_div(total).unwrap_or(0);
                     if now != tenth {
                         tenth = now;
                         println!("model: {}%", now * 10);

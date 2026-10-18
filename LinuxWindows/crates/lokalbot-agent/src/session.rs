@@ -1000,6 +1000,19 @@ impl AgentSession {
         }
     }
 
+    /// "Send next": resumes the queue, starting the task when it is idle.
+    pub fn send_next_queued(&mut self) {
+        if self.queued_prompts.is_empty() {
+            return;
+        }
+        self.queue_is_paused = false;
+        match self.state {
+            SessionState::Ready => self.deliver_next_queued(),
+            SessionState::Idle | SessionState::Failed(_) => self.start(),
+            SessionState::Starting | SessionState::Running => {}
+        }
+    }
+
     fn maybe_deliver_queued(&mut self) {
         if !self.queue_is_paused && !self.queued_prompts.is_empty() {
             self.deliver_next_queued();
@@ -1216,6 +1229,9 @@ impl AgentSession {
             self.state = SessionState::Ready;
         }
         self.deliver_pending_submission();
+        if self.state == SessionState::Ready {
+            self.maybe_deliver_queued();
+        }
     }
 
     fn handle_event(&mut self, event: PiEvent) {

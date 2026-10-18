@@ -17,6 +17,9 @@ gpui_kit::assets::icon_assets!(pub ExtraIcons, [
     ScanText, SearchCheck, Share, Share2, ShieldCheck, SlidersHorizontal, Sparkle, Sparkles,
     SquareArrowOutUpRight, SquarePen, SquareStop, Terminal, TextCursorInput, TextSearch,
     Trash, UserRoundCheck, Users, Video, Volume2, WandSparkles, X,
+    // Agent Mode
+    Archive, ArchiveRestore, CirclePlus, Download, GitBranch, Hand, ListPlus, LockOpen, Paperclip,
+    PinOff,
 ]);
 
 /// Serves LokalBot's own files first, then the extra icons, then GPUI Kit's defaults.

@@ -8,6 +8,7 @@ use std::sync::{Arc, Weak};
 
 use lokalbot_ai::RuntimeManager;
 use lokalbot_core::LibraryPaths;
+use lokalbot_core::settings::SummarizerBackend;
 
 use crate::endpoint::{self, LlmEndpoint, ReasoningDialect, Resolution};
 use crate::launch::{self, PlanInputs};
@@ -141,7 +142,13 @@ impl PiLauncher {
         &self,
         request: &LaunchRequest,
     ) -> Result<(LlmEndpoint, Option<lokalbot_ai::Lease>), LaunchError> {
-        match endpoint::resolve(&request.settings, (self.api_key)()) {
+        // Only an OpenAI-compatible server takes a key; reading the system
+        // keyring can block for a long time when no secret service answers.
+        let api_key = match request.settings.summarizer_backend {
+            SummarizerBackend::OpenAICompatible => (self.api_key)(),
+            SummarizerBackend::BuiltIn | SummarizerBackend::Ollama => None,
+        };
+        match endpoint::resolve(&request.settings, api_key) {
             Resolution::Unsupported(reason) => Err(LaunchError::Configuration(reason)),
             Resolution::Ready(endpoint) => Ok((endpoint, None)),
             Resolution::BuiltIn { model_id } => {

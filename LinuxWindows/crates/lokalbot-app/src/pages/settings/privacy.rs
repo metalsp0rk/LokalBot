@@ -89,14 +89,14 @@ impl SettingsPage {
         let lb = cx.lb().clone();
 
         let where_text = if settings.think_is_local() {
-            "Audio, transcripts, and activity stay on this PC. Network access is limited to model downloads.".to_string()
+            "Audio, transcripts, and activity stay on this PC. Network access is limited to model downloads and optional Agent Mode setup.".to_string()
         } else {
             let backend = match settings.summarizer_backend {
                 SummarizerBackend::Ollama => "Ollama",
                 _ => "OpenAI-compatible server",
             };
             format!(
-                "Audio stays on this PC. Transcripts and approved context may be sent to your remote Think model ({backend}). Other network access is for model downloads."
+                "Audio stays on this PC. Transcripts and approved context may be sent to your remote Think model ({backend}). Other network access is for model downloads and optional Agent Mode setup."
             )
         };
         let local = settings.think_is_local();

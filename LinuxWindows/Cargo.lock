@@ -4244,12 +4244,14 @@ name = "lokalbot-app"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "async-channel",
  "chrono",
  "directories",
  "env_logger",
  "gpui-kit",
  "image",
  "log",
+ "lokalbot-agent",
  "lokalbot-ai",
  "lokalbot-audio",
  "lokalbot-core",
