@@ -75,6 +75,47 @@ fn parse_options() -> Options {
     options
 }
 
+/// Logs go to `<library>/logs/lokalbot.log` (Settings → Advanced → Logs) and,
+/// when there is one, the terminal. Release builds on Windows have no console.
+fn init_logging(paths: &LibraryPaths) {
+    let mut builder = env_logger::Builder::from_env(
+        env_logger::Env::default().default_filter_or("info,zbus=warn,tracing=warn"),
+    );
+    if let Some(file) = open_log_file(&paths.logs_dir()) {
+        builder.target(env_logger::Target::Pipe(Box::new(Tee(file))));
+    }
+    builder.init();
+}
+
+fn open_log_file(dir: &std::path::Path) -> Option<std::fs::File> {
+    const MAX_BYTES: u64 = 5 * 1024 * 1024;
+    std::fs::create_dir_all(dir).ok()?;
+    let path = dir.join("lokalbot.log");
+    if std::fs::metadata(&path).is_ok_and(|m| m.len() > MAX_BYTES) {
+        let _ = std::fs::rename(&path, dir.join("lokalbot.log.1"));
+    }
+    std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(path)
+        .ok()
+}
+
+struct Tee(std::fs::File);
+
+impl std::io::Write for Tee {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        let _ = std::io::stderr().write_all(buf);
+        self.0.write_all(buf)?;
+        Ok(buf.len())
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        let _ = std::io::stderr().flush();
+        self.0.flush()
+    }
+}
+
 fn section_named(name: &str) -> Option<Section> {
     Some(match name.to_ascii_lowercase().as_str() {
         "today" => Section::Today,
@@ -90,7 +131,6 @@ fn section_named(name: &str) -> Option<Section> {
 }
 
 fn main() {
-    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
     let options = parse_options();
     let paths = LibraryPaths::resolve(options.storage_root.as_deref());
     if std::env::args().any(|arg| arg == "--seed-demo") {
@@ -106,6 +146,7 @@ fn main() {
             }
         }
     }
+    init_logging(&paths);
     // One LokalBot per library: a second launch hands its request to the first.
     let instance = match lokalbot_platform::acquire_instance(paths.root()) {
         Ok(guard) => Some(guard),
