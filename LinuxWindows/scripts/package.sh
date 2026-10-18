@@ -17,7 +17,7 @@ case "$(uname -s)" in
     cp packaging/icons/lokalbot-*.png "$STAGE/icons/"
     cp ../LICENSE "$STAGE/LICENSE" 2>/dev/null || true
     tar -C dist -czf "dist/$NAME.tar.gz" "$NAME"
-    sha256sum "dist/$NAME.tar.gz" > "dist/$NAME.tar.gz.sha256"
+    (cd dist && sha256sum "$NAME.tar.gz" > "$NAME.tar.gz.sha256")
     echo "dist/$NAME.tar.gz"
     ;;
   MINGW*|MSYS*|CYGWIN*)
