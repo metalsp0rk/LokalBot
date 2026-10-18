@@ -10,6 +10,7 @@
 
 pub mod ask;
 pub mod catalog;
+pub mod dictation;
 pub mod digest;
 pub mod download;
 pub mod embeddings;
