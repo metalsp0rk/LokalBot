@@ -92,6 +92,7 @@ pub fn handle_request(event: &AppEvent, cx: &mut App) -> bool {
         AppEvent::SetDayMemoryPaused(paused) => Command::SetDayMemoryPaused(*paused),
         AppEvent::WriteProjectNote(id) => Command::WriteProjectNote(id.clone()),
         AppEvent::WriteFollowUp(meeting_id) => Command::WriteFollowUp(*meeting_id),
+        AppEvent::LivePreview(command) => Command::LivePreview(*command),
         AppEvent::ToggleDictation => Command::Dictation(DictationCommand::Toggle),
         AppEvent::CancelDictation => Command::Dictation(DictationCommand::Cancel),
         AppEvent::SettingsChanged => {
@@ -286,6 +287,7 @@ fn apply(data: &mut AppData, event: EngineEvent, cx: &mut Context<AppData>) {
             cx.emit(AppEvent::MeetingDetected { app_name, title });
         }
         EngineEvent::Autocomplete(_) => {}
+        EngineEvent::LivePreview(preview) => data.live_preview = preview,
         EngineEvent::FollowUp(update) => {
             data.follow_up = Some(match update {
                 FollowUpUpdate::Writing { meeting_id } => (meeting_id, FollowUpWriting::Writing),

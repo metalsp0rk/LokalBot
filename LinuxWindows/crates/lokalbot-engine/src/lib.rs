@@ -10,6 +10,7 @@ mod dictation;
 mod digest;
 pub mod events;
 mod indexing;
+mod live;
 mod models;
 mod pipeline;
 mod recording;
@@ -182,6 +183,7 @@ fn dispatch(shared: Arc<Shared>, commands: Sender<Command>, receiver: Receiver<C
     let day_memory = daymemory::DayMemory::start(shared.clone(), meeting_detector.clone());
     let detector = detector::Detector::start(shared.clone(), commands.clone(), meeting_detector);
     let dictation = dictation::Dictation::new(shared.clone(), models.clone());
+    let live = live::LiveTranscriber::new(shared.clone(), models.clone());
     models.publish_status();
     indexing::start(shared.clone(), models.clone());
     retention::start(shared.clone());
@@ -189,8 +191,16 @@ fn dispatch(shared: Arc<Shared>, commands: Sender<Command>, receiver: Receiver<C
     while let Ok(command) = receiver.recv() {
         log::debug!("engine command: {command:?}");
         match command {
-            Command::StartRecording { title, app_name } => recording.start(title, app_name),
-            Command::StopRecording => recording.stop(),
+            Command::StartRecording { title, app_name } => {
+                recording.start(title, app_name);
+                if let Some(folder) = recording.active_folder() {
+                    live.prepare(folder);
+                }
+            }
+            Command::StopRecording => {
+                live.stop();
+                recording.stop();
+            }
             Command::ProcessMeeting {
                 meeting_id,
                 transcribe,
@@ -216,11 +226,16 @@ fn dispatch(shared: Arc<Shared>, commands: Sender<Command>, receiver: Receiver<C
             }
             Command::Dictation(command) => dictation.handle(command),
             Command::Autocomplete(_) => {}
+            Command::LivePreview(command) => match command {
+                LivePreviewCommand::Start { from_beginning } => live.start(from_beginning),
+                LivePreviewCommand::Pause => live.pause(),
+            },
             Command::Shutdown => break,
         }
     }
 
     shared.shutting_down.store(true, Ordering::Relaxed);
+    live.stop();
     recording.stop_for_shutdown();
     detector.stop();
     day_memory.stop();
