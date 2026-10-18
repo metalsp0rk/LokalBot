@@ -107,6 +107,13 @@ impl MeetingsPage {
     }
 
     fn on_list_key(&mut self, event: &KeyDownEvent, window: &mut Window, cx: &mut Context<Self>) {
+        if event.keystroke.key == "f"
+            && (event.keystroke.modifiers.control || event.keystroke.modifiers.platform)
+        {
+            self.open_find(window, cx);
+            cx.stop_propagation();
+            return;
+        }
         match event.keystroke.key.as_str() {
             "up" => self.move_selection(-1, window, cx),
             "down" => self.move_selection(1, window, cx),

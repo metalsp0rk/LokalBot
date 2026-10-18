@@ -47,6 +47,8 @@ pub struct TodayPage {
     sessions_expanded: bool,
     expanded_tasks: HashSet<usize>,
     showing_actions: bool,
+    /// "Review Actions…" from another page; opened on the next render.
+    pending_actions: bool,
     actions: Entity<ActionsWorkspace>,
     bounds: Rc<Cell<Option<Bounds<Pixels>>>>,
     tick: Option<Task<()>>,
@@ -86,6 +88,7 @@ impl TodayPage {
             sessions_expanded: false,
             expanded_tasks: HashSet::new(),
             showing_actions: false,
+            pending_actions: false,
             actions,
             bounds: Rc::new(Cell::new(None)),
             tick: None,
@@ -97,6 +100,13 @@ impl TodayPage {
     }
 
     fn on_data_changed(&mut self, cx: &mut Context<Self>) {
+        if self
+            .data
+            .update(cx, |data, _| std::mem::take(&mut data.actions_requested))
+        {
+            self.pending_actions = true;
+            cx.notify();
+        }
         let data = self.data.read(cx);
         if data.section != Section::Today && self.showing_actions {
             // Leaving Today closes the Actions workspace, as on macOS.
@@ -726,7 +736,10 @@ impl Page for TodayPage {
 }
 
 impl Render for TodayPage {
-    fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        if std::mem::take(&mut self.pending_actions) {
+            self.show_actions(true, window, cx);
+        }
         let recording = self.data.read(cx).recording.is_active();
         self.sync_tick(recording, cx);
         if self.showing_actions {

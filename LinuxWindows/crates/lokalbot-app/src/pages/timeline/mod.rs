@@ -377,7 +377,7 @@ impl TimelinePage {
                             .outline()
                             .label("Review Actions…")
                             .on_click(move |_, _, cx| {
-                                data.update(cx, |data, cx| data.navigate(Section::Today, cx))
+                                data.update(cx, |data, cx| data.open_actions(cx))
                             }),
                     ),
                 ),
