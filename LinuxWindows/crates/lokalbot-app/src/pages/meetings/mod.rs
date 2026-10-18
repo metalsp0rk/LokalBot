@@ -941,7 +941,8 @@ impl Page for MeetingsPage {
                                 PopupMenuItem::new("Draft follow-up…")
                                     .disabled(!can_follow_up)
                                     .on_click(move |_, window, cx| {
-                                        let _ = follow_up.update(cx, |this, cx| this.open_follow_up(window, cx));
+                                        let _ = follow_up
+                                            .update(cx, |this, cx| this.open_follow_up(window, cx));
                                     }),
                             )
                             .separator();

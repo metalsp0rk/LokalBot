@@ -7,8 +7,8 @@ use gpui_kit::component::input::{Input, InputState, Textarea, TextareaState};
 use gpui_kit::component::{Disableable as _, Sizable as _, WindowExt as _, h_flex, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
-    App, AppContext as _, ClipboardItem, Context, Entity, FontWeight, IntoElement, ParentElement as _, Render,
-    SharedString, Styled as _, Subscription, Window, div, px,
+    App, AppContext as _, ClipboardItem, Context, Entity, FontWeight, IntoElement,
+    ParentElement as _, Render, SharedString, Styled as _, Subscription, Window, div, px,
 };
 use lokalbot_core::{FollowUpDraft, Meeting, MeetingOutcomes};
 
@@ -49,7 +49,8 @@ impl FollowUpSheet {
                         (outcomes, saved)
                     })
                     .await;
-                let _ = cx.update(|window, cx| Self::show(data, meeting, outcomes, saved, window, cx));
+                let _ =
+                    cx.update(|window, cx| Self::show(data, meeting, outcomes, saved, window, cx));
             })
             .detach();
     }
@@ -67,13 +68,27 @@ impl FollowUpSheet {
             .as_ref()
             .map(|outcomes| saved.unwrap_or_else(|| FollowUpDraft::seeded(&meeting, outcomes)));
         let sheet = cx.new(|cx| {
-            let subject_text = draft.as_ref().map(|d| d.subject.clone()).unwrap_or_default();
+            let subject_text = draft
+                .as_ref()
+                .map(|d| d.subject.clone())
+                .unwrap_or_default();
             let body_text = draft.as_ref().map(|d| d.body.clone()).unwrap_or_default();
-            let subject = cx.new(|cx| InputState::new(window, cx).placeholder("Subject").default_value(subject_text));
-            let body = cx.new(|cx| TextareaState::new(window, cx).rows(12).default_value(body_text));
-            let subscriptions = vec![cx.observe_in(&data, window, |this: &mut Self, _, window, cx| {
-                this.apply_writing(window, cx)
-            })];
+            let subject = cx.new(|cx| {
+                InputState::new(window, cx)
+                    .placeholder("Subject")
+                    .default_value(subject_text)
+            });
+            let body = cx.new(|cx| {
+                TextareaState::new(window, cx)
+                    .rows(12)
+                    .default_value(body_text)
+            });
+            let subscriptions =
+                vec![
+                    cx.observe_in(&data, window, |this: &mut Self, _, window, cx| {
+                        this.apply_writing(window, cx)
+                    }),
+                ];
             // A rewrite started before the sheet was reopened still lands here.
             let requested = matches!(
                 &data.read(cx).follow_up,
@@ -92,7 +107,9 @@ impl FollowUpSheet {
                 _subscriptions: subscriptions,
             }
         });
-        window.open_dialog(cx, move |dialog, _, _| dialog.w(px(620.)).close_button(false).child(sheet.clone()));
+        window.open_dialog(cx, move |dialog, _, _| {
+            dialog.w(px(620.)).close_button(false).child(sheet.clone())
+        });
     }
 
     fn writing(&self, cx: &App) -> bool {
@@ -108,17 +125,26 @@ impl FollowUpSheet {
         if !self.requested {
             return;
         }
-        let Some((id, writing)) = self.data.read(cx).follow_up.clone() else { return };
+        let Some((id, writing)) = self.data.read(cx).follow_up.clone() else {
+            return;
+        };
         if id != self.meeting.id {
             return;
         }
         match writing {
             FollowUpWriting::Writing => {}
-            FollowUpWriting::Written { subject, body, model } => {
+            FollowUpWriting::Written {
+                subject,
+                body,
+                model,
+            } => {
                 self.requested = false;
-                self.subject.update(cx, |input, cx| input.set_value(subject, window, cx));
-                self.body.update(cx, |input, cx| input.set_value(body, window, cx));
-                self.status = Some(format!("Written on this PC by {model}. Review before sending.").into());
+                self.subject
+                    .update(cx, |input, cx| input.set_value(subject, window, cx));
+                self.body
+                    .update(cx, |input, cx| input.set_value(body, window, cx));
+                self.status =
+                    Some(format!("Written on this PC by {model}. Review before sending.").into());
                 self.error = None;
             }
             FollowUpWriting::Failed(message) => {
@@ -134,15 +160,20 @@ impl FollowUpSheet {
         self.status = None;
         self.error = None;
         let id = self.meeting.id;
-        self.data.update(cx, |data, cx| data.request(AppEvent::WriteFollowUp(id), cx));
+        self.data
+            .update(cx, |data, cx| data.request(AppEvent::WriteFollowUp(id), cx));
         cx.notify();
     }
 
     fn reset(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        let Some(outcomes) = self.outcomes.as_ref() else { return };
+        let Some(outcomes) = self.outcomes.as_ref() else {
+            return;
+        };
         let seeded = FollowUpDraft::seeded(&self.meeting, outcomes);
-        self.subject.update(cx, |input, cx| input.set_value(seeded.subject, window, cx));
-        self.body.update(cx, |input, cx| input.set_value(seeded.body, window, cx));
+        self.subject
+            .update(cx, |input, cx| input.set_value(seeded.subject, window, cx));
+        self.body
+            .update(cx, |input, cx| input.set_value(seeded.body, window, cx));
         self.status = Some("Reset to the outline built from this meeting's outcomes.".into());
         self.error = None;
         cx.notify();
@@ -151,13 +182,17 @@ impl FollowUpSheet {
     fn copy(&mut self, cx: &mut Context<Self>) {
         let subject = self.subject.read(cx).value();
         let body = self.body.read(cx).value();
-        cx.write_to_clipboard(ClipboardItem::new_string(format!("Subject: {subject}\n\n{body}")));
+        cx.write_to_clipboard(ClipboardItem::new_string(format!(
+            "Subject: {subject}\n\n{body}"
+        )));
         self.status = Some("Copied.".into());
         cx.notify();
     }
 
     fn save(&mut self, cx: &mut Context<Self>) {
-        let Some(mut draft) = self.draft.clone() else { return };
+        let Some(mut draft) = self.draft.clone() else {
+            return;
+        };
         draft.subject = self.subject.read(cx).value().to_string();
         draft.body = self.body.read(cx).value().to_string();
         draft.seeded = false;
@@ -167,7 +202,9 @@ impl FollowUpSheet {
         let meeting = self.meeting.clone();
         let saving = draft.clone();
         cx.spawn(async move |this, cx| {
-            let result = cx.background_spawn(async move { library.save_follow_up_draft(&meeting, &saving) }).await;
+            let result = cx
+                .background_spawn(async move { library.save_follow_up_draft(&meeting, &saving) })
+                .await;
             let _ = this.update(cx, |this, cx| {
                 match result {
                     Ok(()) => {
@@ -175,7 +212,9 @@ impl FollowUpSheet {
                         this.status = Some("Saved with this meeting.".into());
                         this.error = None;
                     }
-                    Err(err) => this.error = Some(format!("The draft could not be saved. {err:#}").into()),
+                    Err(err) => {
+                        this.error = Some(format!("The draft could not be saved. {err:#}").into())
+                    }
                 }
                 cx.notify();
             });
@@ -191,7 +230,10 @@ impl Render for FollowUpSheet {
         let source = format!(
             "From {} · {}",
             self.meeting.display_title(),
-            self.meeting.started_at.with_timezone(&chrono::Local).format("%b %-d, %Y")
+            self.meeting
+                .started_at
+                .with_timezone(&chrono::Local)
+                .format("%b %-d, %Y")
         );
         let editor = self.draft.is_some().then(|| {
             v_flex()
@@ -261,8 +303,19 @@ impl Render for FollowUpSheet {
             .child(
                 v_flex()
                     .gap(px(4.))
-                    .child(div().text_size(ty::QUESTION).font_weight(FontWeight::BOLD).text_color(lb.text).child("Follow-up"))
-                    .child(div().text_size(ty::BODY).text_color(lb.text_secondary).child(source)),
+                    .child(
+                        div()
+                            .text_size(ty::QUESTION)
+                            .font_weight(FontWeight::BOLD)
+                            .text_color(lb.text)
+                            .child("Follow-up"),
+                    )
+                    .child(
+                        div()
+                            .text_size(ty::BODY)
+                            .text_color(lb.text_secondary)
+                            .child(source),
+                    ),
             )
             .when(editor.is_none(), |this| {
                 this.child(
