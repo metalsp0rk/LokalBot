@@ -36,6 +36,7 @@ pub enum Command {
     WriteFollowUp(Uuid),
     UpdateSettings(Box<Settings>),
     Dictation(DictationCommand),
+    Autocomplete(AutocompleteCommand),
     Shutdown,
 }
 
@@ -91,6 +92,48 @@ pub enum EngineEvent {
     },
     Dictation(DictationUpdate),
     FollowUp(FollowUpUpdate),
+    Autocomplete(AutocompleteUpdate),
+}
+
+/// The text field the user is typing in, as the desktop integration reads
+/// it (`CotypingSurfaceContext`). Sent on edits and caret moves while
+/// autocomplete is on; never for secure fields or excluded apps.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct FieldContext {
+    /// Changes when focus moves to another field; updates for an old id are stale.
+    pub field_id: u64,
+    pub app_name: String,
+    /// Executable or desktop id: "firefox", "code.exe".
+    pub app_id: String,
+    pub window_title: String,
+    /// Text before the caret (bounded by the reader).
+    pub before: String,
+    /// Text after the caret in the same paragraph.
+    pub after: String,
+    /// Text visible above the field, such as the conversation being answered.
+    pub visible_text: Option<String>,
+    /// The page address when the app is a browser and it could be read.
+    pub url: Option<String>,
+    /// Inputs where Enter sends (search boxes, chat inputs).
+    pub single_line: bool,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum AutocompleteCommand {
+    /// The field changed: typing, a caret move, or new focus.
+    Context(FieldContext),
+    /// The user accepted `text`, the start of the shown suggestion.
+    Accepted { field_id: u64, text: String },
+    /// Escape, focus loss or a secure field: drop any suggestion.
+    Dismiss,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum AutocompleteUpdate {
+    /// Ghost text to show after the caret of `field_id`.
+    Suggestion { field_id: u64, text: String },
+    /// Hide any ghost text.
+    Clear,
 }
 
 /// Progress of one follow-up written with Think (`FollowUpDraftSheet`).

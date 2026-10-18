@@ -9,6 +9,7 @@
 //! inside it (`err.downcast_ref::<AiError>()`).
 
 pub mod ask;
+pub mod autocomplete;
 pub mod catalog;
 pub mod dictation;
 pub mod digest;

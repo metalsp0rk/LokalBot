@@ -285,6 +285,7 @@ fn apply(data: &mut AppData, event: EngineEvent, cx: &mut Context<AppData>) {
         EngineEvent::MeetingDetected { app_name, title } => {
             cx.emit(AppEvent::MeetingDetected { app_name, title });
         }
+        EngineEvent::Autocomplete(_) => {}
         EngineEvent::FollowUp(update) => {
             data.follow_up = Some(match update {
                 FollowUpUpdate::Writing { meeting_id } => (meeting_id, FollowUpWriting::Writing),

@@ -215,6 +215,7 @@ fn dispatch(shared: Arc<Shared>, commands: Sender<Command>, receiver: Receiver<C
                 models.publish_status();
             }
             Command::Dictation(command) => dictation.handle(command),
+            Command::Autocomplete(_) => {}
             Command::Shutdown => break,
         }
     }
