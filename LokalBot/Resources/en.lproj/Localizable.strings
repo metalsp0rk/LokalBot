@@ -1,9 +1,11 @@
 // Interface strings. Keep user content and model prompts out of this table.
 "%@ detected — ready" = "%@ detected — ready";
 "%lld selected" = "%lld selected";
+"%lld settings changes are waiting for your approval" = "%lld settings changes are waiting for your approval";
 "2. Review action owners" = "2. Review action owners";
 "A domain excludes its subdomains too. A URL with a path excludes that URL prefix. Existing rules are kept until you remove them." = "A domain excludes its subdomains too. A URL with a path excludes that URL prefix. Existing rules are kept until you remove them.";
 "A newly granted permission may require a relaunch. Finish setup first; relaunch from Settings if the feature remains unavailable." = "A newly granted permission may require a relaunch. Finish setup first; relaunch from Settings if the feature remains unavailable.";
+"A settings change is waiting for your approval" = "A settings change is waiting for your approval";
 "About" = "About";
 "Accept next" = "Accept next";
 "Accept punctuation with the word" = "Accept punctuation with the word";
@@ -77,6 +79,10 @@
 "Apply Choices and Start" = "Apply Choices and Start";
 "Apply policy and cleanup" = "Apply policy and cleanup";
 "Apply…" = "Apply…";
+"Approve" = "Approve";
+"Approve and clean up" = "Approve and clean up";
+"Approve only what you asked your agent to do. Approving can show macOS permission prompts for what it turns on." = "Approve only what you asked your agent to do. Approving can show macOS permission prompts for what it turns on.";
+"Approve Settings Change" = "Approve Settings Change";
 "Apps use ⌘ with a single key. Add ⌃, ⌥ or ⇧." = "Apps use ⌘ with a single key. Add ⌃, ⌥ or ⇧.";
 "Archived" = "Archived";
 "Arrived in the field" = "Arrived in the field";
@@ -588,6 +594,7 @@
 "No suggested names match this search." = "No suggested names match this search.";
 "No supporting passage was stored." = "No supporting passage was stored.";
 "No transcript speakers are available yet." = "No transcript speakers are available yet.";
+"None" = "None";
 "None yet" = "None yet";
 "Not connected" = "Not connected";
 "Not now" = "Not now";
@@ -599,6 +606,7 @@
 "Notes language" = "Notes language";
 "Notes template" = "Notes template";
 "Nothing in saved moments, captured screens, or meetings matches this search." = "Nothing in saved moments, captured screens, or meetings matches this search.";
+"Nothing is waiting for your approval." = "Nothing is waiting for your approval.";
 "Nothing recording right now" = "Nothing recording right now";
 "OK" = "OK";
 "Off" = "Off";
@@ -1085,6 +1093,8 @@
 "Voice" = "Voice";
 "Wait before stopping" = "Wait before stopping";
 "Waiting for models" = "Waiting for models";
+"wants to change LokalBot settings." = "wants to change LokalBot settings.";
+"wants to save an API key in LokalBot." = "wants to save an API key in LokalBot.";
 "Weekly log day" = "Weekly log day";
 "Weekly work log" = "Weekly work log";
 "Welcome to LokalBot" = "Welcome to LokalBot";

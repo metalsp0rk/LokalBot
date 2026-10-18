@@ -30,6 +30,10 @@ enum AppControlProtocol {
         case settingsList = "settings.list"
         case settingsGet = "settings.get"
         case settingsSet = "settings.set"
+        case settingsRequest = "settings.request"
+        case secretList = "secret.list"
+        case secretSet = "secret.set"
+        case secretClear = "secret.clear"
         case status
         case open
     }
@@ -88,15 +92,42 @@ struct AppControlError: Codable, Equatable, LocalizedError {
             details: .array(keys.map(JSONValue.string)))
     }
 
-    /// Phase 2 refuses widening changes outright; in-app approval comes next.
-    static func needsApproval(_ changes: [JSONValue]) -> AppControlError {
-        let keys = changes.compactMap { $0["key"]?.stringValue }
+    /// A widening change, or a new API key, waits for the person in LokalBot.
+    /// `details` is the request as `settings.request` reports it.
+    static func needsApproval(_ request: JSONValue, asking what: String) -> AppControlError {
+        let id = request["id"]?.stringValue ?? "<id>"
         return AppControlError(
             code: "needs_approval",
-            message: "\(keys.joined(separator: ", ")) would widen what LokalBot captures, reads, records, or sends, "
-                + "so the person has to change it in LokalBot. Run `lokalbot-cli open settings <key>` to show them. "
-                + "Nothing was changed.",
-            details: .array(changes))
+            message: "\(what) needs the person's approval in LokalBot, so the request is waiting there. "
+                + "Nothing changes unless they approve it. "
+                + "Run `lokalbot-cli config request \(id) --wait 120` for the answer.",
+            details: request)
+    }
+
+    static let denied = AppControlError(
+        code: "denied",
+        message: "The person declined this request in LokalBot. Nothing was changed. Don't ask again unless they say so.")
+
+    static let expired = AppControlError(
+        code: "expired",
+        message: "Nobody answered this request in LokalBot before it expired. Nothing was changed.")
+
+    static func unknownRequest(_ id: String) -> AppControlError {
+        AppControlError(
+            code: "unknown_request",
+            message: "LokalBot has no request \(id). Requests are forgotten 30 minutes after they're answered, "
+                + "and when LokalBot quits.")
+    }
+
+    static let tooManyRequests = AppControlError(
+        code: "too_many_requests",
+        message: "Requests are already waiting for the person in LokalBot. Wait for them to be answered first.")
+
+    static func unknownSecret(_ name: String) -> AppControlError {
+        AppControlError(
+            code: "unknown_secret",
+            message: "No API key is named \(name). Choose one of: "
+                + AppSecret.allCases.map(\.rawValue).joined(separator: ", ") + ".")
     }
 
     static func invalidRequest(_ message: String) -> AppControlError {

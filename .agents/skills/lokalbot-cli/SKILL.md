@@ -112,6 +112,10 @@ lokalbot-cli config set trackingEnabled=false --dry-run
 lokalbot-cli config reset dayDigestHour
 lokalbot-cli config export --changed > settings.json
 lokalbot-cli config import settings.json --dry-run
+lokalbot-cli config set calendarDetectionEnabled=true --wait 120   # waits for the user's approval
+lokalbot-cli config request <id> --wait 120      # answer to an earlier needs_approval
+lokalbot-cli secret list                         # which API keys are saved (never their values)
+printf %s "$KEY" | lokalbot-cli secret set openai-compatible --wait 120
 lokalbot-cli status                              # version, recording, models, permissions, agent access
 lokalbot-cli open settings dictationShortcut     # show the user a setting in LokalBot
 lokalbot-cli open settings permissions           # or a section
@@ -123,7 +127,8 @@ Changing settings:
 
 - Change only what the user asked for. Run `describe` first so you use the right tokens, and `--dry-run` when you are unsure. A `set` applies all of its pairs or none of them.
 - Preferences (tier `preference`), and changes that narrow what LokalBot captures or sends (turning capture off, adding an exclusion), apply right away. The user can undo them under the toggle.
-- Turning on capture, a data source, autocomplete or dictation, approving a server, removing an exclusion, or changing retention (tier `consent`) returns `[needs_approval]` with the changes in `details`. Nothing is applied. Tell the user what it would do, then run `open settings <key>` so they can decide in LokalBot. Don't retry.
+- Turning on capture, a data source, autocomplete or dictation, approving a server, removing an exclusion, or changing retention (tier `consent`) sends the whole request to the user in LokalBot and returns `[needs_approval]` (exit 3) with the request in `details`: its `id`, every change, and, for a shorter retention policy, what the cleanup deletes. Nothing is applied yet. Ask the user before making such a request, tell them a card is waiting in LokalBot, and pass `--wait <seconds>` (up to 300) or run `config request <id> --wait <seconds>` for the answer: exit 0 approved, 4 declined, 5 expired. Don't resend a declined request unless the user asks; an identical request still waiting is reused rather than asked twice.
+- API keys: `secret set <name>` reads the key from standard input and always waits for approval the same way. Never put a key on the command line, never echo it back, and never ask to read one; `secret list` only says whether each is saved. `secret clear <name>` removes one right away.
 - `[read_only]` settings can't be changed from the terminal.
 - Never write LokalBot's preferences with `defaults write`, and never create or edit files in its `control/` folder: a partial preferences write silently resets other settings (it can turn automatic recording on), and the running app overwrites it anyway.
 

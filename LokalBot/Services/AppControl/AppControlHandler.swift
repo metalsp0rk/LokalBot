@@ -42,6 +42,29 @@ final class AppControlHandler {
                 return .success(.array(entries(for: specs, in: app)))
             case .settingsSet:
                 return .success(try setSettings(SettingsChangeRequest(params: request.params), caller: peer.description, in: app))
+            case .settingsRequest:
+                guard let id = request.params?["id"]?.stringValue else {
+                    throw AppControlError.invalidRequest("settings.request needs an \"id\".")
+                }
+                guard let uuid = UUID(uuidString: id), let pending = app.settingsApprovals.request(uuid) else {
+                    throw AppControlError.unknownRequest(id)
+                }
+                return .success(pending.json)
+            case .secretList:
+                return .success(.array(AppSecret.allCases.map { secret in
+                    [
+                        "name": .string(secret.rawValue),
+                        "title": .string(secret.title),
+                        "summary": .string(secret.summary),
+                        "isSet": .bool(app.isSecretSet(secret)),
+                    ]
+                }))
+            case .secretSet:
+                throw try setSecret(request.params ?? [:], caller: peer.description, in: app)
+            case .secretClear:
+                let secret = try Self.secret(request.params ?? [:])
+                try app.setAgentSecret(secret, to: nil, caller: peer.description)
+                return .success(["cleared": .string(secret.rawValue)])
             case .status:
                 return .success(status(of: app))
             case .open:
@@ -80,8 +103,8 @@ final class AppControlHandler {
     }
 
     /// Applies preference and narrowing changes, all or none. A change that
-    /// widens what LokalBot captures, reads, records, or sends is refused
-    /// until the person approves it in the app.
+    /// widens what LokalBot captures, reads, records, or sends waits, with the
+    /// rest of its request, until the person approves it in the app.
     private func setSettings(_ request: SettingsChangeRequest, caller: String, in app: AppState) throws -> JSONValue {
         let redact = DiagnosticsSettingsSanitizer.redactURL
         let plan = try SettingsChangePlan.make(
@@ -90,41 +113,64 @@ final class AppControlHandler {
             defaults: Self.encoded(AppSettings()),
             redactURL: redact)
         let entries = plan.entries(redactURL: redact)
-        // Validate everything that would apply, even for a dry run.
-        let updated = try SettingsChangeApplier.apply(plan.applicable, to: app.settings)
+        // Validate everything that would apply, even for a dry run, and
+        // before asking the person about a value LokalBot would reject.
+        _ = try SettingsChangeApplier.apply(plan.applicable + plan.widening, to: app.settings)
         if request.dryRun {
             return ["applied": false, "dryRun": true, "changes": .array(entries)]
         }
         if !plan.readOnly.isEmpty {
             throw AppControlError.readOnly(plan.readOnly.map(\.spec.key))
         }
-        let widening = Set(plan.widening.map(\.spec.key))
-        if !widening.isEmpty {
-            throw AppControlError.needsApproval(entries.filter { widening.contains($0["key"]?.stringValue ?? "") })
+        if !plan.widening.isEmpty {
+            let changed = plan.applicable + plan.widening
+            let keys = Set(changed.map(\.spec.key))
+            let pending = try app.settingsApprovals.submit(
+                .settings(request),
+                caller: caller,
+                items: changed,
+                changes: entries.filter { keys.contains($0["key"]?.stringValue ?? "") },
+                retention: try app.retentionReview(for: changed))
+            throw AppControlError.needsApproval(pending.json, asking: pending.headline)
         }
         guard !plan.applicable.isEmpty else {
             return ["applied": false, "changes": .array(entries)]
         }
-        let before = app.settings
-        app.settings = updated
-        if before.menuBarOnly != app.settings.menuBarOnly {
-            // The Dock policy reads saved settings.
-            app.settingsStore.flush()
-            DockPolicy.sync()
-        }
-        app.agentSettingsChanges.record(plan.applicable, caller: caller)
-
-        // Some settings correct themselves: the Ask shortcut reverts when
-        // another app already owns the key combination.
-        let effective = Self.encoded(app.settings)
-        let warnings: [JSONValue] = plan.applicable.compactMap { item in
-            guard effective[item.spec.key] != item.stored else { return nil }
-            return JSONValue.string("\(item.spec.key) could not be applied; LokalBot kept the earlier value.")
-        }
+        let warnings = try app.applyAgentSettings(plan.applicable, caller: caller)
         return ["applied": true, "changes": .array(entries), "warnings": .array(warnings)]
     }
 
+    /// A new API key always waits for the person. The key itself is held in
+    /// memory until the request is answered and never appears in a reply.
+    private func setSecret(_ params: [String: JSONValue], caller: String, in app: AppState) throws -> AppControlError {
+        let secret = try Self.secret(params)
+        let value = (params["value"]?.stringValue ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !value.isEmpty, value.utf8.count <= 4_096, !value.contains(where: \.isNewline) else {
+            throw AppControlError.invalidRequest("secret.set needs the key as one line in \"value\".")
+        }
+        let change: JSONValue = [
+            "key": .string("secret.\(secret.rawValue)"),
+            "title": .string(secret.title),
+            "tier": "consent",
+            "change": .string(SettingChangeClass.widening.rawValue),
+            "previous": .string(app.isSecretSet(secret) ? "saved" : "not set"),
+            "value": .string("new key \(AppSecret.hint(for: value))".trimmingCharacters(in: .whitespaces)),
+        ]
+        let pending = try app.settingsApprovals.submit(
+            .secret(secret, value: value), caller: caller, items: [], changes: [change])
+        return AppControlError.needsApproval(pending.json, asking: pending.headline)
+    }
+
+    private static func secret(_ params: [String: JSONValue]) throws -> AppSecret {
+        guard let name = params["name"]?.stringValue else {
+            throw AppControlError.invalidRequest("Name the API key in \"name\".")
+        }
+        guard let secret = AppSecret(rawValue: name) else { throw AppControlError.unknownSecret(name) }
+        return secret
+    }
+
     private func status(of app: AppState) -> JSONValue {
+        app.settingsApprovals.expireStale()
         var permissions: [String: JSONValue] = [:]
         for permission in AppPermission.allCases {
             permissions[permission.title] = .bool(permission.isGranted)
@@ -142,6 +188,7 @@ final class AppControlHandler {
                 "settings": .bool(gate.isEnabled),
             ],
             "permissions": .object(permissions),
+            "approvals": ["pending": .number(Double(app.settingsApprovals.pending.count))],
         ]
     }
 

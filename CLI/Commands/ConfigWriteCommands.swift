@@ -1,23 +1,6 @@
 import ArgumentParser
 import Foundation
 
-extension ControlOutput {
-    /// Sends a change request and prints the reply. A refusal that carries
-    /// details (the changes that need approval) prints them as JSON too.
-    static func sendChanges(_ request: SettingsChangeRequest, launch: AppLaunchOptions) throws {
-        do {
-            print(json(try launch.request(.settingsSet, params: request.params)))
-        } catch let error as AppControlError where error.details != nil {
-            print(json([
-                "error": .string(error.code),
-                "message": .string(error.message),
-                "details": error.details ?? .null,
-            ]))
-            throw ExitCode.failure
-        }
-    }
-}
-
 struct ConfigSetCommand: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "set",
@@ -28,10 +11,13 @@ struct ConfigSetCommand: ParsableCommand {
             it. All pairs apply or none do. Preferences, and changes that
             narrow what LokalBot captures or sends, apply right away.
             Turning on capture, a data source, or sharing (tier consent)
-            returns needs_approval: the person changes those in LokalBot.
+            sends the whole request to the person in LokalBot and returns
+            needs_approval with a request id (exit 3). --wait follows it:
+            exit 0 approved, 4 declined, 5 expired.
 
               lokalbot-cli config set noteTemplate=lecture summaryLanguage=en
               lokalbot-cli config set trackingEnabled=false --dry-run
+              lokalbot-cli config set calendarDetectionEnabled=true --wait 120
             """)
 
     @Argument(help: "key=value pairs.")
@@ -39,6 +25,8 @@ struct ConfigSetCommand: ParsableCommand {
 
     @Flag(name: .long, help: "Report what would change without changing anything.")
     var dryRun: Bool = false
+
+    @OptionGroup var approval: ApprovalWaitOptions
 
     @OptionGroup var launch: AppLaunchOptions
 
@@ -54,7 +42,8 @@ struct ConfigSetCommand: ParsableCommand {
             let spec = try ControlOutput.requireSpec(key)
             changes[key] = try spec.parse(String(assignment[assignment.index(after: separator)...]))
         }
-        try ControlOutput.sendChanges(SettingsChangeRequest(changes: changes, dryRun: dryRun), launch: launch)
+        let request = SettingsChangeRequest(changes: changes, dryRun: dryRun)
+        try ControlOutput.sendForApproval(.settingsSet, params: request.params, launch: launch, wait: approval.wait)
     }
 }
 
@@ -62,7 +51,7 @@ struct ConfigResetCommand: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "reset",
         abstract: "Put settings back to their defaults.",
-        discussion: "Follows the same rules as set: a reset that would widen capture or sharing needs the person.")
+        discussion: "Follows the same rules as set: a reset that would widen capture or sharing waits for the person.")
 
     @Argument(help: "One or more setting keys.")
     var keys: [String]
@@ -70,13 +59,16 @@ struct ConfigResetCommand: ParsableCommand {
     @Flag(name: .long, help: "Report what would change without changing anything.")
     var dryRun: Bool = false
 
+    @OptionGroup var approval: ApprovalWaitOptions
+
     @OptionGroup var launch: AppLaunchOptions
 
     func run() throws {
         guard !keys.isEmpty else { throw ValidationError("Name at least one setting key.") }
         for key in keys { _ = try ControlOutput.requireSpec(key) }
         guard Set(keys).count == keys.count else { throw ValidationError("A key is given twice.") }
-        try ControlOutput.sendChanges(SettingsChangeRequest(reset: keys, dryRun: dryRun), launch: launch)
+        let request = SettingsChangeRequest(reset: keys, dryRun: dryRun)
+        try ControlOutput.sendForApproval(.settingsSet, params: request.params, launch: launch, wait: approval.wait)
     }
 }
 
@@ -124,6 +116,8 @@ struct ConfigImportCommand: ParsableCommand {
     @Flag(name: .long, help: "Report what would change without changing anything.")
     var dryRun: Bool = false
 
+    @OptionGroup var approval: ApprovalWaitOptions
+
     @OptionGroup var launch: AppLaunchOptions
 
     func run() throws {
@@ -134,6 +128,7 @@ struct ConfigImportCommand: ParsableCommand {
             throw ValidationError("\(file) must hold a JSON object of setting keys and values.")
         }
         for key in object.keys { _ = try ControlOutput.requireSpec(key) }
-        try ControlOutput.sendChanges(SettingsChangeRequest(changes: object, dryRun: dryRun), launch: launch)
+        let request = SettingsChangeRequest(changes: object, dryRun: dryRun)
+        try ControlOutput.sendForApproval(.settingsSet, params: request.params, launch: launch, wait: approval.wait)
     }
 }

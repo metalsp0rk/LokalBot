@@ -12,7 +12,8 @@ struct ConfigCommand: ParsableCommand {
             settings" in LokalBot → Settings → Privacy. They start LokalBot in
             the background when it is not running; pass --no-launch to fail
             instead. Values use the tokens shown by describe. JSON by default.
-            Changes that widen capture or sharing need the person in LokalBot.
+            Changes that widen capture or sharing wait for the person's
+            approval in LokalBot; request reports the answer.
             """,
         subcommands: [
             ConfigSchemaCommand.self,
@@ -24,6 +25,7 @@ struct ConfigCommand: ParsableCommand {
             ConfigResetCommand.self,
             ConfigExportCommand.self,
             ConfigImportCommand.self,
+            ConfigRequestCommand.self,
         ]
     )
 }

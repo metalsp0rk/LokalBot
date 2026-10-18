@@ -566,16 +566,13 @@ struct SettingsView: View {
                     .settingTarget("settings.stopDebounceSeconds", selected: app.focusedSettingID)
                 }
                 Section("Calendar") {
-                    Toggle(isOn: $app.settings.calendarDetectionEnabled) {
+                    Toggle(isOn: Binding(
+                        get: { app.settings.calendarDetectionEnabled },
+                        set: { enabled in app.changeSettings { $0.calendarDetectionEnabled = enabled } })) {
                         SettingsLabel("Use calendar to improve detection",
                                       help: "Reads your Mac Calendar to confirm meetings and suggest attendee names for speakers. Attendee emails stay in local meeting metadata.")
                     }
                     .settingTarget("settings.calendarDetectionEnabled", selected: app.focusedSettingID)
-                        .onChange(of: app.settings.calendarDetectionEnabled) { _, enabled in
-                            if enabled, app.calendar.authorizationStatus == .notDetermined {
-                                app.calendar.requestAccess { _ in }
-                            }
-                        }
                     if app.settings.calendarDetectionEnabled {
                         Toggle("Use calendar titles for recordings", isOn: $app.settings.useCalendarTitles)
                     .settingTarget("settings.useCalendarTitles", selected: app.focusedSettingID)
@@ -732,14 +729,7 @@ struct SettingsView: View {
                 Section("Day Memory") {
                     Toggle(isOn: Binding(
                         get: { app.settings.trackingEnabled },
-                        set: { app.settings.trackingEnabled = $0
-                               if $0 {
-                                   PermissionGuidanceController.shared.requestAccess(
-                                       for: .accessibility)
-                               } else {
-                                   app.settings.screenContextCaptureMode = .activityOnly
-                                   app.settings.screenshotsEnabled = false
-                               } })) {
+                        set: { enabled in app.changeSettings { $0.trackingEnabled = enabled } })) {
                         SettingsLabel("Track app & window activity",
                                       help: "Records which app and window you're using for the Timeline and day digest.")
                     }
@@ -756,19 +746,7 @@ struct SettingsView: View {
                     }
                     Picker(selection: Binding(
                         get: { app.settings.effectiveScreenContextCaptureMode },
-                        set: { mode in
-                            app.settings.screenContextCaptureMode = mode
-                            app.settings.screenshotsEnabled = mode.capturesPixels
-                            if mode.capturesText {
-                                app.settings.trackingEnabled = true
-                                PermissionGuidanceController.shared.requestAccess(
-                                    for: .accessibility)
-                            }
-                            if mode.capturesPixels {
-                                PermissionGuidanceController.shared.requestAccess(
-                                    for: .screenRecording)
-                            }
-                        })) {
+                        set: { mode in app.changeSettings { $0.screenContextCaptureMode = mode } })) {
                         ForEach(AppSettings.ScreenContextCaptureMode.allCases) { mode in
                             Text(LocalizedStringKey(mode.rawValue)).tag(mode)
                         }
@@ -1552,6 +1530,9 @@ private struct AgentSettingsChangesList: View {
     }
 
     private func summary(_ entry: AgentSettingsChanges.Entry) -> String {
+        if let secret = AppSecret(rawValue: String(entry.key.dropFirst("secret.".count))), entry.key.hasPrefix("secret.") {
+            return "\(secret.title): \(entry.value?.stringValue ?? "changed")"
+        }
         guard let spec = SettingRegistry.spec(for: entry.key) else { return entry.key }
         func shown(_ value: JSONValue?) -> String {
             guard let value else { return "default" }

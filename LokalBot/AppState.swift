@@ -593,9 +593,13 @@ final class AppState: ObservableObject {
             let handler = AppControlHandler(app: self, gate: SettingsControlGate(root: self.storage.rootURL))
             return { request, peer in await handler.handle(request, from: peer) }
         },
-        onError: { [weak self] message in self?.lastError = message })
+        onError: { [weak self] message in self?.lastError = message },
+        onDisable: { [weak self] in self?.settingsApprovals.denyAll() })
     /// Settings changed from the terminal, for the audit log and Undo.
     private(set) lazy var agentSettingsChanges = AgentSettingsChanges(root: storage.rootURL)
+    /// Terminal requests waiting for the person: widening changes and API keys.
+    private(set) lazy var settingsApprovals = SettingsApprovals()
+    var agentSecrets = AgentSecretStore.keychain
     private(set) lazy var quickRecallHotKey: QuickRecallHotKeyController = {
         let controller = QuickRecallHotKeyController()
         controller.onInvoke = { WindowAccess.shared.open("quick-recall") }
@@ -951,6 +955,7 @@ final class AppState: ObservableObject {
     /// True only on the real interactive launch path (not headless / UI test) —
     /// gates recording notifications and first-run onboarding.
     private var interactive = false
+    var isInteractiveLaunch: Bool { interactive }
     private var terminationCleanupTask: Task<Bool, Never>?
     /// Serializes cotyping model lifecycle transitions. A disable must finish
     /// unloading both runtimes before a rapid re-enable can prewarm a fresh
@@ -1241,6 +1246,8 @@ final class AppState: ObservableObject {
         agentAccess.start()
         screenMemoryAccess.start()
         personalContextAccess.start()
+        settingsApprovals.announce = { request in RecordingNotifier.shared.settingsApprovalRequested(request) }
+        settingsApprovals.withdraw = { request in RecordingNotifier.shared.withdrawSettingsApproval(request.id) }
         settingsControl.start()
         applyQuickRecallSetting()
         applyDailyMemoryExportSetting()

@@ -1,9 +1,11 @@
 // Interface strings. Keep user content and model prompts out of this table.
 "%@ detected — ready" = "已检测到 %@，准备就绪";
 "%lld selected" = "已选择 %lld 项";
+"%lld settings changes are waiting for your approval" = "有 %lld 项设置更改等待你批准";
 "2. Review action owners" = "2. 确认行动项负责人";
 "A domain excludes its subdomains too. A URL with a path excludes that URL prefix. Existing rules are kept until you remove them." = "排除域名时也会排除其子域名。带路径的网址会排除以其为前缀的网址。现有规则会保留，直到你将其移除。";
 "A newly granted permission may require a relaunch. Finish setup first; relaunch from Settings if the feature remains unavailable." = "新授予的权限可能需要重启后生效。请先完成设置；若功能仍不可用，可在设置中重新启动。";
+"A settings change is waiting for your approval" = "有一项设置更改等待你批准";
 "About" = "关于";
 "Accept next" = "接受下一段";
 "Accept punctuation with the word" = "接受单词时一并接受标点";
@@ -77,6 +79,10 @@
 "Apply Choices and Start" = "应用选择并开始";
 "Apply policy and cleanup" = "应用策略并清理";
 "Apply…" = "应用…";
+"Approve" = "批准";
+"Approve and clean up" = "批准并清理";
+"Approve only what you asked your agent to do. Approving can show macOS permission prompts for what it turns on." = "只批准你让智能体做的事。批准后，macOS 可能会为新开启的功能显示权限提示。";
+"Approve Settings Change" = "批准设置更改";
 "Apps use ⌘ with a single key. Add ⌃, ⌥ or ⇧." = "应用会将 ⌘ 与单个按键组合使用。请加上 ⌃、⌥ 或 ⇧。";
 "Archived" = "已归档";
 "Arrived in the field" = "已填入输入框";
@@ -588,6 +594,7 @@
 "No suggested names match this search." = "没有与此搜索匹配的建议姓名。";
 "No supporting passage was stored." = "未保存支持此内容的片段。";
 "No transcript speakers are available yet." = "转写中暂时没有可用的说话人。";
+"None" = "无";
 "None yet" = "暂无";
 "Not connected" = "未连接";
 "Not now" = "以后再说";
@@ -599,6 +606,7 @@
 "Notes language" = "笔记语言";
 "Notes template" = "笔记模板";
 "Nothing in saved moments, captured screens, or meetings matches this search." = "已保存时刻、采集的屏幕和会议中没有匹配结果。";
+"Nothing is waiting for your approval." = "没有等待你批准的请求。";
 "Nothing recording right now" = "当前没有正在录制的内容";
 "OK" = "好";
 "Off" = "关闭";
@@ -1085,6 +1093,8 @@
 "Voice" = "语音";
 "Wait before stopping" = "停止前的等待时间";
 "Waiting for models" = "等待模型就绪";
+"wants to change LokalBot settings." = "想更改 LokalBot 设置。";
+"wants to save an API key in LokalBot." = "想在 LokalBot 中保存一个 API 密钥。";
 "Weekly log day" = "每周日志生成日";
 "Weekly work log" = "每周工作日志";
 "Welcome to LokalBot" = "欢迎使用 LokalBot";

@@ -43,20 +43,30 @@ final class AgentSettingsChanges: ObservableObject {
         recent = Array((entries.reversed() + recent).prefix(Self.recentLimit))
     }
 
-    /// Undo is offered only while the setting still holds the agent's value.
-    func canUndo(_ entry: Entry, in settings: AppSettings) -> Bool {
-        SettingRegistry.spec(for: entry.key) != nil && AppControlHandler.encoded(settings)[entry.key] == entry.value
+    /// An API key, which the log names but never stores.
+    func recordSecret(_ secret: AppSecret, isSet: Bool, caller: String, time: Date = Date()) {
+        let entry = Entry(time: time, caller: caller, key: "secret.\(secret.rawValue)",
+                          previous: nil, value: .string(isSet ? "set" : "cleared"))
+        append([entry])
+        recent = Array(([entry] + recent).prefix(Self.recentLimit))
     }
 
+    /// Undoing a retention change could delete without the review a shorter
+    /// policy needs, so those are changed back in Settings instead.
+    static let keysWithoutUndo: Set<String> = ["retentionDays", "keepOCRTextForever"]
+
+    /// Undo is offered only while the setting still holds the agent's value.
+    func canUndo(_ entry: Entry, in settings: AppSettings) -> Bool {
+        SettingRegistry.spec(for: entry.key) != nil && !Self.keysWithoutUndo.contains(entry.key)
+            && AppControlHandler.encoded(settings)[entry.key] == entry.value
+    }
+
+    /// The person clicked Undo, so turning a feature back on asks for its
+    /// permissions the way its Settings control would.
     func undo(_ entry: Entry, in app: AppState) throws {
         guard canUndo(entry, in: app.settings), let spec = SettingRegistry.spec(for: entry.key) else { return }
         let item = SettingsChangePlan.Item(spec: spec, previous: entry.value, stored: entry.previous, change: .preference)
-        let before = app.settings
-        app.settings = try SettingsChangeApplier.apply([item], to: app.settings)
-        if before.menuBarOnly != app.settings.menuBarOnly {
-            app.settingsStore.flush()
-            DockPolicy.sync()
-        }
+        app.applySettings(try SettingsChangeApplier.apply([item], to: app.settings), requestingPermissions: true)
         record([item], caller: "You (Undo)")
     }
 

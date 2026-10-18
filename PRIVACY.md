@@ -479,11 +479,18 @@ shown without user names, passwords, or query strings, and API keys are never
 returned. An agent can change preferences and narrow what LokalBot captures or
 sends, for example turn capture off or add an exclusion. A change that would
 widen it, such as turning on capture, a data source, autocomplete, or dictation,
-approving a server, removing an exclusion, or changing retention, is refused:
-only you can make it in LokalBot. Each change is recorded, with the program that
-made it, in the library's `diagnostics/settings-changes.jsonl` and listed under
-the toggle with Undo. When LokalBot is not running, these commands start it in
-the background, which also starts the capture and schedules you have turned on.
+approving a server, removing an exclusion, or changing retention, waits for you:
+LokalBot posts a notification (or opens its approval window when notifications
+are off) and shows a card naming the program that asked and every change in the
+request. Nothing changes unless you click Approve, and requests expire after five
+minutes. A shorter retention policy shows the same cleanup review as Settings,
+and approving deletes only what it lists. `lokalbot-cli secret set` can save an
+API key, also only after you approve it; the card shows the key's last four
+characters, and keys are never read back. Each change is recorded, with the
+program that made it, in the library's `diagnostics/settings-changes.jsonl` and
+listed under the toggle with Undo. Turning the toggle off declines every request
+still waiting. When LokalBot is not running, these commands start it in the
+background, which also starts the capture and schedules you have turned on.
 This toggle grants no meeting-library, screen-memory, or personal-context
 access, and none of those grants it.
 

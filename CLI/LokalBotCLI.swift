@@ -10,8 +10,8 @@ struct LokalBotCLI: AsyncParsableCommand {
             and humans alike. The CLI is symlinked at
             ~/.local/bin/lokalbot-cli by the in-app installer (Settings →
             Agent CLI). Output defaults to JSON; pass --table for plain text.
-            Library commands need meeting access; config, status, and open
-            need the separate settings access in Settings → Privacy.
+            Library commands need meeting access; config, secret, status, and
+            open need the separate settings access in Settings → Privacy.
             """,
         subcommands: [
             BriefCommand.self,
@@ -23,6 +23,7 @@ struct LokalBotCLI: AsyncParsableCommand {
             PersonalContextCommand.self,
             PathCommand.self,
             ConfigCommand.self,
+            SecretCommand.self,
             StatusCommand.self,
             OpenCommand.self,
             MCPCommand.self,

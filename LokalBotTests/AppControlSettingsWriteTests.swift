@@ -43,11 +43,13 @@ final class AppControlSettingsWriteTests: XCTestCase {
         XCTAssertTrue(recent.allSatisfy { $0.caller == "lokalbot-cli via claude" })
     }
 
-    func testRefusesWideningChangesAndAppliesNothing() async {
+    func testWideningChangesWaitForApprovalAndApplyNothing() async {
         let response = await set(["noteTemplate": "lecture", "screenContextCaptureMode": "visualContext"])
         XCTAssertEqual(response.error?.code, "needs_approval")
-        guard case .array(let details)? = response.error?.details else { return XCTFail("no details") }
-        XCTAssertEqual(details.compactMap { $0["key"]?.stringValue }, ["screenContextCaptureMode"])
+        guard case .array(let changes)? = response.error?.details?["changes"] else { return XCTFail("no changes") }
+        XCTAssertEqual(Set(changes.compactMap { $0["key"]?.stringValue }), ["noteTemplate", "screenContextCaptureMode"])
+        XCTAssertEqual(response.error?.details?["state"], "pending")
+        XCTAssertEqual(app.settingsApprovals.pending.count, 1)
         XCTAssertEqual(app.settings.noteTemplate, .meeting)
         XCTAssertEqual(app.settings.screenContextCaptureMode, .activityOnly)
     }
