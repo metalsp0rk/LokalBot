@@ -1,7 +1,9 @@
-//! Windows besides the main one: Quick Recall and onboarding.
+//! Windows besides the main one: Quick Recall, onboarding and the
+//! full-size screen image.
 
 pub mod onboarding;
 pub mod quick_recall;
+pub mod screen_image;
 
 use gpui_kit::{AnyWindowHandle, App, Global, WeakEntity};
 
@@ -11,6 +13,7 @@ struct SecondaryWindows {
     quick_recall: Option<AnyWindowHandle>,
     quick_recall_view: Option<WeakEntity<quick_recall::QuickRecall>>,
     onboarding: Option<AnyWindowHandle>,
+    screen_image: Option<AnyWindowHandle>,
 }
 
 impl Global for SecondaryWindows {}
@@ -32,11 +35,15 @@ fn activate(handle: Option<AnyWindowHandle>, cx: &mut App) -> bool {
 pub fn activate_main(cx: &mut App) {
     let skip: Vec<_> = {
         let windows = secondary(cx);
-        [windows.quick_recall, windows.onboarding]
-            .into_iter()
-            .flatten()
-            .map(|h| h.window_id())
-            .collect()
+        [
+            windows.quick_recall,
+            windows.onboarding,
+            windows.screen_image,
+        ]
+        .into_iter()
+        .flatten()
+        .map(|h| h.window_id())
+        .collect()
     };
     for handle in cx.windows() {
         if skip.contains(&handle.window_id()) {

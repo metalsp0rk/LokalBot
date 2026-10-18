@@ -1,12 +1,81 @@
-//! The date scope of a question or search (`AskDateScope`). The Mac's
-//! source picker (`AskSourceScope`) is not offered: Linux and Windows have
-//! no screen memory, and answers draw on meetings only (activity is not a
-//! source in `lokalbot_ai::ask`).
+//! What a question may draw on: sources and a date scope (`AskSourceScope`,
+//! `AskDateScope`). The sources are meetings and screen memory; the Mac's
+//! activity source is not offered because `lokalbot_ai::ask` does not read
+//! activity totals.
 
 use chrono::{DateTime, Datelike as _, Days, Local, NaiveDate, Utc};
 use uuid::Uuid;
 
 use crate::state::AskScope;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Sources {
+    pub meetings: bool,
+    pub screen: bool,
+}
+
+impl Default for Sources {
+    fn default() -> Self {
+        Self {
+            meetings: true,
+            screen: true,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Source {
+    Meetings,
+    Screen,
+}
+
+impl Source {
+    pub const ALL: [Source; 2] = [Source::Meetings, Source::Screen];
+
+    pub fn label(self) -> &'static str {
+        match self {
+            Source::Meetings => "Meetings",
+            Source::Screen => "Screen",
+        }
+    }
+}
+
+impl Sources {
+    pub fn contains(&self, source: Source) -> bool {
+        match source {
+            Source::Meetings => self.meetings,
+            Source::Screen => self.screen,
+        }
+    }
+
+    pub fn count(&self) -> usize {
+        Source::ALL.iter().filter(|s| self.contains(**s)).count()
+    }
+
+    /// Toggles a source, keeping at least one selected.
+    pub fn toggle(&mut self, source: Source) {
+        if self.contains(source) && self.count() == 1 {
+            return;
+        }
+        match source {
+            Source::Meetings => self.meetings = !self.meetings,
+            Source::Screen => self.screen = !self.screen,
+        }
+    }
+
+    /// "All sources" or "Screen".
+    pub fn summary(&self) -> String {
+        if *self == Sources::default() {
+            return "All sources".into();
+        }
+        Source::ALL
+            .iter()
+            .filter(|s| self.contains(**s))
+            .map(|s| s.label())
+            .collect::<Vec<_>>()
+            .join(", ")
+    }
+}
 
 /// The calendar range a question or search is limited to.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -60,14 +129,15 @@ impl DateScope {
     }
 }
 
-/// The request sent to the engine for one question: meetings only.
-pub fn ask_scope(date: DateScope, meeting_ids: Option<&[Uuid]>) -> AskScope {
+/// The request sent to the engine for one question. Screen memory is left
+/// out when the question is bound to chosen meetings.
+pub fn ask_scope(sources: Sources, date: DateScope, meeting_ids: Option<&[Uuid]>) -> AskScope {
     let bounds = date.bounds();
     AskScope {
         meeting_ids: meeting_ids.map(<[Uuid]>::to_vec).unwrap_or_default(),
-        include_meetings: true,
+        include_meetings: sources.meetings,
         include_activity: false,
-        include_screen: false,
+        include_screen: sources.screen && meeting_ids.is_none(),
         since: bounds.map(|(since, _)| since),
         until: bounds.map(|(_, until)| until),
     }
@@ -78,11 +148,32 @@ mod tests {
     use super::*;
 
     #[test]
-    fn asks_meetings_only() {
-        let scope = ask_scope(DateScope::Today, None);
-        assert!(scope.include_meetings);
-        assert!(!scope.include_activity && !scope.include_screen);
+    fn keeps_one_source() {
+        let mut sources = Sources::default();
+        assert_eq!(sources.summary(), "All sources");
+        sources.toggle(Source::Meetings);
+        assert_eq!(sources.summary(), "Screen");
+        sources.toggle(Source::Screen);
+        assert_eq!(sources.summary(), "Screen", "the last source stays");
+    }
+
+    #[test]
+    fn screen_memory_joins_unbound_questions() {
+        let scope = ask_scope(Sources::default(), DateScope::Today, None);
+        assert!(scope.include_meetings && scope.include_screen);
+        assert!(!scope.include_activity);
         assert!(scope.since.is_some() && scope.until.is_some());
+        let bound = ask_scope(Sources::default(), DateScope::AnyTime, Some(&[Uuid::nil()]));
+        assert!(bound.include_meetings && !bound.include_screen);
+        let screen_only = ask_scope(
+            Sources {
+                meetings: false,
+                screen: true,
+            },
+            DateScope::AnyTime,
+            None,
+        );
+        assert!(!screen_only.include_meetings && screen_only.include_screen);
     }
 
     #[test]

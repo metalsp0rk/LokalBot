@@ -27,7 +27,7 @@ use gpui_kit::{
 use lokalbot_core::{ChatRole, Conversation};
 use uuid::Uuid;
 
-use self::scope::DateScope;
+use self::scope::{DateScope, Sources};
 use self::search::{Facet, MeetingGroup, ScreenResult};
 use crate::pages::Page;
 use crate::state::{AppData, AppEvent, AskRequest, MeetingTab, Section};
@@ -68,14 +68,15 @@ impl Results {
     }
 }
 
-/// Opens a screen moment from Ask or Quick Recall on its day of Timeline.
+/// Opens a screen moment from Ask or Quick Recall in Timeline
+/// (`ScreenMomentDetailView`).
 pub fn open_screen_moment(
     data: &Entity<AppData>,
     moment: &lokalbot_core::ScreenMoment,
     cx: &mut App,
 ) {
-    let _ = moment;
-    data.update(cx, |data, cx| data.navigate(Section::Timeline, cx));
+    let (id, ts) = (moment.id, moment.ts);
+    data.update(cx, |data, cx| data.open_screen_moment(id, ts, cx));
 }
 
 /// Per-message disclosure and feedback state in the conversation.
@@ -100,6 +101,7 @@ pub struct AskPage {
     history_query: String,
     composer: Entity<TextareaState>,
     query: String,
+    sources: Sources,
     date_scope: DateScope,
     facet: Facet,
     /// Evidence boundary from "Ask This Meeting" or from asking about results.
@@ -113,6 +115,9 @@ pub struct AskPage {
     results: Results,
     search_task: Option<Task<()>>,
     turns: TurnState,
+    /// Screen moments the answers cite, loaded on demand.
+    screen_citations: crate::ui::citations::ScreenCitations,
+    loading_screen_citations: HashSet<i64>,
     transcript_scroll: ScrollHandle,
     results_scroll: ScrollHandle,
     history_scroll: ScrollHandle,
@@ -194,6 +199,7 @@ impl AskPage {
             history_query: String::new(),
             composer,
             query: String::new(),
+            sources: Sources::default(),
             date_scope: DateScope::AnyTime,
             facet: Facet::All,
             meeting_scope: None,
@@ -204,6 +210,8 @@ impl AskPage {
             results: Results::default(),
             search_task: None,
             turns: TurnState::default(),
+            screen_citations: Default::default(),
+            loading_screen_citations: HashSet::new(),
             transcript_scroll: ScrollHandle::new(),
             results_scroll: ScrollHandle::new(),
             history_scroll: ScrollHandle::new(),
@@ -332,6 +340,7 @@ impl AskPage {
         self.selected = None;
         self.meeting_scope = None;
         self.date_scope = DateScope::AnyTime;
+        self.sources = Sources::default();
         self.facet = Facet::All;
         self.pending_question = None;
         self.set_composer_text("", window, cx);
@@ -432,7 +441,7 @@ impl AskPage {
             self.meeting_scope = Some(self.results.meetings.iter().map(|g| g.meeting.id).collect());
         }
         let conversation_id = *self.selected.get_or_insert_with(Uuid::new_v4);
-        let scope = scope::ask_scope(self.date_scope, self.meeting_scope.as_deref());
+        let scope = scope::ask_scope(self.sources, self.date_scope, self.meeting_scope.as_deref());
         self.follow_stream = true;
         self.data.update(cx, |data, cx| {
             data.request(
@@ -485,7 +494,7 @@ impl AskPage {
             return;
         };
         self.results = Results::default();
-        let scope = scope::ask_scope(self.date_scope, self.meeting_scope.as_deref());
+        let scope = scope::ask_scope(self.sources, self.date_scope, self.meeting_scope.as_deref());
         self.follow_stream = true;
         self.data.update(cx, |data, cx| {
             data.request(
@@ -537,7 +546,7 @@ impl AskPage {
         self.results.screens.clear();
         self.results.truncated = false;
         self.results.expanded.clear();
-        if text.is_empty() {
+        if text.is_empty() || !(self.sources.meetings || self.sources.screen) {
             self.results.running = false;
             self.search_task = None;
             return;
@@ -551,8 +560,8 @@ impl AskPage {
         let query = search::Query {
             text,
             facet: self.facet,
-            meetings: true,
-            screen: false,
+            meetings: self.sources.meetings,
+            screen: self.sources.screen,
             meeting_ids: self.meeting_scope.clone(),
             since: bounds.map(|(since, _)| since),
             until: bounds.map(|(_, until)| until),

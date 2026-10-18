@@ -20,6 +20,10 @@ crossbeam-channel.workspace = true
 chrono.workspace = true
 uuid.workspace = true
 serde_json.workspace = true
+sha2.workspace = true
+hex.workspace = true
+# Screen images are kept as JPEG inside their sealed files.
+image = { version = "0.25", default-features = false, features = ["jpeg"] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 keyring = { version = "3", features = ["async-secret-service", "async-io", "crypto-rust"] }

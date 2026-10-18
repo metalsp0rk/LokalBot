@@ -75,8 +75,9 @@ impl AskPage {
 
         if count == 0 && !self.results.running {
             let message = format!(
-                "No results for “{}” in meetings · {}.",
+                "No results for “{}” in {} · {}.",
                 self.query.trim(),
+                self.sources.summary(),
                 self.date_scope.label()
             );
             let filtered = self.facet != Facet::All || self.date_scope != DateScope::AnyTime;

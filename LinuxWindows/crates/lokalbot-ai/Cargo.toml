@@ -34,6 +34,9 @@ zip = { version = "9", default-features = false, features = ["deflate-flate2"] }
 tar = "0.4"
 flate2 = "1"
 bzip2 = "0.6"
+# Screen text recognition (`ocr`): a pure-Rust engine and its ONNX models.
+ocrs = { version = "0.13", default-features = false, features = ["onnx"] }
+rten = { version = "0.26", default-features = false, features = ["onnx_format"] }
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"

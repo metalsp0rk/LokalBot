@@ -1,20 +1,35 @@
-//! Day Memory: app and window activity and the day digest. Screen context
-//! (screen text, screenshots, OCR) and coding agent sessions are not
-//! implemented on Linux and Windows, so their rows are not shown; their
-//! values stay in settings.json for the Mac app.
+//! Day Memory: activity tracking, screen context and the day digest.
 
-use gpui_kit::component::button::Button;
+use gpui_kit::component::button::{Button, ButtonVariants as _};
 use gpui_kit::component::input::Textarea;
-use gpui_kit::component::{Sizable as _, h_flex, v_flex};
+use gpui_kit::component::slider::Slider;
+use gpui_kit::component::{Disableable as _, Icon, Sizable as _, h_flex, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
-use gpui_kit::{Context, ParentElement as _, Styled as _, div, px};
+use gpui_kit::{
+    AnyElement, Context, IntoElement as _, ParentElement as _, SharedString, Styled as _, div, px,
+};
+use lokalbot_core::ScreenContextMode;
 
 use super::{Section, SettingsPage};
+use crate::state::AppEvent;
 use crate::theme::{LbThemeExt as _, ty};
-use crate::ui::settings_row;
+use crate::ui::{self, Ico, settings_row};
 
 /// The first characters of the digest instructions that are used.
 pub const DIGEST_PROMPT_LIMIT: usize = 500;
+
+/// `ScreenContextCaptureMode.detail`, for this platform's accessibility and OCR.
+pub fn mode_detail(mode: ScreenContextMode) -> &'static str {
+    match mode {
+        ScreenContextMode::ActivityOnly => "Records the active app and window title only.",
+        ScreenContextMode::Text => {
+            "Reads visible interface text through accessibility, with on-device OCR when it shows little; no screenshots are stored."
+        }
+        ScreenContextMode::TextAndVisual => {
+            "Pairs visible text with an encrypted screenshot, using on-device OCR only when needed."
+        }
+    }
+}
 
 fn hour_label(hour: u32) -> String {
     match hour % 24 {
@@ -31,49 +46,167 @@ impl SettingsPage {
         let data = self.data.clone();
         let lb = cx.lb().clone();
 
-        let memory = Section::new("Day Memory")
+        let captures_text = settings.tracking_enabled
+            && settings.screen_context_capture_mode != ScreenContextMode::ActivityOnly;
+        let tracking_data = data.clone();
+        let mode_data = data.clone();
+        let mode_items: Vec<(SharedString, bool)> = ScreenContextMode::ALL
+            .iter()
+            .map(|m| {
+                (
+                    SharedString::from(m.label()),
+                    *m == settings.screen_context_capture_mode,
+                )
+            })
+            .collect();
+        let mut memory = Section::new("Day Memory")
             .row(
                 "settings.trackingEnabled",
-                self.toggle(
+                settings_row::row(
                     "settings.trackingEnabled",
                     "Track app & window activity",
-                    Some("Records which app and window you're using for the Timeline and day digest."),
-                    settings.tracking_enabled,
-                    |s, v| s.tracking_enabled = v,
+                    Some("Records which app and window you're using for the Timeline and day digest.".into()),
+                    settings_row::switch("settings.trackingEnabled", settings.tracking_enabled, move |on, _, cx| {
+                        tracking_data.update(cx, |data, cx| {
+                            data.update_settings(
+                                |s| {
+                                    s.tracking_enabled = on;
+                                    if !on {
+                                        s.screen_context_capture_mode = ScreenContextMode::ActivityOnly;
+                                    }
+                                },
+                                cx,
+                            )
+                        })
+                    }),
+                    self.is_focused("settings.trackingEnabled"),
                     cx,
                 ),
             )
             .row(
-                "settings.activityManage",
-                settings_row::content_row(
-                    "settings.activityManage",
-                    h_flex()
-                        .gap(px(8.))
-                        .flex_wrap()
-                        .child(Button::new("settings-manage-retention").outline().small().label("Manage retention…").on_click(
-                            cx.listener(|this, _, window, cx| this.reveal("settings.retentionDays", window, cx)),
-                        ))
-                        .child(Button::new("settings-manage-exclusions").outline().small().label("Manage exclusions…").on_click(
-                            cx.listener(|this, _, window, cx| this.reveal("settings.excludedApps", window, cx)),
-                        )),
-                    false,
-                    cx,
-                ),
-            )
-            .row(
-                "settings.activityDetails",
-                settings_row::content_row(
-                    "settings.activityDetails",
-                    self.details(
-                        "settings.activityDetails",
-                        "What is recorded",
-                        "Every few seconds LokalBot notes the app in front and its window title, and how long you stay. It never records what you type, the clipboard, or what is on screen. Excluded apps and sites are logged as “Private” with the time only, password managers are always excluded, and passwords or keys in window titles are redacted. Window titles are cleared after the retention period in Privacy & Data.",
-                        cx,
+                "settings.screenContextCaptureMode",
+                settings_row::row(
+                    "settings.screenContextCaptureMode",
+                    "Screen context",
+                    Some(mode_detail(settings.screen_context_capture_mode).into()),
+                    settings_row::picker(
+                        "settings-screen-context",
+                        settings.screen_context_capture_mode.label(),
+                        mode_items,
+                        move |index, _, cx| {
+                            let mode = ScreenContextMode::ALL[index];
+                            mode_data.update(cx, |data, cx| {
+                                data.update_settings(
+                                    |s| {
+                                        s.screen_context_capture_mode = mode;
+                                        if mode != ScreenContextMode::ActivityOnly {
+                                            s.tracking_enabled = true;
+                                        }
+                                    },
+                                    cx,
+                                )
+                            })
+                        },
                     ),
-                    false,
+                    self.is_focused("settings.screenContextCaptureMode"),
                     cx,
                 ),
             );
+        if captures_text {
+            let minutes = settings
+                .screenshot_interval_minutes
+                .round()
+                .clamp(1.0, 15.0) as u32;
+            memory = memory
+                .row(
+                    "settings.screenContextStatus",
+                    settings_row::content_row(
+                        "settings.screenContextStatus",
+                        self.screen_status(cx),
+                        false,
+                        cx,
+                    ),
+                )
+                .row(
+                    "settings.screenTextRecognition",
+                    self.screen_text_model_row(cx),
+                )
+                .row(
+                    "settings.screenshotIntervalMinutes",
+                    settings_row::stacked_row(
+                        "settings.screenshotIntervalMinutes",
+                        format!("Idle fallback: at least every {minutes} min"),
+                        None,
+                        Slider::new(&self.interval_slider).w_full(),
+                        self.is_focused("settings.screenshotIntervalMinutes"),
+                        cx,
+                    ),
+                )
+                .row(
+                    "settings.captureManage",
+                    settings_row::content_row(
+                        "settings.captureManage",
+                        h_flex()
+                            .gap(px(8.))
+                            .flex_wrap()
+                            .child(Button::new("settings-manage-retention").outline().small().label("Manage retention and cleanup…").on_click(
+                                cx.listener(|this, _, window, cx| this.reveal("settings.retentionDays", window, cx)),
+                            ))
+                            .child(Button::new("settings-manage-exclusions").outline().small().label("Manage capture exclusions…").on_click(
+                                cx.listener(|this, _, window, cx| this.reveal("settings.excludedApps", window, cx)),
+                            )),
+                        false,
+                        cx,
+                    ),
+                )
+                .row(
+                    "settings.captureDetails",
+                    settings_row::content_row(
+                        "settings.captureDetails",
+                        self.details(
+                            "settings.captureDetails",
+                            "How screen context is captured",
+                            "Captures context after app or window changes, a pause in typing or pointer input, a clipboard change, or the idle fallback, without storing keys, pointer positions, or clipboard contents. Accessible text is preferred; on-device OCR fills gaps. Private windows, excluded apps and sites, password fields, and detected credentials are never captured, and nothing is captured while day memory is paused or the screen is locked. Images are encrypted with a key kept in this PC's credential store; extracted text follows the same retention (see Privacy & Data). Saved moments keep their encrypted frame and text until you unsave or delete them. Excluded apps log as “Private”.",
+                            cx,
+                        ),
+                        false,
+                        cx,
+                    ),
+                );
+        } else {
+            memory = memory
+                .row(
+                    "settings.activityManage",
+                    settings_row::content_row(
+                        "settings.activityManage",
+                        h_flex()
+                            .gap(px(8.))
+                            .flex_wrap()
+                            .child(Button::new("settings-manage-retention").outline().small().label("Manage retention…").on_click(
+                                cx.listener(|this, _, window, cx| this.reveal("settings.retentionDays", window, cx)),
+                            ))
+                            .child(Button::new("settings-manage-exclusions").outline().small().label("Manage exclusions…").on_click(
+                                cx.listener(|this, _, window, cx| this.reveal("settings.excludedApps", window, cx)),
+                            )),
+                        false,
+                        cx,
+                    ),
+                )
+                .row(
+                    "settings.activityDetails",
+                    settings_row::content_row(
+                        "settings.activityDetails",
+                        self.details(
+                            "settings.activityDetails",
+                            "What is recorded",
+                            "Every few seconds LokalBot notes the app in front and its window title, and how long you stay. With screen context off it never records what you type, the clipboard, or what is on screen. Excluded apps and sites are logged as “Private” with the time only, password managers are always excluded, and passwords or keys in window titles are redacted. Window titles are cleared after the retention period in Privacy & Data.",
+                            cx,
+                        ),
+                        false,
+                        cx,
+                    ),
+                );
+        }
 
         let hour = settings.day_digest_hour.min(23);
         let hour_data = data.clone();
@@ -148,11 +281,176 @@ impl SettingsPage {
 
         vec![memory, digest]
     }
+
+    /// What capture can do on this desktop right now (`MemoryHealthSection`).
+    fn screen_status(&self, cx: &mut Context<Self>) -> AnyElement {
+        let lb = cx.lb().clone();
+        let (status, settings, paused) = {
+            let data = self.data.read(cx);
+            (
+                data.screen.clone(),
+                data.settings.clone(),
+                data.day_memory_paused,
+            )
+        };
+        let visual = settings.screen_context_capture_mode == ScreenContextMode::TextAndVisual;
+        let mut notes: Vec<(Ico, String, bool)> = Vec::new();
+        if let Some(limitation) = &status.capture_limitation {
+            notes.push((Ico::TriangleAlert, limitation.clone(), true));
+        }
+        if visual && let Some(images) = &status.images_unavailable {
+            notes.push((Ico::TriangleAlert, images.clone(), true));
+        }
+        if paused {
+            notes.push((
+                Ico::Pause,
+                "Day memory is paused, so nothing is captured.".into(),
+                false,
+            ));
+        }
+        let last = match (&status.last_capture, &status.last_text_source) {
+            (Some(at), source) => format!(
+                "Last capture {}{}",
+                lokalbot_core::time::clock_time(*at),
+                source
+                    .as_deref()
+                    .map(|s| format!(" · {}", text_source_label(s)))
+                    .unwrap_or_default()
+            ),
+            (None, _) => "No screen context captured since LokalBot started".into(),
+        };
+        notes.push((Ico::ScanText, last, false));
+        if let Some(error) = &status.last_error {
+            notes.push((
+                Ico::CircleAlert,
+                format!("The last capture failed: {error}"),
+                true,
+            ));
+        }
+        let capture_data = self.data.clone();
+        v_flex()
+            .gap(px(8.))
+            .children(notes.into_iter().map(|(icon, text, warn)| {
+                h_flex()
+                    .gap(px(8.))
+                    .items_start()
+                    .child(div().pt(px(2.)).child(ui::icon(
+                        icon,
+                        px(14.),
+                        if warn {
+                            lb.attention_text
+                        } else {
+                            lb.text_secondary
+                        },
+                    )))
+                    .child(settings_row::help(text, cx).flex_1().min_w_0())
+            }))
+            .child(
+                h_flex().child(
+                    Button::new("settings-capture-now")
+                        .outline()
+                        .small()
+                        .icon(Icon::new(Ico::Camera))
+                        .label("Capture Screen Now")
+                        .disabled(paused)
+                        .on_click(move |_, _, cx| {
+                            capture_data
+                                .update(cx, |data, cx| data.request(AppEvent::CaptureScreenNow, cx))
+                        }),
+                ),
+            )
+            .into_any_element()
+    }
+
+    /// The OCR models: what they do, their size, and Download when missing.
+    fn screen_text_model_row(&self, cx: &mut Context<Self>) -> AnyElement {
+        let lb = cx.lb().clone();
+        let (installed, progress) = {
+            let data = self.data.read(cx);
+            (
+                data.models.screen_text_ready,
+                data.downloads.get(lokalbot_ai::ocr::OCR_MODEL_ID).cloned(),
+            )
+        };
+        let size = super::models::size_label(lokalbot_ai::ocr::total_size());
+        let help = format!(
+            "Reads text from the window's pixels on this PC when accessibility shows little. ocrs, {size}, models under {}. Latin script only.",
+            lokalbot_ai::ocr::OCR_MODEL_LICENSE
+        );
+        let data = self.data.clone();
+        let control: AnyElement = match (&progress, installed) {
+            (Some(progress), _) if progress.error.is_none() => div()
+                .text_size(ty::SECONDARY)
+                .text_color(lb.text_secondary)
+                .child(format!(
+                    "Downloading · {}%",
+                    (progress.fraction() * 100.).round()
+                ))
+                .into_any_element(),
+            (_, true) => settings_row::value("Ready", cx).into_any_element(),
+            _ => Button::new("settings-download-ocr")
+                .primary()
+                .small()
+                .icon(Icon::new(Ico::CircleArrowDown))
+                .label(format!("Download · {size}"))
+                .on_click(move |_, _, cx| {
+                    data.update(cx, |data, cx| {
+                        data.request(
+                            AppEvent::DownloadModel(lokalbot_ai::ocr::OCR_MODEL_ID.to_string()),
+                            cx,
+                        )
+                    })
+                })
+                .into_any_element(),
+        };
+        let failed = progress.and_then(|p| p.error);
+        settings_row::row(
+            "settings.screenTextRecognition",
+            "Screen text recognition",
+            Some(match failed {
+                Some(error) => format!("{help} The download failed: {error}").into(),
+                None => help.into(),
+            }),
+            control,
+            self.is_focused("settings.screenTextRecognition"),
+            cx,
+        )
+        .into_any_element()
+    }
+}
+
+/// `MemoryHealthSection.textSourceLabel`.
+fn text_source_label(source: &str) -> String {
+    let base = source.strip_suffix("_redacted");
+    let label = match base.unwrap_or(source) {
+        "accessibility" => "Accessibility".to_string(),
+        "hybrid" => "Hybrid".to_string(),
+        "ocr" => "OCR".to_string(),
+        other => {
+            let mut chars = other.chars();
+            chars
+                .next()
+                .map(|first| first.to_uppercase().chain(chars).collect())
+                .unwrap_or_default()
+        }
+    };
+    if base.is_some() {
+        format!("{label}, redacted")
+    } else {
+        label
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn text_sources_have_labels() {
+        assert_eq!(text_source_label("ocr"), "OCR");
+        assert_eq!(text_source_label("hybrid_redacted"), "Hybrid, redacted");
+        assert_eq!(text_source_label("accessibility"), "Accessibility");
+    }
 
     #[test]
     fn hours_read_like_the_mac() {

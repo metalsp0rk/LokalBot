@@ -47,6 +47,8 @@ pub struct TrayMenuState {
     /// "Asks before recording meetings", …
     pub subtitle: String,
     pub day_memory_paused: bool,
+    /// Screen context is on: offer "Capture Screen Now".
+    pub screen_capture: bool,
 }
 
 /// Menu item ids used by [`standard_items`].
@@ -58,11 +60,13 @@ pub mod item_ids {
     pub const SETTINGS: &str = "settings";
     pub const PAUSE_DAY_MEMORY: &str = "pause-day-memory";
     pub const RESUME_DAY_MEMORY: &str = "resume-day-memory";
+    pub const CAPTURE_SCREEN: &str = "capture-screen";
     pub const QUIT: &str = "quit";
 }
 
 /// The macOS menu bar extra as a menu: status, Record Now / Stop Recording,
-/// Ask, Open LokalBot, Settings…, Pause/Resume day memory, Quit LokalBot.
+/// Ask, Open LokalBot, Settings…, Pause/Resume day memory, Capture Screen
+/// Now while screen context is on, Quit LokalBot.
 pub fn standard_items(state: &TrayMenuState) -> Vec<TrayItem> {
     use item_ids::*;
     let status = match (&state.timer, state.recording) {
@@ -89,6 +93,9 @@ pub fn standard_items(state: &TrayMenuState) -> Vec<TrayItem> {
     } else {
         TrayItem::action(PAUSE_DAY_MEMORY, "Pause day memory")
     });
+    if state.screen_capture && !state.day_memory_paused {
+        items.push(TrayItem::action(CAPTURE_SCREEN, "Capture Screen Now"));
+    }
     items.push(TrayItem::Separator);
     items.push(TrayItem::action(QUIT, "Quit LokalBot"));
     items
@@ -587,6 +594,7 @@ mod tests {
             timer: Some("12:04".into()),
             subtitle: "Weekly sync".into(),
             day_memory_paused: true,
+            screen_capture: true,
         });
         assert_eq!(live[0], TrayItem::Status("Recording · 12:04".into()));
         assert!(live.contains(&TrayItem::action(
@@ -596,6 +604,18 @@ mod tests {
         assert!(live.contains(&TrayItem::action(
             item_ids::RESUME_DAY_MEMORY,
             "Resume day memory"
+        )));
+        // Nothing is captured while day memory is paused.
+        assert!(!live.iter().any(
+            |item| matches!(item, TrayItem::Action { id, .. } if id == item_ids::CAPTURE_SCREEN)
+        ));
+        let capturing = standard_items(&TrayMenuState {
+            screen_capture: true,
+            ..Default::default()
+        });
+        assert!(capturing.contains(&TrayItem::action(
+            item_ids::CAPTURE_SCREEN,
+            "Capture Screen Now"
         )));
     }
 

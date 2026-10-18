@@ -1,16 +1,20 @@
 //! Timeline: one day at a time, with its digest, open actions, the day's
-//! overview and work sessions, and a context panel for the selected session
-//! or meeting (`CaptureView.swift`, `CaptureDetailView.swift`).
+//! overview and work sessions, and a context panel for the selected session,
+//! meeting or screen moment (`CaptureView.swift`, `CaptureDetailView.swift`,
+//! `ScreenMomentDetailView.swift`).
 
 mod context;
+mod moment;
 
 use std::cell::Cell;
 use std::collections::HashSet;
 use std::rc::Rc;
+use std::sync::Arc;
 
 use chrono::{Days, Local, NaiveDate};
 use gpui_kit::component::button::Button;
 use gpui_kit::component::calendar::{Calendar, CalendarEvent, CalendarState, Date, Matcher};
+use gpui_kit::component::input::InputState;
 use gpui_kit::component::popover::Popover;
 use gpui_kit::component::scroll::ScrollableElement as _;
 use gpui_kit::component::{Disableable as _, Icon, h_flex, v_flex};
@@ -18,8 +22,8 @@ use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
     AnyElement, App, AppContext as _, Bounds, Context, Entity, FontWeight, Hsla,
     InteractiveElement as _, IntoElement, MouseButton, ParentElement as _, Pixels, Render,
-    SharedString, StatefulInteractiveElement as _, Styled as _, Subscription, Window, canvas, div,
-    px,
+    RenderImage, SharedString, StatefulInteractiveElement as _, Styled as _, Subscription, Window,
+    canvas, div, px,
 };
 use lokalbot_core::{ActionThread, DayActivity, DayDigest, Meeting, ScreenMoment, WorkSession};
 use uuid::Uuid;
@@ -51,6 +55,8 @@ pub(crate) enum Selection {
     Meeting(Uuid),
     /// "Browse Raw Capture": every activity block and screen moment.
     RawCapture,
+    /// One screen moment (`ScreenMoment::id`).
+    Moment(i64),
 }
 
 pub struct TimelinePage {
@@ -68,6 +74,15 @@ pub struct TimelinePage {
     calendar: Entity<CalendarState>,
     calendar_open: bool,
     bounds: Rc<Cell<Option<Bounds<Pixels>>>>,
+    /// The selected moment's decrypted image.
+    moment_image: Option<moment::MomentImage>,
+    /// Images no longer shown; their textures are freed on the next frame.
+    released_images: Vec<Arc<RenderImage>>,
+    moment_text_expanded: bool,
+    moment_details_open: bool,
+    moment_note: Entity<InputState>,
+    /// The moment whose saved note is in `moment_note`.
+    moment_note_for: Option<i64>,
     _subscriptions: Vec<Subscription>,
 }
 
@@ -95,6 +110,8 @@ impl TimelinePage {
                 this.set_day(*day, cx);
             }),
         ];
+        let moment_note =
+            cx.new(|cx| InputState::new(window, cx).placeholder("Why does this moment matter?"));
         let mut this = Self {
             data,
             day: today,
@@ -110,6 +127,12 @@ impl TimelinePage {
             calendar,
             calendar_open: false,
             bounds: Rc::new(Cell::new(None)),
+            moment_image: None,
+            released_images: Vec::new(),
+            moment_text_expanded: false,
+            moment_details_open: false,
+            moment_note,
+            moment_note_for: None,
             _subscriptions: subscriptions,
         };
         this.on_data_changed(cx);
@@ -122,6 +145,10 @@ impl TimelinePage {
             self.set_day(focus.day, cx);
             if let Some(session) = focus.session_id {
                 self.select(Some(Selection::Session(session)), cx);
+            }
+            if let Some(moment) = focus.moment_id {
+                self.selection = None;
+                self.select(Some(Selection::Moment(moment)), cx);
             }
         }
         let data = self.data.read(cx);
@@ -190,6 +217,11 @@ impl TimelinePage {
     pub(crate) fn select(&mut self, selection: Option<Selection>, cx: &mut Context<Self>) {
         let toggled_off = selection.is_some() && selection == self.selection;
         self.selection = if toggled_off { None } else { selection };
+        if !matches!(self.selection, Some(Selection::Moment(_))) {
+            self.release_moment_image();
+        }
+        self.moment_text_expanded = false;
+        self.moment_details_open = false;
         self.drawer_open = self.selection.is_some();
         self.expanded_titles.clear();
         self.session_details_open = false;
@@ -646,6 +678,27 @@ impl TimelinePage {
             .into_any_element()
     }
 
+    /// Loads the selected moment's image and note once the day has loaded.
+    fn sync_selected_moment(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let Some(Selection::Moment(id)) = self.selection else {
+            return;
+        };
+        let Some(moment) = self
+            .model
+            .as_ref()
+            .and_then(|model| model.moments.iter().find(|m| m.id == id).cloned())
+        else {
+            return;
+        };
+        self.load_moment_image(&moment, cx);
+        if self.moment_note_for != Some(id) {
+            self.moment_note_for = Some(id);
+            let note = moment.saved_note.unwrap_or_default();
+            self.moment_note
+                .update(cx, |input, cx| input.set_value(note, window, cx));
+        }
+    }
+
     fn ask_day(&self, question: String, meeting_ids: Vec<Uuid>, cx: &mut Context<Self>) {
         self.data.update(cx, |data, cx| {
             data.ask(
@@ -666,11 +719,33 @@ impl Page for TimelinePage {
     }
 
     fn toolbar(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> Option<AnyElement> {
-        let paused = self.data.read(cx).day_memory_paused;
+        let (paused, screen_context) = {
+            let data = self.data.read(cx);
+            (
+                data.day_memory_paused,
+                data.settings.tracking_enabled
+                    && data.settings.screen_context_capture_mode
+                        != lokalbot_core::ScreenContextMode::ActivityOnly,
+            )
+        };
         let data = self.data.clone();
+        let capture_data = self.data.clone();
         Some(
             h_flex()
                 .gap_1()
+                .when(screen_context && !paused, |this| {
+                    this.child(
+                        ui::controls::toolbar_icon(
+                            "timeline-capture",
+                            Ico::Camera,
+                            "Capture Screen Now: captures the next window you switch to",
+                        )
+                        .on_click(move |_, _, cx| {
+                            capture_data
+                                .update(cx, |data, cx| data.request(AppEvent::CaptureScreenNow, cx))
+                        }),
+                    )
+                })
                 .child(
                     ui::controls::toolbar_icon(
                         "timeline-pause",
@@ -702,6 +777,10 @@ impl Page for TimelinePage {
 
 impl Render for TimelinePage {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        for image in std::mem::take(&mut self.released_images) {
+            cx.drop_image(image, Some(window));
+        }
+        self.sync_selected_moment(window, cx);
         let lb = cx.lb().clone();
         let bounds = self.bounds.clone();
         let measure = canvas(

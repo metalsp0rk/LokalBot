@@ -1,7 +1,8 @@
 //! Which models are installed, and downloading the ones a feature needs.
 //!
 //! Ids are shared with the UI: GGUF catalog ids (`qwen3.5-4b`), speech model
-//! ids (`qwen3-asr-0.6b`) and `llama-runtime` for the llama.cpp binaries.
+//! ids (`qwen3-asr-0.6b`), `llama-runtime` for the llama.cpp binaries and
+//! `ocrs-text` for the screen text recognition models.
 
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -26,6 +27,7 @@ enum ModelRef {
     Gguf(&'static lokalbot_ai::catalog::ModelEntry),
     Speech(&'static lokalbot_speech::models::SpeechModel),
     Runtime,
+    Ocr,
 }
 
 impl Models {
@@ -40,6 +42,9 @@ impl Models {
         if id == RUNTIME_ID {
             return Some(ModelRef::Runtime);
         }
+        if id == lokalbot_ai::ocr::OCR_MODEL_ID {
+            return Some(ModelRef::Ocr);
+        }
         if let Some(entry) = lokalbot_ai::catalog::entry(id) {
             return Some(ModelRef::Gguf(entry));
         }
@@ -52,6 +57,7 @@ impl Models {
             Some(ModelRef::Gguf(entry)) => lokalbot_ai::catalog::is_downloaded(paths, entry),
             Some(ModelRef::Speech(model)) => lokalbot_speech::models::is_installed(paths, model),
             Some(ModelRef::Runtime) => self.shared.runtime.installed_backend().is_some(),
+            Some(ModelRef::Ocr) => lokalbot_ai::ocr::is_installed(paths),
             None => false,
         }
     }
@@ -88,6 +94,16 @@ impl Models {
         ]
     }
 
+    /// Screen context reads text with OCR when accessibility has little.
+    pub fn screen_requirements(&self) -> Vec<String> {
+        let settings = self.shared.settings();
+        if settings.screen_context_capture_mode == lokalbot_core::ScreenContextMode::ActivityOnly {
+            Vec::new()
+        } else {
+            vec![lokalbot_ai::ocr::OCR_MODEL_ID.to_string()]
+        }
+    }
+
     pub fn dictation_requirements(&self) -> Vec<String> {
         let settings = self.shared.settings();
         let mut ids = vec![settings.transcription_model.clone()];
@@ -121,6 +137,10 @@ impl Models {
         if runtime_backend.is_some() {
             installed.push(RUNTIME_ID.to_string());
         }
+        let screen_text_ready = lokalbot_ai::ocr::is_installed(self.shared.library.paths());
+        if screen_text_ready {
+            installed.push(lokalbot_ai::ocr::OCR_MODEL_ID.to_string());
+        }
         let ready = |ids: Vec<String>| ids.iter().all(|id| installed.contains(id));
         let status = ModelStatus {
             transcription_ready: ready(self.dictation_requirements()),
@@ -130,6 +150,7 @@ impl Models {
                 RUNTIME_ID.to_string(),
             ]),
             embeddings_ready: ready(self.embedding_requirements()),
+            screen_text_ready,
             runtime_backend,
             installed,
         };
@@ -142,6 +163,7 @@ impl Models {
         if self.shared.settings().semantic_search_enabled {
             ids.extend(self.embedding_requirements());
         }
+        ids.extend(self.screen_requirements());
         // Think and search both need the runtime; download it once.
         let mut seen = std::collections::HashSet::new();
         ids.retain(|id| seen.insert(id.clone()));
@@ -207,6 +229,7 @@ impl Models {
             }
             Some(ModelRef::Speech(model)) => lokalbot_speech::models::uninstall(&paths, model),
             Some(ModelRef::Runtime) => self.shared.runtime.uninstall(),
+            Some(ModelRef::Ocr) => lokalbot_ai::ocr::delete(&paths).map_err(anyhow::Error::from),
             None => Err(anyhow!("unknown model {id}")),
         };
         if let Err(err) = result {
@@ -246,6 +269,7 @@ impl Models {
             ModelRef::Gguf(entry) => entry.display_name.to_string(),
             ModelRef::Speech(model) => model.display_name.to_string(),
             ModelRef::Runtime => "the llama.cpp runtime".to_string(),
+            ModelRef::Ocr => lokalbot_ai::ocr::OCR_DISPLAY_NAME.to_string(),
         };
         let shared = self.shared.clone();
         let id_owned = id.to_string();
@@ -305,6 +329,7 @@ impl Models {
                     .runtime
                     .ensure_runtime(&settings, cancel, &mut progress)
             }
+            ModelRef::Ocr => lokalbot_ai::ocr::download(&paths, cancel, &mut progress),
         }
     }
 }

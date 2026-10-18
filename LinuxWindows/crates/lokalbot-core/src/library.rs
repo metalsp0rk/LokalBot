@@ -122,6 +122,7 @@ impl Library {
         db.execute_batch(SCHEMA).context("creating schema")?;
         // Older pipeline_jobs tables predate last_error.
         let _ = db.execute("ALTER TABLE pipeline_jobs ADD COLUMN last_error TEXT", []);
+        crate::screen::migrate(&db).context("updating the screen context tables")?;
         migrate_ocr_metadata(&db).context("indexing screen text metadata")?;
         crate::search::migrate(&db).context("migrating the search index")?;
         Ok(Self {

@@ -95,6 +95,7 @@ pub fn handle_request(event: &AppEvent, cx: &mut App) -> bool {
         AppEvent::LivePreview(command) => Command::LivePreview(*command),
         AppEvent::ToggleDictation => Command::Dictation(DictationCommand::Toggle),
         AppEvent::CancelDictation => Command::Dictation(DictationCommand::Cancel),
+        AppEvent::CaptureScreenNow => Command::CaptureScreenNow,
         AppEvent::SettingsChanged => {
             let settings = AppData::global(cx).read(cx).settings.clone();
             Command::UpdateSettings(Box::new(settings))
@@ -246,6 +247,7 @@ fn apply(data: &mut AppData, event: EngineEvent, cx: &mut Context<AppData>) {
                 think_ready: status.think_ready,
                 autocomplete_ready: status.autocomplete_ready,
                 embeddings_ready: status.embeddings_ready,
+                screen_text_ready: status.screen_text_ready,
                 runtime_backend: status.runtime_backend.map(SharedString::from),
             };
         }
@@ -288,6 +290,7 @@ fn apply(data: &mut AppData, event: EngineEvent, cx: &mut Context<AppData>) {
         }
         EngineEvent::Autocomplete(_) => {}
         EngineEvent::LivePreview(preview) => data.live_preview = preview,
+        EngineEvent::Screen(status) => data.screen = status,
         EngineEvent::FollowUp(update) => {
             data.follow_up = Some(match update {
                 FollowUpUpdate::Writing { meeting_id } => (meeting_id, FollowUpWriting::Writing),
