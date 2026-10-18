@@ -68,12 +68,13 @@ pub fn embedding_chunks(
             *current_len = 0;
         }
     };
+    let roster = transcript.speaker_roster();
     for segment in &transcript.segments {
-        let line = format!(
-            "{}: {}\n",
-            transcript.speaker_name(&segment.speaker),
-            segment.text
-        );
+        let speaker = roster
+            .get(&Transcript::canonical_speaker_key(&segment.speaker))
+            .cloned()
+            .unwrap_or_else(|| Transcript::default_speaker_name(&segment.speaker));
+        let line = format!("{speaker}: {}\n", segment.text);
         let line_len = line.chars().count();
         if line_len > TRANSCRIPT_HARD_LIMIT_CHARS {
             flush(&mut chunks, &mut current, &mut current_len, start);

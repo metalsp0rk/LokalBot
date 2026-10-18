@@ -15,8 +15,16 @@ use crate::paths::LibraryPaths;
 pub const MEETINGS_MARKER: &str = "agent-access-enabled";
 pub const SCREEN_MARKER: &str = "screen-memory-access-enabled";
 
-pub const MEETINGS_DISABLED_MESSAGE: &str = "External agent access is off. Enable it in LokalBot → Settings → Privacy & Data → \"Allow external agents to read your meeting library\".";
-pub const SCREEN_DISABLED_MESSAGE: &str = "External screen-memory access is off. Enable it separately in LokalBot → Settings → Privacy & Data → \"Allow external agents to read screen memory\".";
+pub const PERSONAL_MARKER: &str = "personal-context-access-enabled";
+pub const PERSONAL_PROJECTION: &str = "personal-context.json";
+/// Environment variable carrying an Agent Mode capability token.
+pub const CAPABILITY_ENV: &str = "LOKALBOT_AGENT_CAPABILITY";
+const CAPABILITY_DIR: &str = "agent-capabilities";
+const WAKE_FILE: &str = "agent-wake";
+const WAKE_ERROR_FILE: &str = "agent-wake-error";
+
+pub const MEETINGS_DISABLED_MESSAGE: &str = "External agent access is off. Enable it in LokalBot → Settings → Privacy → \"Allow external agents to read your meeting library\".";
+pub const SCREEN_DISABLED_MESSAGE: &str = "External screen-memory access is off. Enable it separately in LokalBot → Settings → Privacy → \"Allow external agents to read screen memory\".";
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -56,6 +64,139 @@ pub fn set_meetings_access(paths: &LibraryPaths, enabled: bool) -> std::io::Resu
     } else {
         remove_if_exists(&marker)
     }
+}
+
+/// The grant behind meeting access: the marker's content, or a valid
+/// capability token from `LOKALBOT_AGENT_CAPABILITY`. A long read keeps the
+/// same grant identity from start to answer (`authorizationID`).
+pub fn meetings_authorization(paths: &LibraryPaths, token: Option<&str>) -> Option<String> {
+    use sha2::Digest as _;
+    if let Ok(marker) = std::fs::read(paths.control_dir().join(MEETINGS_MARKER)) {
+        return Some(format!("global:{}", hex::encode(marker)));
+    }
+    let token = token?;
+    validate_capability(paths, token).then(|| {
+        format!(
+            "capability:{}",
+            hex::encode(sha2::Sha256::digest(token.as_bytes()))
+        )
+    })
+}
+
+/// Meeting access for this process (marker or inherited capability).
+pub fn meetings_access_authorized(paths: &LibraryPaths) -> bool {
+    let token = std::env::var(CAPABILITY_ENV).ok();
+    meetings_authorization(paths, token.as_deref()).is_some()
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct CapabilityRecord {
+    digest: String,
+    #[serde(with = "crate::time::swift_date")]
+    expires_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// Issues a bearer capability (`<uuid>.<64 hex>`) for one embedded agent
+/// process; only the secret's SHA-256 is stored.
+pub fn issue_agent_capability(
+    paths: &LibraryPaths,
+    lifetime: chrono::Duration,
+) -> std::io::Result<String> {
+    use sha2::Digest as _;
+    let id = uuid::Uuid::new_v4().hyphenated().to_string();
+    let secret = format!(
+        "{}{}",
+        uuid::Uuid::new_v4().simple(),
+        uuid::Uuid::new_v4().simple()
+    );
+    let record = CapabilityRecord {
+        digest: hex::encode(sha2::Sha256::digest(secret.as_bytes())),
+        expires_at: chrono::Utc::now() + lifetime.max(chrono::Duration::seconds(60)),
+    };
+    let dir = paths.control_dir().join(CAPABILITY_DIR);
+    ensure_private_dir(&paths.control_dir())?;
+    ensure_private_dir(&dir)?;
+    let path = dir.join(format!("{id}.json"));
+    let bytes = serde_json::to_vec(&record).map_err(std::io::Error::other)?;
+    crate::library::write_atomic(&path, &bytes)?;
+    restrict_file(&path);
+    Ok(format!("{id}.{secret}"))
+}
+
+pub fn revoke_agent_capability(paths: &LibraryPaths, token: &str) -> std::io::Result<()> {
+    let Some((id, _)) = token.split_once('.') else {
+        return Ok(());
+    };
+    let path = paths
+        .control_dir()
+        .join(CAPABILITY_DIR)
+        .join(format!("{}.json", id.to_lowercase()));
+    remove_if_exists(&path)
+}
+
+fn validate_capability(paths: &LibraryPaths, token: &str) -> bool {
+    use sha2::Digest as _;
+    let Some((id, secret)) = token.split_once('.') else {
+        return false;
+    };
+    if uuid::Uuid::parse_str(id).is_err()
+        || secret.len() != 64
+        || !secret.chars().all(|c| c.is_ascii_hexdigit())
+    {
+        return false;
+    }
+    let path = paths
+        .control_dir()
+        .join(CAPABILITY_DIR)
+        .join(format!("{}.json", id.to_lowercase()));
+    let Ok(bytes) = std::fs::read(path) else {
+        return false;
+    };
+    let Ok(record) = serde_json::from_slice::<CapabilityRecord>(&bytes) else {
+        return false;
+    };
+    record.expires_at > chrono::Utc::now()
+        && record.digest == hex::encode(sha2::Sha256::digest(secret.as_bytes()))
+}
+
+/// Asks the app to start its model server (`ask_library` wake protocol).
+pub fn touch_wake(paths: &LibraryPaths) -> std::io::Result<()> {
+    std::fs::create_dir_all(paths.control_dir())?;
+    std::fs::write(paths.control_dir().join(WAKE_FILE), b"")
+}
+
+/// True once when a wake request is pending; removes it.
+pub fn consume_wake(paths: &LibraryPaths) -> bool {
+    let path = paths.control_dir().join(WAKE_FILE);
+    path.exists() && std::fs::remove_file(path).is_ok()
+}
+
+pub fn wake_pending(paths: &LibraryPaths) -> bool {
+    paths.control_dir().join(WAKE_FILE).exists()
+}
+
+pub fn write_wake_error(paths: &LibraryPaths, message: &str) -> std::io::Result<()> {
+    std::fs::create_dir_all(paths.control_dir())?;
+    std::fs::write(
+        paths.control_dir().join(WAKE_ERROR_FILE),
+        message.as_bytes(),
+    )
+}
+
+pub fn read_wake_error(paths: &LibraryPaths) -> Option<String> {
+    let text = std::fs::read_to_string(paths.control_dir().join(WAKE_ERROR_FILE)).ok()?;
+    let trimmed = text.trim();
+    (!trimmed.is_empty()).then(|| trimmed.to_string())
+}
+
+pub fn clear_wake_error(paths: &LibraryPaths) {
+    let _ = remove_if_exists(&paths.control_dir().join(WAKE_ERROR_FILE));
+}
+
+/// Whether the personal-context grant is on.
+pub fn personal_context_enabled(paths: &LibraryPaths) -> bool {
+    paths.control_dir().join(PERSONAL_MARKER).is_file()
 }
 
 /// `None` when screen access is off. An empty (legacy) marker means all
@@ -256,5 +397,24 @@ mod tests {
         assert_eq!(screen_access_scope(&paths), Some(ScreenScope::Today));
         set_screen_access(&paths, None).unwrap();
         assert_eq!(screen_access_scope(&paths), None);
+    }
+
+    #[test]
+    fn capability_tokens_authorize_until_revoked() {
+        let dir = tempfile::tempdir().unwrap();
+        let paths = LibraryPaths::new(dir.path());
+        assert_eq!(meetings_authorization(&paths, None), None);
+        let token = issue_agent_capability(&paths, chrono::Duration::hours(1)).unwrap();
+        let grant = meetings_authorization(&paths, Some(&token)).unwrap();
+        assert!(grant.starts_with("capability:"));
+        assert_eq!(meetings_authorization(&paths, Some("bogus.token")), None);
+        revoke_agent_capability(&paths, &token).unwrap();
+        assert_eq!(meetings_authorization(&paths, Some(&token)), None);
+        set_meetings_access(&paths, true).unwrap();
+        assert!(
+            meetings_authorization(&paths, None)
+                .unwrap()
+                .starts_with("global:")
+        );
     }
 }
