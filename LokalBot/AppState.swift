@@ -584,6 +584,16 @@ final class AppState: ObservableObject {
     private(set) lazy var personalContextAccess = PersonalContextAccessManager(
         gate: PersonalContextAccessGate(root: storage.rootURL),
         claims: { [weak self] in self?.personalModel.readableClaims() })
+    /// Terminal settings access is another separate grant. Its control
+    /// socket exists only while the grant is on.
+    private(set) lazy var settingsControl = SettingsControlAccessManager(
+        gate: SettingsControlGate(root: storage.rootURL),
+        makeHandler: { [weak self] in
+            guard let self else { return { _ in .failure(.appNotRunning("LokalBot is shutting down.")) } }
+            let handler = AppControlHandler(app: self, gate: SettingsControlGate(root: self.storage.rootURL))
+            return { request in await handler.handle(request) }
+        },
+        onError: { [weak self] message in self?.lastError = message })
     private(set) lazy var quickRecallHotKey: QuickRecallHotKeyController = {
         let controller = QuickRecallHotKeyController()
         controller.onInvoke = { WindowAccess.shared.open("quick-recall") }
@@ -1229,6 +1239,7 @@ final class AppState: ObservableObject {
         agentAccess.start()
         screenMemoryAccess.start()
         personalContextAccess.start()
+        settingsControl.start()
         applyQuickRecallSetting()
         applyDailyMemoryExportSetting()
         applyMeetingNoteExportSetting()
@@ -1474,6 +1485,7 @@ final class AppState: ObservableObject {
             guard recording.prepareForTermination() else { return false }
             interactive = false
             settingsStore.flush()
+            settingsControl.stop()
             let pendingCotypingRuntimeTask = self.cotypingRuntimeTask
             pendingCotypingRuntimeTask?.cancel()
             await pendingCotypingRuntimeTask?.value
