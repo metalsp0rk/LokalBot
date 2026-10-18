@@ -17,6 +17,7 @@ use gpui_kit::{
 };
 use lokalbot_core::settings::AcceptGranularity;
 use lokalbot_platform::autocomplete::Support;
+use lokalbot_platform::autocomplete::session::replaced_bytes;
 
 use super::{Section, SettingsPage, models};
 use crate::state::{AppEvent, SettingsCategory};
@@ -66,13 +67,25 @@ impl SettingsPage {
         let Some(autocomplete) = crate::autocomplete::global(cx) else {
             return false;
         };
-        let Some(chunk) = autocomplete.update(cx, |autocomplete, cx| {
+        let Some(edit) = autocomplete.update(cx, |autocomplete, cx| {
             autocomplete.practice_accept(whole, cx)
         }) else {
             return false;
         };
-        self.practice
-            .update(cx, |state, cx| state.insert(chunk, window, cx));
+        self.practice.update(cx, |state, cx| {
+            if edit.backward == 0 && edit.forward == 0 {
+                state.insert(edit.text, window, cx);
+                return;
+            }
+            // Replace the `:shortcode` an emoji stands for, or the rest of
+            // the word the caret is inside of.
+            let value = state.value();
+            let cursor = state.cursor().min(value.len());
+            let (before, after) = value.split_at(cursor);
+            let (back, forward) = replaced_bytes(before, after, edit.backward, edit.forward);
+            state.set_selected_range(cursor - back..cursor + forward, cx);
+            state.replace(edit.text, window, cx);
+        });
         self.practice_sync(cx);
         true
     }
@@ -474,19 +487,33 @@ impl SettingsPage {
                 ),
             );
 
-        let context = Section::new("Context").row(
-            "settings.cotypingUseVisibleContext",
-            self.toggle(
+        let context = Section::new("Context")
+            .row(
                 "settings.cotypingUseVisibleContext",
-                "Use visible text above the field",
-                Some(
-                    "Use nearby messages and labels to suggest relevant replies. Processed on this PC, never saved; capture exclusions apply and private browser windows are skipped.",
+                self.toggle(
+                    "settings.cotypingUseVisibleContext",
+                    "Use visible text above the field",
+                    Some(
+                        "Use nearby messages and labels to suggest relevant replies. Processed on this PC, never saved; capture exclusions apply and private browser windows are skipped.",
+                    ),
+                    settings.cotyping_use_visible_context,
+                    |s, v| s.cotyping_use_visible_context = v,
+                    cx,
                 ),
-                settings.cotyping_use_visible_context,
-                |s, v| s.cotyping_use_visible_context = v,
-                cx,
-            ),
-        );
+            )
+            .row(
+                "settings.cotypingUseMeetingMemory",
+                self.toggle(
+                    "settings.cotypingUseMeetingMemory",
+                    "Use meeting and work memory",
+                    Some(
+                        "Use up to two relevant facts from recent meeting notes, decisions, and work memory to help with names and details. Processed on this PC.",
+                    ),
+                    settings.cotyping_use_meeting_memory,
+                    |s, v| s.cotyping_use_meeting_memory = v,
+                    cx,
+                ),
+            );
 
         let profile = Section::new("Writing profile")
             .row(

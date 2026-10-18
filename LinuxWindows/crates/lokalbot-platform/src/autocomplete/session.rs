@@ -8,6 +8,8 @@
 use std::collections::VecDeque;
 use std::time::{Duration, Instant};
 
+use unicode_segmentation::UnicodeSegmentation as _;
+
 /// A visible suggestion for one field.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct GhostSession {
@@ -85,10 +87,12 @@ impl GhostSession {
         }
     }
 
-    /// An accept inserted `chunk` (the start of `remaining`). The ghost moves
-    /// on before the app shows the text, so a quick second Tab takes the
-    /// next chunk. Returns false when `chunk` is not the start.
-    pub fn accept(&mut self, chunk: &str) -> bool {
+    /// An accept took `chunk` (the start of `remaining`) and typed
+    /// `insertion` after deleting `backward` user-perceived characters
+    /// before the caret (an emoji's `:shortcode`). The ghost moves on before
+    /// the app shows the text, so a quick second Tab takes the next chunk.
+    /// Returns false when `chunk` is not the start.
+    pub fn accept(&mut self, chunk: &str, insertion: &str, backward: usize) -> bool {
         if chunk.is_empty() || !self.remaining.starts_with(chunk) {
             return false;
         }
@@ -96,7 +100,16 @@ impl GhostSession {
             self.awaiting = Some(self.anchor.clone());
         }
         self.remaining = self.remaining[chunk.len()..].to_string();
-        self.anchor.push_str(chunk);
+        if backward > 0 {
+            let keep = self
+                .anchor
+                .grapheme_indices(true)
+                .rev()
+                .nth(backward - 1)
+                .map_or(0, |(index, _)| index);
+            self.anchor.truncate(keep);
+        }
+        self.anchor.push_str(insertion);
         true
     }
 
@@ -132,6 +145,39 @@ fn typed_since<'a>(anchor: &str, before: &'a str, truncated: bool) -> Option<&'a
     }
     let at = before.rfind(tail)?;
     Some(&before[at + tail.len()..])
+}
+
+/// `text` without its first `count` user-perceived characters: the text
+/// after the caret once an accept replaced the rest of a word.
+pub fn drop_graphemes(text: &str, count: usize) -> String {
+    let (_, forward) = replaced_bytes("", text, 0, count);
+    text[forward..].to_string()
+}
+
+/// The bytes an accept replaces: the last `backward` user-perceived
+/// characters of `before` and the first `forward` of `after`.
+pub fn replaced_bytes(
+    before: &str,
+    after: &str,
+    backward: usize,
+    forward: usize,
+) -> (usize, usize) {
+    let back = match backward {
+        0 => 0,
+        n => before
+            .grapheme_indices(true)
+            .rev()
+            .nth(n - 1)
+            .map_or(before.len(), |(index, _)| before.len() - index),
+    };
+    let ahead = match forward {
+        0 => 0,
+        n => after
+            .grapheme_indices(true)
+            .nth(n)
+            .map_or(after.len(), |(index, _)| index),
+    };
+    (back, ahead)
 }
 
 /// Contexts recently sent for one field, newest last, so a suggestion that
@@ -243,7 +289,7 @@ mod tests {
     #[test]
     fn accepting_moves_the_anchor_before_the_app_shows_it() {
         let mut ghost = session();
-        assert!(ghost.accept(" up"));
+        assert!(ghost.accept(" up", " up", 0));
         assert_eq!(ghost.remaining, " on the plan");
         assert_eq!(ghost.anchor, "Thanks, I wanted to follow up");
         // A read from before the insert arrived, then a partial one: still
@@ -267,7 +313,22 @@ mod tests {
             ghost.reconcile("Thanks, I wanted to follow", false),
             Reconcile::Stale
         );
-        assert!(!session().accept(" off"));
+        assert!(!session().accept(" off", " off", 0));
+        // The typed text may differ from the chunk (a space the field had).
+        let mut spaced = GhostSession::new(1, "Hi ".into(), " there friend".into(), false);
+        assert!(spaced.accept(" there", "there", 0));
+        assert_eq!(spaced.anchor, "Hi there");
+        assert_eq!(spaced.reconcile("Hi there", false), Reconcile::Unchanged);
+        // An emoji replaces its shortcode.
+        let mut emoji = GhostSession::new(2, "Launch :rock".into(), "🚀".into(), false);
+        assert!(emoji.accept("🚀", "🚀", 5));
+        assert_eq!(emoji.anchor, "Launch 🚀");
+        assert!(emoji.is_exhausted());
+        assert_eq!(drop_graphemes("ing now", 3), " now");
+        assert_eq!(drop_graphemes("e\u{301}x", 1), "x");
+        assert_eq!(drop_graphemes("ab", 5), "");
+        assert_eq!(replaced_bytes("Launch :rock", "", 5, 0), (5, 0));
+        assert_eq!(replaced_bytes("x", "ing now", 3, 3), (1, 3));
     }
 
     #[test]

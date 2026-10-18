@@ -95,7 +95,7 @@ pub fn place(
                 field: field_l,
                 preceding_line,
                 screen: screen_l,
-                right_to_left: false,
+                right_to_left: lokalbot_ai::autocomplete::is_right_to_left(&field.before),
                 lines_below_free: field.after.trim().is_empty(),
                 metrics: FontMetrics {
                     line_height: size * 1.25,

@@ -31,7 +31,9 @@ use lokalbot_core::Settings;
 use lokalbot_engine::{AutocompleteCommand, AutocompleteUpdate, Command, FieldContext};
 use lokalbot_platform::autocomplete::geometry::RenderMode;
 use lokalbot_platform::autocomplete::policy::{self, EscapePause, ReadPolicy};
-use lokalbot_platform::autocomplete::session::{GhostSession, Reconcile, SentContexts};
+use lokalbot_platform::autocomplete::session::{
+    GhostSession, Reconcile, SentContexts, drop_graphemes,
+};
 use lokalbot_platform::autocomplete::{
     self as platform, Capability, Edit, FieldSnapshot, FieldWatcher, FocusSnapshot, InterceptedKey,
     KeyInterceptor, Rect, Support,
@@ -57,32 +59,58 @@ pub const PRACTICE_CONVERSATION: [(&str, &str); 2] = [
 ];
 
 /// What one Tab does: the chunk the suggestion gives up, what is typed, and
-/// what is deleted around the caret first.
-///
-/// Today this is `accept_chunk` typed as is. The engine's `plan_acceptance`
-/// (spacing after ". ! ?", a doubled space, the rest of a word to the right
-/// of the caret, emoji shortcodes) drops in here once it is merged.
+/// what is deleted around the caret first (the engine's `plan_acceptance`,
+/// `CotypingContinuationAcceptance`): a space the field already has is not
+/// typed twice, a new sentence gets its space, the rest of a word the caret
+/// is inside of is replaced, and an emoji replaces its `:shortcode`.
 struct Acceptance {
     chunk: String,
     edit: Edit,
 }
 
-fn plan_acceptance(remaining: &str, settings: &Settings, whole: bool) -> Option<Acceptance> {
-    let chunk = if whole {
-        remaining.to_string()
+fn plan_acceptance(
+    remaining: &str,
+    before: &str,
+    after: &str,
+    settings: &Settings,
+    whole: bool,
+) -> Option<Acceptance> {
+    let plan = if whole {
+        lokalbot_ai::autocomplete::plan_full_acceptance(remaining, before, after)
     } else {
-        lokalbot_ai::autocomplete::accept_chunk(remaining, settings.cotyping_accept_granularity)
-    };
-    if chunk.is_empty() || !remaining.starts_with(&chunk) {
+        lokalbot_ai::autocomplete::plan_acceptance(
+            remaining,
+            settings.cotyping_accept_granularity,
+            before,
+            after,
+        )
+    }?;
+    if plan.chunk.is_empty() || !remaining.starts_with(&plan.chunk) {
         return None;
     }
     Some(Acceptance {
         edit: Edit {
-            text: chunk.clone(),
-            ..Default::default()
+            text: plan.insertion,
+            backward: plan.backward_delete,
+            forward: plan.forward_delete,
         },
-        chunk,
+        chunk: plan.chunk,
     })
+}
+
+/// The text to draw for a session and the part of it the next Tab takes:
+/// an emoji shows with its shortcode ("🚀 :rocket:") and goes in one press.
+fn drawn_ghost(session: &GhostSession, settings: &Settings) -> (String, String) {
+    match lokalbot_ai::autocomplete::emoji_ghost(&session.anchor, &session.remaining) {
+        Some(ghost) => (ghost, session.remaining.clone()),
+        None => (
+            session.remaining.clone(),
+            lokalbot_ai::autocomplete::accept_chunk(
+                &session.remaining,
+                settings.cotyping_accept_granularity,
+            ),
+        ),
+    }
 }
 
 pub struct AutocompleteHandle(pub Entity<Autocomplete>);
@@ -123,11 +151,8 @@ impl Practice {
         if session.remaining.is_empty() {
             return None;
         }
-        let chunk = lokalbot_ai::autocomplete::accept_chunk(
-            &session.remaining,
-            settings.cotyping_accept_granularity,
-        );
-        Some((session.remaining.clone(), chunk.chars().count()))
+        let (drawn, emphasis) = drawn_ghost(session, settings);
+        Some((drawn, emphasis.chars().count()))
     }
 }
 
@@ -610,23 +635,21 @@ impl Autocomplete {
     /// Draws the session's ghost at the field's caret, or drops it when it
     /// has nowhere to go.
     fn present(&mut self, cx: &mut Context<Self>) {
+        let settings = self.settings(cx).clone();
         let target = match (&self.session, &self.current) {
             (Some(session), Some(current))
                 if session.field_id == current.id && !session.remaining.is_empty() =>
             {
-                Some((current.field.clone(), session.remaining.clone()))
+                let (drawn, emphasis) = drawn_ghost(session, &settings);
+                let emoji = drawn != session.remaining;
+                Some((current.field.clone(), drawn, emphasis, emoji))
             }
             _ => None,
         };
-        let Some((field, remaining)) = target else {
+        let Some((field, remaining, emphasis, emoji)) = target else {
             self.clear_session(cx);
             return;
         };
-        let settings = self.settings(cx).clone();
-        let emphasis = lokalbot_ai::autocomplete::accept_chunk(
-            &remaining,
-            settings.cotyping_accept_granularity,
-        );
         let caret = self.predicted_caret.unwrap_or(field.caret);
         let screen = platform::screen_containing(&caret);
         let sampled = self.background_luminance(&field, caret);
@@ -656,6 +679,7 @@ impl Autocomplete {
                 placement.frame
             );
             if placement.mode == RenderMode::Inline
+                && !emoji
                 && placement.shown.len() < remaining.len()
                 && let Some(session) = self.session.as_mut()
             {
@@ -735,7 +759,13 @@ impl Autocomplete {
             if current.field.before != session.anchor && session.awaiting.is_none() {
                 return None;
             }
-            plan_acceptance(&session.remaining, &settings, false)
+            plan_acceptance(
+                &session.remaining,
+                &session.anchor,
+                &self.session_after,
+                &settings,
+                false,
+            )
         })();
         let Some(plan) = plan else {
             // Fail open: the app gets its Tab.
@@ -752,7 +782,9 @@ impl Autocomplete {
                 .jobs
                 .send((field_id, current.field.clone(), plan.edit.clone()));
         }
-        session.accept(&plan.chunk);
+        session.accept(&plan.chunk, &plan.edit.text, plan.edit.backward);
+        // The rest of a word the caret was inside of goes with the insert.
+        self.session_after = drop_graphemes(&self.session_after, plan.edit.forward);
         self.last_accept = Some(Instant::now());
         crate::bridge::send(
             Command::Autocomplete(AutocompleteCommand::Accepted {
@@ -804,7 +836,7 @@ impl Autocomplete {
             field: field.field_frame.map(logical),
             preceding_line: preceding,
             screen: platform::screen_containing(&caret).map(logical),
-            right_to_left: false,
+            right_to_left: lokalbot_ai::autocomplete::is_right_to_left(anchor),
             lines_below_free: field.after.trim().is_empty(),
             metrics: platform::geometry::FontMetrics {
                 line_height: size * 1.25,
@@ -919,15 +951,22 @@ impl Autocomplete {
         );
     }
 
-    /// One accept in the practice editor: returns what to type at its caret.
-    pub fn practice_accept(&mut self, whole: bool, cx: &mut Context<Self>) -> Option<String> {
+    /// One accept in the practice editor: returns the edit to make at its
+    /// caret.
+    pub fn practice_accept(&mut self, whole: bool, cx: &mut Context<Self>) -> Option<Edit> {
         let settings = self.settings(cx).clone();
         let session = self.practice.session.as_mut()?;
         if session.anchor != self.practice.before {
             return None;
         }
-        let plan = plan_acceptance(&session.remaining, &settings, whole)?;
-        session.accept(&plan.chunk);
+        let plan = plan_acceptance(
+            &session.remaining,
+            &self.practice.before,
+            &self.practice.after,
+            &settings,
+            whole,
+        )?;
+        session.accept(&plan.chunk, &plan.edit.text, plan.edit.backward);
         if session.is_exhausted() {
             self.practice.session = None;
         }
@@ -939,7 +978,7 @@ impl Autocomplete {
             cx,
         );
         cx.notify();
-        Some(plan.edit.text)
+        Some(plan.edit)
     }
 
     /// Esc in the practice editor.
@@ -965,11 +1004,20 @@ mod tests {
             cotyping_accept_granularity: AcceptGranularity::Word,
             ..Default::default()
         };
-        let plan = plan_acceptance(" up on the plan", &settings, false).unwrap();
+        let plan = plan_acceptance(" up on the plan", "follow", "", &settings, false).unwrap();
         assert_eq!(plan.chunk, " up");
         assert_eq!(plan.edit.text, " up");
-        let whole = plan_acceptance(" up on the plan", &settings, true).unwrap();
+        let whole = plan_acceptance(" up on the plan", "follow", "", &settings, true).unwrap();
         assert_eq!(whole.chunk, " up on the plan");
-        assert!(plan_acceptance("", &settings, false).is_none());
+        assert!(plan_acceptance("", "follow", "", &settings, false).is_none());
+    }
+
+    #[test]
+    fn an_emoji_replaces_its_shortcode() {
+        let settings = Settings::default();
+        let plan = plan_acceptance("🚀", "Launch :rocket", "", &settings, false).unwrap();
+        assert_eq!(plan.chunk, "🚀");
+        assert_eq!(plan.edit.text, "🚀");
+        assert_eq!(plan.edit.backward, ":rocket".chars().count());
     }
 }

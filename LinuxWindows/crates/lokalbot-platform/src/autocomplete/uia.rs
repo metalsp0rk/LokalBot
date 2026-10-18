@@ -622,7 +622,8 @@ impl Reader {
                 }
                 first_rect(previous.GetBoundingRectangles().ok())
             });
-            let mut caret_rect = policy::choose_caret(empty_range, previous, field_frame, false)
+            let rtl = policy::is_right_to_left(&before);
+            let mut caret_rect = policy::choose_caret(empty_range, previous, field_frame, rtl)
                 .map(|rect| (rect, true));
             if caret_rect.is_none() {
                 caret_rect = system_caret(fixed.pid).map(|rect| (rect, true));

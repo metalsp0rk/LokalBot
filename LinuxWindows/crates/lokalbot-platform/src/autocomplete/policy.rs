@@ -477,6 +477,17 @@ impl EscapePause {
     }
 }
 
+/// Right-to-left when the last strong character is Hebrew or Arabic
+/// (`CotypingTextDirectionDetector`), for choosing the caret's edge. The
+/// engine's `lokalbot_ai::autocomplete::is_right_to_left` does the same for
+/// placing the ghost; this crate does not depend on that one.
+pub fn is_right_to_left(text: &str) -> bool {
+    text.chars()
+        .rev()
+        .find(|c| c.is_alphabetic())
+        .is_some_and(|c| matches!(c as u32, 0x0590..=0x08FF | 0xFB1D..=0xFDFF | 0xFE70..=0xFEFF))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -760,5 +771,12 @@ mod tests {
         assert!(!pause.is_paused("field-b", now + Duration::from_secs(1)));
         assert!(!pause.is_paused("field-a", now + Duration::from_secs(11)));
         assert!(!pause.is_paused("field-a", now));
+    }
+
+    #[test]
+    fn right_to_left_follows_the_last_letter() {
+        assert!(is_right_to_left("שלום"));
+        assert!(!is_right_to_left("hello"));
+        assert!(!is_right_to_left("שלום hello"));
     }
 }

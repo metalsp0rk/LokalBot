@@ -247,6 +247,13 @@ pub const ENTRIES: &[Entry] = &[
         value: |s| on_off(s.cotyping_use_visible_context),
     },
     Entry {
+        id: "settings.cotypingUseMeetingMemory",
+        title: "Use meeting and work memory",
+        category: Writing,
+        aliases: "autocomplete context notes decisions projects people",
+        value: |s| on_off(s.cotyping_use_meeting_memory),
+    },
+    Entry {
         id: "settings.cotypingExcludedApps",
         title: "Never suggest in these apps",
         category: Writing,

@@ -1038,7 +1038,7 @@ impl Reader {
             .then(|| self.bus.character_extents(obj, caret - 1))
             .flatten()
             .map(offset);
-        let rtl = is_right_to_left(&before);
+        let rtl = policy::is_right_to_left(&before);
         let (caret_rect, caret_exact) =
             match policy::choose_caret(empty_range, previous, field_frame, rtl) {
                 Some(rect) => (rect, true),
@@ -1137,15 +1137,6 @@ impl Reader {
             },
         )
     }
-}
-
-/// Right-to-left when the last strong character is Hebrew or Arabic
-/// (`CotypingTextDirectionDetector`).
-fn is_right_to_left(text: &str) -> bool {
-    text.chars()
-        .rev()
-        .find(|c| c.is_alphabetic())
-        .is_some_and(|c| matches!(c as u32, 0x0590..=0x08FF | 0xFB1D..=0xFDFF | 0xFE70..=0xFEFF))
 }
 
 /// The visible-context walk over AT-SPI.
@@ -1327,13 +1318,6 @@ mod tests {
         // "é" as e + combining acute is one grapheme of two characters.
         assert_eq!(chars_in_graphemes("caf\u{65}\u{301}", 1, false), 2);
         assert_eq!(chars_in_graphemes("\u{1F44D}\u{1F3FD} ok", 1, true), 2);
-    }
-
-    #[test]
-    fn right_to_left_follows_the_last_letter() {
-        assert!(is_right_to_left("שלום"));
-        assert!(!is_right_to_left("hello"));
-        assert!(!is_right_to_left("שלום hello"));
     }
 
     #[test]
