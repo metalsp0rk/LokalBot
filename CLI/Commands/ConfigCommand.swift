@@ -4,14 +4,15 @@ import Foundation
 struct ConfigCommand: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "config",
-        abstract: "Inspect LokalBot settings.",
+        abstract: "Inspect and change LokalBot settings.",
         discussion: """
             schema, describe, and search read the built-in settings list and
-            need no permission. list and get read the running app's values and
-            need "Allow external agents to change LokalBot settings" in
-            LokalBot → Settings → Privacy. They start LokalBot in the
-            background when it is not running; pass --no-launch to fail
+            need no permission. list, get, set, reset, export, and import use
+            the running app and need "Allow external agents to change LokalBot
+            settings" in LokalBot → Settings → Privacy. They start LokalBot in
+            the background when it is not running; pass --no-launch to fail
             instead. Values use the tokens shown by describe. JSON by default.
+            Changes that widen capture or sharing need the person in LokalBot.
             """,
         subcommands: [
             ConfigSchemaCommand.self,
@@ -19,6 +20,10 @@ struct ConfigCommand: ParsableCommand {
             ConfigSearchCommand.self,
             ConfigListCommand.self,
             ConfigGetCommand.self,
+            ConfigSetCommand.self,
+            ConfigResetCommand.self,
+            ConfigExportCommand.self,
+            ConfigImportCommand.self,
         ]
     )
 }

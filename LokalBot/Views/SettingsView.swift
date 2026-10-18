@@ -1137,6 +1137,7 @@ struct SettingsView: View {
                     .settingTarget("settings.personalContextAccess", selected: app.focusedSettingID)
                     SettingsControlAccessToggleRow(manager: app.settingsControl)
                     .settingTarget("settings.settingsControlAccess", selected: app.focusedSettingID)
+                    AgentSettingsChangesList(changes: app.agentSettingsChanges)
                 }
             }
 
@@ -1317,7 +1318,7 @@ struct SettingsView: View {
                         if let cliMessage {
                             SettingsHelp(cliMessage)
                         }
-                        SettingsHelp("Symlinks the bundled CLI at ~/.local/bin/lokalbot-cli and the skill into ~/.agents/skills and ~/.claude/skills. Read-only by design.")
+                        SettingsHelp("Symlinks the bundled CLI at ~/.local/bin/lokalbot-cli and the skill into ~/.agents/skills and ~/.claude/skills. Library access is read-only; changing settings needs its own toggle under Privacy.")
                     }
                 }
             }
@@ -1509,8 +1510,62 @@ private struct SettingsControlAccessToggleRow: View {
             get: { manager.isEnabled },
             set: { manager.setEnabled($0) })) {
             SettingsLabel("Allow external agents to change LokalBot settings",
-                          help: "Lets lokalbot-cli read your settings and app status, open Settings at a setting, and start LokalBot in the background. Separate from the other agent access toggles. Off by default.")
+                          help: "Lets lokalbot-cli read and change your preferences, show you a setting, and start LokalBot in the background. Turning on capture, a data source, or sharing still needs you here. Separate from the other agent access toggles. Off by default.")
         }
+    }
+}
+
+/// Settings an agent changed from the terminal, newest first, with Undo while
+/// the setting still holds the agent's value.
+private struct AgentSettingsChangesList: View {
+    @EnvironmentObject private var app: AppState
+    @ObservedObject var changes: AgentSettingsChanges
+
+    var body: some View {
+        Group {
+            if !changes.recent.isEmpty {
+                DisclosureGroup {
+                    ForEach(changes.recent.prefix(10)) { entry in
+                        LabeledContent {
+                            Button("Undo") {
+                                do {
+                                    try changes.undo(entry, in: app)
+                                } catch {
+                                    app.lastError = error.localizedDescription
+                                }
+                            }
+                            .disabled(!changes.canUndo(entry, in: app.settings))
+                        } label: {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(verbatim: summary(entry))
+                                Text(verbatim: "\(entry.caller) · \(entry.time.formatted(date: .abbreviated, time: .shortened))")
+                                    .settingsSecondary()
+                            }
+                        }
+                    }
+                } label: {
+                    SettingsLabel("Recent changes by agents",
+                                  help: "Settings changed from the terminal. Undo restores the earlier value while the setting still holds the agent's.")
+                }
+            }
+        }
+    }
+
+    private func summary(_ entry: AgentSettingsChanges.Entry) -> String {
+        guard let spec = SettingRegistry.spec(for: entry.key) else { return entry.key }
+        func shown(_ value: JSONValue?) -> String {
+            guard let value else { return "default" }
+            let presented = spec.presented(value)
+            let text: String
+            switch presented {
+            case .string(let string): text = string.isEmpty ? "empty" : string
+            case .bool(let flag): text = flag ? "on" : "off"
+            case .number(let number): text = number == number.rounded() ? String(Int(number)) : String(number)
+            default: text = "changed"
+            }
+            return text.count > 40 ? String(text.prefix(39)) + "…" : text
+        }
+        return "\(spec.title): \(shown(entry.previous)) → \(shown(entry.value))"
     }
 }
 

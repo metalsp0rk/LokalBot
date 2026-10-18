@@ -18,10 +18,18 @@ enum AppControlProtocol {
         arguments.contains(backgroundLaunchArgument)
     }
 
+    /// Settings sections `open settings <name>` accepts besides setting keys.
+    static let settingsDestinations = [
+        "models", "permissions", "agentAccess", "screenMemoryAccess", "personalContextAccess",
+        "settingsControlAccess", "memoryHealth", "resourceMonitor", "autocompleteStatistics",
+        "dictationWritingProfile",
+    ]
+
     enum Method: String, CaseIterable {
         case hello
         case settingsList = "settings.list"
         case settingsGet = "settings.get"
+        case settingsSet = "settings.set"
         case status
         case open
     }
@@ -54,6 +62,9 @@ struct AppControlRequest: Codable, Equatable {
 struct AppControlError: Codable, Equatable, LocalizedError {
     var code: String
     var message: String
+    /// Structured detail an agent can act on, such as the changes that need
+    /// approval.
+    var details: JSONValue?
 
     var errorDescription: String? { "[\(code)] \(message)" }
 
@@ -64,6 +75,28 @@ struct AppControlError: Codable, Equatable, LocalizedError {
         AppControlError(
             code: "unknown_key",
             message: "No setting is named \(key). Run `lokalbot-cli config search <words>` to find one.")
+    }
+
+    static func invalidValue(_ key: String, _ message: String) -> AppControlError {
+        AppControlError(code: "invalid_value", message: "\(key) \(message).")
+    }
+
+    static func readOnly(_ keys: [String]) -> AppControlError {
+        AppControlError(
+            code: "read_only",
+            message: "\(keys.joined(separator: ", ")) can't be changed from the terminal.",
+            details: .array(keys.map(JSONValue.string)))
+    }
+
+    /// Phase 2 refuses widening changes outright; in-app approval comes next.
+    static func needsApproval(_ changes: [JSONValue]) -> AppControlError {
+        let keys = changes.compactMap { $0["key"]?.stringValue }
+        return AppControlError(
+            code: "needs_approval",
+            message: "\(keys.joined(separator: ", ")) would widen what LokalBot captures, reads, records, or sends, "
+                + "so the person has to change it in LokalBot. Run `lokalbot-cli open settings <key>` to show them. "
+                + "Nothing was changed.",
+            details: .array(changes))
     }
 
     static func invalidRequest(_ message: String) -> AppControlError {

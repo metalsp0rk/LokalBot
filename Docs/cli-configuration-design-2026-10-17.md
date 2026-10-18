@@ -619,6 +619,22 @@ Phase 1, with the registry part of Phase 0, is implemented on branch
 - Moving the UI couplings into `AppState` is deferred to Phase 2, because
   only writes need them.
 
+Phase 2 is implemented in the follow-up PR:
+
+- `config set|reset|export|import` and `settings.set`: all or nothing, with
+  dry run. Preference and narrowing changes apply; widening ones return
+  `needs_approval` with the changes in `details`, and read-only ones
+  `read_only`.
+- `SettingsChangeApplier` validates through the real decoder and applies the
+  narrowing couplings (tracking off resets the capture mode, the capture mode
+  drives `screenshotsEnabled`, dreaming keeps its start day). The permission
+  requests that the Settings view fires when a feature is turned on move with
+  Phase 3, because only approved widening changes trigger them.
+- Audit log in `diagnostics/settings-changes.jsonl` with the caller's name,
+  and a "Recent changes by agents" list with Undo under the toggle.
+- `status` reports model readiness and onboarding; `open` accepts the
+  non-setting Settings sections.
+
 ## Phases
 
 | Phase | Scope | Size |

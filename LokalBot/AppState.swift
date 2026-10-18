@@ -589,11 +589,13 @@ final class AppState: ObservableObject {
     private(set) lazy var settingsControl = SettingsControlAccessManager(
         gate: SettingsControlGate(root: storage.rootURL),
         makeHandler: { [weak self] in
-            guard let self else { return { _ in .failure(.appNotRunning("LokalBot is shutting down.")) } }
+            guard let self else { return { _, _ in .failure(.appNotRunning("LokalBot is shutting down.")) } }
             let handler = AppControlHandler(app: self, gate: SettingsControlGate(root: self.storage.rootURL))
-            return { request in await handler.handle(request) }
+            return { request, peer in await handler.handle(request, from: peer) }
         },
         onError: { [weak self] message in self?.lastError = message })
+    /// Settings changed from the terminal, for the audit log and Undo.
+    private(set) lazy var agentSettingsChanges = AgentSettingsChanges(root: storage.rootURL)
     private(set) lazy var quickRecallHotKey: QuickRecallHotKeyController = {
         let controller = QuickRecallHotKeyController()
         controller.onInvoke = { WindowAccess.shared.open("quick-recall") }
@@ -2570,15 +2572,20 @@ final class AppState: ObservableObject {
 
         var updated = settings
         updated.dreamingEnabled = enabled
-        if enabled {
-            let calendar = Calendar.current
-            updated.dreamingFirstEligibleDayKey = DreamDay.key(
-                for: DreamScheduler.previousDay(of: Date(), calendar: calendar),
-                calendar: calendar)
-        } else {
-            updated.dreamingFirstEligibleDayKey = nil
-        }
+        updated.dreamingFirstEligibleDayKey = Self.dreamingFirstEligibleDayKey(enabled: enabled)
         settings = updated
+    }
+
+    /// Turning dreaming on starts at yesterday, so a new opt-in never
+    /// backfills older days; turning it off clears the boundary. Shared with
+    /// changes made from the terminal.
+    nonisolated static func dreamingFirstEligibleDayKey(
+        enabled: Bool,
+        now: Date = Date(),
+        calendar: Calendar = .current
+    ) -> String? {
+        guard enabled else { return nil }
+        return DreamDay.key(for: DreamScheduler.previousDay(of: now, calendar: calendar), calendar: calendar)
     }
 
     func dreamNow() {

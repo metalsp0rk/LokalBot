@@ -470,16 +470,22 @@ stays within the screen history profile. While a deletion is still being
 cleaned up, work memory and the timeline are left out.
 
 Another separate toggle, **Allow external agents to change LokalBot settings**,
-lets `lokalbot-cli config`, `status`, and `open` read your LokalBot settings and
-app status from the running app, and open Settings at a setting. They talk to the
-app over a local socket in the library's private `control/` folder that exists
-only while the toggle is on and accepts only your macOS user. Settings can
-include your writing profile, digest instructions, and folder paths; server URLs
-are shown without user names, passwords, or query strings, and API keys are
-never returned. When LokalBot is not running, these commands start it in the
-background, which also starts the capture and schedules you have turned on.
+lets `lokalbot-cli config`, `status`, and `open` read and change your LokalBot
+settings in the running app, and open Settings at a setting. They talk to the app
+over a local socket in the library's private `control/` folder that exists only
+while the toggle is on and accepts only your macOS user. Settings can include
+your writing profile, digest instructions, and folder paths; server URLs are
+shown without user names, passwords, or query strings, and API keys are never
+returned. An agent can change preferences and narrow what LokalBot captures or
+sends, for example turn capture off or add an exclusion. A change that would
+widen it, such as turning on capture, a data source, autocomplete, or dictation,
+approving a server, removing an exclusion, or changing retention, is refused:
+only you can make it in LokalBot. Each change is recorded, with the program that
+made it, in the library's `diagnostics/settings-changes.jsonl` and listed under
+the toggle with Undo. When LokalBot is not running, these commands start it in
+the background, which also starts the capture and schedules you have turned on.
 This toggle grants no meeting-library, screen-memory, or personal-context
-access, and none of those grants it. These commands do not change settings.
+access, and none of those grants it.
 
 **Open in Claude** and **Open in Codex**, in a meeting's More menu, start a new
 conversation in that installed app with the meeting's title, summary, and as much

@@ -4,7 +4,7 @@ import Foundation
 /// external agents to change settings; accepts connections from this user
 /// only and hands each request to the main actor.
 final class AppControlServer {
-    typealias Handler = @MainActor (AppControlRequest) async -> AppControlResponse
+    typealias Handler = @MainActor (AppControlRequest, AppControlPeer) async -> AppControlResponse
 
     let path: String
     private let handler: Handler
@@ -81,11 +81,12 @@ final class AppControlServer {
             return
         }
         let request = try? JSONDecoder().decode(AppControlRequest.self, from: line)
+        let peer = AppControlPeer.of(client)
         let handler = self.handler
         Task { @MainActor in
             let response: AppControlResponse
             if let request {
-                response = await handler(request)
+                response = await handler(request, peer)
             } else {
                 response = .failure(.invalidRequest("The request is not a LokalBot control request."))
             }
@@ -97,5 +98,53 @@ final class AppControlServer {
                 close(client)
             }
         }
+    }
+}
+
+/// Who sent a control request, for the audit log: the client process and,
+/// when it runs under a shell, the agent that started that shell.
+struct AppControlPeer: Equatable, Sendable {
+    var pid: Int32?
+    var description: String
+
+    static let unknown = AppControlPeer(pid: nil, description: "lokalbot-cli")
+
+    static func of(_ descriptor: Int32) -> AppControlPeer {
+        var pid: pid_t = 0
+        var length = socklen_t(MemoryLayout<pid_t>.size)
+        guard getsockopt(descriptor, SOL_LOCAL, LOCAL_PEERPID, &pid, &length) == 0, pid > 0 else {
+            return .unknown
+        }
+        let name = processName(pid) ?? "lokalbot-cli"
+        var ancestor = parent(of: pid)
+        for _ in 0..<6 {
+            guard let current = ancestor else { break }
+            if let parentName = processName(current), !shells.contains(parentName) {
+                return AppControlPeer(pid: pid, description: "\(name) via \(parentName)")
+            }
+            ancestor = parent(of: current)
+        }
+        return AppControlPeer(pid: pid, description: name)
+    }
+
+    private static let shells: Set<String> = [
+        "zsh", "bash", "sh", "fish", "dash", "login", "env", "sudo", "timeout", "nohup", "tmux", "screen",
+    ]
+
+    private static func processName(_ pid: pid_t) -> String? {
+        var buffer = [CChar](repeating: 0, count: 4_096)
+        let result = buffer.withUnsafeMutableBufferPointer { pointer in
+            proc_pidpath(pid, pointer.baseAddress, UInt32(pointer.count))
+        }
+        guard result > 0 else { return nil }
+        return URL(fileURLWithPath: String(cString: buffer)).lastPathComponent
+    }
+
+    private static func parent(of pid: pid_t) -> pid_t? {
+        var info = proc_bsdinfo()
+        let size = Int32(MemoryLayout<proc_bsdinfo>.size)
+        guard proc_pidinfo(pid, PROC_PIDTBSDINFO, 0, &info, size) == size else { return nil }
+        let parent = pid_t(info.pbi_ppid)
+        return parent > 1 ? parent : nil
     }
 }

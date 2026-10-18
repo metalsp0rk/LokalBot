@@ -459,7 +459,7 @@
 "Legacy rule · review" = "旧版规则 · 请检查";
 "Lets MCP clients and the lokalbot-cli skill (Claude, Cursor, …) list, read, search, and ask about your meetings — read-only and localhost only. Off by default." = "允许 MCP 客户端和 lokalbot-cli 技能（Claude、Cursor 等）列出、读取、搜索会议并就会议提问。仅支持只读和本机访问，默认关闭。";
 "Lets dictation and cotyping detect their global keyboard shortcuts." = "允许听写和自动补全检测各自的全局快捷键。";
-"Lets lokalbot-cli read your settings and app status, open Settings at a setting, and start LokalBot in the background. Separate from the other agent access toggles. Off by default." = "允许 lokalbot-cli 读取你的设置和应用状态、在“设置”中打开指定设置项，并在后台启动 LokalBot。与其他智能体访问开关相互独立。默认关闭。";
+"Lets lokalbot-cli read and change your preferences, show you a setting, and start LokalBot in the background. Turning on capture, a data source, or sharing still needs you here. Separate from the other agent access toggles. Off by default." = "允许 lokalbot-cli 读取和更改你的偏好设置、为你打开某个设置项，并在后台启动 LokalBot。开启采集、数据来源或共享仍需你在此确认。与其他智能体访问开关相互独立。默认关闭。";
 "Library" = "资料库";
 "Library location" = "资料库位置";
 "Light" = "浅色";
@@ -717,6 +717,7 @@
 "Ready" = "已就绪";
 "Reasoning" = "推理";
 "Recent" = "最近";
+"Recent changes by agents" = "智能体最近的更改";
 "Recent generations" = "最近生成记录";
 "Reconnect" = "重新连接";
 "Record Capture Trace (60 s)" = "记录采集跟踪（60 秒）";
@@ -881,6 +882,7 @@
 "Set by the model" = "由模型决定";
 "Settings" = "设置";
 "Settings categories" = "设置分类";
+"Settings changed from the terminal. Undo restores the earlier value while the setting still holds the agent's." = "在终端中更改的设置。只要该设置仍是智能体设定的值，撤销即可恢复之前的值。";
 "Settings navigation" = "设置导航";
 "Settings…" = "设置…";
 "Setup progress" = "设置进度";
@@ -954,7 +956,7 @@
 "Summarization" = "摘要";
 "Summarize automatically after transcription" = "转写完成后自动生成摘要";
 "Summary" = "摘要";
-"Symlinks the bundled CLI at ~/.local/bin/lokalbot-cli and the skill into ~/.agents/skills and ~/.claude/skills. Read-only by design." = "将内置命令行工具链接至 ~/.local/bin/lokalbot-cli，并将技能链接至 ~/.agents/skills 和 ~/.claude/skills。工具仅支持只读操作。";
+"Symlinks the bundled CLI at ~/.local/bin/lokalbot-cli and the skill into ~/.agents/skills and ~/.claude/skills. Library access is read-only; changing settings needs its own toggle under Privacy." = "将内置命令行工具链接至 ~/.local/bin/lokalbot-cli，并将技能链接至 ~/.agents/skills 和 ~/.claude/skills。资料库访问为只读；更改设置需在“隐私”中另行开启。";
 "System" = "系统";
 "System audio input level" = "系统音频输入电平";
 "System default" = "系统默认";
