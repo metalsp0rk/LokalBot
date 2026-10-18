@@ -7,16 +7,16 @@ use gpui_kit::{App, AssetSource, Result, SharedString};
 // Lucide icons beyond GPUI Kit's default component set. Add a name here before
 // using `Icon::new(LbIcon::…)` with it; unknown names render as nothing.
 gpui_kit::assets::icon_assets!(pub ExtraIcons, [
-    Activity, AppWindow, ArrowDownLeft, ArrowUpRight, AudioLines, AudioWaveform, BadgeCheck,
-    Bookmark, Brain, Briefcase, CalendarClock, CalendarRange, ChartGantt, Circle, CircleCheckBig,
-    CircleDot, CirclePause, CirclePlay, CircleQuestionMark, CircleStop, Clock, Disc, FileSearch,
-    Hourglass, Keyboard, Layers, LayoutGrid, Link, ListChecks, Lock, LockKeyhole, MessageSquareQuote,
-    MessagesSquare, MicOff, Monitor, MoonStar, Package, Pencil, Pin, Quote, Radio, RotateCcw, ScanText,
-    SearchCheck, Share2, ShieldCheck, SlidersHorizontal, Sparkle, Sparkles, SquarePen, SquareStop,
-    Terminal, TextCursorInput, TextSearch, Users, Video, Volume2, WandSparkles, X,
-    // Today, Meetings and Timeline.
-    ArrowRightLeft, ArrowUpDown, CircleArrowDown, CircleEllipsis, CircleMinus, Contrast, CornerDownRight,
-    MessageSquareText, Share, SquareArrowOutUpRight, UserRoundCheck,
+    Activity, AppWindow, ArrowDownLeft, ArrowRightLeft, ArrowUpDown, ArrowUpRight, AudioLines,
+    AudioWaveform, BadgeCheck, Bookmark, Brain, Briefcase, CalendarClock, CalendarRange, ChartGantt,
+    Circle, CircleArrowDown, CircleArrowUp, CircleCheckBig, CircleDot, CircleEllipsis, CircleMinus,
+    CirclePause, CirclePlay, CircleQuestionMark, CircleStop, Clock, Contrast, CornerDownLeft,
+    CornerDownRight, Crosshair, Disc, FileSearch, Hourglass, Key, Keyboard, Layers, LayoutGrid,
+    Link, ListChecks, Lock, LockKeyhole, MessageSquareQuote, MessageSquareText,
+    MessagesSquare, MicOff, Monitor, MoonStar, Package, Pencil, Pin, Quote, Radio, RotateCcw,
+    ScanText, SearchCheck, Share, Share2, ShieldCheck, SlidersHorizontal, Sparkle, Sparkles,
+    SquareArrowOutUpRight, SquarePen, SquareStop, Terminal, TextCursorInput, TextSearch,
+    Trash, UserRoundCheck, Users, Video, Volume2, WandSparkles, X,
 ]);
 
 /// Serves LokalBot's own files first, then the extra icons, then GPUI Kit's defaults.

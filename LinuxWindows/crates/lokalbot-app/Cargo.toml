@@ -24,5 +24,6 @@ serde.workspace = true
 serde_json.workspace = true
 chrono.workspace = true
 uuid.workspace = true
+directories.workspace = true
 parking_lot.workspace = true
 smol = "2"

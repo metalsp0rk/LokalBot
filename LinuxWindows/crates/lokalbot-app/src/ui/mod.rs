@@ -7,8 +7,15 @@
 //! page keeps the same radii, paddings and colors.
 
 pub mod action_row;
+pub mod answer_text;
+pub mod citations;
 pub mod controls;
+pub mod glyphs;
+pub mod result_row;
+pub mod rule_list;
 pub mod segmented_tabs;
+pub mod settings_row;
+pub mod shortcut_field;
 pub mod waveform;
 
 pub use gpui_kit::assets::IconName as Ico;
