@@ -169,6 +169,7 @@ impl SettingsPage {
                     .child(
                         div()
                             .flex_1()
+                            .min_w_0()
                             .text_size(ty::BODY)
                             .text_color(lb.text)
                             .child(status),

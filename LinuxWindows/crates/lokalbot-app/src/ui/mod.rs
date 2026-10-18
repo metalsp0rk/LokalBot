@@ -12,6 +12,7 @@ pub mod citations;
 pub mod controls;
 pub mod glyphs;
 pub mod markdown_view;
+pub mod profile;
 pub mod result_row;
 pub mod rule_list;
 pub mod segmented_tabs;

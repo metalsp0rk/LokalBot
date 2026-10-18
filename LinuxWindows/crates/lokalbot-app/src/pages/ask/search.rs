@@ -1,41 +1,22 @@
-//! Keyword results for Ask and Quick Recall, grouped by meeting
-//! (`RecallSearch.groups`). Runs on a background thread.
-//!
-//! This scans meeting files directly; it is replaced by the library's FTS
-//! search once that lands in `lokalbot-core`.
+//! Keyword results for Ask and Quick Recall (`RecallSearch`): meeting hits
+//! grouped by meeting, then screen moments. Runs on a background thread.
+
+use std::collections::{HashMap, HashSet};
+use std::path::PathBuf;
+use std::sync::Mutex;
 
 use chrono::{DateTime, Utc};
-use lokalbot_core::{Library, Meeting};
+use lokalbot_core::search::{DocKind, SearchQuery};
+use lokalbot_core::{Library, Meeting, ScreenMoment};
 use uuid::Uuid;
 
-/// Where in a meeting a keyword matched.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum HitKind {
-    Title,
-    Summary,
-    Notes,
-    Outcome,
-    Segment,
-}
-
-impl HitKind {
-    fn rank(self) -> u8 {
-        match self {
-            HitKind::Title => 0,
-            HitKind::Summary => 1,
-            HitKind::Outcome => 2,
-            HitKind::Notes => 3,
-            HitKind::Segment => 4,
-        }
-    }
-}
-
+/// One matching document in a meeting.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Hit {
-    pub kind: HitKind,
+    pub kind: DocKind,
     /// Transcript time for segment hits.
-    pub start: f64,
-    pub speaker: String,
+    pub start: Option<f64>,
+    pub speaker: Option<String>,
     /// Snippet with «matched» words.
     pub snippet: String,
 }
@@ -44,38 +25,55 @@ impl Hit {
     /// "Title", "Summary", "Your notes", "Outcome" or "▶ 00:12:04 · Maya".
     pub fn kind_label(&self) -> String {
         match self.kind {
-            HitKind::Title => "Title".into(),
-            HitKind::Summary => "Summary".into(),
-            HitKind::Notes => "Your notes".into(),
-            HitKind::Outcome => "Outcome".into(),
-            HitKind::Segment if self.speaker.is_empty() => {
-                format!("▶ {}", lokalbot_core::time::stamp(self.start))
+            DocKind::Title => "Title".into(),
+            DocKind::Summary => "Summary".into(),
+            DocKind::Notes => "Your notes".into(),
+            DocKind::Outcome => "Outcome".into(),
+            DocKind::Segment => {
+                let stamp = lokalbot_core::time::stamp(self.start.unwrap_or(0.0));
+                match self
+                    .speaker
+                    .as_deref()
+                    .map(speaker_label)
+                    .filter(|s| !s.is_empty())
+                {
+                    Some(speaker) => format!("▶ {stamp} · {speaker}"),
+                    None => format!("▶ {stamp}"),
+                }
             }
-            HitKind::Segment => format!(
-                "▶ {} · {}",
-                lokalbot_core::time::stamp(self.start),
-                self.speaker
-            ),
         }
     }
 
-    /// Quick Recall's meta kind: "Transcript", "Your notes", "Summary".
+    /// Quick Recall's kind word: "Transcript", "Your notes", "Summary".
     pub fn recall_kind(&self) -> &'static str {
         match self.kind {
-            HitKind::Segment => "Transcript",
-            HitKind::Notes => "Your notes",
-            HitKind::Title => "Title",
-            HitKind::Summary => "Summary",
-            HitKind::Outcome => "Outcome",
+            DocKind::Segment => "Transcript",
+            DocKind::Notes => "Your notes",
+            DocKind::Title => "Title",
+            DocKind::Summary => "Summary",
+            DocKind::Outcome => "Outcome",
         }
+    }
+
+    /// Where opening this hit lands: a transcript moment, or `None` for the summary.
+    pub fn moment(&self) -> Option<f64> {
+        (self.kind == DocKind::Segment).then(|| self.start.unwrap_or(0.0))
     }
 }
 
-/// All matches in one meeting; `hits[0]` is the primary row.
+/// All matches in one meeting; `hits[0]` is the best one.
 #[derive(Clone, Debug, PartialEq)]
 pub struct MeetingGroup {
     pub meeting: Meeting,
     pub hits: Vec<Hit>,
+}
+
+/// A screen moment and how many similar captures it stands for.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ScreenResult {
+    pub moment: ScreenMoment,
+    pub snippet: String,
+    pub captures: usize,
 }
 
 /// Result-type filter (`AskFacet`).
@@ -111,14 +109,13 @@ impl Facet {
         }
     }
 
-    fn allows(self, kind: HitKind) -> bool {
+    fn kinds(self) -> Option<Vec<DocKind>> {
         match self {
-            Facet::All => true,
-            Facet::Transcripts => kind == HitKind::Segment,
-            Facet::Summaries => kind == HitKind::Summary || kind == HitKind::Title,
-            Facet::Notes => kind == HitKind::Notes,
-            Facet::Outcomes => kind == HitKind::Outcome,
-            Facet::Screen => false,
+            Facet::All | Facet::Screen => None,
+            Facet::Transcripts => Some(vec![DocKind::Segment]),
+            Facet::Summaries => Some(vec![DocKind::Summary]),
+            Facet::Notes => Some(vec![DocKind::Notes]),
+            Facet::Outcomes => Some(vec![DocKind::Outcome]),
         }
     }
 }
@@ -127,189 +124,113 @@ impl Facet {
 pub struct Query {
     pub text: String,
     pub facet: Facet,
+    pub meetings: bool,
+    pub screen: bool,
     pub meeting_ids: Option<Vec<Uuid>>,
     pub since: Option<DateTime<Utc>>,
     pub until: Option<DateTime<Utc>>,
-    /// Maximum number of meeting groups.
+    /// Maximum meeting groups and screen moments.
     pub limit: usize,
 }
 
-/// Matching meetings, best first, and whether more matched than `limit`.
-pub fn run(library: &Library, meetings: &[Meeting], query: &Query) -> (Vec<MeetingGroup>, bool) {
-    let terms = terms(&query.text);
-    if terms.is_empty() || query.facet == Facet::Screen {
-        return (Vec::new(), false);
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct Results {
+    pub meetings: Vec<MeetingGroup>,
+    pub screens: Vec<ScreenResult>,
+    /// More meetings matched than `limit`.
+    pub truncated: bool,
+}
+
+/// Libraries whose stale search documents were brought up to date this run.
+static INDEXED: Mutex<Vec<PathBuf>> = Mutex::new(Vec::new());
+
+/// Indexes meetings whose files changed since they were last indexed, once
+/// per library and run, so a fresh or imported library is searchable.
+fn ensure_indexed(library: &Library) {
+    let root = library.paths().root().to_path_buf();
+    let Ok(mut indexed) = INDEXED.lock() else {
+        return;
+    };
+    if indexed.contains(&root) || library.is_read_only() {
+        return;
     }
-    let mut groups = Vec::new();
-    for meeting in meetings {
-        if query
-            .meeting_ids
-            .as_ref()
-            .is_some_and(|ids| !ids.contains(&meeting.id))
-        {
-            continue;
-        }
-        if query.since.is_some_and(|since| meeting.started_at < since)
-            || query.until.is_some_and(|until| meeting.started_at >= until)
-        {
-            continue;
-        }
-        let mut hits = Vec::new();
-        let mut consider = |kind: HitKind, text: &str, start: f64, speaker: &str| {
-            if query.facet.allows(kind)
-                && let Some(snippet) = snippet(text, &terms)
-            {
-                hits.push(Hit {
-                    kind,
-                    start,
-                    speaker: speaker.to_string(),
-                    snippet,
-                });
-            }
+    match library.reindex_stale() {
+        Ok(count) if count > 0 => log::info!("search: indexed {count} meetings"),
+        Ok(_) => {}
+        Err(err) => log::warn!("search: reindexing failed: {err:#}"),
+    }
+    indexed.push(root);
+}
+
+pub fn run(library: &Library, meetings: &[Meeting], query: &Query) -> Results {
+    let text = query.text.trim();
+    let mut results = Results::default();
+    if text.is_empty() {
+        return results;
+    }
+    if query.meetings && query.facet != Facet::Screen {
+        ensure_indexed(library);
+        let search = SearchQuery {
+            text: text.to_string(),
+            kinds: query.facet.kinds(),
+            meeting_ids: query.meeting_ids.clone(),
+            since: query.since,
+            until: query.until,
+            limit: 300,
         };
-        consider(HitKind::Title, &meeting.display_title(), 0.0, "");
-        if let Ok(Some(summary)) = library.summary(meeting) {
-            consider(HitKind::Summary, &strip_markdown(&summary), 0.0, "");
-        }
-        if let Ok(notes) = library.notes(meeting) {
-            consider(HitKind::Notes, &notes, 0.0, "");
-        }
-        if let Ok(Some(outcomes)) = library.outcomes(meeting) {
-            for item in &outcomes.action_items {
-                let start = item.citations.first().map(|c| c.start).unwrap_or(0.0);
-                consider(HitKind::Outcome, &item.text, start, "");
-            }
-            for decision in &outcomes.decision_records {
-                let start = decision.citations.first().map(|c| c.start).unwrap_or(0.0);
-                consider(HitKind::Outcome, &decision.text, start, "");
-            }
-        }
-        if let Ok(Some(transcript)) = library.transcript(meeting) {
-            for segment in &transcript.segments {
-                let speaker = transcript
-                    .speaker_aliases
-                    .get(&segment.speaker)
-                    .cloned()
-                    .unwrap_or_else(|| speaker_label(&segment.speaker));
-                consider(HitKind::Segment, &segment.text, segment.start, &speaker);
-            }
-        }
-        if hits.is_empty() {
-            continue;
-        }
-        hits.sort_by_key(|hit| hit.kind.rank());
-        groups.push(MeetingGroup {
-            meeting: meeting.clone(),
-            hits,
-        });
-    }
-    groups.sort_by(|a, b| {
-        let rank = |g: &MeetingGroup| g.hits[0].kind.rank();
-        rank(a)
-            .cmp(&rank(b))
-            .then(b.hits.len().cmp(&a.hits.len()))
-            .then(b.meeting.started_at.cmp(&a.meeting.started_at))
-    });
-    let truncated = query.limit > 0 && groups.len() > query.limit;
-    if truncated {
-        groups.truncate(query.limit);
-    }
-    (groups, truncated)
-}
-
-/// Lowercased words of at least two characters.
-pub fn terms(text: &str) -> Vec<String> {
-    text.split(|c: char| !c.is_alphanumeric() && c != '\'' && c != '-')
-        .map(|t| {
-            t.trim_matches(|c: char| c == '\'' || c == '-')
-                .to_lowercase()
-        })
-        .filter(|t| t.chars().count() >= 2)
-        .collect()
-}
-
-/// About 160 characters around the first match, every term wrapped in «».
-/// `None` unless every term occurs.
-pub fn snippet(text: &str, terms: &[String]) -> Option<String> {
-    let lower = text.to_lowercase();
-    // Lowercasing can change byte lengths for some scripts; fall back to no highlighting there.
-    let aligned = lower.len() == text.len();
-    if terms.iter().any(|term| !lower.contains(term.as_str())) {
-        return None;
-    }
-    let first = terms
-        .iter()
-        .filter_map(|term| lower.find(term.as_str()))
-        .min()
-        .unwrap_or(0);
-    let mut start = first.saturating_sub(60);
-    while start > 0 && !text.is_char_boundary(start) {
-        start -= 1;
-    }
-    if start > 0 {
-        start = text[start..first]
-            .find(' ')
-            .map(|space| start + space + 1)
-            .unwrap_or(start);
-    }
-    let mut end = (first + 160).min(text.len());
-    while end < text.len() && !text.is_char_boundary(end) {
-        end += 1;
-    }
-    let window = &text[start..end];
-    let mut out = String::new();
-    if start > 0 {
-        out.push('…');
-    }
-    if aligned {
-        let window_lower = &lower[start..end];
-        let mut cursor = 0;
-        while cursor < window.len() {
-            let next = terms
-                .iter()
-                .filter_map(|term| {
-                    window_lower[cursor..]
-                        .find(term.as_str())
-                        .map(|at| (cursor + at, term.len()))
-                })
-                .min_by_key(|(at, _)| *at);
-            match next {
-                Some((at, len))
-                    if window.is_char_boundary(at) && window.is_char_boundary(at + len) =>
-                {
-                    out.push_str(&window[cursor..at]);
-                    out.push('«');
-                    out.push_str(&window[at..at + len]);
-                    out.push('»');
-                    cursor = at + len;
+        match library.search(&search) {
+            Ok(hits) => {
+                let mut order: Vec<Uuid> = Vec::new();
+                let mut seen: HashSet<Uuid> = HashSet::new();
+                let mut grouped: HashMap<Uuid, Vec<Hit>> = HashMap::new();
+                for hit in hits {
+                    if seen.insert(hit.meeting_id) {
+                        order.push(hit.meeting_id);
+                    }
+                    grouped.entry(hit.meeting_id).or_default().push(Hit {
+                        kind: hit.kind,
+                        start: hit.start,
+                        speaker: hit.speaker,
+                        snippet: hit.snippet,
+                    });
                 }
-                _ => {
-                    out.push_str(&window[cursor..]);
-                    break;
+                for id in order {
+                    let Some(meeting) = meetings.iter().find(|m| m.id == id) else {
+                        continue;
+                    };
+                    let hits = grouped.remove(&id).unwrap_or_default();
+                    results.meetings.push(MeetingGroup {
+                        meeting: meeting.clone(),
+                        hits,
+                    });
                 }
             }
+            Err(err) => log::warn!("search failed: {err:#}"),
         }
-    } else {
-        out.push_str(window);
+        if query.limit > 0 && results.meetings.len() > query.limit {
+            results.meetings.truncate(query.limit);
+            results.truncated = true;
+        }
     }
-    if end < text.len() {
-        out.push('…');
+    let screen_facet = matches!(query.facet, Facet::All | Facet::Screen);
+    if query.screen && screen_facet && query.meeting_ids.is_none() {
+        match library.search_screen_hits(text, None, None, query.limit.max(1)) {
+            Ok(hits) => {
+                results.screens = hits
+                    .into_iter()
+                    .filter(|hit| query.since.is_none_or(|since| hit.moment.ts >= since))
+                    .filter(|hit| query.until.is_none_or(|until| hit.moment.ts < until))
+                    .map(|hit| ScreenResult {
+                        moment: hit.moment,
+                        snippet: hit.snippet,
+                        captures: hit.capture_count,
+                    })
+                    .collect();
+            }
+            Err(err) => log::warn!("screen search failed: {err:#}"),
+        }
     }
-    Some(out.split_whitespace().collect::<Vec<_>>().join(" "))
-}
-
-fn strip_markdown(text: &str) -> String {
-    text.lines()
-        .map(|line| {
-            let line = line.trim_start_matches(['#', '-', '*', '>', ' ']);
-            let line = ["[ ] ", "[x] ", "[X] "]
-                .iter()
-                .fold(line, |l, box_| l.strip_prefix(box_).unwrap_or(l));
-            line.replace("**", "")
-        })
-        .filter(|line| !line.trim().is_empty())
-        .collect::<Vec<_>>()
-        .join(" ")
+    results
 }
 
 /// `SpeakerDisplayName.label`: "Them" reads as "Other speaker", "Them 2" as "Speaker 2".
@@ -382,35 +303,39 @@ mod tests {
     use super::*;
 
     #[test]
-    fn snippets_mark_every_term() {
-        let terms = terms("Redis cluster");
-        let text = "We adopt Redis for caching; cluster mode waits for the failover benchmark.";
-        assert_eq!(
-            snippet(text, &terms).as_deref(),
-            Some("We adopt «Redis» for caching; «cluster» mode waits for the failover benchmark.")
-        );
-        assert_eq!(snippet("Only Redis here", &terms), None);
-    }
-
-    #[test]
-    fn long_text_is_windowed() {
-        let text = format!(
-            "{} captions are easy {}",
-            "word ".repeat(40),
-            "tail ".repeat(60)
-        );
-        let snippet = snippet(&text, &terms("captions")).unwrap();
-        assert!(snippet.starts_with('…'));
-        assert!(snippet.ends_with('…'));
-        assert!(snippet.contains("«captions»"));
-    }
-
-    #[test]
     fn question_detection_matches_the_mac() {
         assert!(is_question("What did we decide about Redis?"));
         assert!(is_question("redis status?"));
         assert!(is_question("list my recent meetings"));
         assert!(!is_question("redis cluster"));
         assert!(!is_question("what?"));
+    }
+
+    #[test]
+    fn speaker_labels() {
+        assert_eq!(speaker_label("Them"), "Other speaker");
+        assert_eq!(speaker_label("them 2"), "Speaker 2");
+        assert_eq!(speaker_label("Maya"), "Maya");
+    }
+
+    #[test]
+    fn searches_the_demo_library() {
+        let dir =
+            std::env::temp_dir().join(format!("lokalbot-ui-b-search-{}", Uuid::new_v4().simple()));
+        let paths = lokalbot_core::LibraryPaths::new(&dir);
+        lokalbot_core::demo::seed(&paths, Utc::now()).unwrap();
+        let library = Library::open(paths).unwrap();
+        let meetings = library.list_meetings().unwrap();
+        let query = Query {
+            text: "captions".into(),
+            meetings: true,
+            screen: true,
+            limit: 50,
+            ..Default::default()
+        };
+        let results = run(&library, &meetings, &query);
+        let _ = std::fs::remove_dir_all(&dir);
+        assert!(!results.meetings.is_empty(), "meeting hits for captions");
+        assert!(results.meetings[0].hits[0].snippet.contains('«'));
     }
 }

@@ -214,12 +214,9 @@ pub fn resolve_meeting<'a>(id: &str, meetings: &'a [Meeting]) -> Option<&'a Meet
 /// Parses one marker at the start of `text`; returns its byte length.
 fn parse_marker(text: &str) -> Option<(usize, CitationSource)> {
     let body = text.strip_prefix('[')?;
-    let (kind, rest) = if let Some(rest) = body.strip_prefix("meeting:") {
-        ("meeting", rest)
-    } else if let Some(rest) = body.strip_prefix("screen:") {
-        ("screen", rest)
-    } else {
-        return None;
+    let (kind, rest) = match body.strip_prefix("meeting:") {
+        Some(rest) => ("meeting", rest),
+        None => ("screen", body.strip_prefix("screen:")?),
     };
     let id_len = rest
         .bytes()

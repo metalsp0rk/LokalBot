@@ -20,14 +20,16 @@ pub enum ShortcutEvent {
     Recording(bool),
 }
 
+/// Returns a problem with a candidate ("Dictation already uses this shortcut…").
+type Validator = Box<dyn Fn(&str, &App) -> Option<String>>;
+
 pub struct ShortcutField {
     value: String,
     default_value: String,
     recording: bool,
     error: Option<SharedString>,
     focus: FocusHandle,
-    /// Returns a problem with a candidate ("Dictation already uses this shortcut…").
-    validate: Box<dyn Fn(&str, &App) -> Option<String>>,
+    validate: Validator,
     interceptor: Option<Subscription>,
     _blur: Subscription,
 }

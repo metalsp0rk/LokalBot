@@ -122,6 +122,24 @@ impl ActivitySource for WindowsSource {
     }
 }
 
+/// Lowercase executable name of the foreground window's process.
+pub(super) fn foreground_app_id() -> Option<String> {
+    // SAFETY: no arguments; returns a possibly null window handle.
+    let window = unsafe { GetForegroundWindow() };
+    if window.0.is_null() {
+        return None;
+    }
+    let mut pid = window_pid(window);
+    let mut image = process_image(pid)?;
+    if file_name(&image).eq_ignore_ascii_case("ApplicationFrameHost.exe")
+        && let Some(app_pid) = hosted_app_pid(window, pid)
+    {
+        pid = app_pid;
+        image = process_image(pid).unwrap_or(image);
+    }
+    Some(file_name(&image).to_lowercase())
+}
+
 fn window_pid(window: HWND) -> u32 {
     let mut pid = 0u32;
     // SAFETY: `pid` outlives the call; an invalid window leaves it 0.

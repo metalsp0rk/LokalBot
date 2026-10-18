@@ -59,6 +59,9 @@ fn installs_runtime_downloads_models_and_answers() {
         runtime.installed_version()
     );
     assert!(runtime.installed_backend().is_some());
+    if std::env::var_os("LOKALBOT_E2E_RUNTIME_ONLY").is_some() {
+        return;
+    }
 
     for id in [catalog::COMPACT_FALLBACK_ID, catalog::EMBEDDING_ID] {
         let entry = catalog::entry(id).unwrap();
@@ -158,4 +161,113 @@ fn installs_runtime_downloads_models_and_answers() {
     }
     runtime.shutdown();
     assert!(runtime.statuses().iter().all(|s| !s.running));
+}
+
+fn copy_dir(from: &std::path::Path, to: &std::path::Path) {
+    std::fs::create_dir_all(to).unwrap();
+    for entry in std::fs::read_dir(from).unwrap().flatten() {
+        let target = to.join(entry.file_name());
+        if entry.path().is_dir() {
+            copy_dir(&entry.path(), &target);
+        } else {
+            std::fs::copy(entry.path(), target).unwrap();
+        }
+    }
+}
+
+/// The macOS upgrade fixture, copied so nothing writes into it.
+pub fn fixture_library() -> (tempfile::TempDir, lokalbot_core::Library) {
+    let source = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../../LokalBotTests/Fixtures/upgrade/0.10.9/library");
+    let dir = tempfile::tempdir().unwrap();
+    copy_dir(&source, dir.path());
+    let library = lokalbot_core::Library::open(LibraryPaths::new(dir.path())).unwrap();
+    (dir, library)
+}
+
+#[test]
+#[ignore = "needs the runtime and models from installs_runtime_downloads_models_and_answers"]
+fn generates_notes_for_a_fixture_meeting() {
+    let _ = env_logger::builder()
+        .is_test(true)
+        .filter_level(log::LevelFilter::Info)
+        .try_init();
+    let root = e2e_root();
+    let model =
+        std::env::var("LOKALBOT_E2E_MODEL").unwrap_or_else(|_| catalog::COMPACT_FALLBACK_ID.into());
+    let settings = Settings {
+        built_in_model_id: model,
+        llama_backend: "auto".into(),
+        ..Settings::default()
+    };
+    let runtime = RuntimeManager::new(LibraryPaths::new(&root), &settings);
+    let think = ThinkClient::new(&runtime, &settings).unwrap();
+    let (_dir, library) = fixture_library();
+    let title = std::env::var("LOKALBOT_E2E_MEETING")
+        .unwrap_or_else(|_| "Customer call - Northwind".into());
+    let meeting = library
+        .list_meetings()
+        .unwrap()
+        .into_iter()
+        .find(|m| m.title == title)
+        .expect("fixture meeting");
+    let transcript = library.transcript(&meeting).unwrap().unwrap();
+    let notes_text = library.notes(&meeting).unwrap();
+    let started = Instant::now();
+    let notes = lokalbot_ai::notes::generate_meeting_notes(
+        &think,
+        &meeting,
+        &transcript,
+        &notes_text,
+        &settings,
+        &mut |step| eprintln!("  [{:.1}s] {step}", started.elapsed().as_secs_f64()),
+    )
+    .expect("notes generate");
+    eprintln!(
+        "notes for {title:?} in {:.1}s:\n{}",
+        started.elapsed().as_secs_f64(),
+        notes.summary_markdown
+    );
+    eprintln!(
+        "outcomes: {}",
+        serde_json::to_string_pretty(&notes.outcomes).unwrap()
+    );
+    assert!(notes.summary_markdown.contains("## TL;DR"));
+    runtime.shutdown();
+}
+
+#[test]
+#[ignore = "needs the runtime and models from installs_runtime_downloads_models_and_answers"]
+fn generates_a_digest_for_a_fixture_day() {
+    let _ = env_logger::builder()
+        .is_test(true)
+        .filter_level(log::LevelFilter::Info)
+        .try_init();
+    let root = e2e_root();
+    let model =
+        std::env::var("LOKALBOT_E2E_MODEL").unwrap_or_else(|_| catalog::COMPACT_FALLBACK_ID.into());
+    let settings = Settings {
+        built_in_model_id: model,
+        llama_backend: "auto".into(),
+        ..Settings::default()
+    };
+    let runtime = RuntimeManager::new(LibraryPaths::new(&root), &settings);
+    let think = ThinkClient::new(&runtime, &settings).unwrap();
+    let (_dir, library) = fixture_library();
+    let day = chrono::NaiveDate::from_ymd_opt(2026, 10, 17).unwrap();
+    let started = Instant::now();
+    let (markdown, meta) =
+        lokalbot_ai::digest::generate_day_digest(&think, &library, day, &settings, &mut |step| {
+            eprintln!("  [{:.1}s] {step}", started.elapsed().as_secs_f64())
+        })
+        .expect("digest generates");
+    eprintln!(
+        "digest for {day} in {:.1}s (quality {:?}):\n{markdown}",
+        started.elapsed().as_secs_f64(),
+        meta.quality
+    );
+    library.save_digest(day, &markdown, &meta).unwrap();
+    let parsed = library.day_digest(day).unwrap().unwrap();
+    assert!(!parsed.tasks.is_empty());
+    runtime.shutdown();
 }
