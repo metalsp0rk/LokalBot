@@ -171,6 +171,10 @@ pub struct AppData {
     pub settings_category: SettingsCategory,
     pub meeting_focus: Option<MeetingFocus>,
     pub ask_request: Option<AskRequest>,
+    /// A person (`PersonProfile::id`) for People to select.
+    pub person_focus: Option<String>,
+    /// A project (`ProjectProfile::id`) for Projects to select.
+    pub project_focus: Option<String>,
     pub recording: RecordingState,
     pub processing: HashMap<Uuid, ProcessingStage>,
     pub background: Vec<BackgroundItem>,
@@ -272,6 +276,8 @@ impl AppData {
             settings_category: SettingsCategory::General,
             meeting_focus: None,
             ask_request: None,
+            person_focus: None,
+            project_focus: None,
             recording: RecordingState::Idle,
             processing: HashMap::new(),
             background: Vec::new(),
@@ -315,6 +321,18 @@ impl AppData {
             at,
         });
         self.section = Section::Meetings;
+        cx.notify();
+    }
+
+    pub fn open_person(&mut self, id: String, cx: &mut Context<Self>) {
+        self.person_focus = Some(id);
+        self.section = Section::People;
+        cx.notify();
+    }
+
+    pub fn open_project(&mut self, id: String, cx: &mut Context<Self>) {
+        self.project_focus = Some(id);
+        self.section = Section::Projects;
         cx.notify();
     }
 

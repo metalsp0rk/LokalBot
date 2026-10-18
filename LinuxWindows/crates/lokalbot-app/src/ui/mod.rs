@@ -10,6 +10,7 @@ pub mod answer_text;
 pub mod citations;
 pub mod controls;
 pub mod glyphs;
+pub mod profile;
 pub mod result_row;
 pub mod rule_list;
 pub mod settings_row;

@@ -1,7 +1,7 @@
 //! Settings (`SettingsView.swift`): categories with teal icons on the left,
 //! a title and grouped form on the right, and search across every category.
 
-mod advanced;
+pub mod advanced;
 pub mod catalog;
 mod day_memory;
 mod dictation;
