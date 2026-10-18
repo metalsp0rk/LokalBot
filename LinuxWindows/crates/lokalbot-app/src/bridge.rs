@@ -288,7 +288,7 @@ fn apply(data: &mut AppData, event: EngineEvent, cx: &mut Context<AppData>) {
         EngineEvent::MeetingDetected { app_name, title } => {
             cx.emit(AppEvent::MeetingDetected { app_name, title });
         }
-        EngineEvent::Autocomplete(_) => {}
+        EngineEvent::Autocomplete(update) => crate::autocomplete::engine_update(update, cx),
         EngineEvent::LivePreview(preview) => data.live_preview = preview,
         EngineEvent::Screen(status) => data.screen = status,
         EngineEvent::FollowUp(update) => {

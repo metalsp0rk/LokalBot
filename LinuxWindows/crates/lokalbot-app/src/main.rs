@@ -6,6 +6,7 @@
 )]
 
 mod assets;
+mod autocomplete;
 mod bridge;
 mod desktop;
 mod hud;
@@ -218,6 +219,7 @@ fn main() {
                 log::error!("the background engine could not start: {err:#}");
             }
             desktop::start(&data, paths.root(), cx);
+            autocomplete::start(&data, cx);
             let first_launch = !data.read(cx).settings.onboarding_completed;
             if !options.autostart {
                 open_main_window(data.clone(), cx);

@@ -2,7 +2,8 @@
 //! draft until "Apply Choices and Start"; model downloads happen only when
 //! asked for. macOS permission panes have no equivalent here, so step two
 //! checks the microphone, system audio and activity tracking instead.
-//! Autocomplete is macOS-only, so it is not offered here.
+//! Step three can also prepare autocomplete's model, which stays off until
+//! it is turned on in Settings → Writing.
 
 use std::time::Duration;
 
@@ -21,7 +22,9 @@ use lokalbot_core::ScreenContextMode;
 use lokalbot_core::settings::{AutoRecordMode, SummarizerBackend};
 
 use crate::pages::ask::composer_inference;
-use crate::pages::settings::models::{model_bytes, model_name, models_in_use, size_label};
+use crate::pages::settings::models::{
+    autocomplete_needs, model_bytes, model_name, models_in_use, size_label,
+};
 use crate::state::{AppData, AppEvent};
 use crate::theme::{FONT_FAMILY, LbThemeExt as _, metric, ty};
 use crate::ui::{self, Ico};
@@ -104,6 +107,8 @@ pub struct Onboarding {
     step: Step,
     forward: bool,
     draft: Draft,
+    /// "Also prepare Autocomplete (optional)".
+    include_autocomplete: bool,
     _subscriptions: Vec<Subscription>,
 }
 
@@ -121,6 +126,7 @@ impl Onboarding {
                 day_memory: settings.tracking_enabled,
                 context_mode: settings.screen_context_capture_mode,
             },
+            include_autocomplete: false,
             _subscriptions: subscriptions,
         }
     }
@@ -149,6 +155,7 @@ impl Onboarding {
     }
 
     fn prepare_models(&mut self, cx: &mut Context<Self>) {
+        let include_autocomplete = self.include_autocomplete;
         // The draft is not applied yet, so its screen text model is asked for here.
         let screen_text = self.draft.screen_context() != ScreenContextMode::ActivityOnly;
         self.data.update(cx, |data, cx| {
@@ -158,6 +165,15 @@ impl Onboarding {
                     AppEvent::DownloadModel(lokalbot_ai::ocr::OCR_MODEL_ID.to_string()),
                     cx,
                 );
+            }
+            if include_autocomplete {
+                let missing: Vec<String> = autocomplete_needs(&data.settings)
+                    .into_iter()
+                    .filter(|id| !data.models.installed.contains(id))
+                    .collect();
+                for id in missing {
+                    data.request(AppEvent::DownloadModel(id), cx);
+                }
             }
         });
     }
@@ -359,7 +375,7 @@ impl Onboarding {
                 cx,
             ))
             .child(text(
-                "The dictation shortcut can be turned on later in Settings → Dictation.",
+                "Autocomplete and the dictation shortcut can be turned on later in Settings → Writing and Dictation.",
                 lb.text_secondary,
             ))
     }
@@ -400,7 +416,8 @@ impl Onboarding {
             .semantic_search_enabled
             .then(|| model_status(embedding_id, status.embeddings_ready));
         // Everything "Prepare" downloads: Transcribe with voice detection and
-        // speaker separation, Think, search by meaning, and the llama.cpp runtime.
+        // speaker separation, Think, search by meaning, the llama.cpp runtime,
+        // screen text when chosen, and Autocomplete's model when asked for.
         let ocr_id = lokalbot_ai::ocr::OCR_MODEL_ID;
         let screen_text = (self.draft.screen_context() != ScreenContextMode::ActivityOnly)
             .then(|| model_status(ocr_id, status.screen_text_ready));
@@ -408,12 +425,24 @@ impl Onboarding {
         if screen_text.is_some() && !needed.iter().any(|id| id == ocr_id) {
             needed.push(ocr_id.to_string());
         }
+        if self.include_autocomplete {
+            for id in autocomplete_needs(&settings) {
+                if !needed.contains(&id) {
+                    needed.push(id);
+                }
+            }
+        }
         let download: u64 = needed
             .iter()
             .filter(|id| !status.installed.contains(id))
             .map(|id| model_bytes(id))
             .sum();
+        let autocomplete = model_status(
+            &settings.cotyping_built_in_model_id,
+            status.autocomplete_ready,
+        );
         let page = cx.entity();
+        let toggle_page = page.clone();
         let preparing = !downloads.is_empty();
         v_flex()
             .gap(px(14.))
@@ -443,6 +472,32 @@ impl Onboarding {
                         lb.text_secondary,
                     )),
             )
+            .child(
+                h_flex()
+                    .gap(px(12.))
+                    .items_center()
+                    .child(div().flex_1().min_w_0().text_size(ty::BODY).text_color(lb.text).child("Also prepare Autocomplete (optional)"))
+                    .child(Switch::new("onboarding-autocomplete").checked(self.include_autocomplete).on_click(move |on, _, cx| {
+                        let on = *on;
+                        toggle_page.update(cx, |this, cx| {
+                            this.include_autocomplete = on;
+                            cx.notify();
+                        })
+                    })),
+            )
+            .when(self.include_autocomplete, |this| {
+                this.child(model_row(
+                    "Autocomplete",
+                    with_size(&settings.cotyping_built_in_model_id),
+                    autocomplete,
+                    downloads.get(&settings.cotyping_built_in_model_id).map(|d| d.fraction()),
+                    cx,
+                ))
+                .child(text(
+                    "Autocomplete also reads the text just above the field you are typing in, such as the conversation you are answering, to fit its suggestions. It stays on this PC and is never saved; turn it off in Settings → Writing.",
+                    lb.text_secondary,
+                ))
+            })
             .child(
                 h_flex()
                     .gap(px(12.))

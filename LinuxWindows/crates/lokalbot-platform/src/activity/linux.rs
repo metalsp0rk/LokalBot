@@ -169,6 +169,37 @@ impl WindowLister {
     }
 }
 
+/// App names and ids for other features, by day memory's rules, so
+/// autocomplete's exclusions match the names Privacy shows.
+pub(crate) struct AppResolver {
+    names: AppNames,
+}
+
+impl AppResolver {
+    pub(crate) fn new() -> Self {
+        Self {
+            names: AppNames::new(),
+        }
+    }
+
+    /// `(name, id)` of a process, with its window's `WM_CLASS` when known.
+    pub(crate) fn resolve(
+        &mut self,
+        pid: u32,
+        class: Option<String>,
+        instance: Option<String>,
+    ) -> (String, String) {
+        let app = self.names.resolve(&FocusedWindow {
+            title: String::new(),
+            pid: Some(pid),
+            class,
+            instance,
+            desktop_file: None,
+        });
+        (app.name, app.id)
+    }
+}
+
 pub(super) fn focused_app_hint() -> Option<String> {
     let window = match crate::session::desktop() {
         Desktop::X11 => super::x11::X11Probe::connect().ok()?.focused().ok()??,
