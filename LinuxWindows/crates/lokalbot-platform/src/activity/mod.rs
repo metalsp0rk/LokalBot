@@ -23,7 +23,9 @@ mod win32;
 mod x11;
 
 #[cfg(target_os = "linux")]
-pub(crate) use linux::WindowLister;
+pub(crate) use linux::{AppResolver, WindowLister};
+#[cfg(windows)]
+pub(crate) use win32::app_for_pid;
 
 /// One way of reading the focused window. Implementations must not block for
 /// long: each call is bounded by short timeouts.

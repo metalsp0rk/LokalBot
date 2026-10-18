@@ -110,6 +110,12 @@ pub struct Settings {
     #[serde(rename = "cotypingBuiltInModelID")]
     pub cotyping_built_in_model_id: String,
     pub cotyping_excluded_apps: String,
+    /// Sites where autocomplete never runs: a host (subdomains included) or a
+    /// full URL, comma-separated (`cotypingExcludedDomains`).
+    pub cotyping_excluded_domains: String,
+    /// Use the text shown just above the field, such as the conversation
+    /// being answered (`cotypingUseVisibleContext`, on as on macOS).
+    pub cotyping_use_visible_context: bool,
 }
 
 impl Default for Settings {
@@ -193,6 +199,8 @@ impl Default for Settings {
             cotyping_accept_granularity: AcceptGranularity::Word,
             cotyping_built_in_model_id: "lfm2.5-1.2b-instruct".into(),
             cotyping_excluded_apps: "1Password, Bitwarden, KeePassXC, KeePass".into(),
+            cotyping_excluded_domains: String::new(),
+            cotyping_use_visible_context: true,
         }
     }
 }
@@ -259,6 +267,14 @@ impl Settings {
 
     pub fn excluded_domain_list(&self) -> Vec<String> {
         split_list(&self.excluded_screen_domains)
+    }
+
+    pub fn cotyping_excluded_app_list(&self) -> Vec<String> {
+        split_list(&self.cotyping_excluded_apps)
+    }
+
+    pub fn cotyping_excluded_domain_list(&self) -> Vec<String> {
+        split_list(&self.cotyping_excluded_domains)
     }
 }
 

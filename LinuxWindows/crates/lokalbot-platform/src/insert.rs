@@ -91,6 +91,13 @@ pub fn insert_text(text: &str, method: InsertMethod) -> anyhow::Result<InsertOut
     }
 }
 
+/// Types `text` as keystrokes, never through the clipboard (autocomplete).
+/// `Ok(false)` when this session cannot type into other apps.
+#[cfg(target_os = "linux")]
+pub(crate) fn type_keystrokes(text: &str) -> anyhow::Result<bool> {
+    keys::type_text(text)
+}
+
 fn fallback(text: &str) -> anyhow::Result<InsertOutcome> {
     copy_to_clipboard(text)?;
     Ok(InsertOutcome::CopiedToClipboard)
@@ -138,7 +145,7 @@ pub(crate) enum PasteCombo {
 }
 
 /// Terminal emulators by executable, `WM_CLASS` or app id (lowercase).
-const TERMINALS: &[&str] = &[
+pub(crate) const TERMINALS: &[&str] = &[
     "gnome-terminal",
     "gnome-terminal-server",
     "org.gnome.terminal",

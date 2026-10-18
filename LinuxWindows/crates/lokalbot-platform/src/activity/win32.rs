@@ -122,6 +122,13 @@ impl ActivitySource for WindowsSource {
     }
 }
 
+/// `(friendly name, lowercase executable)` of a process, by day memory's
+/// rules, for autocomplete's exclusions.
+pub(crate) fn app_for_pid(pid: u32) -> Option<(String, String)> {
+    let image = process_image(pid)?;
+    Some((friendly_name(&image), file_name(&image).to_lowercase()))
+}
+
 /// Lowercase executable name of the foreground window's process.
 pub(super) fn foreground_app_id() -> Option<String> {
     // SAFETY: no arguments; returns a possibly null window handle.
