@@ -13,6 +13,12 @@
 //! Screenshots go to `<dir>` (default `autocomplete-probe`); the last line
 //! is `PROBE PASS` or `PROBE FAIL: <reason>`, with exit status 0 or 1.
 //! Notepad is emptied and closed at the end unless `--keep-open` is given.
+//! On Windows each ghost is also checked to fill exactly the frame it was
+//! placed at, with no window frame around it.
+//!
+//! `--overlay-only` skips the app and the keys: it shows and moves the ghost
+//! for a made-up field and checks its window, which works without a desktop
+//! app in front.
 
 // The app's own layout and ghost window; `layout` reaches `overlay` as
 // `super::overlay`, so both sit at the root here as they sit side by side
@@ -79,6 +85,7 @@ impl Focus {
 struct Options {
     out: PathBuf,
     keep_open: bool,
+    overlay_only: bool,
 }
 
 fn main() {
@@ -92,6 +99,7 @@ fn main() {
     let options = Options {
         out,
         keep_open: args.iter().any(|a| a == "--keep-open"),
+        overlay_only: args.iter().any(|a| a == "--overlay-only"),
     };
     if let Err(err) = std::fs::create_dir_all(&options.out) {
         println!(
@@ -117,7 +125,11 @@ fn main() {
         .detach();
         std::thread::spawn(move || {
             let mut target = None;
-            let outcome = script(&options, &ui, &mut target);
+            let outcome = if options.overlay_only {
+                overlay_script(&ui)
+            } else {
+                script(&options, &ui, &mut target)
+            };
             if let Some(target) = target.take()
                 && !options.keep_open
             {
@@ -282,6 +294,7 @@ fn script(
         shown.1, shown.2, shown.0.x, shown.0.y, shown.0.width, shown.0.height
     );
     std::thread::sleep(Duration::from_millis(700));
+    check_ghost_window(shown.0)?;
     screenshot(options, "01-ghost", &field, shown.0)?;
 
     let before_tab = Instant::now();
@@ -327,6 +340,7 @@ fn script(
     let rest = &SUGGESTION[plan.chunk.len()..];
     let moved = show_ghost(ui, &accepted, rest)?;
     std::thread::sleep(Duration::from_millis(700));
+    check_ghost_window(moved.0)?;
     screenshot(options, "02-after-tab", &accepted, moved.0)?;
 
     press(Key::Escape)?;
@@ -351,6 +365,82 @@ fn script(
     );
     println!("ESC taken by the interceptor; the field is unchanged");
     drop(watcher);
+    Ok(())
+}
+
+/// Shows and moves the ghost for a made-up field and checks its window.
+fn overlay_script(ui: &smol::channel::Sender<Ui>) -> anyhow::Result<()> {
+    let style = platform::FieldStyle {
+        font_family: Some(String::from(if cfg!(windows) {
+            "Consolas"
+        } else {
+            "DejaVu Sans Mono"
+        })),
+        font_points: Some(11.0),
+        color: Some(platform::Rgb { r: 0, g: 0, b: 0 }),
+        background: Some(platform::Rgb {
+            r: 255,
+            g: 255,
+            b: 255,
+        }),
+    };
+    let mut field = FieldSnapshot {
+        app_name: "Probe".into(),
+        app_id: "probe".into(),
+        before: SENTENCE.into(),
+        caret: Rect::new(366.0, 77.0, 0.0, 15.0),
+        caret_exact: true,
+        field_frame: Some(Rect::new(34.0, 77.0, 1424.0, 671.0)),
+        style: Some(style),
+        ..Default::default()
+    };
+    let shown = show_ghost(ui, &field, SUGGESTION)?;
+    println!(
+        "OVERLAY {} {:?} at ({:.0},{:.0} {:.0}x{:.0})",
+        shown.1, shown.2, shown.0.x, shown.0.y, shown.0.width, shown.0.height
+    );
+    std::thread::sleep(Duration::from_millis(700));
+    check_ghost_window(shown.0)?;
+    field.before.push_str(" up");
+    field.caret.x += 24.0;
+    let moved = show_ghost(ui, &field, " on the migration timeline")?;
+    println!(
+        "MOVED {} {:?} at ({:.0},{:.0} {:.0}x{:.0})",
+        moved.1, moved.2, moved.0.x, moved.0.y, moved.0.width, moved.0.height
+    );
+    std::thread::sleep(Duration::from_millis(700));
+    check_ghost_window(moved.0)?;
+    let _ = ui.send_blocking(Ui::Hide);
+    Ok(())
+}
+
+/// On Windows, that the ghost's window is exactly `frame` with nothing
+/// around it: no caption or border, its client area its whole window.
+fn check_ghost_window(frame: Rect) -> anyhow::Result<()> {
+    #[cfg(windows)]
+    {
+        let (window, client, frameless) =
+            win::ghost_window().ok_or_else(|| anyhow::anyhow!("no visible ghost window"))?;
+        println!(
+            "GHOST WINDOW at ({:.0},{:.0} {:.0}x{:.0}), client {:.0}x{:.0}, frameless {frameless}",
+            window.x, window.y, window.width, window.height, client.width, client.height
+        );
+        let close = |a: f32, b: f32| (a - b).abs() <= 1.0;
+        anyhow::ensure!(frameless, "the ghost window has a frame");
+        anyhow::ensure!(
+            close(client.width, window.width) && close(client.height, window.height),
+            "the ghost's client area is smaller than its window"
+        );
+        anyhow::ensure!(
+            close(window.x, frame.x)
+                && close(window.y, frame.y)
+                && close(window.width, frame.width)
+                && close(window.height, frame.height),
+            "the ghost window is not where it was placed"
+        );
+    }
+    #[cfg(not(windows))]
+    let _ = frame;
     Ok(())
 }
 
@@ -461,7 +551,7 @@ struct Target {
 #[cfg(windows)]
 mod win {
     use super::*;
-    use windows::Win32::Foundation::{CloseHandle, HWND};
+    use windows::Win32::Foundation::{CloseHandle, HWND, LPARAM, RECT};
     use windows::Win32::Graphics::Gdi::{
         BI_RGB, BITMAPINFO, BITMAPINFOHEADER, BitBlt, CAPTUREBLT, CreateCompatibleBitmap,
         CreateCompatibleDC, DIB_RGB_COLORS, DeleteDC, DeleteObject, GetDC, GetDIBits, ReleaseDC,
@@ -478,11 +568,12 @@ mod win {
         VK_TAB,
     };
     use windows::Win32::UI::WindowsAndMessaging::{
-        FindWindowW, GetForegroundWindow, GetSystemMetrics, GetWindowThreadProcessId,
-        SM_CXVIRTUALSCREEN, SM_CYVIRTUALSCREEN, SM_XVIRTUALSCREEN, SM_YVIRTUALSCREEN,
-        SetForegroundWindow,
+        EnumWindows, FindWindowW, GWL_EXSTYLE, GWL_STYLE, GetClientRect, GetForegroundWindow,
+        GetSystemMetrics, GetWindowLongPtrW, GetWindowRect, GetWindowThreadProcessId,
+        IsWindowVisible, SM_CXVIRTUALSCREEN, SM_CYVIRTUALSCREEN, SM_XVIRTUALSCREEN,
+        SM_YVIRTUALSCREEN, SetForegroundWindow, WS_CAPTION, WS_EX_TRANSPARENT, WS_POPUP,
     };
-    use windows::core::{PCWSTR, w};
+    use windows::core::{BOOL, PCWSTR, w};
 
     fn key(vk: VIRTUAL_KEY, up: bool) -> INPUT {
         let mut flags = if up {
@@ -654,6 +745,49 @@ mod win {
             let _ = CloseHandle(snapshot);
         }
         found
+    }
+
+    /// This process's visible click-through window (the ghost): its window
+    /// rect, its client size, and whether it has no caption or border.
+    pub(super) fn ghost_window() -> Option<(Rect, Rect, bool)> {
+        unsafe extern "system" fn visit(window: HWND, lparam: LPARAM) -> BOOL {
+            // SAFETY: `lparam` is the vector `ghost_window` keeps alive for
+            // the whole enumeration; the rest are plain queries.
+            unsafe {
+                let found = &mut *(lparam.0 as *mut Vec<HWND>);
+                let mut pid = 0u32;
+                GetWindowThreadProcessId(window, Some(&mut pid));
+                let ex = GetWindowLongPtrW(window, GWL_EXSTYLE) as u32;
+                if pid == std::process::id()
+                    && IsWindowVisible(window).as_bool()
+                    && ex & WS_EX_TRANSPARENT.0 != 0
+                {
+                    found.push(window);
+                }
+            }
+            BOOL(1)
+        }
+        let mut found: Vec<HWND> = Vec::new();
+        // SAFETY: the callback only runs during this call, while `found`
+        // lives; the rects outlive their calls.
+        unsafe {
+            let _ = EnumWindows(Some(visit), LPARAM(&mut found as *mut Vec<HWND> as isize));
+            let window = *found.first()?;
+            let (mut outer, mut inner) = (RECT::default(), RECT::default());
+            GetWindowRect(window, &mut outer).ok()?;
+            GetClientRect(window, &mut inner).ok()?;
+            let style = GetWindowLongPtrW(window, GWL_STYLE) as u32;
+            let frameless = style & WS_POPUP.0 != 0 && style & WS_CAPTION.0 == 0;
+            let rect = |r: RECT| {
+                Rect::new(
+                    r.left as f32,
+                    r.top as f32,
+                    (r.right - r.left) as f32,
+                    (r.bottom - r.top) as f32,
+                )
+            };
+            Some((rect(outer), rect(inner), frameless))
+        }
     }
 
     pub(super) fn origin() -> (f32, f32) {
