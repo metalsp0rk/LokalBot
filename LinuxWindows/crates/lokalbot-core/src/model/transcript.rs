@@ -64,7 +64,7 @@ pub enum AttributionSource {
     Unknown,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum SpeakerIdentity {
     User,
@@ -116,36 +116,156 @@ impl Transcript {
         speaker.trim().to_lowercase()
     }
 
-    /// Default names when no alias exists: Me, Them, Local speaker, Speaker unclear.
+    /// Default names when no alias exists (`Transcript.defaultSpeakerName`):
+    /// Them, Me, Local speaker, Speaker unclear; anything else capitalized
+    /// ("them 2" → "Them 2").
     pub fn default_speaker_name(speaker: &str) -> String {
-        let key = Self::canonical_speaker_key(speaker);
-        let base = key.rsplit(':').next().unwrap_or(&key).to_string();
-        match base.as_str() {
-            "me" | "local" => "Me".into(),
+        let trimmed = speaker.trim();
+        if trimmed.is_empty() {
+            return "Speaker".into();
+        }
+        match Self::canonical_speaker_key(trimmed).as_str() {
             "them" => "Them".into(),
-            "local unclear" | "them unclear" | "unclear" => "Speaker unclear".into(),
-            other if other.starts_with("local ") => "Local speaker".into(),
-            other if other.starts_with("them ") => {
-                let n = other.trim_start_matches("them ").trim();
-                format!("Speaker {n}")
-            }
-            other => {
-                let mut chars = other.chars();
-                match chars.next() {
-                    Some(first) => first.to_uppercase().collect::<String>() + chars.as_str(),
-                    None => "Speaker unclear".into(),
-                }
-            }
+            "me" => "Me".into(),
+            "local" => "Local speaker".into(),
+            "local unclear" | "them unclear" => "Speaker unclear".into(),
+            _ => trimmed
+                .split(' ')
+                .map(|word| {
+                    let lower = word.to_lowercase();
+                    let mut chars = lower.chars();
+                    match chars.next() {
+                        Some(first) => first.to_uppercase().collect::<String>() + chars.as_str(),
+                        None => String::new(),
+                    }
+                })
+                .collect::<Vec<_>>()
+                .join(" "),
         }
     }
 
-    /// Display name for a segment's speaker, honouring user aliases.
+    /// A segment's attribution, or the legacy one implied by its label, with
+    /// the "my microphone is me" default applied (`resolvedAttribution`).
+    pub fn resolved_attribution(segment: &Segment) -> SpeakerAttribution {
+        let mut attribution = segment.attribution.unwrap_or_else(|| {
+            let is_me = Self::canonical_speaker_key(&segment.speaker) == "me";
+            SpeakerAttribution {
+                source: if is_me {
+                    AttributionSource::Microphone
+                } else {
+                    AttributionSource::Unknown
+                },
+                identity: if is_me {
+                    SpeakerIdentity::Unresolved
+                } else {
+                    SpeakerIdentity::Other
+                },
+                method: AttributionMethod::Legacy,
+            }
+        });
+        if attribution.source == AttributionSource::Microphone
+            && matches!(
+                attribution.method,
+                AttributionMethod::Track
+                    | AttributionMethod::Diarization
+                    | AttributionMethod::Legacy
+            )
+        {
+            attribution.identity = SpeakerIdentity::User;
+        }
+        attribution
+    }
+
+    /// One identity for every segment of a speaker key, else unresolved;
+    /// overlapping speech and suspected echo never decide it.
+    pub fn speaker_identity(&self, key: &str) -> SpeakerIdentity {
+        let mut identities = self
+            .segments
+            .iter()
+            .filter(|s| Self::canonical_speaker_key(&s.speaker) == key)
+            .map(Self::resolved_attribution)
+            .filter(|a| {
+                !matches!(
+                    a.method,
+                    AttributionMethod::OverlappingSpeech | AttributionMethod::SuspectedEcho
+                )
+            })
+            .map(|a| a.identity);
+        match identities.next() {
+            Some(first) if identities.all(|i| i == first) => first,
+            _ => SpeakerIdentity::Unresolved,
+        }
+    }
+
+    fn name_for_key(&self, key: &str, identity: SpeakerIdentity) -> String {
+        if let Some(alias) = self.speaker_aliases.get(key) {
+            return alias.clone();
+        }
+        if identity == SpeakerIdentity::User {
+            return "Me".into();
+        }
+        if key == "me" {
+            "Local speaker".into()
+        } else {
+            Self::default_speaker_name(key)
+        }
+    }
+
+    /// Display name for a speaker: the user's alias, "Me" for the user's own
+    /// voice, else the default name (`displaySpeaker(for:)`).
     pub fn speaker_name(&self, speaker: &str) -> String {
         let key = Self::canonical_speaker_key(speaker);
-        self.speaker_aliases
-            .get(&key)
+        self.name_for_key(&key, self.speaker_identity(&key))
+    }
+
+    /// Every speaker key's display name, computed once (`speakerRoster`).
+    pub fn speaker_roster(&self) -> std::collections::HashMap<String, String> {
+        let mut identities: std::collections::HashMap<String, Option<SpeakerIdentity>> =
+            std::collections::HashMap::new();
+        for segment in &self.segments {
+            let key = Self::canonical_speaker_key(&segment.speaker);
+            let attribution = Self::resolved_attribution(segment);
+            let entry = identities.entry(key).or_insert(None);
+            if matches!(
+                attribution.method,
+                AttributionMethod::OverlappingSpeech | AttributionMethod::SuspectedEcho
+            ) {
+                continue;
+            }
+            *entry = match *entry {
+                None => Some(attribution.identity),
+                Some(existing) if existing == attribution.identity => Some(existing),
+                Some(_) => Some(SpeakerIdentity::Unresolved),
+            };
+        }
+        identities
+            .into_iter()
+            .map(|(key, identity)| {
+                let name = self.name_for_key(&key, identity.unwrap_or(SpeakerIdentity::Unresolved));
+                (key, name)
+            })
+            .collect()
+    }
+
+    /// One `transcript.md` entry, or `None` for a segment without text.
+    pub fn markdown_line(
+        segment: &Segment,
+        roster: &std::collections::HashMap<String, String>,
+    ) -> Option<String> {
+        let text = Self::display_text(&segment.text);
+        if text.is_empty() {
+            return None;
+        }
+        let name = roster
+            .get(&Self::canonical_speaker_key(&segment.speaker))
             .cloned()
-            .unwrap_or_else(|| Self::default_speaker_name(speaker))
+            .unwrap_or_else(|| Self::default_speaker_name(&segment.speaker));
+        Some(format!(
+            "**[{}] {}:** {}",
+            crate::time::stamp(segment.start),
+            name,
+            text
+        ))
     }
 
     /// `segment-%04d-%010lld-%010lld`: index, start ms, end ms.
@@ -177,19 +297,10 @@ impl Transcript {
 
     /// `transcript.md`: `**[HH:MM:SS] Name:** text`, blank-line separated.
     pub fn markdown(&self) -> String {
+        let roster = self.speaker_roster();
         self.segments
             .iter()
-            .filter_map(|segment| {
-                let text = Self::display_text(&segment.text);
-                (!text.is_empty()).then(|| {
-                    format!(
-                        "**[{}] {}:** {}",
-                        crate::time::stamp(segment.start),
-                        self.speaker_name(&segment.speaker),
-                        text
-                    )
-                })
-            })
+            .filter_map(|segment| Self::markdown_line(segment, &roster))
             .collect::<Vec<_>>()
             .join("\n\n")
     }
