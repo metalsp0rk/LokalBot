@@ -97,7 +97,7 @@ fn windows_full_name() -> Option<String> {
     let mut buffer = vec![0u16; size as usize + 1];
     // SAFETY: `buffer` holds `size` UTF-16 units plus a terminator, as requested.
     let ok = unsafe { GetUserNameExW(NameDisplay, buffer.as_mut_ptr(), &mut size) };
-    if ok == 0 {
+    if !ok {
         return None;
     }
     let name = String::from_utf16_lossy(&buffer[..size as usize])
