@@ -69,7 +69,7 @@ jobs:
 
       - name: Capture the app
         run: |
-          sudo apt-get install -y --no-install-recommends hsetroot
+          sudo apt-get install -y --no-install-recommends hsetroot xfce4-panel x11-utils dbus-daemon
           root="$RUNNER_TEMP/library"
           LOKALBOT_STORAGE_ROOT="$root" target/release/lokalbot --seed-demo
           pages="today meetings timeline people projects ask agent settings"
