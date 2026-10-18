@@ -25,6 +25,9 @@ for page in "${PAGES[@]}"; do
   if ! kill -0 "$APP" 2>/dev/null; then
     echo "LokalBot exited early on page $page:"; cat "/tmp/lokalbot-$page.log"; exit 1
   fi
+  # Park the pointer in a corner so no hover state shows.
+  DISPLAY="$DISPLAY_NUM" xdotool mousemove 4000 4000 2>/dev/null || true
+  sleep 0.5
   DISPLAY="$DISPLAY_NUM" ffmpeg -loglevel error -y -f x11grab -video_size "$SIZE" -i "$DISPLAY_NUM" -frames:v 1 "$OUT/linux-desktop-$page$SUFFIX.png"
   # Crop to the LokalBot window using its X geometry.
   WID=$(DISPLAY="$DISPLAY_NUM" xdotool search --sync --onlyvisible --name '^LokalBot$' | head -1 || true)

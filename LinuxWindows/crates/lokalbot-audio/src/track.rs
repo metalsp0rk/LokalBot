@@ -168,6 +168,8 @@ impl ChunkSink {
         &self.state
     }
 
+    /// Only the Linux sound-server capture lacks capture timestamps.
+    #[cfg_attr(not(target_os = "linux"), allow(dead_code))]
     pub fn push(&self, samples: Vec<f32>, rate: u32) {
         self.push_captured(samples, rate, None);
     }

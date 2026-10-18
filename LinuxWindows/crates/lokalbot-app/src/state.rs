@@ -211,6 +211,27 @@ pub struct AppData {
     /// Settings is recording a new shortcut: global shortcuts should pause
     /// so the keystroke reaches the recorder.
     pub shortcut_recording: bool,
+    /// The floating dictation status.
+    pub dictation: DictationHud,
+    /// "Mic · Receiving audio" / "System · Not attached" while recording.
+    pub recording_statuses: Option<(SharedString, SharedString)>,
+}
+
+/// What the dictation overlay shows.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub enum DictationHud {
+    #[default]
+    Idle,
+    Starting,
+    Listening {
+        level: f32,
+        elapsed: f64,
+    },
+    Transcribing,
+    Composing,
+    /// "Copied to the clipboard" and similar, shown briefly.
+    Notice(SharedString),
+    Failed(SharedString),
 }
 
 /// Progress of an answer in Ask.
@@ -307,6 +328,8 @@ impl AppData {
             digest_running: None,
             project_notes_running: Vec::new(),
             last_dictation: None,
+            dictation: DictationHud::Idle,
+            recording_statuses: None,
             audio_inputs: Vec::new(),
             shortcut_recording: false,
         }
@@ -580,6 +603,12 @@ pub enum AppEvent {
     InstallCli,
     /// Start or stop dictation from the UI ("Try here").
     ToggleDictation,
+    CancelDictation,
+    /// A meeting app started a call while recording asks first.
+    MeetingDetected {
+        app_name: String,
+        title: String,
+    },
     /// Store the API key for the OpenAI-compatible server in the system
     /// credential store (never in settings.json).
     SaveApiKey(String),

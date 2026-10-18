@@ -18,6 +18,8 @@ winresource = "0.1"
 lokalbot-core.workspace = true
 lokalbot-ai.workspace = true
 lokalbot-audio.workspace = true
+lokalbot-engine.workspace = true
+lokalbot-platform.workspace = true
 gpui-kit.workspace = true
 anyhow.workspace = true
 log.workspace = true
@@ -29,3 +31,4 @@ uuid.workspace = true
 directories.workspace = true
 parking_lot.workspace = true
 smol = "2"
+image = { version = "0.25", default-features = false, features = ["png"] }

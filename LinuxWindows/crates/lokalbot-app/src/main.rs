@@ -6,6 +6,9 @@
 )]
 
 mod assets;
+mod bridge;
+mod desktop;
+mod hud;
 mod pages;
 mod shell;
 mod state;
@@ -21,6 +24,7 @@ use gpui_kit::{
 use lokalbot_core::{Library, LibraryPaths, Settings};
 
 use crate::state::{AppData, AppEvent, AppHandle, Section};
+use lokalbot_platform::{InstanceError, IpcCommand};
 
 actions!(lokalbot, [Quit, ToggleRecording]);
 
@@ -32,6 +36,12 @@ struct Options {
     section: Option<Section>,
     /// `--window quick-recall|onboarding` opens that window at startup.
     window: Option<String>,
+    /// Started at login: stay in the tray without opening the main window.
+    autostart: bool,
+    /// `lokalbot quick-recall`, `toggle-recording`, `dictate --toggle|--start|--stop`,
+    /// `show`: forwarded to a running LokalBot, or run after startup. This is
+    /// how Wayland users bind compositor shortcuts.
+    command: Option<IpcCommand>,
 }
 
 fn parse_options() -> Options {
@@ -39,6 +49,20 @@ fn parse_options() -> Options {
     let mut options = Options {
         storage_root: LibraryPaths::root_from_args(&args),
         ..Default::default()
+    };
+    options.autostart = args
+        .iter()
+        .any(|a| a == lokalbot_platform::autostart::AUTOSTART_ARG);
+    options.command = match args.get(1).map(String::as_str) {
+        Some("quick-recall") => Some(IpcCommand::QuickRecall),
+        Some("toggle-recording") => Some(IpcCommand::ToggleRecording),
+        Some("show") => Some(IpcCommand::Show),
+        Some("dictate") => Some(match args.get(2).map(String::as_str) {
+            Some("--start") => IpcCommand::StartDictation,
+            Some("--stop") => IpcCommand::StopDictation,
+            _ => IpcCommand::ToggleDictation,
+        }),
+        _ => None,
     };
     let mut iter = args.iter();
     while let Some(arg) = iter.next() {
@@ -82,6 +106,22 @@ fn main() {
             }
         }
     }
+    // One LokalBot per library: a second launch hands its request to the first.
+    let instance = match lokalbot_platform::acquire_instance(paths.root()) {
+        Ok(guard) => Some(guard),
+        Err(InstanceError::AlreadyRunning) => {
+            let command = options.command.clone().unwrap_or(IpcCommand::Show);
+            if let Err(err) = lokalbot_platform::send(paths.root(), command) {
+                eprintln!("LokalBot is already running but did not respond: {err}");
+                std::process::exit(1);
+            }
+            return;
+        }
+        Err(err) => {
+            log::warn!("could not check for another LokalBot: {err}");
+            None
+        }
+    };
     let library = match Library::open(paths.clone()) {
         Ok(library) => library,
         Err(err) => {
@@ -108,13 +148,36 @@ fn main() {
             }
             cx.set_global(AppHandle(data.clone()));
             bind_actions(cx);
-            open_main_window(data.clone(), cx);
+            if let Err(err) = bridge::start(&data, cx) {
+                log::error!("the background engine could not start: {err:#}");
+            }
+            desktop::start(&data, paths.root(), cx);
+            let first_launch = !data.read(cx).settings.onboarding_completed;
+            if !options.autostart {
+                open_main_window(data.clone(), cx);
+            }
             data.update(cx, |data, cx| data.reload(cx));
             match options.window.as_deref() {
                 Some("quick-recall") => windows::quick_recall::open(cx),
                 Some("onboarding") => windows::onboarding::open(cx),
+                _ if first_launch && !options.autostart && options.section.is_none() => {
+                    windows::onboarding::open(cx)
+                }
                 _ => {}
             }
+            match options.command.clone() {
+                Some(IpcCommand::QuickRecall) => windows::quick_recall::open(cx),
+                Some(IpcCommand::ToggleRecording) => {
+                    data.update(cx, |data, cx| data.toggle_recording(cx))
+                }
+                Some(IpcCommand::StartDictation | IpcCommand::ToggleDictation) => bridge::send(
+                    lokalbot_engine::Command::Dictation(lokalbot_engine::DictationCommand::Start),
+                    cx,
+                ),
+                _ => {}
+            }
+            // Keep the instance lock for the life of the process.
+            std::mem::forget(instance);
         });
 }
 
@@ -129,7 +192,7 @@ fn bind_actions(cx: &mut App) {
     });
 }
 
-fn open_main_window(data: Entity<AppData>, cx: &mut App) {
+pub(crate) fn open_main_window(data: Entity<AppData>, cx: &mut App) {
     let mut window_size = size(px(1280.), px(820.));
     if let Some(display) = cx.primary_display() {
         let display_size = display.bounds().size;
@@ -165,11 +228,29 @@ fn open_main_window(data: Entity<AppData>, cx: &mut App) {
                 handle_event(&subscribed, event, window, cx)
             })
             .detach();
+        // Closing the window keeps LokalBot in the tray when that is on and a
+        // tray icon exists; otherwise it quits.
+        let closing = data.clone();
+        window.on_window_should_close(cx, move |_, cx| {
+            let keep = closing.read(cx).settings.run_in_tray
+                && desktop::desktop(cx).is_some_and(|d| d.has_tray());
+            if !keep {
+                cx.quit();
+            }
+            true
+        });
         cx.new(|cx| shell::Workspace::new(window, cx))
     });
-    if let Err(err) = result {
-        log::error!("could not open the main window: {err:#}");
-        cx.quit();
+    match result {
+        Ok((handle, _)) => {
+            if let Some(desktop) = desktop::desktop(cx) {
+                *desktop.main_window.lock() = Some(handle);
+            }
+        }
+        Err(err) => {
+            log::error!("could not open the main window: {err:#}");
+            cx.quit();
+        }
     }
 }
 
@@ -182,14 +263,96 @@ fn apply_appearance(data: &Entity<AppData>, window: &mut Window, cx: &mut App) {
 fn handle_event(data: &Entity<AppData>, event: &AppEvent, window: &mut Window, cx: &mut App) {
     match event {
         AppEvent::AppearanceChanged => apply_appearance(data, window, cx),
-        AppEvent::SettingsChanged => {}
+        AppEvent::SettingsChanged => {
+            bridge::handle_request(event, cx);
+            desktop::sync_shortcuts_later(cx);
+            apply_launch_at_login(data, cx);
+        }
         AppEvent::OpenQuickRecall => windows::quick_recall::open(cx),
         AppEvent::OpenOnboarding => windows::onboarding::open(cx),
+        AppEvent::MeetingDetected { app_name, title } => {
+            desktop::notify_meeting_detected(app_name.clone(), title.clone(), cx)
+        }
+        AppEvent::InstallCli => install_cli(data, cx),
+        AppEvent::SaveApiKey(key) => {
+            let key = key.clone();
+            let data = data.clone();
+            cx.spawn(async move |cx| {
+                let result = cx
+                    .background_spawn(
+                        async move { lokalbot_engine::secrets::save_openai_api_key(&key) },
+                    )
+                    .await;
+                let _ = data.update(cx, |data, cx| match result {
+                    Ok(()) => {
+                        data.show_message("Saved the API key in the system credential store.", cx)
+                    }
+                    Err(err) => data.show_error(format!("The API key was not saved: {err:#}"), cx),
+                });
+            })
+            .detach();
+        }
         other => {
-            log::info!("engine request not wired yet: {other:?}");
-            data.update(cx, |data, cx| {
-                data.show_message("This action is not connected yet in this build.", cx)
-            });
+            if !bridge::handle_request(other, cx) {
+                log::debug!("unhandled request: {other:?}");
+            }
         }
     }
+}
+
+/// Matches the autostart entry to "Launch LokalBot at login".
+fn apply_launch_at_login(data: &Entity<AppData>, cx: &mut App) {
+    let wanted = data.read(cx).settings.launch_at_login;
+    cx.background_spawn(async move {
+        if lokalbot_platform::launch_at_login_enabled() == wanted {
+            return;
+        }
+        match std::env::current_exe() {
+            Ok(exe) => {
+                if let Err(err) = lokalbot_platform::set_launch_at_login(wanted, &exe) {
+                    log::warn!("could not update launch at login: {err:#}");
+                }
+            }
+            Err(err) => log::warn!("could not find the LokalBot executable: {err}"),
+        }
+    })
+    .detach();
+}
+
+/// Runs the bundled `lokalbot-cli install-skill`, which puts the CLI on PATH
+/// and installs the agent skill.
+fn install_cli(data: &Entity<AppData>, cx: &mut App) {
+    let data = data.clone();
+    cx.spawn(async move |cx| {
+        let result = cx
+            .background_spawn(async move {
+                let exe = std::env::current_exe()?;
+                let name = if cfg!(windows) {
+                    "lokalbot-cli.exe"
+                } else {
+                    "lokalbot-cli"
+                };
+                let cli = exe.with_file_name(name);
+                anyhow::ensure!(
+                    cli.is_file(),
+                    "{} was not found next to LokalBot",
+                    cli.display()
+                );
+                let output = std::process::Command::new(&cli)
+                    .arg("install-skill")
+                    .output()?;
+                let text = String::from_utf8_lossy(&output.stdout).trim().to_string();
+                if output.status.success() {
+                    Ok(text)
+                } else {
+                    anyhow::bail!("{}", String::from_utf8_lossy(&output.stderr).trim())
+                }
+            })
+            .await;
+        let _ = data.update(cx, |data, cx| match result {
+            Ok(_) => data.show_message("Installed lokalbot-cli for your coding agents.", cx),
+            Err(err) => data.show_error(format!("Installing lokalbot-cli failed: {err:#}"), cx),
+        });
+    })
+    .detach();
 }

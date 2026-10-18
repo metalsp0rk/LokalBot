@@ -117,7 +117,7 @@ impl Transcriber {
         if !models::is_installed(paths, model) {
             return Err(SpeechError::NotInstalled(model.display_name.to_string()).into());
         }
-        let threads = threads.max(1);
+        let threads = effective_threads(threads);
         let started = Instant::now();
         let asr = Asr::load(paths, model, threads)?;
         let vad_model = models::vad_model();
@@ -612,6 +612,14 @@ impl Transcriber {
         }
         Ok(text)
     }
+}
+
+/// onnxruntime slows down past a few threads: on Linux 4–8 threads were
+/// fastest and 16 slower; on Windows (i5-13400F) Qwen3-ASR was fastest at 4
+/// and took 4× longer at 16. Requests are capped accordingly.
+fn effective_threads(requested: usize) -> usize {
+    let cap = if cfg!(target_os = "windows") { 4 } else { 8 };
+    requested.clamp(1, cap)
 }
 
 fn read_track(path: &Path, gate: Option<&BleedGate>) -> Result<Vec<f32>> {
