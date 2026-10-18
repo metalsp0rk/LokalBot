@@ -42,6 +42,8 @@ pub(crate) struct Shared {
     pub capture_active: AtomicBool,
     /// True while a meeting is being recorded.
     pub recording_active: AtomicBool,
+    /// An autocomplete suggestion is on screen.
+    pub autocomplete_visible: AtomicBool,
     pub speech: Arc<speech::SpeechCache>,
     pub runtime: lokalbot_ai::runtime::RuntimeManager,
     background: Mutex<Vec<BackgroundItem>>,
@@ -131,6 +133,7 @@ impl Engine {
             emit: Box::new(on_event),
             capture_active: AtomicBool::new(false),
             recording_active: AtomicBool::new(false),
+            autocomplete_visible: AtomicBool::new(false),
             speech: Arc::new(speech::SpeechCache::default()),
             runtime,
             background: Mutex::new(Vec::new()),

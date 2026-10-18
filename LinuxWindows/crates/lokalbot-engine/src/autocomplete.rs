@@ -85,6 +85,10 @@ impl Host for EngineHost {
     }
 
     fn emit(&self, update: AutocompleteUpdate) {
+        let visible = matches!(update, AutocompleteUpdate::Suggestion { .. });
+        self.shared
+            .autocomplete_visible
+            .store(visible, Ordering::Relaxed);
         self.shared.emit(EngineEvent::Autocomplete(update));
     }
 

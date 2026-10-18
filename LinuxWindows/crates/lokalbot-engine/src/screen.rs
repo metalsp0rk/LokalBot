@@ -634,6 +634,16 @@ impl Worker {
                 return Err(Skipped(Skip::Quiet("dictation has priority")));
             }
         }
+        // X11 cannot leave the ghost-text window out of a screen grab (Windows
+        // excludes it from capture), so no capture while a suggestion shows.
+        if cfg!(target_os = "linux")
+            && settings.cotyping_enabled
+            && self.shared.autocomplete_visible.load(Ordering::Relaxed)
+        {
+            return Err(Skipped(Skip::Quiet(
+                "an autocomplete suggestion is on screen",
+            )));
+        }
         let now = Instant::now();
         if !self
             .policy
