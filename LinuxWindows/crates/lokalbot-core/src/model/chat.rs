@@ -88,10 +88,10 @@ impl Citation {
                 if let Ok(meeting_id) = Uuid::parse_str(id.trim()) {
                     out.push((start..end, Citation::Meeting { meeting_id, at }));
                 }
-            } else if let Some(rest) = inner.strip_prefix("screen:") {
-                if let Ok(snapshot_id) = rest.trim().parse() {
-                    out.push((start..end, Citation::Screen { snapshot_id }));
-                }
+            } else if let Some(rest) = inner.strip_prefix("screen:")
+                && let Ok(snapshot_id) = rest.trim().parse()
+            {
+                out.push((start..end, Citation::Screen { snapshot_id }));
             }
             cursor = end;
         }

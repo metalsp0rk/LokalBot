@@ -108,6 +108,68 @@ pub mod iso_millis {
     }
 }
 
+/// Seconds between 1970-01-01 and Swift's reference date, 2001-01-01Z.
+pub const SWIFT_REFERENCE_EPOCH: f64 = 978_307_200.0;
+
+/// Swift's default `JSONEncoder` date: a number of seconds since
+/// 2001-01-01Z (`journal/*.meta.json`, `coding_agent_bursts.payload`).
+/// Readers also accept ISO-8601 strings.
+pub mod swift_date {
+    use super::*;
+    use serde::{Deserialize, Deserializer, Serializer};
+
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum Raw {
+        Number(f64),
+        Text(String),
+    }
+
+    fn decode<E: serde::de::Error>(raw: Raw) -> Result<DateTime<Utc>, E> {
+        match raw {
+            Raw::Number(seconds) => Ok(super::from_epoch(seconds + SWIFT_REFERENCE_EPOCH)),
+            Raw::Text(text) => {
+                super::parse_iso(&text).ok_or_else(|| E::custom(format!("invalid date {text:?}")))
+            }
+        }
+    }
+
+    pub fn serialize<S: Serializer>(
+        value: &DateTime<Utc>,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error> {
+        serializer.serialize_f64(super::to_epoch(*value) - SWIFT_REFERENCE_EPOCH)
+    }
+
+    pub fn deserialize<'de, D: Deserializer<'de>>(
+        deserializer: D,
+    ) -> Result<DateTime<Utc>, D::Error> {
+        decode(Raw::deserialize(deserializer)?)
+    }
+
+    pub mod option {
+        use super::*;
+
+        pub fn serialize<S: Serializer>(
+            value: &Option<DateTime<Utc>>,
+            serializer: S,
+        ) -> Result<S::Ok, S::Error> {
+            match value {
+                Some(value) => super::serialize(value, serializer),
+                None => serializer.serialize_none(),
+            }
+        }
+
+        pub fn deserialize<'de, D: Deserializer<'de>>(
+            deserializer: D,
+        ) -> Result<Option<DateTime<Utc>>, D::Error> {
+            Option::<Raw>::deserialize(deserializer)?
+                .map(decode)
+                .transpose()
+        }
+    }
+}
+
 /// Parses ISO-8601/RFC 3339 with or without fractional seconds.
 pub fn parse_iso(raw: &str) -> Option<DateTime<Utc>> {
     DateTime::parse_from_rfc3339(raw.trim())
@@ -202,7 +264,7 @@ pub fn meeting_duration_label(seconds: f64) -> String {
     let minutes = (seconds / 60.0).round().max(1.0) as u64;
     if minutes < 60 {
         format!("{minutes} min")
-    } else if minutes % 60 == 0 {
+    } else if minutes.is_multiple_of(60) {
         format!("{} hr", minutes / 60)
     } else {
         format!("{} hr {} min", minutes / 60, minutes % 60)

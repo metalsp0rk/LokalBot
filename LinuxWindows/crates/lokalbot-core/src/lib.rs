@@ -8,14 +8,23 @@
 //! here, `mic.m4a`/`system.m4a` on macOS).
 
 pub mod access;
+pub mod actions;
+pub mod demo;
+pub mod digest;
+pub mod due;
 pub mod ids;
 pub mod library;
 pub mod model;
 pub mod paths;
+pub mod people;
 pub mod settings;
 pub mod time;
+pub mod timeline;
 
+pub use actions::{ActionCorrection, OutcomeProjection};
+pub use digest::parse_digest;
 pub use library::Library;
 pub use model::*;
 pub use paths::LibraryPaths;
 pub use settings::Settings;
+pub use timeline::work_sessions;
