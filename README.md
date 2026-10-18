@@ -20,6 +20,8 @@ Free and open source. No account. Nothing joins your calls.
 
 <sub>⭐ If LokalBot is useful to you, star the repo. It's built by one developer, and stars are how other people find it.</sub>
 
+**English** · [简体中文](README.zh-CN.md)
+
 [Features](#features) · [Compare](#how-it-compares) · [Privacy](#privacy) · [Get started](#get-started) · [Models](#local-ai-your-choice) · [Agents & CLI](#for-developers--agents) · [Website](https://www.lokalbot.com/)
 
 <picture>
