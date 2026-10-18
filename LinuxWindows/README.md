@@ -30,7 +30,7 @@ More screenshots of both apps are in [docs/screenshots](docs/screenshots).
 | `lokalbot-cli` + MCP for coding agents | ✓ | ✓ | Read-only, off until you allow it in Settings → Privacy & Data. |
 | Live transcript preview while recording | ✓ | ✓ | Opt-in from the live meeting view. Each track is transcribed in 4–12 s chunks cut at a pause, as Me and Remote speaker; the full transcript replaces it after the meeting. |
 | Autocomplete in other apps | X11 (GTK; Qt, Chromium/Electron and Firefox once system accessibility is on); Wayland: the practice editor in Settings only | ✓ (apps whose fields support UI Automation) | Off until you turn it on in Settings → Writing. LFM2.5 1.2B on this computer by default, about 250 ms to a suggestion on CPU. Tab accepts a word, Esc dismisses. Password fields, terminals and excluded apps are never read, and nothing is stored. |
-| Agent Mode | ✓ | ✓ (Git Bash, or PowerShell without it) | Runs the pi coding agent with your Think model. Setup downloads Bun and pi (pinned and checksum-verified, about 65 MB). File changes and commands need your approval. |
+| Agent Mode | ✓ | ✓ (Git Bash, or PowerShell without it) | Runs the pi coding agent with your Think model. Setup downloads Bun and pi (pinned and checksum-verified, about 65 MB on Linux and 70 MB on Windows). File changes and commands need your approval. |
 | Calendar, meeting merge and boundaries, spoken summaries, coding-agent sessions in day memory | — | — | macOS only for now. |
 
 ## Install
