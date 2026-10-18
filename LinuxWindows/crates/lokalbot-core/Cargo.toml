@@ -23,5 +23,8 @@ hex.workspace = true
 regex.workspace = true
 unicode-normalization.workspace = true
 
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_Security_Authentication_Identity"] }
+
 [dev-dependencies]
 tempfile.workspace = true
