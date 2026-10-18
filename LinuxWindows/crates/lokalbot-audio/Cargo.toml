@@ -12,3 +12,17 @@ anyhow.workspace = true
 log.workspace = true
 parking_lot.workspace = true
 crossbeam-channel.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+cpal = "0.18.2"
+rodio = { version = "0.23", default-features = false, features = ["playback"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+# PulseAudio (and PipeWire through pipewire-pulse) over its native protocol,
+# in pure Rust: no libpulse needed at build or run time.
+cpal = { version = "0.18.2", features = ["pulseaudio"] }
+pulseaudio = "0.3.2"
+futures-executor = "0.3"
+
+[dev-dependencies]
+tempfile.workspace = true

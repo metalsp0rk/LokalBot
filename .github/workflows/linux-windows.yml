@@ -71,12 +71,40 @@ jobs:
           path: ${{ runner.temp }}/screenshots
           retention-days: 14
 
+  source:
+    name: Windows sources
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Archive the Rust workspace
+        working-directory: .
+        run: git archive --format=tar.gz -o "$RUNNER_TEMP/lokalbot-src.tar.gz" HEAD LinuxWindows .agents
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: windows-source
+          path: ${{ runner.temp }}/lokalbot-src.tar.gz
+          retention-days: 1
+
   windows:
     name: Windows
+    needs: source
     runs-on: windows-2025
     timeout-minutes: 75
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # The repository's macOS fixtures use names with ':' that Git for Windows
+      # refuses to check out, so this job gets the Rust workspace as an archive.
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: windows-source
+          path: ${{ runner.temp }}
+
+      - name: Extract sources
+        working-directory: ${{ github.workspace }}
+        shell: pwsh
+        run: tar -xzf (Join-Path $env:RUNNER_TEMP "lokalbot-src.tar.gz") -C $env:GITHUB_WORKSPACE
 
       - name: Cache cargo
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -104,7 +132,7 @@ jobs:
         shell: pwsh
         run: |
           $root = Join-Path $env:RUNNER_TEMP "library"
-          Copy-Item -Recurse ..\LokalBotTests\Fixtures\upgrade\0.10.9\library $root
+          New-Item -ItemType Directory -Force -Path $root | Out-Null
           ./scripts/ci/capture-windows.ps1 -Exe (Resolve-Path target\release\lokalbot.exe) -Root $root -OutDir (Join-Path $env:RUNNER_TEMP "screenshots") -Pages today -WaitSeconds 8
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a

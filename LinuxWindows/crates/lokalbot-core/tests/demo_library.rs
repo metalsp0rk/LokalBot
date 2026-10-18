@@ -135,6 +135,68 @@ fn corrections_update_state_and_summary() {
 }
 
 #[test]
+fn people_and_projects_join_the_demo() {
+    let (_dir, library) = seeded();
+    let people = library.people().unwrap();
+    let names: Vec<&str> = people.iter().map(|p| p.name.as_str()).collect();
+    assert!(names.contains(&"Maya Chen"), "{names:?}");
+    assert!(names.contains(&"John Park"), "{names:?}");
+    assert!(names.contains(&"Priya Nair"), "{names:?}");
+    assert!(
+        !names.contains(&"Lena Fischer"),
+        "hidden by curation: {names:?}"
+    );
+    let maya = people.iter().find(|p| p.name == "Maya Chen").unwrap();
+    assert!(maya.meeting_count() >= 5);
+    assert!(!maya.their_actions.is_empty() || !maya.my_actions.is_empty());
+    assert!(!maya.recent_notes.is_empty(), "{maya:#?}");
+    let john = people.iter().find(|p| p.name == "John Park").unwrap();
+    assert!(
+        john.their_actions
+            .iter()
+            .any(|t| t.text.contains("trade-in")),
+        "{:?}",
+        john.their_actions
+            .iter()
+            .map(|t| &t.text)
+            .collect::<Vec<_>>()
+    );
+
+    let projects = library.projects().unwrap();
+    let laptop = projects
+        .iter()
+        .find(|p| p.name == "Laptop refresh")
+        .unwrap();
+    assert!(laptop.is_tracked());
+    assert!(laptop.summary.is_some());
+    assert!(laptop.meetings.len() >= 3, "{:?}", laptop.meetings);
+    assert!(!laptop.my_actions.is_empty());
+    assert!(laptop.week_seconds > 0.0);
+    assert!(
+        projects
+            .iter()
+            .any(|p| p.name == "Northwind" && !p.is_tracked()),
+        "{:?}",
+        projects.iter().map(|p| &p.name).collect::<Vec<_>>()
+    );
+}
+
+#[test]
+fn search_finds_demo_content() {
+    let (_dir, library) = seeded();
+    assert_eq!(library.reindex_stale().unwrap(), 17);
+    let hits = library
+        .search(&lokalbot_core::SearchQuery::new("captioned northwind", 20))
+        .unwrap();
+    assert!(!hits.is_empty());
+    let screen = library
+        .search_screen("trade-in estimate", None, None, 10)
+        .unwrap();
+    assert_eq!(screen.len(), 1);
+    assert_eq!(screen[0].app, "Microsoft Edge");
+}
+
+#[test]
 fn macos_fixture_actions_project() {
     let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("../../../LokalBotTests/Fixtures/upgrade/0.10.9/library");
