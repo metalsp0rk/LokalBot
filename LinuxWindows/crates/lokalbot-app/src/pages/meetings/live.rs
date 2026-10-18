@@ -2,8 +2,6 @@
 //! `RecordingHealthStrip.swift`): recording pill, capture health with level
 //! meters, the live transcript preview and a notes pad.
 
-use gpui_kit::component::button::Button;
-
 use gpui_kit::component::input::Textarea;
 use gpui_kit::component::{h_flex, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
@@ -13,7 +11,7 @@ use gpui_kit::{
 };
 
 use super::{MeetingsPage, NotesStatus, status_text};
-use crate::state::{AppEvent, RecordingState};
+use crate::state::RecordingState;
 use crate::theme::{LbThemeExt as _, metric, ty};
 use crate::ui::{self, Ico};
 
@@ -108,56 +106,12 @@ impl MeetingsPage {
             )
             .child(self.render_health(has_system, mic, system, cx));
 
-        let transcript_column = v_flex()
-            .flex_1()
-            .min_w(px(240.))
-            .h_full()
-            .gap(px(6.))
-            .child(
-                div().text_size(ty::SECTION).font_weight(FontWeight::BOLD).text_color(lb.text).child("Live Transcript"),
-            )
-            .child(
-                h_flex()
-                    .gap(px(8.))
-                    .child(Button::new("live-preview").outline().label("Start Live Transcript Preview").on_click(
-                        cx.listener(|this, _, _, cx| {
-                            this.data.update(cx, |data, cx| data.request(AppEvent::LivePreview { from_beginning: false }, cx))
-                        }),
-                    ))
-                    .child(Button::new("live-preview-beginning").outline().label("From Beginning").on_click(
-                        cx.listener(|this, _, _, cx| {
-                            this.data.update(cx, |data, cx| data.request(AppEvent::LivePreview { from_beginning: true }, cx))
-                        }),
-                    )),
-            )
-            .child(
-                div()
-                    .text_size(ty::BODY)
-                    .text_color(lb.text_secondary)
-                    .child("Preview starts with the latest 12 seconds. The full transcript covers the whole recording."),
-            )
-            .child(
-                ui::grouped_surface(cx).flex_1().min_h(px(160.)).flex().items_center().justify_center().child(
-                    ui::empty_state(
-                        Ico::MessageSquareText,
-                        "Preview is off",
-                        "Start live transcript preview to read along. Recording continues independently.",
-                        cx,
-                    ),
-                ),
-            )
-            .child(
-                div()
-                    .text_size(ty::CAPTION)
-                    .text_color(lb.text_tertiary)
-                    .child("Preview — the full transcript and summary arrive after the meeting."),
-            );
-
         let status = self.live_notes.status.clone();
+        // This version has no live transcription; notes are the live surface.
         let notes_column = v_flex()
-            .w(px(300.))
-            .flex_none()
-            .h_full()
+            .flex_1()
+            .min_h_0()
+            .w_full()
             .gap(px(6.))
             .child(
                 div()
@@ -178,17 +132,31 @@ impl MeetingsPage {
                     ),
             )
             .child(
-                div()
+                h_flex()
+                    .gap(px(12.))
                     .text_size(ty::SECONDARY)
-                    .text_color(if matches!(status, NotesStatus::Failed(_)) {
-                        lb.attention_text
-                    } else {
-                        lb.text_secondary
-                    })
-                    .child(match &status {
-                        NotesStatus::Failed(message) => format!("Not saved: {message}").into(),
-                        other => status_text(other),
-                    }),
+                    .child(
+                        div()
+                            .flex_1()
+                            .min_w_0()
+                            .text_color(lb.text_tertiary)
+                            .child("The full transcript and summary arrive after the meeting."),
+                    )
+                    .child(
+                        div()
+                            .flex_none()
+                            .text_color(if matches!(status, NotesStatus::Failed(_)) {
+                                lb.attention_text
+                            } else {
+                                lb.text_secondary
+                            })
+                            .child(match &status {
+                                NotesStatus::Failed(message) => {
+                                    format!("Not saved: {message}").into()
+                                }
+                                other => status_text(other),
+                            }),
+                    ),
             );
 
         v_flex()
@@ -198,15 +166,7 @@ impl MeetingsPage {
             .pb(px(20.))
             .gap(px(14.))
             .child(header)
-            .child(
-                h_flex()
-                    .flex_1()
-                    .min_h_0()
-                    .gap(px(24.))
-                    .items_start()
-                    .child(transcript_column)
-                    .child(notes_column),
-            )
+            .child(notes_column)
             .into_any_element()
     }
 
@@ -274,7 +234,7 @@ fn level_meter(level: f32, on: Hsla, off: Hsla) -> impl IntoElement {
 }
 
 /// Five small bars that move with the input level (`LiveWaveform`).
-fn live_bars(level: f32, elapsed: f64, color: Hsla) -> impl IntoElement {
+pub(super) fn live_bars(level: f32, elapsed: f64, color: Hsla) -> impl IntoElement {
     let level = level.clamp(0.15, 1.);
     h_flex()
         .gap(px(1.5))

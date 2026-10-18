@@ -92,7 +92,11 @@ pub struct MeetingsPage {
     search: Entity<InputState>,
     query: String,
     entries: Vec<Entry>,
-    entries_key: Option<(u64, String, Option<Uuid>, bool, usize)>,
+    entries_key: Option<(u64, String, Option<Uuid>, bool, usize, u64)>,
+    /// Meetings whose transcript or notes match the query (full-text, debounced).
+    content_matches: std::collections::HashSet<Uuid>,
+    content_generation: u64,
+    content_task: Option<Task<()>>,
     list_state: ListState,
     selected: Option<Uuid>,
     doc: Option<Rc<MeetingDoc>>,
@@ -141,6 +145,7 @@ impl MeetingsPage {
             cx.subscribe_in(&search, window, |this, input, event: &InputEvent, _, cx| {
                 if let InputEvent::Change = event {
                     this.query = input.read(cx).value().trim().to_string();
+                    this.search_content(cx);
                     cx.notify();
                 }
             }),
@@ -185,6 +190,9 @@ impl MeetingsPage {
             query: String::new(),
             entries: Vec::new(),
             entries_key: None,
+            content_matches: Default::default(),
+            content_generation: 0,
+            content_task: None,
             list_state: ListState::new(0, ListAlignment::Top, px(400.)),
             selected: None,
             doc: None,
@@ -381,6 +389,33 @@ impl MeetingsPage {
         }
         self.reveal_focus();
         cx.notify();
+    }
+
+    /// Full-text matches for the list filter, 160 ms after typing stops.
+    fn search_content(&mut self, cx: &mut Context<Self>) {
+        let query = self.query.clone();
+        if query.is_empty() {
+            self.content_matches.clear();
+            self.content_generation += 1;
+            self.content_task = None;
+            return;
+        }
+        let library = self.data.read(cx).library.clone();
+        self.content_task = Some(cx.spawn(async move |this, cx| {
+            cx.background_executor()
+                .timer(Duration::from_millis(160))
+                .await;
+            let ids = cx
+                .background_spawn(async move {
+                    library.matching_meeting_ids(&query).unwrap_or_default()
+                })
+                .await;
+            let _ = this.update(cx, |this, cx| {
+                this.content_matches = ids.into_iter().collect();
+                this.content_generation += 1;
+                cx.notify();
+            });
+        }));
     }
 
     // ---------------------------------------------------------------- notes
@@ -875,7 +910,8 @@ impl Render for MeetingsPage {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         self.rebuild_entries(cx);
         let live = self.is_live_selected(cx);
-        self.sync_tick(live, cx);
+        let recording = self.data.read(cx).recording.is_active();
+        self.sync_tick(recording, cx);
         if live {
             self.load_notes_editor(window, cx);
         }

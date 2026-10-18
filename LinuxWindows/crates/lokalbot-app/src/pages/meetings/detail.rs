@@ -844,11 +844,13 @@ impl MeetingsPage {
                             .child(message),
                     )
                     .child(
-                        Button::new("notes-retry")
-                            .outline()
-                            .small()
-                            .label("Retry saving")
-                            .on_click(cx.listener(|this, _, _, cx| this.save_notes(false, cx))),
+                        h_flex().child(
+                            Button::new("notes-retry")
+                                .outline()
+                                .small()
+                                .label("Retry saving")
+                                .on_click(cx.listener(|this, _, _, cx| this.save_notes(false, cx))),
+                        ),
                     )
                 },
             )
@@ -1035,7 +1037,7 @@ impl MeetingsPage {
                     }),
             )
             .child(
-                div().pt(px(4.)).child(
+                h_flex().pt(px(4.)).child(
                     Button::new("refresh-notes")
                         .primary()
                         .label(if processing { "Processing…" } else { "Refresh Notes and Owners" })

@@ -29,15 +29,18 @@ impl MeetingsPage {
             live.as_ref().map(|m| m.id),
             data.meetings_loaded,
             data.meetings.len(),
+            self.content_generation,
         );
         if self.entries_key.as_ref() == Some(&key) {
             return;
         }
         let needle = self.query.to_lowercase();
+        let content = &self.content_matches;
         let matches = |m: &Meeting| {
             needle.is_empty()
                 || m.display_title().to_lowercase().contains(&needle)
                 || m.app_name.to_lowercase().contains(&needle)
+                || content.contains(&m.id)
         };
         let mut entries = Vec::new();
         let live_id = live.as_ref().map(|m| m.id);
@@ -359,6 +362,18 @@ impl MeetingsPage {
                 let next_is_meeting =
                     matches!(self.entries.get(ix + 1), Some(Entry::Meeting { .. }));
                 let stage = self.data.read(cx).processing.get(&meeting.id).cloned();
+                let live_level = match &self.data.read(cx).recording {
+                    crate::state::RecordingState::Recording {
+                        started,
+                        mic_level,
+                        system_level,
+                        ..
+                    } if live => Some((
+                        mic_level.max(*system_level),
+                        started.elapsed().as_secs_f64(),
+                    )),
+                    _ => None,
+                };
                 let id = meeting.id;
                 let detail = model::row_detail(&meeting, live);
                 let hover = lb.hover;
@@ -395,7 +410,14 @@ impl MeetingsPage {
                                             .font_weight(FontWeight::SEMIBOLD)
                                             .text_color(lb.text)
                                             .child(meeting.display_title()),
-                                    ),
+                                    )
+                                    .when_some(live_level, |this, (level, elapsed)| {
+                                        this.child(super::live::live_bars(
+                                            level,
+                                            elapsed,
+                                            lb.recording,
+                                        ))
+                                    }),
                             )
                             .child(
                                 div()
