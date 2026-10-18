@@ -91,7 +91,7 @@ Turn on Dictation in **Settings → Dictation**, then hold **⌥ Space** (or a s
 
 | Ask, then check the source | Follow through | Bring your own agent |
 | --- | --- | --- |
-| Ask about your meeting library and follow the answer's citations back to the transcript or audio. Generated notes are a starting point, not a substitute for the discussion. | Export notes, or prepare local follow-up drafts, daily briefs, and weekly work logs in a folder you choose. You review and send them yourself. | Give Claude Code or any MCP client read-only access to your meeting library through the bundled `lokalbot-cli`. It stays off until you enable it. |
+| Ask about your meeting library and follow the answer's citations back to the transcript or audio. Generated notes are a starting point, not a substitute for the discussion. | Keep a note for every meeting in your Obsidian or Logseq folder, or prepare local follow-up drafts, daily briefs, and weekly work logs. You review and send them yourself. | Give Claude Code or any MCP client read-only access to your meeting library through the bundled `lokalbot-cli`. It stays off until you enable it. |
 
 <sub>Screenshots are unedited captures of the native app with fictional demo data. They show the interface, not a live inference benchmark. The Autocomplete clip is a cropped, real-time recording of live suggestions. Click an image for full resolution; see the <a href="Assets/screenshots/README.md">capture notes</a> for provenance.</sub>
 
@@ -176,7 +176,7 @@ No. New installs use activity-only tracking, which you can turn off. Saving visi
 <details>
 <summary><strong>Can I take my notes elsewhere?</strong></summary>
 
-Yes. Export meeting content or enable Markdown, Obsidian, or Logseq memory exports. Local routines can also save drafts to a folder you choose. These Markdown exports are ordinary, unencrypted files; any service you sync them with has its own privacy settings.
+Yes. Turn on **Meeting note export** to keep a Markdown note for every meeting in a folder you choose, such as an Obsidian vault or a Logseq graph: the summary, action items, the people and projects involved, and the transcript. You can also export a single meeting, write a daily memory note, or let local routines save drafts. These are ordinary, unencrypted files; any service you sync them with has its own privacy settings. See [Meeting transcripts in Obsidian](https://www.lokalbot.com/meeting-transcripts-obsidian-markdown).
 
 </details>
 
