@@ -44,6 +44,11 @@ use crate::state::{AppData, DictationHud};
 /// The practice editor's field id. Real fields count up from 1.
 pub const PRACTICE_FIELD_ID: u64 = u64::MAX;
 
+/// How long after a taken key a loss of focus waits before the ghost goes.
+/// An X11 key grab gives the focused app a short focus loss, which GTK 4
+/// reports as no focused field until the key is released.
+const KEY_FOCUS_GRACE: Duration = Duration::from_millis(500);
+
 /// The sample exchange above the practice editor
 /// (`CotypingRehearsalConversation.sample`), offered as the text above the
 /// field.
@@ -207,7 +212,10 @@ pub struct Autocomplete {
     escape: EscapePause,
     overlay: overlay::Overlay,
     keys_active: bool,
-    last_accept: Option<Instant>,
+    /// When Tab or Esc was last taken from the focused app.
+    last_key: Option<Instant>,
+    /// Bumped by every focus report, so a deferred leave knows it is stale.
+    focus_generation: u64,
     /// Pixels behind the ghost, sampled once per app with no colors reported.
     luminance: std::collections::HashMap<String, f32>,
     fake: Option<String>,
@@ -249,7 +257,8 @@ pub fn start(data: &Entity<AppData>, cx: &mut App) {
             escape: EscapePause::default(),
             overlay: overlay::Overlay::new(true),
             keys_active: false,
-            last_accept: None,
+            last_key: None,
+            focus_generation: 0,
             luminance: Default::default(),
             fake,
             fake_task: None,
@@ -420,6 +429,7 @@ impl Autocomplete {
         if !self.running || self.paused {
             return;
         }
+        self.focus_generation += 1;
         log::debug!(
             "autocomplete: focus in {} ({:?}), {} characters before the caret",
             focus.app_name,
@@ -434,6 +444,28 @@ impl Autocomplete {
                 field
             }
             _ => {
+                if focus.field.is_none()
+                    && focus.app_id.is_empty()
+                    && self.session.is_some()
+                    && self
+                        .last_key
+                        .is_some_and(|at| at.elapsed() < KEY_FOCUS_GRACE)
+                {
+                    // Probably the grab of the key just taken: the ghost
+                    // stays unless the field is still gone after a moment.
+                    log::debug!("autocomplete: focus left right after a taken key; waiting");
+                    let generation = self.focus_generation;
+                    cx.spawn(async move |this, cx| {
+                        smol::Timer::after(KEY_FOCUS_GRACE).await;
+                        let _ = this.update(cx, |this, cx| {
+                            if this.focus_generation == generation {
+                                this.leave_field(cx);
+                            }
+                        });
+                    })
+                    .detach();
+                    return;
+                }
                 if let Capability::Blocked(reason) | Capability::Unsupported(reason) =
                     &focus.capability
                 {
@@ -746,6 +778,7 @@ impl Autocomplete {
 
     fn on_tab(&mut self, cx: &mut Context<Self>) {
         log::debug!("autocomplete: Tab taken from the focused app");
+        self.last_key = Some(Instant::now());
         let Some(keys) = self.keys.clone() else {
             return;
         };
@@ -786,7 +819,6 @@ impl Autocomplete {
         session.accept(&plan.chunk, &plan.edit.text, plan.edit.backward);
         // The rest of a word the caret was inside of goes with the insert.
         self.session_after = drop_graphemes(&self.session_after, plan.edit.forward);
-        self.last_accept = Some(Instant::now());
         crate::bridge::send(
             Command::Autocomplete(AutocompleteCommand::Accepted {
                 field_id,
@@ -854,6 +886,7 @@ impl Autocomplete {
     }
 
     fn on_escape(&mut self, cx: &mut Context<Self>) {
+        self.last_key = Some(Instant::now());
         let Some(keys) = self.keys.clone() else {
             return;
         };

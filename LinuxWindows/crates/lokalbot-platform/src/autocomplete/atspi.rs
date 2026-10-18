@@ -43,6 +43,7 @@ const EDITABLE_TEXT: &str = "org.a11y.atspi.EditableText";
 const COMPONENT: &str = "org.a11y.atspi.Component";
 const DOCUMENT: &str = "org.a11y.atspi.Document";
 const COLLECTION: &str = "org.a11y.atspi.Collection";
+const APPLICATION: &str = "org.a11y.atspi.Application";
 
 /// Every call gives up after this, so a stuck app costs one missed read.
 const CALL_TIMEOUT: Duration = Duration::from_millis(250);
@@ -271,11 +272,19 @@ impl Bus {
         rect(x, y, w, h)
     }
 
-    fn character_extents(&self, obj: &Obj, offset: i32) -> Option<Rect> {
+    fn character_extents(&self, obj: &Obj, offset: i32, coords: u32) -> Option<Rect> {
         let (x, y, w, h): (i32, i32, i32, i32) = self
-            .call(obj, TEXT, "GetCharacterExtents", &(offset, COORD_SCREEN))
+            .call(obj, TEXT, "GetCharacterExtents", &(offset, coords))
             .ok()?;
         rect(x, y, w, h)
+    }
+
+    /// The toolkit's major version ("GTK", 4), from the application object.
+    fn toolkit(&self, app: &Obj) -> Option<(String, u32)> {
+        let name = self.string_property(app, APPLICATION, "ToolkitName")?;
+        let version = self.string_property(app, APPLICATION, "Version")?;
+        let major = version.split('.').next()?.trim().parse().ok()?;
+        Some((name, major))
     }
 
     fn text(&self, obj: &Obj, start: i32, end: i32) -> Option<String> {
@@ -308,6 +317,22 @@ impl Bus {
         .map(|(attributes, _, _)| attributes)
         .unwrap_or_default()
     }
+}
+
+/// The coordinate type to ask for and how to bring the answer to the
+/// screen: window coordinates plus the window's content origin for GTK 4,
+/// else screen coordinates as they are.
+fn placement(window_origin: Option<(f32, f32)>) -> (u32, impl Fn(Rect) -> Rect + Copy) {
+    let coords = if window_origin.is_some() {
+        COORD_WINDOW
+    } else {
+        COORD_SCREEN
+    };
+    let place = move |r: Rect| match window_origin {
+        Some((dx, dy)) => Rect::new(r.x + dx, r.y + dy, r.width, r.height),
+        None => r,
+    };
+    (coords, place)
 }
 
 /// AT-SPI reports a missing rect as zeros or -1s.
@@ -491,7 +516,8 @@ struct Fixed {
     /// The object has `EditableText`.
     editable: bool,
     single_line: bool,
-    /// The toolkit reports window-relative coordinates for "screen".
+    /// Where the window's content is on screen, when the toolkit can only
+    /// report coordinates within its window (GTK 4).
     window_relative: Option<(f32, f32)>,
     style: Option<FieldStyle>,
     /// Why this object gets no suggestion, decided from metadata alone.
@@ -914,7 +940,7 @@ impl Reader {
             }
             cursor = self.bus.parent(&node);
         }
-        fixed.window_relative = frame.and_then(|frame| self.window_offset(&frame, pid));
+        fixed.window_relative = frame.and_then(|_| self.window_origin(obj, pid));
         fixed.style = self.style(obj);
         Some(fixed)
     }
@@ -959,19 +985,23 @@ impl Reader {
             .find_map(|key| attributes.get(*key).filter(|v| !v.is_empty()).cloned())
     }
 
-    /// GTK 4 cannot know where its window is, so it reports window
-    /// coordinates as screen ones. Its frame then claims to sit at the
-    /// screen's corner while the X window is elsewhere.
-    fn window_offset(&mut self, frame: &Obj, pid: u32) -> Option<(f32, f32)> {
-        let screen = self.bus.extents(frame, COORD_SCREEN)?;
-        let window = self.bus.extents(frame, COORD_WINDOW);
-        let active = self.x11.active_window().filter(|w| w.pid == Some(pid))?;
-        let x11_frame = active.frame?;
-        let claims_corner = screen.x.abs() < 1.0 && screen.y.abs() < 1.0;
-        let same_as_window =
-            window.is_some_and(|w| (w.x - screen.x).abs() < 1.0 && (w.y - screen.y).abs() < 1.0);
-        let window_elsewhere = x11_frame.x.abs() >= 1.0 || x11_frame.y.abs() >= 1.0;
-        (claims_corner && same_as_window && window_elsewhere).then_some((x11_frame.x, x11_frame.y))
+    /// GTK 4 cannot know where its window is: its "screen" extents are
+    /// relative to the parent, and only window extents are right, measured
+    /// from the window's content (inside the shadow it draws itself). Its
+    /// fields are placed from window extents and where the X window's
+    /// content is; `None` for toolkits that report screen coordinates.
+    fn window_origin(&mut self, obj: &Obj, pid: u32) -> Option<(f32, f32)> {
+        let app = self.bus.application(obj)?;
+        let (toolkit, major) = self.bus.toolkit(&app)?;
+        if !toolkit.eq_ignore_ascii_case("gtk") || major < 4 {
+            return None;
+        }
+        let content = self
+            .x11
+            .active_window()
+            .filter(|w| w.pid == Some(pid))?
+            .frame?;
+        Some((content.x, content.y))
     }
 
     fn style(&self, obj: &Obj) -> Option<FieldStyle> {
@@ -1024,18 +1054,15 @@ impl Reader {
         let (before, before_truncated) = policy::bounded_before(&raw_before, start > 0);
         let after = policy::bounded_after(&raw_after, end < count);
 
-        let offset = |r: Rect| match fixed.window_relative {
-            Some((dx, dy)) => Rect::new(r.x + dx, r.y + dy, r.width, r.height),
-            None => r,
-        };
-        let field_frame = self.bus.extents(obj, COORD_SCREEN).map(offset);
+        let (coords, offset) = placement(fixed.window_relative);
+        let field_frame = self.bus.extents(obj, coords).map(offset);
         let empty_range = (caret < count)
-            .then(|| self.bus.character_extents(obj, caret))
+            .then(|| self.bus.character_extents(obj, caret, coords))
             .flatten()
             .map(offset)
             .map(|r| Rect::new(r.x, r.y, 0.0, r.height));
         let previous = (caret > 0 && !raw_before.ends_with('\n'))
-            .then(|| self.bus.character_extents(obj, caret - 1))
+            .then(|| self.bus.character_extents(obj, caret - 1, coords))
             .flatten()
             .map(offset);
         let rtl = policy::is_right_to_left(&before);
@@ -1095,16 +1122,14 @@ impl Reader {
             .fixed
             .as_ref()
             .and_then(|(_, fixed)| fixed.window_relative);
+        let (coords, place) = placement(offset);
         // The window, and the nearest container with room above the field.
         let mut cursor = self.bus.parent(obj);
         let mut scope: Option<(Obj, Rect)> = None;
         let mut window: Option<(Obj, Rect)> = None;
         for _ in 0..32 {
             let Some(node) = cursor else { break };
-            let frame = self.bus.extents(&node, COORD_SCREEN).map(|r| match offset {
-                Some((dx, dy)) => Rect::new(r.x + dx, r.y + dy, r.width, r.height),
-                None => r,
-            });
+            let frame = self.bus.extents(&node, coords).map(place);
             let node_role = self.bus.role(&node).unwrap_or(0);
             if scope.is_none()
                 && let Some(frame) = frame
@@ -1176,13 +1201,8 @@ impl VisibleSource for AtspiSource<'_> {
             | role::DIALOG => NodeKind::ClippingContainer,
             _ => NodeKind::Container,
         };
-        let frame = self
-            .bus
-            .extents(id, COORD_SCREEN)
-            .map(|r| match self.offset {
-                Some((dx, dy)) => Rect::new(r.x + dx, r.y + dy, r.width, r.height),
-                None => r,
-            });
+        let (coords, place) = placement(self.offset);
+        let frame = self.bus.extents(id, coords).map(place);
         Some(visible::Node {
             kind,
             frame,

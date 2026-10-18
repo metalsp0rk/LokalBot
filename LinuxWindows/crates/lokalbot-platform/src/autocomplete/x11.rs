@@ -344,7 +344,8 @@ pub(super) struct ActiveWindow {
     pub pid: Option<u32>,
     pub class: Option<String>,
     pub instance: Option<String>,
-    /// Its area in root coordinates.
+    /// Its content in root coordinates, without the shadow a client-side
+    /// decorated window (GTK) draws around itself (`_GTK_FRAME_EXTENTS`).
     pub frame: Option<Rect>,
 }
 
@@ -353,6 +354,7 @@ pub(super) struct Display {
     conn: Option<(RustConnection, Window)>,
     net_active_window: u32,
     net_wm_pid: u32,
+    gtk_frame_extents: u32,
 }
 
 impl Display {
@@ -361,6 +363,7 @@ impl Display {
             conn: None,
             net_active_window: 0,
             net_wm_pid: 0,
+            gtk_frame_extents: 0,
         }
     }
 
@@ -373,6 +376,7 @@ impl Display {
             };
             self.net_active_window = intern(b"_NET_ACTIVE_WINDOW")?;
             self.net_wm_pid = intern(b"_NET_WM_PID")?;
+            self.gtk_frame_extents = intern(b"_GTK_FRAME_EXTENTS")?;
             self.conn = Some((conn, root));
         }
         self.conn.as_ref()
@@ -383,6 +387,7 @@ impl Display {
         self.connection()?;
         let net_active = self.net_active_window;
         let net_pid = self.net_wm_pid;
+        let gtk_frame = self.gtk_frame_extents;
         let result = (|| -> anyhow::Result<Option<ActiveWindow>> {
             let Some((conn, root)) = self.connection() else {
                 return Ok(None);
@@ -417,17 +422,26 @@ impl Display {
                     (instance, parts.next().filter(|s| !s.is_empty()))
                 })
                 .unwrap_or((None, None));
+            // Left, right, top, bottom.
+            let shadow: Vec<u32> = conn
+                .get_property(false, id, gtk_frame, AtomEnum::CARDINAL, 0, 4)?
+                .reply()
+                .ok()
+                .and_then(|r| r.value32().map(Iterator::collect))
+                .filter(|v: &Vec<u32>| v.len() == 4)
+                .unwrap_or_else(|| vec![0; 4]);
             let frame = conn.get_geometry(id)?.reply().ok().and_then(|geometry| {
                 let origin = conn
                     .translate_coordinates(id, *root, 0, 0)
                     .ok()?
                     .reply()
                     .ok()?;
+                let inset = |v: u32| v.min(512) as f32;
                 Some(Rect::new(
-                    f32::from(origin.dst_x),
-                    f32::from(origin.dst_y),
-                    f32::from(geometry.width),
-                    f32::from(geometry.height),
+                    f32::from(origin.dst_x) + inset(shadow[0]),
+                    f32::from(origin.dst_y) + inset(shadow[2]),
+                    (f32::from(geometry.width) - inset(shadow[0]) - inset(shadow[1])).max(1.0),
+                    (f32::from(geometry.height) - inset(shadow[2]) - inset(shadow[3])).max(1.0),
                 ))
             });
             Ok(Some(ActiveWindow {
