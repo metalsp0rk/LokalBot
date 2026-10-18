@@ -58,6 +58,15 @@ jobs:
       - name: Build release
         run: cargo build --release --locked -p lokalbot-app -p lokalbot-cli
 
+      - name: Package
+        run: scripts/package.sh
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: lokalbot-linux-x86_64
+          path: LinuxWindows/dist/*.tar.gz*
+          retention-days: 14
+
       - name: Capture the app
         run: |
           sudo apt-get install -y --no-install-recommends hsetroot
@@ -84,7 +93,7 @@ jobs:
 
       - name: Archive the Rust workspace
         working-directory: .
-        run: git archive --format=tar.gz -o "$RUNNER_TEMP/lokalbot-src.tar.gz" HEAD LinuxWindows .agents
+        run: git archive --format=tar.gz -o "$RUNNER_TEMP/lokalbot-src.tar.gz" HEAD LinuxWindows .agents LICENSE
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
@@ -125,6 +134,16 @@ jobs:
 
       - name: Build release
         run: cargo build --release --locked -p lokalbot-app -p lokalbot-cli
+
+      - name: Package
+        shell: bash
+        run: scripts/package.sh
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: lokalbot-windows-x86_64
+          path: LinuxWindows/dist/*.zip*
+          retention-days: 14
 
       - name: Show display details
         shell: pwsh
