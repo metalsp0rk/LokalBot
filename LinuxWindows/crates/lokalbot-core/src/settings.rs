@@ -83,6 +83,10 @@ pub struct Settings {
     #[serde(rename = "openAIModel")]
     pub openai_model: String,
     pub think_reasoning_level: ReasoningLevel,
+    /// Agent Mode's own reasoning level, chosen in the Agent composer; `None`
+    /// follows Think (`agentReasoningLevel`).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub agent_reasoning_level: Option<ReasoningLevel>,
     pub semantic_search_enabled: bool,
     /// llama.cpp build for the built-in runtime: `auto`, `vulkan` or `cpu`.
     pub llama_backend: String,
@@ -174,6 +178,7 @@ impl Default for Settings {
             openai_base_url: "http://localhost:1234/v1".into(),
             openai_model: String::new(),
             think_reasoning_level: ReasoningLevel::Automatic,
+            agent_reasoning_level: None,
             semantic_search_enabled: true,
             llama_backend: "auto".into(),
 
@@ -244,6 +249,12 @@ impl Settings {
     pub fn save(&self, path: &Path) -> std::io::Result<()> {
         let json = serde_json::to_vec_pretty(self).map_err(std::io::Error::other)?;
         crate::library::write_atomic(path, &json)
+    }
+
+    /// The level Agent Mode uses: its own choice, else Think's.
+    pub fn effective_agent_reasoning_level(&self) -> ReasoningLevel {
+        self.agent_reasoning_level
+            .unwrap_or(self.think_reasoning_level)
     }
 
     /// Whether the selected Think backend runs on this machine without approval.

@@ -913,6 +913,27 @@ impl ReasoningSupport {
     }
 }
 
+/// The reasoning levels the Think model in `settings` accepts, and the level
+/// its server uses when none is sent (`ReasoningSupport.known(for:)`). Agent
+/// Mode offers only these and clamps its choice to them.
+pub fn reasoning_choices(settings: &Settings) -> (Vec<ReasoningLevel>, Option<ReasoningLevel>) {
+    let support = match settings.summarizer_backend {
+        SummarizerBackend::BuiltIn => catalog::entry(&settings.built_in_model_id)
+            .map(ReasoningSupport::built_in)
+            .unwrap_or_else(ReasoningSupport::common),
+        SummarizerBackend::Ollama => ReasoningSupport::ollama(settings.ollama_model.trim()),
+        SummarizerBackend::OpenAICompatible => {
+            let base = trimmed_base(&settings.openai_base_url);
+            ReasoningSupport::known(
+                Dialect::inferred(&base),
+                &base,
+                settings.openai_model.trim(),
+            )
+        }
+    };
+    (support.levels, support.default_level)
+}
+
 fn is_openai_reasoning_model(model: &str) -> bool {
     let name = model.to_lowercase();
     name.starts_with("o1")

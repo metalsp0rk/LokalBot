@@ -165,6 +165,12 @@ impl Engine {
     pub fn library(&self) -> &Library {
         &self.shared.library
     }
+
+    /// The llama.cpp runtime the engine's model roles share. Agent Mode leases
+    /// the Think server from it so both use one process on port 17872.
+    pub fn runtime(&self) -> &lokalbot_ai::runtime::RuntimeManager {
+        &self.shared.runtime
+    }
 }
 
 impl Drop for Engine {
