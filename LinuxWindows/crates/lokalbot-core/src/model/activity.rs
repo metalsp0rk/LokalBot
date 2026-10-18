@@ -56,21 +56,38 @@ pub struct ScreenMoment {
 }
 
 /// Work sessions computed on the fly from activity blocks
-/// (`TimelineWorkSession.sessions`).
+/// (`TimelineWorkSession.sessions`), or a recorded meeting on the timeline.
 #[derive(Clone, Debug, PartialEq)]
 pub struct WorkSession {
+    /// `work-<first block id>` or `meeting-<UUID>`.
     pub id: String,
+    /// Up to two representative window titles joined by " · ", or
+    /// "AppA and AppB[ and more]".
     pub title: String,
     pub start: DateTime<Utc>,
     pub end: DateTime<Utc>,
     /// Union of block intervals, in seconds.
     pub active_seconds: f64,
+    /// The app with the most time.
+    pub primary_app: String,
     /// Apps in order of time spent.
     pub apps: Vec<String>,
     pub block_ids: Vec<i64>,
+    /// Observed window titles, most time first.
+    pub notable_titles: Vec<String>,
     pub context_switch_count: usize,
     /// Set when the session is a recorded meeting rather than app activity.
     pub meeting_id: Option<Uuid>,
+}
+
+impl WorkSession {
+    pub fn is_meeting(&self) -> bool {
+        self.meeting_id.is_some()
+    }
+
+    pub fn duration_seconds(&self) -> f64 {
+        (self.end - self.start).num_milliseconds().max(0) as f64 / 1000.0
+    }
 }
 
 /// Time per app for one local day.
