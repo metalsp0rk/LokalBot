@@ -72,8 +72,8 @@ pub fn model_bytes(id: &str) -> u64 {
 }
 
 /// Model ids the current settings use on this PC: the engine's meeting,
-/// dictation and search requirements. Autocomplete is macOS-only, so its
-/// model is never among them.
+/// dictation, search and screen text requirements. Autocomplete is
+/// macOS-only, so its model is never among them.
 pub fn models_in_use(settings: &Settings) -> Vec<String> {
     let mut ids = vec![settings.transcription_model.clone()];
     ids.extend(lokalbot_speech::models::supporting_ids(
