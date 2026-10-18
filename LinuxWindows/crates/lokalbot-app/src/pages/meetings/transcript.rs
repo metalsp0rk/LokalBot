@@ -122,6 +122,7 @@ impl MeetingsPage {
                 )
                 .into_any_element();
         }
+        self.focused_row = self.focus_at.and_then(|at| doc.row_at(at));
         div()
             .id("transcript")
             .relative()
@@ -183,7 +184,7 @@ impl MeetingsPage {
         let Some(row) = doc.rows.get(row_ix).cloned() else {
             return div().into_any_element();
         };
-        let focused_row = self.focus_at.and_then(|at| doc.row_at(at));
+        let focused_row = self.focused_row;
         let current_match = self.find.matches.get(self.find.current).cloned();
         let highlights: Vec<_> = self
             .find

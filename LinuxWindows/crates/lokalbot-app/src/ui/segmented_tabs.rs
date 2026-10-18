@@ -53,7 +53,11 @@ pub fn segmented_tabs(
                 .items_center()
                 .justify_center()
                 .rounded_full()
-                .text_size(ty::SECONDARY)
+                .text_size(if segment_width < px(76.) {
+                    ty::CAPTION
+                } else {
+                    ty::SECONDARY
+                })
                 .when(is_selected, |this| {
                     this.bg(lb.accent_fill)
                         .text_color(white())

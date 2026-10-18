@@ -355,24 +355,7 @@ impl MeetingsPage {
                     .into_any_element(),
             );
         }
-        let unnamed = doc
-            .transcript
-            .as_ref()
-            .map(|t| {
-                let mut seen = Vec::<String>::new();
-                for segment in &t.segments {
-                    let key = lokalbot_core::Transcript::canonical_speaker_key(&segment.speaker);
-                    let remote = key.starts_with("them")
-                        || segment
-                            .attribution
-                            .is_some_and(|a| a.source == lokalbot_core::AttributionSource::System);
-                    if remote && !t.speaker_aliases.contains_key(&key) && !seen.contains(&key) {
-                        seen.push(key);
-                    }
-                }
-                seen.len()
-            })
-            .unwrap_or(0);
+        let unnamed = doc.unnamed_remote;
         if self.tab == MeetingTab::Summary && unnamed > 0 {
             let text = if unnamed == 1 {
                 "1 speaker needs a name. Review action-linked voices first.".to_string()

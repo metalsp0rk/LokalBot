@@ -17,6 +17,7 @@ use gpui_kit::component::button::{Button, ButtonVariants as _};
 use gpui_kit::component::input::{InputEvent, InputState, TextareaState};
 use gpui_kit::component::menu::{DropdownMenu as _, PopupMenuItem};
 use gpui_kit::component::{Icon, h_flex};
+use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
     AnyElement, App, AppContext as _, Bounds, ClipboardItem, Context, Entity, FocusHandle,
     IntoElement, ListAlignment, ListState, ParentElement as _, Pixels, Render, SharedString,
@@ -106,6 +107,8 @@ pub struct MeetingsPage {
     tab: MeetingTab,
     /// Transcript moment to highlight and reveal (evidence, find).
     focus_at: Option<f64>,
+    /// Transcript row of `focus_at`, computed once per render.
+    focused_row: Option<usize>,
     pending_reveal: bool,
     recap_expanded: bool,
     full_notes_expanded: bool,
@@ -201,6 +204,7 @@ impl MeetingsPage {
             loaded_revision: 0,
             tab: MeetingTab::Summary,
             focus_at: None,
+            focused_row: None,
             pending_reveal: false,
             recap_expanded: false,
             full_notes_expanded: false,
@@ -703,9 +707,9 @@ impl MeetingsPage {
         let page = self.page_bounds.get()?;
         let width = page.size.width;
         let segment = if width < px(760.) {
-            px(64.)
+            px(70.)
         } else if width < px(900.) {
-            px(72.)
+            px(74.)
         } else {
             px(86.)
         };
@@ -734,6 +738,19 @@ impl MeetingsPage {
         );
         Some(deferred(anchored().position(point(x, y)).child(tabs)).into_any_element())
     }
+}
+
+/// A toolbar menu symbol with a small chevron, like macOS menu buttons.
+fn menu_glyph(icon: Ico, chevron: bool, cx: &App) -> impl IntoElement {
+    use crate::theme::LbThemeExt as _;
+    let color = cx.lb().text;
+    h_flex()
+        .gap(px(3.))
+        .items_center()
+        .child(ui::icon(icon, px(16.), color))
+        .when(chevron, |this| {
+            this.child(ui::icon(Ico::ChevronDown, px(11.), color.opacity(0.7)))
+        })
 }
 
 fn directories_home() -> std::path::PathBuf {
@@ -809,8 +826,7 @@ impl Page for MeetingsPage {
             .child(
                 Button::new("meeting-export")
                     .ghost()
-                    .icon(Icon::new(Ico::Share))
-                    .dropdown_caret(!compact)
+                    .child(menu_glyph(Ico::Share, !compact, cx))
                     .tooltip("Export meeting")
                     .dropdown_menu(move |menu, _, _| {
                         let p1 = export_page.clone();
@@ -875,8 +891,7 @@ impl Page for MeetingsPage {
             .child(
                 Button::new("meeting-more")
                     .ghost()
-                    .icon(Icon::new(Ico::Ellipsis))
-                    .dropdown_caret(!compact)
+                    .child(menu_glyph(Ico::Ellipsis, !compact, cx))
                     .tooltip("More meeting actions")
                     .dropdown_menu(move |menu, _, _| {
                         let p = more_page.clone();
