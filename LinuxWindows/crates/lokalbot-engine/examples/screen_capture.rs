@@ -9,7 +9,8 @@
 //! - `--library`: where the OCR models are kept (`<dir>/models/ocrs`); default
 //!   `lokalbot-screen-check` in the temporary folder.
 //! - `--download-ocr`: download the pinned OCR models first (about 12 MB).
-//! - `--notepad`: Windows only; opens Notepad with this text and captures it.
+//! - `--notepad`: Windows only; opens Notepad with this text, brings it to
+//!   the front and captures it.
 //! - `--delay`: seconds to wait before capturing (default 3), time to bring
 //!   another window to the front.
 //! - `--save`: where the captured pixels go (default `<library>/screen-capture.jpg`).
@@ -158,5 +159,21 @@ fn open_notepad(paths: &LibraryPaths, text: &str) -> Result<Notepad> {
         .arg(&file)
         .spawn()
         .context("starting Notepad")?;
+    // A process started from a background session may not get the
+    // foreground; ask the shell to activate the window by its title.
+    std::thread::sleep(Duration::from_secs(2));
+    let activated = std::process::Command::new("powershell.exe")
+        .args([
+            "-NoProfile",
+            "-Command",
+            "(New-Object -ComObject WScript.Shell).AppActivate('screen-check')",
+        ])
+        .output();
+    if let Ok(output) = activated {
+        println!(
+            "activating Notepad: {}",
+            String::from_utf8_lossy(&output.stdout).trim()
+        );
+    }
     Ok(Notepad(child))
 }
