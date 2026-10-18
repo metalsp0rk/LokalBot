@@ -97,6 +97,8 @@ struct Sources {
     /// Whole seconds of every moment marker handed to the model, per meeting.
     moments: HashMap<Uuid, BTreeSet<u64>>,
     screens: BTreeSet<i64>,
+    /// Source labels ("M1", "S2") and the markers they stand for.
+    labels: HashMap<String, String>,
 }
 
 fn summary_excerpt(summary: &str) -> String {
@@ -313,6 +315,9 @@ fn gather(
                 "doc.text",
                 format!("read “{title}”"),
             );
+            sources
+                .labels
+                .insert(format!("M{}", number + 1), meeting_marker(&id, None));
             sources.meetings.push((id, title));
             blocks.push(block.join("\n"));
         }
@@ -359,6 +364,10 @@ fn gather(
                 moment.id
             ));
             sources.screens.insert(moment.id);
+            sources.labels.insert(
+                format!("S{}", number + 1),
+                format!("[screen:{}]", moment.id),
+            );
         }
     }
     sources.text = blocks.join("\n\n");
@@ -405,11 +414,43 @@ static CITATION: LazyLock<Regex> = LazyLock::new(|| {
         .expect("valid regex")
 });
 
+static LABEL: LazyLock<Regex> = LazyLock::new(|| {
+    let one = r"[MS]\d{1,2}(?:@\d{1,2}(?::\d{2}){1,2})?";
+    Regex::new(&format!(r"\[({one}(?:\s*[,;]\s*{one})*)\]")).expect("valid regex")
+});
+
+/// Small models often cite a source by its label ("[M1]", "[M1@00:00:43]")
+/// rather than its marker; turns labels into the markers they stand for.
+fn expand_labels(text: &str, sources: &Sources) -> String {
+    LABEL
+        .replace_all(text, |caps: &regex::Captures| {
+            caps[1]
+                .split([',', ';'])
+                .map(|part| {
+                    let (label, at) = match part.trim().split_once('@') {
+                        Some((label, at)) => (label, Some(at)),
+                        None => (part.trim(), None),
+                    };
+                    match (sources.labels.get(label), at) {
+                        (Some(marker), Some(at)) if marker.starts_with("[meeting:") => {
+                            format!("{}@{at}]", marker.trim_end_matches(']'))
+                        }
+                        (Some(marker), _) => marker.clone(),
+                        (None, _) => "(source not verified)".into(),
+                    }
+                })
+                .collect::<Vec<_>>()
+                .join(" ")
+        })
+        .into_owned()
+}
+
 /// Rewrites markers to the canonical `[meeting:<UUID>@HH:MM:SS]` form, keeping
 /// only those the answer was given (`ChatEvidence`).
 fn verified(text: &str, sources: &Sources) -> String {
+    let text = expand_labels(text, sources);
     CITATION
-        .replace_all(text, |caps: &regex::Captures| {
+        .replace_all(&text, |caps: &regex::Captures| {
             let id = &caps[2];
             if &caps[1] == "screen" {
                 return match id.parse::<i64>() {
@@ -905,6 +946,29 @@ mod tests {
         assert!(
             text.contains("\n- Customer call - Northwind (2026-10-15, id 44444444)"),
             "{text}"
+        );
+    }
+
+    #[test]
+    fn source_labels_become_markers() {
+        let id = Uuid::new_v4();
+        let mut sources = Sources::default();
+        sources.meetings.push((id, "Weekly sync".into()));
+        sources.moments.entry(id).or_default().insert(43);
+        sources
+            .labels
+            .insert("M1".into(), meeting_marker(&id, None));
+        sources.screens.insert(7);
+        sources.labels.insert("S1".into(), "[screen:7]".into());
+        let marker = ids::uuid_upper(&id);
+        assert_eq!(
+            verified(
+                "Friday [M1]. The demo [M1@00:00:43]. Both [M1, S1]. Other [M3].",
+                &sources
+            ),
+            format!(
+                "Friday [meeting:{marker}]. The demo [meeting:{marker}@00:00:43]. Both [meeting:{marker}] [screen:7]. Other (source not verified)."
+            )
         );
     }
 
