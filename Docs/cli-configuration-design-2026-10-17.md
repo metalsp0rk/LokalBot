@@ -17,6 +17,11 @@ The constraint: AGENTS.md requires separate consent boundaries for
 meeting-library access, screen memory, remote inference origins, and Agent
 Mode actions. A configuration CLI must not become a way around them.
 
+The end goal (added 2026-10-18): a person tells their agent "install LokalBot
+and set it up for me", and the agent does everything except the few steps that
+macOS and these consent boundaries reserve for the person. See
+[Agent-led install and setup](#agent-led-install-and-setup).
+
 ## What exists today
 
 ### The CLI reads the library and nothing else
@@ -431,6 +436,174 @@ skill keeps telling agents never to write into the meetings folder.
   - tell the person when approval is waiting in the app;
   - do not retry a denied request.
 
+## Agent-led install and setup
+
+Added 2026-10-18. Phases 2 and 3 make settings writable and approvable. This
+section adds what an agent needs to take a person from "not installed" to
+"fully working".
+
+### What the person still does
+
+macOS and the consent boundaries leave a few clicks to the person:
+
+1. **Gatekeeper.** The first-open confirmation, if the download is quarantined.
+   Notarized builds show it once.
+2. **Setup approval.** One approval in LokalBot: let this agent change
+   settings, plus any read access the person chooses to add.
+3. **Consent review.** One review of the setup's consent changes, such as
+   capture level, calendar, automatic recording, or a remote server. They are
+   combined on one card.
+4. **macOS permissions.**
+   - Allow in the prompts for Microphone, Calendar, and Notifications.
+   - Toggles in System Settings for Accessibility, Screen Recording, and Input
+     Monitoring, with LokalBot's existing drag guidance.
+   - A relaunch after Accessibility or Input Monitoring.
+
+Everything else is the agent's.
+
+### The journey
+
+```bash
+# 1. Install (agent)
+brew install --cask stevyhacker/tap/lokalbot
+CLI=/Applications/LokalBot.app/Contents/Helpers/lokalbot-cli
+
+# 2. Ask to set up (the person approves once in LokalBot)
+$CLI setup start --wait 300        # opens LokalBot; onboarding shows the agent's request
+
+# 3. Agree a plan with the person, then apply it
+$CLI setup plan --preset recommended > plan.json   # defaults checked against this Mac
+$CLI setup apply plan.json --wait 300              # preferences apply; consent changes go to one review card
+
+# 4. Models (agent)
+$CLI models download --preset recommended
+$CLI models status                                 # poll until meeting-ready
+
+# 5. Permissions (the person clicks; the agent guides and checks)
+$CLI permissions                                   # what enabled features need, and what is granted
+$CLI permissions request microphone                # shows the macOS prompt
+$CLI permissions request accessibility             # opens System Settings with LokalBot's drag guidance
+$CLI restart                                       # when Accessibility or Input Monitoring needs it
+
+# 6. Finish and verify (agent)
+$CLI setup finish                                  # closes onboarding; a menu-bar app from now on
+$CLI install-skill
+claude mcp add lokalbot -- $CLI mcp                # only if the person wants library access in Claude Code
+$CLI doctor                                        # readiness and next steps, as JSON
+```
+
+### New pieces
+
+**Bootstrap request (`setup start`)**
+
+Today the socket exists only after the person turns on the settings grant, and
+finding that toggle is the first step an agent cannot do. `setup start` works
+without any grant:
+
+- **The request.** The CLI writes a one-time request to
+  `control/setup-request.json`. It holds the grants requested, the requester
+  (process path, plus the parent agent's name when known), a random nonce, and
+  an expiry of a few minutes.
+- **Where it appears.** The CLI opens the app with `--lokalbot-agent-setup`.
+  - A fresh install shows onboarding anyway. The window opens on a "Set up
+    with your agent" step instead of the wizard.
+  - An already set-up app shows the same request in a small approval window.
+- **What it asks.** The step names the agent and asks to let it change LokalBot
+  settings. Meeting-library and screen-memory read access appear as separate
+  checkboxes, off by default, with their existing descriptions. Deny leaves
+  everything off.
+- **On approval.** The app writes the markers itself (the CLI never does),
+  deletes the request, and starts the socket. `--wait` polls for the socket.
+- **The boundary.** The terminal can request a grant; only the person, in the
+  app, can give it. A request file written by another process gains nothing
+  without that click.
+
+**Setup plans (`setup plan`, `setup apply`)**
+
+A plan is a JSON object of registry keys and tokens, plus model and
+launch-at-login choices. It has the same shape as `config import`.
+
+- **Starting point.** `setup plan --preset recommended|lightweight` starts from
+  that model preset and the fresh-install defaults. Using
+  `HardwareCapabilityProbe`, the CLI suggests `lightweight` on Macs with less
+  memory than the recommended stack needs.
+- **The person's answers.** The agent fills in what it learned from the person:
+  record automatically or ask, Day Memory detail, notes language, calendar,
+  dictation, autocomplete, and so on.
+- **Applying.** `setup apply` applies preferences right away and sends every
+  consent change to one review card. The card lists each change with the
+  disclosure Settings already uses.
+  - Approve applies them all through the same `AppState` paths as Settings,
+    so their permission prompts fire.
+  - "Review individually" falls back to one approval per change.
+  - Deny applies none of them.
+- **Conversation first.** The skill tells the agent to ask the person about
+  consent items before applying, so the card confirms choices already
+  discussed.
+
+**Models (`models`)**
+
+- **Commands:** `list`, `recommend`, `download --preset|--role`, `status`,
+  `cancel`, and `check`.
+- **App entry points:** `modelSetup.apply(ModelStackPreset…)`,
+  `modelRoles.startCoreModelDownloads`, `ModelDownloadManager`, and
+  `modelChecks.run`.
+- **Start, then poll.** Requests return at once. `status` reports per-role
+  progress and readiness from `modelRoles.snapshot`, because downloads take
+  minutes and the socket has a short timeout.
+
+**Permissions (`permissions`, `restart`)**
+
+- `permissions` lists each enabled feature, the permission it needs, and
+  whether that permission is granted. It uses the table behind Memory Health.
+- `permissions request <name>` calls `PermissionGuidanceController.requestAccess`:
+  - Microphone and Calendar get a macOS prompt.
+  - The others open System Settings with the drag guidance.
+- `restart` uses `PermissionManager.relaunch()`.
+- The agent tells the person exactly what to click and polls until the grant
+  shows.
+
+**Finish and verify**
+
+- `setup finish` sets the onboarding flag through the app and closes the
+  window.
+- `doctor` extends `status` with:
+  - model readiness and onboarding state;
+  - permissions still needed for features the person turned on;
+  - launch at login, and whether the CLI is on PATH;
+  - a list of next steps.
+
+  It exits non-zero while anything blocks a feature the person turned on.
+
+**Distribution for agents**
+
+- `/lokalbot:setup` in the existing Claude Code plugin
+  (`Distribution/claude-plugin`) walks through the journey above.
+- A short agent-facing guide, `AGENT_SETUP.md` at the repository root and also
+  on the website, lists the commands and rules, so any agent can follow it
+  from a link.
+- The skill gains a "Setting up LokalBot" section.
+
+**Rules for agents** (in the skill and the guide)
+
+- Install with Homebrew or the notarized DMG. Never remove the quarantine
+  attribute or otherwise bypass Gatekeeper.
+- Never write LokalBot's preferences with `defaults write`, and never create or
+  edit files in `control/`. `setup start` is the only way to ask for access.
+- Ask the person before requesting consent changes or read access, and never
+  retry a denied request.
+- Verify with `doctor` instead of assuming a step worked.
+
+### What has to land first
+
+- **Side effects in `AppState`.** Phase 2's move of Settings-view side effects
+  into `AppState`. Turning on Day Memory, calendar detection, or a capture
+  mode requests permissions from `SettingsView` closures today, so a write over
+  the socket would skip those prompts.
+- **Richer `status`.** It needs model readiness and onboarding state.
+- **Wider `open`.** It needs to accept the Settings destinations that are not
+  registry keys (`permissions`, `models`, and the three grants).
+
 ## Implementation status
 
 Phase 1, with the registry part of Phase 0, is implemented on branch
@@ -449,12 +622,13 @@ Phase 1, with the registry part of Phase 0, is implemented on branch
 
 | Phase | Scope | Size |
 | --- | --- | --- |
-| 0 | Registry and coverage tests; `SettingDescriptor` built from it; UI couplings moved into `AppState` methods. No behavior change | Medium, mostly mechanical (135 keys) |
-| 1 | `config schema/describe/search` (no grant, no app). Settings grant toggle and marker; control socket with `hello` and the peer check; background launch; `config list/get`, `status`, and `open` | Medium |
-| 2 | Preference writes, audit log, Undo list; PRIVACY.md, DEVELOPMENT.md, Settings copy, and skill updated | Medium |
-| 3 | Approval requests (notification, menu bar, approval window), `--wait`, `secret set`, retention review through approval | Medium |
-| 4 | MCP tools; optional App Intents generated from the registry | Small–medium |
-| Later | Actions over the socket (recording, processing, digest, Dream, models); headless flags forward to a running app. Only if wanted after settings ship | Medium–large |
+| 0 | Registry and coverage tests. Done in PR #281, except building `SettingDescriptor` from the registry and moving couplings, which go with Phase 2 | Done (part) |
+| 1 | `config schema/describe/search`, settings grant and marker, control socket, background launch, `config list/get`, `status`, `open` | Done in PR #281 |
+| 2 | Preference writes, audit log, Undo list. Settings-view side effects (permission requests, couplings) moved into `AppState`. `status` gains model readiness and onboarding state; `open` accepts non-registry destinations | Medium |
+| 3 | Approval requests (notification, menu bar, approval window), one combined card for multi-change requests, `--wait`, `secret set`, retention review through approval | Medium |
+| 4 | Agent-led setup: `setup start` (bootstrap request in onboarding), `setup plan/apply`, `models`, `permissions`, `restart`, `setup finish`, `doctor`. Plus `/lokalbot:setup`, `AGENT_SETUP.md`, and the skill section | Medium–large |
+| 5 | MCP tools; optional App Intents generated from the registry | Small–medium |
+| Later | Other actions over the socket (recording, processing, digest, Dream); headless flags forward to a running app | Medium–large |
 
 ## Tests
 
@@ -508,3 +682,19 @@ Settled on 2026-10-17:
 4. **Scope:** mostly settings. The first release is settings, secrets,
    `status`, and `open`. Actions come later if wanted. Library edits are out
    of scope.
+
+   The 2026-10-18 goal widens this: the actions setup needs (models,
+   permissions, onboarding, restart) join Phase 4. Recording, processing, and
+   library edits stay out.
+
+## Open decisions (agent-led setup)
+
+1. **Bootstrap.** An agent-requested approval in LokalBot at first launch
+   (recommended), or the person turns on the settings toggle themselves?
+2. **Read access in the setup step.** Offer meeting-library and screen-memory
+   access as separate checkboxes, off by default (recommended); pre-tick them
+   when the agent asks; or leave them to Settings?
+3. **Consent changes during setup.** One combined review card (recommended),
+   or one approval per change?
+4. **Delivery.** Merge PR #281 as Phase 1 now and continue in follow-up PRs
+   (recommended), or keep growing #281?
