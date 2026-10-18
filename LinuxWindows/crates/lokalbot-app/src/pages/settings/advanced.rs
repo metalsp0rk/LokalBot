@@ -1,4 +1,4 @@
-//! Advanced: the Agent CLI, logs and build details.
+//! Advanced: setup, the Agent CLI, logs and build details.
 
 use std::path::PathBuf;
 
@@ -57,6 +57,25 @@ impl SettingsPage {
             Some(false) => settings_row::value("Not installed", cx),
             None => settings_row::value("Checking…", cx),
         };
+        let setup_data = data.clone();
+        let setup = Section::new("Setup").row(
+            "settings.setupAgain",
+            settings_row::row(
+                "settings.setupAgain",
+                "Setup assistant",
+                Some("Walk through meeting recording, day memory, and models again. Nothing changes until you apply your choices at the end.".into()),
+                Button::new("settings-setup-again")
+                    .outline()
+                    .small()
+                    .label("Set Up LokalBot Again…")
+                    .on_click(move |_, _, cx| {
+                        setup_data.update(cx, |data, cx| data.request(AppEvent::OpenOnboarding, cx))
+                    }),
+                self.is_focused("settings.setupAgain"),
+                cx,
+            ),
+        );
+
         let install_data = data.clone();
         let cli = Section::new("Agent CLI")
             .row("settings.agentCLI", settings_row::row("settings.agentCLI", "Status", None, status, self.is_focused("settings.agentCLI"), cx))
@@ -164,6 +183,6 @@ impl SettingsPage {
                 ),
             );
 
-        vec![cli, diagnostics, system]
+        vec![setup, cli, diagnostics, system]
     }
 }

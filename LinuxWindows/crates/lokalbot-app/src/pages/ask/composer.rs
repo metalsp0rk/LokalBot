@@ -4,7 +4,7 @@
 use gpui_kit::component::button::{Button, ButtonVariants as _};
 use gpui_kit::component::date_picker::DatePicker;
 use gpui_kit::component::input::Textarea;
-use gpui_kit::component::menu::{DropdownMenu as _, PopupMenu, PopupMenuItem};
+use gpui_kit::component::menu::{DropdownMenu as _, PopupMenuItem};
 use gpui_kit::component::popover::Popover;
 use gpui_kit::component::{Disableable as _, Icon, Sizable as _, h_flex, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
@@ -16,7 +16,7 @@ use gpui_kit::{
 use lokalbot_core::settings::SummarizerBackend;
 
 use super::AskPage;
-use super::scope::{DateScope, Source};
+use super::scope::DateScope;
 use super::search::Facet;
 use crate::state::SettingsCategory;
 use crate::theme::{LbThemeExt as _, metric, ty};
@@ -79,10 +79,7 @@ impl AskPage {
             rows.push(filters.into_any_element());
         }
         if let Some(scope) = &self.meeting_scope {
-            let label = format!(
-                "{} · All screens",
-                super::history::count_label(scope.len(), "meeting")
-            );
+            let label = super::history::count_label(scope.len(), "meeting");
             rows.push(
                 h_flex()
                     .child(
@@ -157,34 +154,28 @@ impl AskPage {
         )
     }
 
-    /// "Answer sources: 3 meetings · 0 screen moments" with the list on demand.
+    /// "Answer sources: 3 meetings" with the list on demand.
     fn render_answer_sources(&self, cx: &mut Context<Self>) -> Div {
         let lb = cx.lb().clone();
         let count = self.results.meetings.len();
-        let screens = self.results.screens.len();
         let label = if self.results.running {
             "Finding sources…".to_string()
-        } else if count + screens > 0 {
+        } else if count > 0 {
             format!(
-                "Answer sources: {} · {}",
-                super::history::count_label(count, "meeting"),
-                super::history::count_label(screens, "screen moment")
+                "Answer sources: {}",
+                super::history::count_label(count, "meeting")
             )
         } else {
-            format!(
-                "Answer sources: {} · {}",
-                self.sources.summary(),
-                self.date_scope.label()
-            )
+            format!("Answer sources: meetings · {}", self.date_scope.label())
         };
         let expanded = self.sources_expanded;
         let mut details: Vec<AnyElement> = Vec::new();
         if expanded {
-            if count + screens > 0 {
+            if count > 0 {
                 details.push(
                     div()
                         .text_color(lb.supporting)
-                        .child("The answer can retrieve passages from these meetings and screen moments, including collapsed matches. It may use only the passages relevant to your question.")
+                        .child("The answer can retrieve passages from these meetings, including collapsed matches. It may use only the passages relevant to your question.")
                         .into_any_element(),
                 );
                 for group in &self.results.meetings {
@@ -204,30 +195,12 @@ impl AskPage {
                             .into_any_element(),
                     );
                 }
-                for screen in &self.results.screens {
-                    let when = screen
-                        .moment
-                        .ts
-                        .with_timezone(&chrono::Local)
-                        .format("%b %-d, %Y at %-I:%M %p");
-                    details.push(
-                        div()
-                            .truncate()
-                            .text_color(lb.text_secondary)
-                            .child(format!(
-                                "Screen · {} · {when} · {}",
-                                screen.moment.app,
-                                super::history::count_label(screen.captures, "moment")
-                            ))
-                            .into_any_element(),
-                    );
-                }
             } else {
                 let text = if self.meeting_scope.is_some() {
                     "Ask stays within the selected evidence shown above, even when this search has no matches.".to_string()
                 } else {
                     format!(
-                        "Ask can search the selected sources within {}. Result-type and screen-app filters apply to search results only.",
+                        "Ask can search your meetings within {}. Result-type filters apply to search results only.",
                         self.date_scope.label().to_lowercase()
                     )
                 };
@@ -323,7 +296,7 @@ impl AskPage {
                     .gap(px(10.))
                     .items_center()
                     .px(px(4.))
-                    .child(self.render_sources_menu(cx))
+                    .child(self.render_result_type_menu(cx))
                     .child(self.render_date_scope(cx))
                     .child(div().flex_1().min_w_0())
                     .child(
@@ -358,63 +331,34 @@ impl AskPage {
             )
     }
 
-    fn render_sources_menu(&self, cx: &mut Context<Self>) -> impl IntoElement + use<> {
+    /// Result-type filter. Answers draw on meetings only on this platform, so
+    /// the Mac's source toggles (meetings, activity, screen) are not offered.
+    fn render_result_type_menu(&self, cx: &mut Context<Self>) -> impl IntoElement + use<> {
         let page = cx.entity();
-        let sources = self.sources;
         let facet = self.facet;
-        Button::new("ask-sources")
+        Button::new("ask-result-type")
             .ghost()
             .small()
-            .label(sources.summary())
+            .label(facet.label())
             .font_weight(FontWeight::SEMIBOLD)
             .dropdown_caret(true)
-            .tooltip("Choose sources and result filters")
-            .dropdown_menu(move |menu, window, cx| {
-                let mut menu = menu.min_w(px(220.));
-                for source in Source::ALL {
+            .tooltip("Filter search results by type")
+            .dropdown_menu(move |menu, _, _| {
+                let mut menu = menu.min_w(px(200.));
+                for option in Facet::ALL {
                     let page = page.clone();
-                    let checked = sources.contains(source);
                     menu = menu.item(
-                        PopupMenuItem::new(source.label())
-                            .checked(checked)
-                            .disabled(checked && sources.count() == 1)
+                        PopupMenuItem::new(option.label())
+                            .checked(option == facet)
                             .on_click(move |_, window, cx| {
                                 page.update(cx, |page, cx| {
-                                    page.sources.toggle(source);
+                                    page.facet = option;
                                     page.scope_changed(window, cx);
                                 })
                             }),
                     );
                 }
-                let facet_page = page.clone();
-                let facets = PopupMenu::build(window, cx, move |mut menu, _, _| {
-                    for option in Facet::ALL {
-                        let page = facet_page.clone();
-                        menu = menu.item(
-                            PopupMenuItem::new(option.label())
-                                .checked(option == facet)
-                                .on_click(move |_, window, cx| {
-                                    page.update(cx, |page, cx| {
-                                        page.facet = option;
-                                        page.scope_changed(window, cx);
-                                    })
-                                }),
-                        );
-                    }
-                    menu
-                });
-                let settings_page = page.clone();
-                menu.separator()
-                    .item(PopupMenuItem::submenu("Result type", facets))
-                    .separator()
-                    .item(PopupMenuItem::new("Manage source permissions…").on_click(
-                        move |_, _, cx| {
-                            let data = settings_page.read(cx).data.clone();
-                            data.update(cx, |data, cx| {
-                                data.open_settings(SettingsCategory::Privacy, cx)
-                            });
-                        },
-                    ))
+                menu
             })
     }
 
@@ -435,7 +379,7 @@ impl AskPage {
                             .icon(Icon::new(Ico::Calendar))
                             .label(current.label())
                             .font_weight(FontWeight::SEMIBOLD)
-                            .tooltip("One date scope for meeting, activity, and screen search and answers"),
+                            .tooltip("One date scope for meeting search and answers"),
                     )
                     .content(move |_, _, cx| {
                         let lb = cx.lb().clone();
@@ -448,7 +392,8 @@ impl AskPage {
                             Button::new(SharedString::from(format!("ask-date-{label}")))
                                 .outline()
                                 .small()
-                                .flex_1().min_w_0()
+                                .flex_1()
+                                .min_w_0()
                                 .icon(Icon::new(if selected { Ico::Check } else { Ico::Calendar }))
                                 .label(label)
                                 .on_click(move |_, window, cx| {
@@ -465,12 +410,18 @@ impl AskPage {
                             .w(px(340.))
                             .gap(px(12.))
                             .p(px(4.))
-                            .child(div().text_size(ty::SECTION).font_weight(FontWeight::BOLD).text_color(lb.text).child("Date scope"))
+                            .child(
+                                div()
+                                    .text_size(ty::SECTION)
+                                    .font_weight(FontWeight::BOLD)
+                                    .text_color(lb.text)
+                                    .child("Date scope"),
+                            )
                             .child(
                                 div()
                                     .text_size(ty::SECONDARY)
                                     .text_color(lb.supporting)
-                                    .child("Applies to search results and answers across all selected sources."),
+                                    .child("Applies to search results and answers."),
                             )
                             .child(
                                 h_flex()
@@ -489,19 +440,36 @@ impl AskPage {
                                 h_flex()
                                     .gap(px(8.))
                                     .items_center()
-                                    .child(div().flex_none().text_size(ty::SECONDARY).text_color(lb.text).child("Specific date"))
-                                    .child(div().flex_1().min_w_0().child(DatePicker::new(&picker).small()))
-                                    .child(Button::new("ask-date-use").outline().small().label("Use date").on_click(
-                                        move |_, window, cx| {
-                                            use_page.update(cx, |page, cx| {
-                                                if let Some(day) = page.picked_day {
-                                                    page.date_scope = DateScope::Day(day);
-                                                    page.scope_changed(window, cx);
-                                                }
-                                            });
-                                            use_popover.update(cx, |popover, cx| popover.dismiss(window, cx));
-                                        },
-                                    )),
+                                    .child(
+                                        div()
+                                            .flex_none()
+                                            .text_size(ty::SECONDARY)
+                                            .text_color(lb.text)
+                                            .child("Specific date"),
+                                    )
+                                    .child(
+                                        div()
+                                            .flex_1()
+                                            .min_w_0()
+                                            .child(DatePicker::new(&picker).small()),
+                                    )
+                                    .child(
+                                        Button::new("ask-date-use")
+                                            .outline()
+                                            .small()
+                                            .label("Use date")
+                                            .on_click(move |_, window, cx| {
+                                                use_page.update(cx, |page, cx| {
+                                                    if let Some(day) = page.picked_day {
+                                                        page.date_scope = DateScope::Day(day);
+                                                        page.scope_changed(window, cx);
+                                                    }
+                                                });
+                                                use_popover.update(cx, |popover, cx| {
+                                                    popover.dismiss(window, cx)
+                                                });
+                                            }),
+                                    ),
                             )
                     }),
             )

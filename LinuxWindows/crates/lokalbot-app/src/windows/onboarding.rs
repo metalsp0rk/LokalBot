@@ -1,7 +1,9 @@
 //! Welcome to LokalBot (`OnboardingView.swift`): four steps. Choices stay a
 //! draft until "Apply Choices and Start"; model downloads happen only when
 //! asked for. macOS permission panes have no equivalent here, so step two
-//! checks the microphone, system audio and activity tracking instead.
+//! checks the microphone, system audio and activity tracking instead. Day
+//! Memory records app and window activity only (no screen text or images),
+//! and autocomplete is macOS-only, so neither is offered here.
 
 use std::time::Duration;
 
@@ -16,11 +18,10 @@ use gpui_kit::{
     StatefulInteractiveElement as _, Styled as _, Subscription, Window, WindowBounds, WindowKind,
     WindowOptions, div, img, px, relative, size,
 };
-use lokalbot_core::ScreenContextMode;
-use lokalbot_core::settings::AutoRecordMode;
+use lokalbot_core::settings::{AutoRecordMode, SummarizerBackend};
 
 use crate::pages::ask::composer_inference;
-use crate::pages::settings::models::model_name;
+use crate::pages::settings::models::{model_bytes, model_name, models_in_use, size_label};
 use crate::state::{AppData, AppEvent};
 use crate::theme::{FONT_FAMILY, LbThemeExt as _, metric, ty};
 use crate::ui::{self, Ico};
@@ -84,7 +85,6 @@ impl Step {
 struct Draft {
     meeting_mode: AutoRecordMode,
     day_memory: bool,
-    context_mode: ScreenContextMode,
 }
 
 pub struct Onboarding {
@@ -92,7 +92,6 @@ pub struct Onboarding {
     step: Step,
     forward: bool,
     draft: Draft,
-    include_autocomplete: bool,
     _subscriptions: Vec<Subscription>,
 }
 
@@ -108,9 +107,7 @@ impl Onboarding {
             draft: Draft {
                 meeting_mode: settings.auto_record_mode,
                 day_memory: settings.tracking_enabled,
-                context_mode: settings.screen_context_capture_mode,
             },
-            include_autocomplete: false,
             _subscriptions: subscriptions,
         }
     }
@@ -128,11 +125,6 @@ impl Onboarding {
                 |s| {
                     s.auto_record_mode = draft.meeting_mode;
                     s.tracking_enabled = draft.day_memory;
-                    s.screen_context_capture_mode = if draft.day_memory {
-                        draft.context_mode
-                    } else {
-                        ScreenContextMode::ActivityOnly
-                    };
                     s.onboarding_completed = true;
                 },
                 cx,
@@ -143,14 +135,8 @@ impl Onboarding {
     }
 
     fn prepare_models(&mut self, cx: &mut Context<Self>) {
-        let include = self.include_autocomplete;
-        self.data.update(cx, |data, cx| {
-            data.request(AppEvent::PrepareModels, cx);
-            if include {
-                let id = data.settings.cotyping_built_in_model_id.clone();
-                data.request(AppEvent::DownloadModel(id), cx);
-            }
-        });
+        self.data
+            .update(cx, |data, cx| data.request(AppEvent::PrepareModels, cx));
     }
 
     fn render_capture(&self, cx: &mut Context<Self>) -> Div {
@@ -158,8 +144,11 @@ impl Onboarding {
         let draft = self.draft;
         let page = cx.entity();
         let mode_page = page.clone();
-        let detail_page = page.clone();
         let memory_page = page.clone();
+        let retention = match self.data.read(cx).settings.retention_days {
+            1 => "1 day".to_string(),
+            days => format!("{days} days"),
+        };
         let meeting_picker = Button::new("onboarding-meeting-mode")
             .outline()
             .small()
@@ -174,28 +163,6 @@ impl Onboarding {
                             .on_click(move |_, _, cx| {
                                 page.update(cx, |this, cx| {
                                     this.draft.meeting_mode = mode;
-                                    cx.notify();
-                                })
-                            }),
-                    );
-                }
-                menu
-            });
-        let detail_picker = Button::new("onboarding-context-mode")
-            .outline()
-            .small()
-            .label(draft.context_mode.label())
-            .dropdown_caret(true)
-            .disabled(!draft.day_memory)
-            .dropdown_menu(move |mut menu, _, _| {
-                for mode in ScreenContextMode::ALL {
-                    let page = detail_page.clone();
-                    menu = menu.item(
-                        PopupMenuItem::new(mode.label())
-                            .checked(mode == draft.context_mode)
-                            .on_click(move |_, _, cx| {
-                                page.update(cx, |this, cx| {
-                                    this.draft.context_mode = mode;
                                     cx.notify();
                                 })
                             }),
@@ -250,24 +217,13 @@ impl Onboarding {
                                             })
                                         },
                                     )),
-                            )
-                            .child(ui::divider(cx))
-                            .child(
-                                v_flex()
-                                    .gap(px(6.))
-                                    .child(
-                                        h_flex()
-                                            .gap(px(12.))
-                                            .items_center()
-                                            .child(div().flex_1().min_w_0().text_size(ty::BODY).text_color(lb.text).child("Day-Memory Detail"))
-                                            .child(detail_picker),
-                                    )
-                                    .child(text(mode_detail(draft.context_mode), lb.text_secondary)),
                             ),
                     ),
             )
             .child(text(
-                "Text and images build on app activity. Images are encrypted on disk; captured text remains searchable under your retention policy.",
+                format!(
+                    "Day Memory notes the app in front and its window title, never what you type or what is on screen. Window titles are cleared after {retention}; you can change this in Settings → Privacy & Data."
+                ),
                 lb.text_secondary,
             ))
             .child(
@@ -334,7 +290,7 @@ impl Onboarding {
                 cx,
             ))
             .child(text(
-                "Autocomplete and global dictation shortcuts can be enabled later from Settings → Writing and Dictation.",
+                "The dictation shortcut can be turned on later in Settings → Dictation.",
                 lb.text_secondary,
             ))
     }
@@ -360,34 +316,40 @@ impl Onboarding {
                 None => ("Download required".into(), false),
             }
         };
+        let with_size = |id: &str| format!("{} · {}", model_name(id), size_label(model_bytes(id)));
+        let built_in = settings.summarizer_backend == SummarizerBackend::BuiltIn;
         let think_local = settings.think_is_local();
-        let think_name = if think_local
-            && settings.summarizer_backend == lokalbot_core::settings::SummarizerBackend::BuiltIn
-        {
-            model_name(&settings.built_in_model_id)
+        let think_name = if built_in {
+            with_size(&settings.built_in_model_id)
         } else {
             "Your model server".into()
         };
         let speech = model_status(&settings.transcription_model, status.transcription_ready);
-        let think = model_status(
-            &settings.built_in_model_id,
-            status.think_ready || !think_local,
-        );
-        let autocomplete = model_status(
-            &settings.cotyping_built_in_model_id,
-            status.autocomplete_ready,
-        );
+        let think = model_status(&settings.built_in_model_id, status.think_ready || !built_in);
+        let embedding_id = lokalbot_ai::catalog::EMBEDDING_MODEL_ID;
+        let search = settings
+            .semantic_search_enabled
+            .then(|| model_status(embedding_id, status.embeddings_ready));
+        // Everything "Prepare" downloads: Transcribe with voice detection and
+        // speaker separation, Think, search by meaning, and the llama.cpp runtime.
+        let download: u64 = models_in_use(&settings)
+            .iter()
+            .filter(|id| !status.installed.contains(id))
+            .map(|id| model_bytes(id))
+            .sum();
         let page = cx.entity();
-        let toggle_page = page.clone();
         let preparing = !downloads.is_empty();
         v_flex()
             .gap(px(14.))
             .child(text(
-                "Meeting processing needs a Transcribe model and a Think model. Downloads can be deferred; captured meetings wait for their selected models.",
+                "Meeting processing needs a Transcribe model and a Think model, and search by meaning adds a small embedding model. Downloads can be deferred; captured meetings wait for their selected models.",
                 lb.text_secondary,
             ))
-            .child(model_row("Speech recognition", model_name(&settings.transcription_model), speech, downloads.get(&settings.transcription_model).map(|d| d.fraction()), cx))
+            .child(model_row("Speech recognition", with_size(&settings.transcription_model), speech, downloads.get(&settings.transcription_model).map(|d| d.fraction()), cx))
             .child(model_row("Summaries and Ask", think_name, think, downloads.get(&settings.built_in_model_id).map(|d| d.fraction()), cx))
+            .when_some(search, |this, search| {
+                this.child(model_row("Search by meaning", with_size(embedding_id), search, downloads.get(embedding_id).map(|d| d.fraction()), cx))
+            })
             .child(
                 h_flex()
                     .gap(px(8.))
@@ -406,37 +368,26 @@ impl Onboarding {
                 h_flex()
                     .gap(px(12.))
                     .items_center()
-                    .child(div().flex_1().min_w_0().text_size(ty::BODY).text_color(lb.text).child("Also prepare Autocomplete (optional)"))
-                    .child(Switch::new("onboarding-autocomplete").checked(self.include_autocomplete).on_click(move |on, _, cx| {
-                        let on = *on;
-                        toggle_page.update(cx, |this, cx| {
-                            this.include_autocomplete = on;
-                            cx.notify();
-                        })
-                    })),
-            )
-            .when(self.include_autocomplete, |this| {
-                this.child(model_row(
-                    "Autocomplete",
-                    model_name(&settings.cotyping_built_in_model_id),
-                    autocomplete,
-                    downloads.get(&settings.cotyping_built_in_model_id).map(|d| d.fraction()),
-                    cx,
-                ))
-                .child(text(
-                    "Autocomplete also reads the text just above the field you are typing in, such as the conversation you are answering, to fit its suggestions. It stays on this PC and is never saved; turn it off in Settings → Writing.",
-                    lb.text_secondary,
-                ))
-            })
-            .child(
-                h_flex().child(
-                    Button::new("onboarding-prepare")
-                        .outline()
-                        .icon(Icon::new(Ico::CircleArrowDown))
-                        .label(if preparing { "Preparing…" } else { "Prepare Selected Models" })
-                        .disabled(preparing)
-                        .on_click(move |_, _, cx| page.update(cx, |this, cx| this.prepare_models(cx))),
-                ),
+                    .child(
+                        Button::new("onboarding-prepare")
+                            .outline()
+                            .icon(Icon::new(Ico::CircleArrowDown))
+                            .label(if preparing { "Preparing…" } else { "Prepare Selected Models" })
+                            .disabled(preparing || download == 0)
+                            .on_click(move |_, _, cx| page.update(cx, |this, cx| this.prepare_models(cx))),
+                    )
+                    .child(
+                        div()
+                            .flex_1()
+                            .min_w_0()
+                            .text_size(ty::SECONDARY)
+                            .text_color(lb.text_secondary)
+                            .child(if download == 0 {
+                                "Everything is already on this PC.".to_string()
+                            } else {
+                                format!("About {} to download", size_label(download))
+                            }),
+                    ),
             )
             .child(text(
                 "Downloads use the model provider. They do not send your meeting content. Existing downloaded models are kept.",
@@ -449,7 +400,7 @@ impl Onboarding {
         let status = self.data.read(cx).models.clone();
         let draft = self.draft;
         let day_memory: SharedString = if draft.day_memory {
-            draft.context_mode.label().into()
+            "App and window activity".into()
         } else {
             "Off".into()
         };
@@ -620,18 +571,6 @@ fn text(content: impl Into<SharedString>, color: gpui_kit::Hsla) -> Div {
         .line_height(px(20.))
         .text_color(color)
         .child(content.into())
-}
-
-fn mode_detail(mode: ScreenContextMode) -> &'static str {
-    match mode {
-        ScreenContextMode::ActivityOnly => "Records the active app and window title only.",
-        ScreenContextMode::Text => {
-            "Reads visible interface text through accessibility; no screenshots are stored."
-        }
-        ScreenContextMode::TextAndVisual => {
-            "Pairs accessible text with an encrypted screenshot, using local OCR only when needed."
-        }
-    }
 }
 
 fn access_row(

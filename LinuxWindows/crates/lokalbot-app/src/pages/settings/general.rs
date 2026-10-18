@@ -1,8 +1,10 @@
-//! General: startup, appearance, the Ask shortcut, updates and about.
+//! General: startup, appearance, the Ask shortcut and about. There is no
+//! update checker on Linux and Windows yet, so "Check for updates" is not
+//! shown; the About section links to the releases instead.
 
 use gpui_kit::component::button::Button;
-use gpui_kit::component::{Icon, Sizable as _};
-use gpui_kit::{Context, IntoElement as _, ParentElement as _, SharedString, Styled as _, div};
+use gpui_kit::component::{Icon, Sizable as _, h_flex};
+use gpui_kit::{Context, IntoElement as _, ParentElement as _, SharedString, Styled as _, div, px};
 use lokalbot_core::settings::{AppTheme, TextSize};
 
 use super::{Section, SettingsPage, catalog};
@@ -157,53 +159,48 @@ impl SettingsPage {
                 ),
             );
 
-        let updates = Section::new("Updates")
-            .row(
-                "settings.checkForUpdates",
-                self.toggle(
-                    "settings.checkForUpdates",
-                    "Check for updates automatically",
-                    Some(
-                        "Only the release feed and the update you choose to download are fetched.",
-                    ),
-                    settings.check_for_updates,
-                    |s, v| s.check_for_updates = v,
-                    cx,
-                ),
-            )
+        let about = Section::new("About")
             .row(
                 "settings.currentVersion",
                 settings_row::row(
                     "settings.currentVersion",
                     "Current version",
-                    None,
-                    settings_row::value(env!("CARGO_PKG_VERSION"), cx),
+                    Some("LokalBot doesn't check for updates on its own. New versions are listed on GitHub.".into()),
+                    h_flex()
+                        .gap(px(10.))
+                        .items_center()
+                        .child(settings_row::value(env!("CARGO_PKG_VERSION"), cx))
+                        .child(settings_row::link_button(
+                            "settings-releases",
+                            "Releases",
+                            |_, cx| cx.open_url(&format!("{REPOSITORY}/releases")),
+                            cx,
+                        )),
+                    self.is_focused("settings.currentVersion"),
+                    cx,
+                ),
+            )
+            .row(
+                "settings.githubStar",
+                settings_row::row(
+                    "settings.githubStar",
+                    "Open source",
+                    Some(
+                        "LokalBot is free and built by one person. A GitHub star helps others find it."
+                            .into(),
+                    ),
+                    Button::new("settings-github-star")
+                        .outline()
+                        .small()
+                        .icon(Icon::new(Ico::Star))
+                        .label("Star on GitHub")
+                        .on_click(|_, _, cx| cx.open_url(REPOSITORY))
+                        .into_any_element(),
                     false,
                     cx,
                 ),
             );
 
-        let about = Section::new("About").row(
-            "settings.githubStar",
-            settings_row::row(
-                "settings.githubStar",
-                "Open source",
-                Some(
-                    "LokalBot is free and built by one person. A GitHub star helps others find it."
-                        .into(),
-                ),
-                Button::new("settings-github-star")
-                    .outline()
-                    .small()
-                    .icon(Icon::new(Ico::Star))
-                    .label("Star on GitHub")
-                    .on_click(|_, _, cx| cx.open_url(REPOSITORY))
-                    .into_any_element(),
-                false,
-                cx,
-            ),
-        );
-
-        vec![general, appearance, shortcut, updates, about]
+        vec![general, appearance, shortcut, about]
     }
 }

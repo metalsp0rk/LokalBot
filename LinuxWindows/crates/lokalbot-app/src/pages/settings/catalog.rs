@@ -94,11 +94,11 @@ pub const ENTRIES: &[Entry] = &[
         value: |s| s.quick_recall_shortcut.clone(),
     },
     Entry {
-        id: "settings.checkForUpdates",
-        title: "Check for updates automatically",
+        id: "settings.currentVersion",
+        title: "Current version",
         category: General,
-        aliases: "update version release",
-        value: |s| on_off(s.check_for_updates),
+        aliases: "version about release update updates",
+        value: |_| env!("CARGO_PKG_VERSION").into(),
     },
     Entry {
         id: "settings.autoRecordMode",
@@ -177,32 +177,11 @@ pub const ENTRIES: &[Entry] = &[
         value: |s| on_off(s.microphone_is_user),
     },
     Entry {
-        id: "settings.meetingNoteExportEnabled",
-        title: "Export a note for each meeting",
-        category: Meetings,
-        aliases: "obsidian logseq markdown vault export",
-        value: |s| on_off(s.meeting_note_export_enabled),
-    },
-    Entry {
         id: "settings.trackingEnabled",
         title: "Track app & window activity",
         category: DayMemory,
         aliases: "activity timeline tracking",
         value: |s| on_off(s.tracking_enabled),
-    },
-    Entry {
-        id: "settings.screenContextCaptureMode",
-        title: "Screen context",
-        category: DayMemory,
-        aliases: "screenshots ocr text capture visual",
-        value: |s| s.screen_context_capture_mode.label().into(),
-    },
-    Entry {
-        id: "settings.codingAgentEvidenceEnabled",
-        title: "Read coding agent sessions",
-        category: DayMemory,
-        aliases: "claude code codex agent sessions",
-        value: |s| on_off(s.coding_agent_evidence_enabled),
     },
     Entry {
         id: "settings.dayDigestAutoEnabled",
@@ -219,65 +198,25 @@ pub const ENTRIES: &[Entry] = &[
         value: |s| text(&s.day_digest_custom_prompt),
     },
     Entry {
-        id: "settings.cotypingEnabled",
-        title: "Enable autocomplete",
+        id: "settings.autocompleteAvailability",
+        title: "Autocomplete",
         category: Writing,
-        aliases: "cotyping suggestions autocomplete typing",
-        value: |s| on_off(s.cotyping_enabled),
-    },
-    Entry {
-        id: "settings.cotypingMaxWords",
-        title: "Suggestion length",
-        category: Writing,
-        aliases: "autocomplete words length",
-        value: |s| format!("up to {} words", s.cotyping_max_words),
-    },
-    Entry {
-        id: "settings.cotypingMultiLine",
-        title: "Allow multi-line suggestions",
-        category: Writing,
-        aliases: "autocomplete lines",
-        value: |s| on_off(s.cotyping_multi_line),
-    },
-    Entry {
-        id: "settings.cotypingDebounceMs",
-        title: "Pause before suggesting",
-        category: Writing,
-        aliases: "autocomplete delay debounce",
-        value: |s| format!("{} ms", s.cotyping_debounce_ms),
-    },
-    Entry {
-        id: "settings.cotypingAcceptGranularity",
-        title: "Each accept takes",
-        category: Writing,
-        aliases: "autocomplete accept word phrase",
-        value: |s| super::writing::granularity_label(s.cotyping_accept_granularity).into(),
+        aliases: "cotyping suggestions autocomplete typing macos",
+        value: |_| "macOS only for now".into(),
     },
     Entry {
         id: "settings.cotypingUserName",
         title: "Your name",
         category: Writing,
-        aliases: "writing profile name",
+        aliases: "writing profile name compose",
         value: |s| text(&s.cotyping_user_name),
     },
     Entry {
         id: "settings.cotypingStyleNote",
         title: "Writing style",
         category: Writing,
-        aliases: "writing profile tone",
+        aliases: "writing profile tone compose",
         value: |s| text(&s.cotyping_style_note),
-    },
-    Entry {
-        id: "settings.cotypingExcludedApps",
-        title: "Never suggest in these apps",
-        category: Writing,
-        aliases: "autocomplete exclusions apps",
-        value: |s| {
-            format!(
-                "{} selected",
-                lokalbot_core::settings::split_list(&s.cotyping_excluded_apps).len()
-            )
-        },
     },
     Entry {
         id: "settings.dictationEnabled",
@@ -301,6 +240,16 @@ pub const ENTRIES: &[Entry] = &[
         value: |s| s.dictation_trigger_mode.label().into(),
     },
     Entry {
+        id: "settings.dictationIntent",
+        title: "Intent",
+        category: Dictation,
+        aliases: "dictation transcribe compose rewrite draft reply",
+        value: |s| match s.dictation_intent {
+            lokalbot_core::settings::DictationIntent::Transcribe => "Transcribe".into(),
+            lokalbot_core::settings::DictationIntent::Compose => "Compose".into(),
+        },
+    },
+    Entry {
         id: "settings.dictationOutputMode",
         title: "After a shortcut recording",
         category: Dictation,
@@ -315,24 +264,10 @@ pub const ENTRIES: &[Entry] = &[
         value: |s| on_off(s.dictation_show_overlay),
     },
     Entry {
-        id: "settings.dictationPlaysStartSound",
-        title: "Play a sound when the microphone is ready",
-        category: Dictation,
-        aliases: "sound chime",
-        value: |s| on_off(s.dictation_plays_start_sound),
-    },
-    Entry {
-        id: "settings.dictationRetainAudio",
-        title: "Keep dictation audio files",
-        category: Dictation,
-        aliases: "audio recordings keep",
-        value: |s| on_off(s.dictation_retain_audio),
-    },
-    Entry {
         id: "settings.models",
         title: "Models",
         category: Models,
-        aliases: "transcribe think autocomplete model llm whisper qwen download",
+        aliases: "transcribe think model llm whisper qwen download",
         value: details,
     },
     Entry {
@@ -350,6 +285,13 @@ pub const ENTRIES: &[Entry] = &[
         value: |s| on_off(s.semantic_search_enabled),
     },
     Entry {
+        id: "settings.modelStorage",
+        title: "Model Storage",
+        category: Models,
+        aliases: "disk space remove delete unused downloaded models folder",
+        value: details,
+    },
+    Entry {
         id: "settings.libraryLocation",
         title: "Library location",
         category: Privacy,
@@ -358,17 +300,10 @@ pub const ENTRIES: &[Entry] = &[
     },
     Entry {
         id: "settings.retentionDays",
-        title: "Keep screen context",
+        title: "Keep activity details",
         category: Privacy,
-        aliases: "retention delete days cleanup",
+        aliases: "retention delete days cleanup window titles history",
         value: |s| format!("{} days", s.retention_days),
-    },
-    Entry {
-        id: "settings.keepOCRTextForever",
-        title: "Keep screen text forever",
-        category: Privacy,
-        aliases: "retention ocr text",
-        value: |s| on_off(s.keep_ocr_text_forever),
     },
     Entry {
         id: "settings.agentAccess",
@@ -381,14 +316,14 @@ pub const ENTRIES: &[Entry] = &[
         id: "settings.screenMemoryAccess",
         title: "Allow external agents to read screen memory",
         category: Privacy,
-        aliases: "mcp agents screen",
+        aliases: "mcp agents screen activity timeline",
         value: details,
     },
     Entry {
         id: "settings.excludedApps",
         title: "Never capture these apps",
         category: Privacy,
-        aliases: "exclusions private password",
+        aliases: "exclusions private password activity",
         value: |s| format!("{} selected", s.excluded_app_list().len()),
     },
     Entry {
@@ -397,6 +332,13 @@ pub const ENTRIES: &[Entry] = &[
         category: Privacy,
         aliases: "exclusions domains websites private",
         value: |s| format!("{} selected", s.excluded_domain_list().len()),
+    },
+    Entry {
+        id: "settings.setupAgain",
+        title: "Set Up LokalBot Again",
+        category: Advanced,
+        aliases: "setup onboarding welcome assistant wizard first run",
+        value: details,
     },
     Entry {
         id: "settings.agentCLI",
@@ -471,5 +413,16 @@ mod tests {
         assert!(search("   ").is_empty());
         let ids: std::collections::HashSet<_> = ENTRIES.iter().map(|e| e.id).collect();
         assert_eq!(ids.len(), ENTRIES.len(), "ids are unique");
+    }
+
+    #[test]
+    fn features_missing_on_this_platform_are_not_offered() {
+        for word in ["ocr", "screenshot", "obsidian", "chime", "sessions"] {
+            assert!(search(word).is_empty(), "{word}");
+        }
+        let autocomplete: Vec<&str> = search("autocomplete").iter().map(|e| e.id).collect();
+        assert_eq!(autocomplete, ["settings.autocompleteAvailability"]);
+        let updates: Vec<&str> = search("updates").iter().map(|e| e.id).collect();
+        assert_eq!(updates, ["settings.currentVersion"]);
     }
 }

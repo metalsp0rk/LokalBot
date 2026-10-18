@@ -20,6 +20,7 @@ lokalbot-ai.workspace = true
 lokalbot-audio.workspace = true
 lokalbot-engine.workspace = true
 lokalbot-platform.workspace = true
+lokalbot-speech.workspace = true
 gpui-kit.workspace = true
 anyhow.workspace = true
 log.workspace = true

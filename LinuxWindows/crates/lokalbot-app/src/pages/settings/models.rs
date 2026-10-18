@@ -1,9 +1,11 @@
 //! Models (`ModelsView.swift`, `ModelStackOverviewView.swift`,
-//! `ModelConnectionsView.swift`): the three model roles, presets, remote
-//! servers, storage, the processing budget and server connections.
+//! `ModelConnectionsView.swift`): the Transcribe and Think roles, presets,
+//! remote servers, storage, the processing budget and server connections.
+//! Autocomplete is macOS-only, so it has no role here.
 //!
-//! Model names and sizes come from a small local table until the model
-//! catalog in `lokalbot-ai` is available to the app.
+//! Names and sizes come from the catalogs: `lokalbot_ai::catalog` for text
+//! models, `lokalbot_speech::models` for speech, `lokalbot_ai::runtime` for
+//! the llama.cpp binaries.
 
 use gpui_kit::component::button::{Button, ButtonVariant, ButtonVariants as _};
 use gpui_kit::component::input::{Input, InputEvent, InputState};
@@ -23,65 +25,98 @@ use crate::state::{AppData, AppEvent};
 use crate::theme::{LbThemeExt as _, ty};
 use crate::ui::{self, Ico, settings_row};
 
-/// A transcription model (`lokalbot_speech::models::transcription_models`).
-/// The app does not link the speech runtime, so the names and download sizes
-/// are mirrored here.
-pub struct SpeechModel {
-    pub id: &'static str,
-    pub name: &'static str,
-    pub bytes: u64,
-}
-
-pub const SPEECH_MODELS: &[SpeechModel] = &[
-    SpeechModel {
-        id: "qwen3-asr-0.6b",
-        name: "Qwen3-ASR 0.6B",
-        bytes: 878_702_423,
-    },
-    SpeechModel {
-        id: "parakeet-v3",
-        name: "Parakeet TDT 0.6B v3",
-        bytes: 487_170_055,
-    },
-    SpeechModel {
-        id: "sense-voice",
-        name: "SenseVoice (zh/ja/ko/yue/en)",
-        bytes: 165_783_878,
-    },
-    SpeechModel {
-        id: "whisper-large-v3-turbo",
-        name: "Whisper large-v3 turbo",
-        bytes: 563_790_207,
-    },
-];
-
 /// A picker entry: label, whether it is current, and how to select it.
 type ModelChoice = (SharedString, bool, Box<dyn Fn(&mut Settings)>);
 
 /// The default transcription model on Linux and Windows.
-const DEFAULT_SPEECH_MODEL: &str = "qwen3-asr-0.6b";
+const DEFAULT_SPEECH_MODEL: &str = lokalbot_speech::models::DEFAULT_TRANSCRIPTION_MODEL;
+
+/// The engine's id for the llama.cpp binaries (`lokalbot_engine` `RUNTIME_ID`).
+pub const RUNTIME_ID: &str = "llama-runtime";
 
 /// Display name of a speech or text model id.
 pub fn model_name(id: &str) -> String {
     if let Some(entry) = lokalbot_ai::catalog::entry(id) {
         return entry.display_name.to_string();
     }
-    SPEECH_MODELS
-        .iter()
-        .find(|m| m.id == id)
-        .map(|m| m.name.to_string())
+    if id == RUNTIME_ID {
+        return "llama.cpp runtime".into();
+    }
+    lokalbot_speech::models::find(id)
+        .map(|m| m.display_name.to_string())
         .unwrap_or_else(|| id.to_string())
 }
 
-fn model_bytes(id: &str) -> u64 {
+/// Download size of a model id from its catalog. The llama.cpp runtime is
+/// counted at its larger (Vulkan) archive until a backend is installed.
+pub fn model_bytes(id: &str) -> u64 {
     if let Some(entry) = lokalbot_ai::catalog::entry(id) {
         return entry.size_bytes;
     }
-    SPEECH_MODELS
-        .iter()
-        .find(|m| m.id == id)
-        .map(|m| m.bytes)
+    if id == RUNTIME_ID {
+        return lokalbot_ai::runtime::assets()
+            .iter()
+            .map(|a| a.size)
+            .max()
+            .unwrap_or(0);
+    }
+    lokalbot_speech::models::find(id)
+        .map(|m| m.archive.size)
         .unwrap_or(0)
+}
+
+/// Model ids the current settings use on this PC: the engine's meeting,
+/// dictation and search requirements. Autocomplete is macOS-only, so its
+/// model is never among them.
+pub fn models_in_use(settings: &Settings) -> Vec<String> {
+    let mut ids = vec![settings.transcription_model.clone()];
+    ids.extend(lokalbot_speech::models::supporting_ids(
+        settings.multi_speaker_diarization,
+    ));
+    let built_in = settings.summarizer_backend == SummarizerBackend::BuiltIn;
+    if built_in {
+        ids.push(settings.built_in_model_id.clone());
+    }
+    if settings.semantic_search_enabled {
+        ids.push(lokalbot_ai::catalog::EMBEDDING_MODEL_ID.to_string());
+    }
+    if built_in || settings.semantic_search_enabled {
+        ids.push(RUNTIME_ID.to_string());
+    }
+    ids
+}
+
+/// Downloaded models the current settings don't use, in catalog order.
+pub fn unused_models(settings: &Settings, installed: &[String]) -> Vec<String> {
+    let in_use = models_in_use(settings);
+    installed
+        .iter()
+        .filter(|id| !in_use.contains(id))
+        .cloned()
+        .collect()
+}
+
+/// What a downloaded model is for, for the storage list.
+fn model_purpose(id: &str) -> &'static str {
+    if id == RUNTIME_ID {
+        return "Runs Think and search models";
+    }
+    if id == lokalbot_ai::catalog::EMBEDDING_MODEL_ID {
+        return "Search by meaning";
+    }
+    if let Some(entry) = lokalbot_ai::catalog::entry(id) {
+        return if entry.think {
+            "Think model"
+        } else {
+            "Autocomplete model (macOS only)"
+        };
+    }
+    match lokalbot_speech::models::find(id).map(|m| m.kind) {
+        Some(lokalbot_speech::models::ModelKind::Transcription(_)) => "Transcribe model",
+        Some(lokalbot_speech::models::ModelKind::VoiceActivity) => "Finds speech in recordings",
+        Some(_) => "Separates speakers",
+        None => "Model",
+    }
 }
 
 /// "2.7 GB", "730 MB".
@@ -419,6 +454,23 @@ impl SettingsPage {
             SummarizerBackend::Ollama => Some(settings.ollama_base_url.clone()),
             SummarizerBackend::OpenAICompatible => Some(settings.openai_base_url.clone()),
         };
+        // What each role downloads: Transcribe with voice detection (and speaker
+        // separation when on); built-in Think with the llama.cpp runtime.
+        let mut speech_needs = vec![settings.transcription_model.clone()];
+        speech_needs.extend(lokalbot_speech::models::supporting_ids(
+            settings.multi_speaker_diarization,
+        ));
+        let think_needs = if settings.summarizer_backend == SummarizerBackend::BuiltIn {
+            vec![settings.built_in_model_id.clone(), RUNTIME_ID.to_string()]
+        } else {
+            Vec::new()
+        };
+        let progress = |needs: &[String]| {
+            needs
+                .iter()
+                .find_map(|id| downloads.get(id))
+                .map(|d| d.fraction())
+        };
         let mut roles = Section::new("Core Roles");
         roles = roles.row(
             "settings.transcriptionModel",
@@ -431,10 +483,9 @@ impl SettingsPage {
                     model: model_name(&settings.transcription_model),
                     remote: None,
                     ready: status.transcription_ready,
-                    downloading: downloads
-                        .get(&settings.transcription_model)
-                        .map(|d| d.fraction()),
-                    model_id: settings.transcription_model.clone(),
+                    downloading: progress(&speech_needs),
+                    needs: speech_needs.clone(),
+                    installed: status.installed.clone(),
                 },
                 RoleChoices::Speech,
                 cx,
@@ -447,16 +498,15 @@ impl SettingsPage {
                     id: "settings.builtInModelID",
                     icon: Ico::Brain,
                     title: "Think",
-                    detail: "Summaries, Ask, and Agent",
+                    detail: "Summaries, Ask, and Compose",
                     model: think_name,
                     remote: think_location
                         .filter(|url| !lokalbot_core::access::is_loopback_url(url)),
                     ready: status.think_ready
                         || settings.summarizer_backend != SummarizerBackend::BuiltIn,
-                    downloading: downloads
-                        .get(&settings.built_in_model_id)
-                        .map(|d| d.fraction()),
-                    model_id: settings.built_in_model_id.clone(),
+                    downloading: progress(&think_needs),
+                    needs: think_needs.clone(),
+                    installed: status.installed.clone(),
                 },
                 RoleChoices::Think,
                 cx,
@@ -654,19 +704,24 @@ impl SettingsPage {
                                     move |_, window, cx| confirm_revoke(data.clone(), revoke.clone(), window, cx),
                                 )),
                         )
-                        .child(settings_row::help("Includes scheduled daily summaries, which can send activity titles, captured screen text, and meeting evidence to this origin without a prompt each time.", cx)),
+                        .child(settings_row::help("Includes scheduled daily summaries, which can send activity titles and meeting evidence to this origin without a prompt each time.", cx)),
                     false,
                     cx,
                 ),
             );
         }
 
-        // Storage.
+        // Storage: what is downloaded, and the models the settings don't use.
         let models_dir = root.models_dir();
         let open_dir = models_dir.clone();
         let library_root = root.root().to_path_buf();
-        let stored = status.installed.len();
-        let storage = Section::new("Model Storage").row(
+        let stored = status
+            .installed
+            .iter()
+            .filter(|id| id.as_str() != RUNTIME_ID)
+            .count();
+        let unused = unused_models(&settings, &status.installed);
+        let mut storage = Section::new("Model Storage").row(
             "settings.modelStorage",
             settings_row::content_row(
                 "settings.modelStorage",
@@ -708,10 +763,81 @@ impl SettingsPage {
                                 cx.open_with_system(&target);
                             }),
                     ),
-                false,
+                self.is_focused("settings.modelStorage"),
                 cx,
             ),
         );
+        if !unused.is_empty() {
+            let total: u64 = unused.iter().map(|id| model_bytes(id)).sum();
+            let rows = unused.iter().map(|id| {
+                let data = self.data.clone();
+                let remove = id.clone();
+                h_flex()
+                    .gap(px(12.))
+                    .items_center()
+                    .child(
+                        v_flex()
+                            .flex_1()
+                            .min_w_0()
+                            .gap(px(2.))
+                            .child(
+                                div()
+                                    .text_size(ty::BODY)
+                                    .text_color(lb.text)
+                                    .truncate()
+                                    .child(model_name(id)),
+                            )
+                            .child(
+                                div()
+                                    .text_size(ty::SECONDARY)
+                                    .text_color(lb.text_secondary)
+                                    .child(format!(
+                                        "{} · {}",
+                                        model_purpose(id),
+                                        size_label(model_bytes(id))
+                                    )),
+                            ),
+                    )
+                    .child(
+                        Button::new(SharedString::from(format!("settings-remove-{id}")))
+                            .outline()
+                            .small()
+                            .label("Remove…")
+                            .on_click(move |_, window, cx| {
+                                confirm_remove(data.clone(), remove.clone(), window, cx)
+                            }),
+                    )
+            });
+            storage = storage.row(
+                "settings.unusedModels",
+                settings_row::content_row(
+                    "settings.unusedModels",
+                    v_flex()
+                        .gap(px(10.))
+                        .child(
+                            v_flex()
+                                .gap(px(2.))
+                                .child(
+                                    div()
+                                        .text_size(ty::BODY)
+                                        .font_weight(FontWeight::SEMIBOLD)
+                                        .text_color(lb.text)
+                                        .child("Not used by your current settings"),
+                                )
+                                .child(settings_row::help(
+                                    format!(
+                                        "Removing all of them frees about {}. You can download any of them again later.",
+                                        size_label(total)
+                                    ),
+                                    cx,
+                                )),
+                        )
+                        .children(rows),
+                    false,
+                    cx,
+                ),
+            );
+        }
 
         // Processing budget.
         let budget_data = self.data.clone();
@@ -812,23 +938,39 @@ impl SettingsPage {
             (None, true) => "On this PC · Downloaded".into(),
             (None, false) => "On this PC".into(),
         };
+        // What this role still has to download.
+        let missing: Vec<String> = row
+            .needs
+            .iter()
+            .filter(|id| !row.installed.contains(id))
+            .cloned()
+            .collect();
+        let missing_bytes: u64 = missing.iter().map(|id| model_bytes(id)).sum();
         let status: Option<(SharedString, gpui_kit::Hsla)> =
             match (row.downloading, row.ready, &remote) {
                 (Some(fraction), _, _) => Some((
                     format!("Downloading · {}%", (fraction * 100.).round()).into(),
                     lb.text_secondary,
                 )),
+                (None, false, None) if missing_bytes > 0 => Some((
+                    format!("Download required · {}", size_label(missing_bytes)).into(),
+                    lb.attention_text,
+                )),
                 (None, false, None) => Some(("Download required".into(), lb.attention_text)),
                 _ => None,
             };
         let data = self.data.clone();
         let options: Vec<ModelChoice> = match choices {
-            RoleChoices::Speech => SPEECH_MODELS
+            RoleChoices::Speech => lokalbot_speech::models::transcription_models()
                 .iter()
                 .map(|m| {
                     let id = m.id;
                     (
-                        SharedString::from(format!("{} · {}", m.name, size_label(m.bytes))),
+                        SharedString::from(format!(
+                            "{} · {}",
+                            m.display_name,
+                            size_label(m.archive.size)
+                        )),
                         settings.transcription_model == id,
                         Box::new(move |s: &mut Settings| s.transcription_model = id.into())
                             as Box<dyn Fn(&mut Settings)>,
@@ -953,6 +1095,8 @@ impl SettingsPage {
                         )
                         .child(
                             v_flex()
+                                .flex_1()
+                                .min_w_0()
                                 .gap(px(3.))
                                 .child(
                                     div()
@@ -986,7 +1130,7 @@ impl SettingsPage {
                         .when_some(status, |this, (text, color)| {
                             let cancel = row.downloading.is_some().then(|| {
                                 let data = self.data.clone();
-                                let id = row.model_id.clone();
+                                let ids = row.needs.clone();
                                 div()
                                     .id(SharedString::from(format!("{}-cancel", row.id)))
                                     .cursor_pointer()
@@ -994,12 +1138,38 @@ impl SettingsPage {
                                     .hover(|s| s.underline())
                                     .child("Cancel")
                                     .on_click(move |_, _, cx| {
-                                        let id = id.clone();
                                         data.update(cx, |data, cx| {
-                                            data.request(AppEvent::CancelDownload(id), cx)
+                                            for id in &ids {
+                                                data.request(
+                                                    AppEvent::CancelDownload(id.clone()),
+                                                    cx,
+                                                );
+                                            }
                                         })
                                     })
                             });
+                            // Download only what this role is missing.
+                            let download =
+                                (row.downloading.is_none() && !missing.is_empty()).then(|| {
+                                    let data = self.data.clone();
+                                    div()
+                                        .id(SharedString::from(format!("{}-download", row.id)))
+                                        .ml(px(4.))
+                                        .cursor_pointer()
+                                        .text_color(lb.accent_text)
+                                        .hover(|s| s.underline())
+                                        .child("Download")
+                                        .on_click(move |_, _, cx| {
+                                            data.update(cx, |data, cx| {
+                                                for id in &missing {
+                                                    data.request(
+                                                        AppEvent::DownloadModel(id.clone()),
+                                                        cx,
+                                                    );
+                                                }
+                                            })
+                                        })
+                                });
                             this.child(
                                 h_flex()
                                     .gap(px(5.))
@@ -1008,7 +1178,8 @@ impl SettingsPage {
                                     .text_color(color)
                                     .child(ui::icon(Ico::CircleAlert, px(13.), color))
                                     .child(text)
-                                    .children(cancel),
+                                    .children(cancel)
+                                    .children(download),
                             )
                         })
                         .children(reasoning),
@@ -1217,7 +1388,7 @@ impl SettingsPage {
                     div()
                         .text_size(ty::SECONDARY)
                         .text_color(lb.attention_text)
-                        .child("Blocked: remote inference must use HTTPS so transcripts and screen text are encrypted in transit."),
+                        .child("Blocked: remote inference must use HTTPS so transcripts and activity are encrypted in transit."),
                 );
         }
         let approved = settings
@@ -1244,7 +1415,7 @@ impl SettingsPage {
                     .child(ui::icon(Ico::Network, px(14.), lb.attention_text))
                     .child(div().text_size(ty::BODY).font_weight(FontWeight::SEMIBOLD).text_color(lb.text).child(format!("Remote processing · {host}"))),
             )
-            .child(settings_row::help("Think may send meeting transcripts, screen text, Agent context, and dictation requests to this server when you use those features. Scheduled daily summaries also run here and can send activity titles, captured screen text, and meeting evidence without a prompt each time.", cx))
+            .child(settings_row::help("Think may send meeting transcripts, Ask questions with their sources, and dictation requests to this server when you use those features. Scheduled daily summaries also run here and can send activity titles and meeting evidence without a prompt each time.", cx))
             .child(
                 h_flex()
                     .gap(px(10.))
@@ -1295,8 +1466,11 @@ struct RoleRow {
     model: String,
     remote: Option<String>,
     ready: bool,
+    /// Progress of the first of `needs` that is downloading.
     downloading: Option<f32>,
-    model_id: String,
+    /// Ids the role downloads (empty for a model server).
+    needs: Vec<String>,
+    installed: Vec<String>,
 }
 
 #[derive(Clone, Copy)]
@@ -1366,6 +1540,35 @@ fn confirm_preset(
                     data.update_settings(|s| preset.apply(s), cx);
                     if download > 0 {
                         data.request(AppEvent::PrepareModels, cx);
+                    }
+                });
+                true
+            })
+    });
+}
+
+/// Asks before deleting a downloaded model the settings don't use.
+fn confirm_remove(data: Entity<AppData>, id: String, window: &mut Window, cx: &mut App) {
+    let name = model_name(&id);
+    let size = size_label(model_bytes(&id));
+    window.open_alert_dialog(cx, move |alert, _, _| {
+        let data = data.clone();
+        let id = id.clone();
+        alert
+            .title(format!("Remove {name}?"))
+            .description(format!(
+                "This deletes {name} ({size}) from this PC. Your current settings don't use it, and you can download it again later."
+            ))
+            .confirm()
+            .ok_text("Remove")
+            .ok_variant(ButtonVariant::Danger)
+            .cancel_text("Cancel")
+            .on_ok(move |_, _, cx| {
+                let id = id.clone();
+                data.update(cx, |data, cx| {
+                    // Settings may have changed while the dialog was open.
+                    if !models_in_use(&data.settings).contains(&id) {
+                        data.request(AppEvent::DeleteModel(id), cx);
                     }
                 });
                 true

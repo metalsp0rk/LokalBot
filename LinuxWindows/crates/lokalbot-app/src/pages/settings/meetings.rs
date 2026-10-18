@@ -1,9 +1,10 @@
-//! Meetings: detection, processing, summaries, speakers and note export.
+//! Meetings: detection, processing, summaries and speakers. Per-meeting note
+//! export is not implemented on Linux and Windows, so its rows are not shown.
 
+use gpui_kit::component::Sizable as _;
 use gpui_kit::component::button::Button;
-use gpui_kit::component::{Sizable as _, h_flex};
-use gpui_kit::{Context, ParentElement as _, PathPromptOptions, SharedString, Styled as _, px};
-use lokalbot_core::settings::{AutoRecordMode, ExportFormat, NoteTemplate};
+use gpui_kit::{Context, SharedString};
+use lokalbot_core::settings::{AutoRecordMode, NoteTemplate};
 
 use super::{Section, SettingsPage};
 use crate::state::SettingsCategory;
@@ -289,120 +290,8 @@ impl SettingsPage {
                 ),
             );
 
-        let folder = settings.meeting_note_export_folder.clone();
-        let folder_label: SharedString = if folder.is_empty() {
-            "Choose…".into()
-        } else {
-            std::path::Path::new(&folder)
-                .file_name()
-                .map(|n| n.to_string_lossy().to_string())
-                .unwrap_or(folder.clone())
-                .into()
-        };
-        let export_enabled = settings.meeting_note_export_enabled;
-        let export_data = data_entity.clone();
-        let choose_data = data_entity.clone();
-        let mut export = Section::new("Meeting note export").row(
-            "settings.meetingNoteExportEnabled",
-            settings_row::row(
-                "settings.meetingNoteExportEnabled",
-                "Export a note for each meeting",
-                Some("Writes one unencrypted Markdown note per meeting, including meetings already recorded, to a folder you choose, such as an Obsidian vault. Each note has the summary, action items as you corrected them, and the people and tracked projects involved. A note you edit, move, or delete is yours: LokalBot leaves it alone.".into()),
-                settings_row::switch("settings.meetingNoteExportEnabled", export_enabled, move |on, _, cx| {
-                    export_data.update(cx, |data, cx| data.update_settings(|s| s.meeting_note_export_enabled = on, cx));
-                    if on {
-                        choose_export_folder(export_data.clone(), true, cx);
-                    }
-                }),
-                self.is_focused("settings.meetingNoteExportEnabled"),
-                cx,
-            ),
-        );
-        if export_enabled {
-            export = export
-                .row(
-                    "settings.meetingNoteExportFormat",
-                    self.choice(
-                        "settings.meetingNoteExportFormat",
-                        "Format",
-                        None,
-                        vec![
-                            (ExportFormat::Markdown, "Markdown".into()),
-                            (ExportFormat::Obsidian, "Obsidian".into()),
-                            (ExportFormat::Logseq, "Logseq".into()),
-                        ],
-                        settings.meeting_note_export_format,
-                        |s, v| s.meeting_note_export_format = v,
-                        cx,
-                    ),
-                )
-                .row(
-                    "settings.meetingNoteExportIncludesTranscript",
-                    self.toggle(
-                        "settings.meetingNoteExportIncludesTranscript",
-                        "Include the transcript",
-                        None,
-                        settings.meeting_note_export_includes_transcript,
-                        |s, v| s.meeting_note_export_includes_transcript = v,
-                        cx,
-                    ),
-                )
-                .row(
-                    "settings.meetingNoteExportFolder",
-                    settings_row::row(
-                        "settings.meetingNoteExportFolder",
-                        "Folder",
-                        (!folder.is_empty()).then(|| SharedString::from(folder.clone())),
-                        h_flex().gap(px(8.)).child(settings_row::link_button(
-                            "settings-export-folder",
-                            folder_label,
-                            move |_, cx| choose_export_folder(choose_data.clone(), false, cx),
-                            cx,
-                        )),
-                        false,
-                        cx,
-                    ),
-                );
-        }
-
-        vec![meetings, processing, summarization, speakers, export]
+        vec![meetings, processing, summarization, speakers]
     }
-}
-
-/// Asks for the export folder; turning export on without choosing one turns it off again.
-fn choose_export_folder(
-    data: gpui_kit::Entity<crate::state::AppData>,
-    enabling: bool,
-    cx: &mut gpui_kit::App,
-) {
-    if enabling && !data.read(cx).settings.meeting_note_export_folder.is_empty() {
-        return;
-    }
-    let receiver = cx.prompt_for_paths(PathPromptOptions {
-        files: false,
-        directories: true,
-        multiple: false,
-        prompt: Some("Choose".into()),
-    });
-    cx.spawn(async move |cx| {
-        let chosen = receiver
-            .await
-            .ok()
-            .and_then(|result| result.ok())
-            .flatten()
-            .and_then(|paths| paths.into_iter().next());
-        data.update(cx, |data, cx| match chosen {
-            Some(path) => data.update_settings(
-                |s| s.meeting_note_export_folder = path.to_string_lossy().to_string(),
-                cx,
-            ),
-            None if data.settings.meeting_note_export_folder.is_empty() => {
-                data.update_settings(|s| s.meeting_note_export_enabled = false, cx)
-            }
-            None => {}
-        });
-    })
-    .detach();
 }
 
 #[cfg(test)]

@@ -74,16 +74,11 @@ impl AskPage {
         ));
 
         if count == 0 && !self.results.running {
-            let message = if !self.sources.meetings && !self.sources.screen {
-                "Activity totals are available in Ask. Enable Meetings or Screen to search source text.".to_string()
-            } else {
-                format!(
-                    "No results for “{}” in {} · {}.",
-                    self.query.trim(),
-                    self.sources.summary(),
-                    self.date_scope.label()
-                )
-            };
+            let message = format!(
+                "No results for “{}” in meetings · {}.",
+                self.query.trim(),
+                self.date_scope.label()
+            );
             let filtered = self.facet != Facet::All || self.date_scope != DateScope::AnyTime;
             rows.push(column(
                 v_flex()
