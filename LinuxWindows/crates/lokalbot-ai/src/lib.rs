@@ -8,9 +8,11 @@
 //! Errors are `anyhow::Error`; the ones callers act on are [`AiError`] values
 //! inside it (`err.downcast_ref::<AiError>()`).
 
+pub mod ask;
 pub mod catalog;
 pub mod digest;
 pub mod download;
+pub mod embeddings;
 mod error;
 mod http;
 pub mod json;

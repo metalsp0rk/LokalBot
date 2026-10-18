@@ -234,7 +234,13 @@ struct InstallRecord {
     /// The flags from `--help` that LokalBot passes conditionally.
     #[serde(default)]
     flags: Vec<String>,
+    /// Which `CONDITIONAL_FLAGS` list produced `flags`.
+    #[serde(default)]
+    probe: u32,
 }
+
+/// Bump when `CONDITIONAL_FLAGS` changes so installed runtimes re-probe.
+const PROBE_VERSION: u32 = 2;
 
 /// `backend.json`: the result of the last auto-detection.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
@@ -274,8 +280,21 @@ impl Installer {
     fn record(&self, backend: LlamaBackend) -> Option<(InstallRecord, PathBuf)> {
         let asset = asset(backend)?;
         let folder = self.folder(asset);
-        let record: InstallRecord =
+        let mut record: InstallRecord =
             serde_json::from_slice(&std::fs::read(folder.join("install.json")).ok()?).ok()?;
+        if record.probe < PROBE_VERSION {
+            let binary = folder.join(&record.server);
+            if binary.is_file() {
+                let (version, flags) = probe_capabilities(&binary);
+                record.version = version;
+                record.flags = flags;
+                record.probe = PROBE_VERSION;
+                if let Ok(bytes) = serde_json::to_vec_pretty(&record) {
+                    let _ =
+                        lokalbot_core::library::write_atomic(&folder.join("install.json"), &bytes);
+                }
+            }
+        }
         let binary = folder.join(&record.server);
         (record.sha256 == asset.sha256 && record.build == LLAMA_BUILD && binary.is_file())
             .then_some((record, binary))
@@ -357,6 +376,7 @@ impl Installer {
                 server: relative.clone(),
                 version,
                 flags,
+                probe: PROBE_VERSION,
             };
             std::fs::write(
                 staging.join("install.json"),

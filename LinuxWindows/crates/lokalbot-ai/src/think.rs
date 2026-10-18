@@ -151,6 +151,8 @@ struct Inner {
     backend: Backend,
     level: ReasoningLevel,
     context_tokens: OnceLock<u32>,
+    /// The local runtime, for the embedder (also used with remote Think).
+    runtime: Option<RuntimeManager>,
 }
 
 /// The Think model: summaries, digests, Ask. Cheap to clone; `Send + Sync`.
@@ -209,7 +211,11 @@ impl ThinkClient {
                 }
             }
         };
-        Ok(Self::from_backend(backend, settings.think_reasoning_level))
+        Ok(Self::with_runtime(
+            backend,
+            settings.think_reasoning_level,
+            Some(runtime.clone()),
+        ))
     }
 
     /// A llama-server reached directly (`http://127.0.0.1:17872/v1` and the
@@ -258,13 +264,29 @@ impl ThinkClient {
     }
 
     fn from_backend(backend: Backend, level: ReasoningLevel) -> Self {
+        Self::with_runtime(backend, level, None)
+    }
+
+    fn with_runtime(
+        backend: Backend,
+        level: ReasoningLevel,
+        runtime: Option<RuntimeManager>,
+    ) -> Self {
         Self {
             inner: Arc::new(Inner {
                 backend,
                 level,
                 context_tokens: OnceLock::new(),
+                runtime,
             }),
         }
+    }
+
+    /// The local embedder when its model is downloaded ("Search by meaning").
+    pub fn embedder(&self) -> Option<EmbeddingClient> {
+        let runtime = self.inner.runtime.as_ref()?;
+        catalog::is_downloaded(runtime.paths(), catalog::embedding_entry())
+            .then(|| EmbeddingClient::new(runtime))
     }
 
     /// Sets the API key for an OpenAI-compatible server (no effect otherwise).
@@ -277,11 +299,15 @@ impl ThinkClient {
         {
             *api_key = key.filter(|k| !k.trim().is_empty());
         }
-        Self::from_backend(backend, self.inner.level)
+        Self::with_runtime(backend, self.inner.level, self.inner.runtime.clone())
     }
 
     pub fn with_reasoning_level(self, level: ReasoningLevel) -> Self {
-        Self::from_backend(self.inner.backend.clone(), level)
+        Self::with_runtime(
+            self.inner.backend.clone(),
+            level,
+            self.inner.runtime.clone(),
+        )
     }
 
     // ---------------------------------------------------------- identity
