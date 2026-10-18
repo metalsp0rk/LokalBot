@@ -206,14 +206,8 @@ struct OnboardingView: View {
                     .workspaceTextRole(.supporting)
             }
             if showsDownloadSource {
-                Picker(selection: $app.settings.modelDownloadSource) {
-                    ForEach(ModelDownloadSource.allCases) { source in
-                        Text(LocalizedStringKey(source.displayName)).tag(source)
-                    }
-                } label: {
-                    SettingsLabel("Download models from", help: app.settings.modelDownloadSource.detail)
-                }
-                .accessibilityIdentifier("onboarding.downloadSource")
+                ModelDownloadSourcePicker(source: $app.settings.modelDownloadSource,
+                                          accessibilityIdentifier: "onboarding.downloadSource")
             }
             Button("Prepare Selected Models") {
                 app.modelRoles.startCoreModelDownloads(includeAutocomplete: includeAutocomplete)

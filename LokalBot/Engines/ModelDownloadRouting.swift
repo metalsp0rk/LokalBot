@@ -150,6 +150,7 @@ enum ModelDownloadRouting {
                     DownloadFileRescuer.cleanup(temporary)
                     throw DownloadIntegrity.IntegrityError.mismatch(candidate.url.lastPathComponent)
                 }
+                lokalbotLog("model download from \(candidate.label) matched its pin: \(candidate.url.lastPathComponent)")
                 return temporary
             } catch {
                 if error is CancellationError || (error as? URLError)?.code == .cancelled { throw error }

@@ -157,6 +157,28 @@ struct ModelSetupFeedback: View {
     }
 }
 
+/// Settings → Models and onboarding: where pinned model files download from.
+/// The explanation follows the choice, and the menu keeps its full width.
+struct ModelDownloadSourcePicker: View {
+    @Binding var source: ModelDownloadSource
+    let accessibilityIdentifier: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            SettingsLabel("Download models from", help: source.detail)
+            Spacer(minLength: 8)
+            Picker("Download models from", selection: $source) {
+                ForEach(ModelDownloadSource.allCases) { choice in
+                    Text(LocalizedStringKey(choice.displayName)).tag(choice)
+                }
+            }
+            .labelsHidden()
+            .fixedSize()
+            .accessibilityIdentifier(accessibilityIdentifier)
+        }
+    }
+}
+
 struct ModelStorageSection: View {
     @ObservedObject var app: AppState
     @ObservedObject private var roles: ModelRoles
@@ -192,15 +214,9 @@ struct ModelStorageSection: View {
                     .accessibilityIdentifier("models.manageDownloads")
             }
             Divider()
-            Picker(selection: $app.settings.modelDownloadSource) {
-                ForEach(ModelDownloadSource.allCases) { source in
-                    Text(LocalizedStringKey(source.displayName)).tag(source)
-                }
-            } label: {
-                SettingsLabel("Download models from", help: app.settings.modelDownloadSource.detail)
-            }
-            .accessibilityIdentifier("models.downloadSource")
-            .settingTarget("settings.modelDownloadSource", selected: app.focusedSettingID)
+            ModelDownloadSourcePicker(source: $app.settings.modelDownloadSource,
+                                      accessibilityIdentifier: "models.downloadSource")
+                .settingTarget("settings.modelDownloadSource", selected: app.focusedSettingID)
         }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("models.storage")
