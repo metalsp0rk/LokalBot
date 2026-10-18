@@ -47,7 +47,7 @@ impl MeetingsPage {
         if let Some(live) = live.filter(|m| matches(m)) {
             entries.push(Entry::Header("Recording Now".into()));
             entries.push(Entry::Meeting {
-                meeting: live,
+                meeting: Box::new(live),
                 live: true,
             });
         }
@@ -63,7 +63,7 @@ impl MeetingsPage {
                 current = Some(label);
             }
             entries.push(Entry::Meeting {
-                meeting: meeting.clone(),
+                meeting: Box::new(meeting.clone()),
                 live: false,
             });
         }

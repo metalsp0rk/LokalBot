@@ -56,7 +56,7 @@ fn tab_at(index: usize) -> MeetingTab {
 #[derive(Clone)]
 pub(crate) enum Entry {
     Header(SharedString),
-    Meeting { meeting: Meeting, live: bool },
+    Meeting { meeting: Box<Meeting>, live: bool },
 }
 
 /// Notes save state shown beside "Your notes".
@@ -671,7 +671,7 @@ impl MeetingsPage {
             let result = cx
                 .background_spawn(async move { std::fs::write(&path, markdown) })
                 .await;
-            let _ = data.update(cx, |data, cx| match result {
+            data.update(cx, |data, cx| match result {
                 Ok(()) => data.show_message("Meeting exported as Markdown.", cx),
                 Err(err) => data.show_error(format!("Meeting export failed: {err}"), cx),
             });
@@ -782,9 +782,7 @@ impl Page for MeetingsPage {
     }
 
     fn toolbar(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> Option<AnyElement> {
-        if self.selected.is_none() {
-            return None;
-        }
+        self.selected?;
         if self.is_live_selected(cx) {
             let data = self.data.clone();
             let red = crate::theme::LbThemeExt::lb(&**cx).recording_text;

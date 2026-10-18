@@ -24,7 +24,6 @@ pub struct MeetingDoc {
     pub has_audio: bool,
     /// Waveform overview, when the audio could be read.
     pub peaks: Option<Arc<[f32]>>,
-    pub speakers: Speakers,
     pub actions: Vec<MeetingAction>,
     pub decisions: Vec<Decision>,
     pub questions: Vec<String>,
@@ -71,14 +70,12 @@ pub struct MeetingAction {
     pub due: Option<String>,
     /// "Due Fri, Oct 2 · said “Friday”".
     pub due_label: Option<String>,
-    pub is_for_user: bool,
     pub status: ActionStatus,
     pub citation: Option<OutcomeSourceCitation>,
 }
 
 #[derive(Clone, Debug)]
 pub struct TranscriptRow {
-    pub index: usize,
     pub start: f64,
     pub end: f64,
     pub speaker: String,
@@ -249,7 +246,6 @@ pub fn meeting_action(reference: ActionReference, speakers: &Speakers) -> Meetin
         owner_label,
         due: reference.due,
         due_label,
-        is_for_user: reference.is_for_user,
         status: reference.status,
     }
 }
@@ -329,7 +325,6 @@ pub fn load(library: &Library, meeting: Meeting) -> MeetingDoc {
         outcomes,
         has_audio,
         peaks,
-        speakers,
         actions,
         decisions,
         questions,
@@ -358,7 +353,7 @@ fn unnamed_remote_speakers(transcript: &Transcript) -> usize {
 
 fn transcript_rows(transcript: &Transcript, speakers: &Speakers) -> Vec<TranscriptRow> {
     let mut rows: Vec<TranscriptRow> = Vec::with_capacity(transcript.segments.len());
-    for (index, segment) in transcript.segments.iter().enumerate() {
+    for segment in &transcript.segments {
         let text = Transcript::display_text(&segment.text);
         if text.is_empty() {
             continue;
@@ -366,7 +361,6 @@ fn transcript_rows(transcript: &Transcript, speakers: &Speakers) -> Vec<Transcri
         let key = Transcript::canonical_speaker_key(&segment.speaker);
         let begins_turn = rows.last().is_none_or(|last| last.speaker != key);
         rows.push(TranscriptRow {
-            index,
             start: segment.start,
             end: segment.end,
             name: speakers.name(&key).into(),

@@ -6,7 +6,6 @@ use gpui_kit::component::input::Textarea;
 use gpui_kit::component::menu::{DropdownMenu as _, PopupMenuItem};
 use gpui_kit::component::scroll::ScrollableElement as _;
 use gpui_kit::component::spinner::Spinner;
-use gpui_kit::component::text::TextView;
 use gpui_kit::component::{Disableable as _, Icon, Sizable as _, h_flex, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
@@ -765,7 +764,7 @@ impl MeetingsPage {
                 .when(doc.has_summary(), |this| {
                     this.child(
                         div().text_size(ty::BODY).child(
-                            TextView::markdown(
+                            crate::ui::markdown_view::markdown(
                                 SharedString::from(format!("summary-{}", doc.meeting.id)),
                                 doc.summary_body.clone(),
                             )
@@ -810,6 +809,7 @@ impl MeetingsPage {
             .child(
                 ui::grouped_surface(cx).p(px(6.)).child(
                     Textarea::new(&self.notes.input)
+                        .large()
                         .appearance(false)
                         .h(px(460.)),
                 ),

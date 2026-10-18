@@ -38,7 +38,6 @@ const DAY_MIN_WIDTH: f32 = 440.;
 
 /// One day's data, loaded off the main thread.
 pub(crate) struct DayModel {
-    pub day: NaiveDate,
     pub activity: DayActivity,
     pub digest: Option<DayDigest>,
     pub attention: Vec<ActionThread>,
@@ -156,7 +155,6 @@ impl TimelinePage {
                 .background_spawn(async move {
                     let (start, end) = lokalbot_core::time::local_day_bounds(day);
                     DayModel {
-                        day,
                         activity: library.day_activity(day).unwrap_or_else(|err| {
                             log::warn!("day activity for {day}: {err:#}");
                             DayActivity::default()

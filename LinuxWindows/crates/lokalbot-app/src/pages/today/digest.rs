@@ -8,7 +8,6 @@ use std::rc::Rc;
 use chrono::NaiveDate;
 use gpui_kit::component::button::{Button, ButtonVariants as _};
 use gpui_kit::component::menu::{DropdownMenu as _, PopupMenuItem};
-use gpui_kit::component::text::TextView;
 use gpui_kit::component::{Disableable as _, Icon, h_flex, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
@@ -437,8 +436,11 @@ fn digest_view(
                 .text_size(ty::BODY)
                 .text_color(lb.text)
                 .child(
-                    TextView::markdown("digest-highlights", digest.at_a_glance_markdown.clone())
-                        .selectable(true),
+                    crate::ui::markdown_view::markdown(
+                        "digest-highlights",
+                        digest.at_a_glance_markdown.clone(),
+                    )
+                    .selectable(true),
                 ),
             cx,
         ));

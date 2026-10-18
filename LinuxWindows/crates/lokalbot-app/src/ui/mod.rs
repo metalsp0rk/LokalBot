@@ -8,6 +8,7 @@
 
 pub mod action_row;
 pub mod controls;
+pub mod markdown_view;
 pub mod segmented_tabs;
 pub mod waveform;
 

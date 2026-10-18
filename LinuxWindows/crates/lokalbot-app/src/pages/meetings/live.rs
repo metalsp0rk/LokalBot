@@ -3,7 +3,7 @@
 //! meters, the live transcript preview and a notes pad.
 
 use gpui_kit::component::input::Textarea;
-use gpui_kit::component::{h_flex, v_flex};
+use gpui_kit::component::{Sizable as _, h_flex, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
     AnyElement, Context, FontWeight, Hsla, IntoElement, ParentElement as _, Styled as _, Window,
@@ -46,7 +46,8 @@ impl MeetingsPage {
             .items_center()
             .gap(px(6.))
             .child(ui::status_dot(
-                lb.recording.opacity(if phase % 2 == 0 { 1. } else { 0.55 }),
+                lb.recording
+                    .opacity(if phase.is_multiple_of(2) { 1. } else { 0.55 }),
                 px(7.),
             ))
             .child(
@@ -127,6 +128,7 @@ impl MeetingsPage {
                     .p(px(6.))
                     .child(
                         Textarea::new(&self.live_notes.input)
+                            .large()
                             .appearance(false)
                             .h_full(),
                     ),
