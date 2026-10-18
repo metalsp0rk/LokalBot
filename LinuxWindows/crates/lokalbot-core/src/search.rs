@@ -374,12 +374,16 @@ impl Library {
             speaker: String::new(),
         }];
         if let Ok(Some(transcript)) = self.transcript(meeting) {
+            let roster = transcript.speaker_roster();
             for segment in &transcript.segments {
                 documents.push(Document {
                     text: segment.text.clone(),
                     kind: DocKind::Segment,
                     start: segment.start,
-                    speaker: transcript.speaker_name(&segment.speaker),
+                    speaker: roster
+                        .get(&Transcript::canonical_speaker_key(&segment.speaker))
+                        .cloned()
+                        .unwrap_or_else(|| Transcript::default_speaker_name(&segment.speaker)),
                 });
             }
         }
