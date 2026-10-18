@@ -4,7 +4,8 @@
 //! the properties in [`CACHED_PROPERTIES`] in the same cross-process call.
 //! Text is visible text only (`ScreenVisibleTextPolicy`): the visible ranges
 //! of text controls and the names of labels that lie fully inside their
-//! viewport.
+//! viewport. Secure fields are never read, and the lines of a page that
+//! overlap one are dropped.
 
 use std::collections::{HashSet, VecDeque};
 use std::ffi::c_void;
@@ -18,26 +19,27 @@ use windows::Win32::System::Com::{
 use windows::Win32::System::Variant::{VT_BOOL, VT_BSTR, VariantClear};
 use windows::Win32::UI::Accessibility::{
     CUIAutomation, CUIAutomation8, IUIAutomation, IUIAutomation2, IUIAutomationCacheRequest,
-    IUIAutomationElement, IUIAutomationTextPattern, UIA_BoundingRectanglePropertyId,
+    IUIAutomationElement, IUIAutomationTextPattern, IUIAutomationTextRange,
+    TextPatternRangeEndpoint_End, TextPatternRangeEndpoint_Start, UIA_BoundingRectanglePropertyId,
     UIA_ButtonControlTypeId, UIA_CONTROLTYPE_ID, UIA_CheckBoxControlTypeId,
     UIA_ComboBoxControlTypeId, UIA_ControlTypePropertyId, UIA_DataItemControlTypeId,
     UIA_DocumentControlTypeId, UIA_E_TIMEOUT, UIA_EditControlTypeId, UIA_FrameworkIdPropertyId,
-    UIA_HeaderControlTypeId, UIA_HeaderItemControlTypeId, UIA_HyperlinkControlTypeId,
-    UIA_IsOffscreenPropertyId, UIA_IsPasswordPropertyId, UIA_IsScrollPatternAvailablePropertyId,
-    UIA_IsTextPatternAvailablePropertyId, UIA_IsValuePatternAvailablePropertyId,
-    UIA_ListItemControlTypeId, UIA_MenuItemControlTypeId, UIA_NamePropertyId, UIA_PROPERTY_ID,
-    UIA_ProcessIdPropertyId, UIA_RadioButtonControlTypeId, UIA_ScrollBarControlTypeId,
-    UIA_SplitButtonControlTypeId, UIA_TabItemControlTypeId, UIA_TextControlTypeId,
-    UIA_TextPatternId, UIA_TitleBarControlTypeId, UIA_TreeItemControlTypeId,
+    UIA_HeaderControlTypeId, UIA_HeaderItemControlTypeId, UIA_HelpTextPropertyId,
+    UIA_HyperlinkControlTypeId, UIA_IsOffscreenPropertyId, UIA_IsPasswordPropertyId,
+    UIA_IsScrollPatternAvailablePropertyId, UIA_IsTextPatternAvailablePropertyId,
+    UIA_IsValuePatternAvailablePropertyId, UIA_ListItemControlTypeId, UIA_MenuItemControlTypeId,
+    UIA_NamePropertyId, UIA_PROPERTY_ID, UIA_ProcessIdPropertyId, UIA_RadioButtonControlTypeId,
+    UIA_ScrollBarControlTypeId, UIA_SplitButtonControlTypeId, UIA_TabItemControlTypeId,
+    UIA_TextControlTypeId, UIA_TextPatternId, UIA_TitleBarControlTypeId, UIA_TreeItemControlTypeId,
     UIA_ValueValuePropertyId, UIA_WindowControlTypeId,
 };
 use windows::Win32::UI::WindowsAndMessaging::GetForegroundWindow;
 use windows::core::{AgileReference, HRESULT, Interface};
 
-use super::privacy::{page_address, settled_focus};
+use super::privacy::{page_address, sanitized_document_name, settled_focus};
 use super::{
-    AccessibleWindow, FocusedWindow, MAX_CHARACTERS, MAX_CHILDREN, MAX_NODES, TextRead,
-    TextReader, WindowRect, append_text,
+    AccessibleWindow, FocusedWindow, MAX_CHARACTERS, MAX_CHILDREN, MAX_NODES, TextRead, TextReader,
+    WindowRect, append_text,
 };
 
 /// How long one call may wait on the target app (UIA waits 20 s by
@@ -47,8 +49,9 @@ const CALL_TIMEOUT_MS: u32 = 500;
 const OWN_WINDOW: &str = "LokalBot's own windows are not read";
 
 /// Every element is fetched with these, in the same call.
-const CACHED_PROPERTIES: [UIA_PROPERTY_ID; 10] = [
+const CACHED_PROPERTIES: [UIA_PROPERTY_ID; 11] = [
     UIA_NamePropertyId,
+    UIA_HelpTextPropertyId,
     UIA_ControlTypePropertyId,
     UIA_BoundingRectanglePropertyId,
     UIA_IsOffscreenPropertyId,
@@ -58,6 +61,23 @@ const CACHED_PROPERTIES: [UIA_PROPERTY_ID; 10] = [
     UIA_IsScrollPatternAvailablePropertyId,
     UIA_ProcessIdPropertyId,
     UIA_FrameworkIdPropertyId,
+];
+
+/// `CotypingSecureFieldDetector.sensitiveMarkers`.
+const SENSITIVE_MARKERS: [&str; 13] = [
+    "secure",
+    "password",
+    "passcode",
+    "passphrase",
+    "cvv",
+    "cvc",
+    "security code",
+    "verification code",
+    "one-time code",
+    "one time code",
+    "social security",
+    "card number",
+    "credit card",
 ];
 
 pub(super) struct UiaReader {
@@ -97,10 +117,9 @@ impl TextReader for UiaReader {
         let _com = ComScope::enter();
         match self.automation() {
             Ok(automation) => read_window(&automation, window, include_text, started, deadline),
-            Err(err) => TextRead::Unavailable(format!(
-                "UI Automation is unavailable: {}",
-                err.message()
-            )),
+            Err(err) => {
+                TextRead::Unavailable(format!("UI Automation is unavailable: {}", err.message()))
+            }
         }
     }
 
@@ -215,7 +234,8 @@ fn read_window(
     // The walk leaves a quarter of the deadline for the checks below (the
     // Mac walks for 140 of its 180 ms).
     let walk_until = started + (deadline - deadline / 4);
-    let found = walk(automation, &cache, &root, frame, include_text, walk_until);
+    let mut found = walk(automation, &cache, &root, frame, include_text, walk_until);
+    remove_secure_lines(&mut found);
 
     // UI Automation answers asynchronously to the app. Never attach one
     // window's text to a different window, title or focus.
@@ -251,9 +271,15 @@ fn read_window(
     TextRead::Read(AccessibleWindow {
         text: found.text.parts.join("\n"),
         source_url: address.source_url,
-        document_name: None,
+        document_name: found.document_name,
         focused_secure_field,
-        window_title: title,
+        window_title: title.map(|name| {
+            if name.is_empty() {
+                window.title.clone()
+            } else {
+                name
+            }
+        }),
         has_web_content: found.has_web_content,
         contains_secure_field: found.contains_secure_field,
         framed_urls: address.framed_urls,
@@ -288,8 +314,8 @@ fn new_cache_request(
     }
 }
 
-/// Whether the focused element is a password field, when it belongs to the
-/// window's process; `None` when that is unknown.
+/// Whether the focused element is secure, when it belongs to the window's
+/// process; `None` when that is unknown.
 fn focus_state(
     automation: &IUIAutomation,
     cache: &IUIAutomationCacheRequest,
@@ -301,7 +327,7 @@ fn focus_state(
     if process.is_none() || node.process != process {
         return None;
     }
-    node.password
+    node.secure
 }
 
 #[derive(Default)]
@@ -326,6 +352,15 @@ impl Text {
     fn is_full(&self) -> bool {
         self.total >= MAX_CHARACTERS
     }
+
+    fn remove(&mut self, indices: &HashSet<usize>) {
+        let mut index = 0;
+        self.parts.retain(|_| {
+            let keep = !indices.contains(&index);
+            index += 1;
+            keep
+        });
+    }
 }
 
 fn unix_lines(text: &str) -> String {
@@ -335,17 +370,33 @@ fn unix_lines(text: &str) -> String {
 #[derive(Default)]
 struct Findings {
     text: Text,
+    /// Elements whose visible ranges were read, in walk order.
+    sources: Vec<RangeSource>,
     /// Web documents' addresses in walk order, outermost first.
     web_area_urls: Vec<Option<String>>,
+    document_name: Option<String>,
     has_web_content: bool,
     contains_secure_field: bool,
+}
+
+/// The lines read from one element's visible ranges. A page's ranges hold
+/// the values of its inputs, so the lines stay removable until the walk
+/// knows which secure fields show inside it.
+struct RangeSource {
+    pattern: IUIAutomationTextPattern,
+    /// Each line kept in [`Text::parts`]: its index there and its range.
+    lines: Vec<(usize, IUIAutomationTextRange)>,
+    /// Secure text entries inside the element that are not password fields
+    /// (those show bullets), whose values may be in the lines.
+    secure_fields: Vec<IUIAutomationElement>,
 }
 
 struct Pending {
     element: IUIAutomationElement,
     viewport: Option<WindowRect>,
-    /// An ancestor's visible ranges already hold this element's text.
-    covered: bool,
+    /// The ancestor whose visible ranges already hold this element's text,
+    /// as an index into [`Findings::sources`].
+    covered: Option<usize>,
 }
 
 /// The breadth-first walk of `resolve`, bounded by [`MAX_NODES`],
@@ -367,7 +418,7 @@ fn walk(
     let mut queue = VecDeque::from([Pending {
         element: root.clone(),
         viewport,
-        covered: false,
+        covered: None,
     }]);
     let mut visited = 0;
     while let Some(next) = queue.pop_front() {
@@ -379,8 +430,15 @@ fn walk(
         if node.process == Some(own) {
             continue;
         }
-        if node.password == Some(true) && is_text_entry(node.control_type) {
+        if node.secure == Some(true) && is_text_entry(node.control_type) {
             found.contains_secure_field = true;
+            if node.password != Some(true)
+                && let Some(source) = next.covered
+            {
+                found.sources[source]
+                    .secure_fields
+                    .push(next.element.clone());
+            }
         }
         if node.web_document {
             found.has_web_content = true;
@@ -390,25 +448,35 @@ fn walk(
                 .value_pattern
                 .then(|| current_string(&next.element, UIA_ValueValuePropertyId))
                 .flatten();
+            if found.document_name.is_none()
+                && let Some(file) = url.as_deref().filter(|url| url.starts_with("file:"))
+            {
+                found.document_name = sanitized_document_name(Some(file));
+            }
             found.web_area_urls.push(url);
         }
         let mut covered = next.covered;
         if include_text {
-            let reads = node.reads(next.viewport, covered);
+            let reads = node.reads(next.viewport, covered.is_some());
             if reads.name
                 && let Some(name) = cached_name(&next.element)
             {
                 found.text.append(&name);
             }
-            if reads.ranges && append_visible_ranges(&next.element, &mut found.text, until) {
-                covered = true;
+            if reads.ranges
+                && let Some(source) = visible_ranges(&next.element, &mut found.text, until)
+            {
+                found.sources.push(source);
+                covered = Some(found.sources.len() - 1);
             }
         }
         if !node.walks_children() {
             continue;
         }
         // Children past MAX_NODES would never be visited; do not fetch them.
-        let room = MAX_NODES.saturating_sub(visited + queue.len()).min(MAX_CHILDREN);
+        let room = MAX_NODES
+            .saturating_sub(visited + queue.len())
+            .min(MAX_CHILDREN);
         if room == 0 || Instant::now() >= until {
             continue;
         }
@@ -420,6 +488,7 @@ fn walk(
         while let Some(element) = child {
             taken += 1;
             child = if taken < room && Instant::now() < until {
+                // SAFETY: as for the first child.
                 unsafe { walker.GetNextSiblingElementBuildCache(&element, cache) }.ok()
             } else {
                 None
@@ -435,36 +504,86 @@ fn walk(
 }
 
 /// Appends the text of the element's visible ranges (UI Automation's
-/// `AXVisibleCharacterRange`). True when any of it was text.
-fn append_visible_ranges(element: &IUIAutomationElement, text: &mut Text, until: Instant) -> bool {
+/// `AXVisibleCharacterRange`); `None` when none of it was text.
+fn visible_ranges(
+    element: &IUIAutomationElement,
+    text: &mut Text,
+    until: Instant,
+) -> Option<RangeSource> {
     // SAFETY: COM calls on interfaces owned here; the strings are copied.
     unsafe {
-        let Ok(pattern) = element.GetCurrentPatternAs::<IUIAutomationTextPattern>(UIA_TextPatternId)
-        else {
-            return false;
-        };
-        let Ok(ranges) = pattern.GetVisibleRanges() else {
-            return false;
-        };
+        let pattern = element
+            .GetCurrentPatternAs::<IUIAutomationTextPattern>(UIA_TextPatternId)
+            .ok()?;
+        let ranges = pattern.GetVisibleRanges().ok()?;
+        let mut lines = Vec::new();
         let mut found = false;
         for index in 0..ranges.Length().unwrap_or(0) {
             if Instant::now() >= until {
                 break;
             }
-            let Ok(value) = ranges
-                .GetElement(index)
-                .and_then(|range| range.GetText(MAX_CHARACTERS as i32))
-            else {
+            let Ok(range) = ranges.GetElement(index) else {
+                continue;
+            };
+            let Ok(value) = range.GetText(MAX_CHARACTERS as i32) else {
                 continue;
             };
             let value = value.to_string();
             found |= !value.trim().is_empty();
-            if !text.append(&value) {
+            let kept = text.parts.len();
+            let more = text.append(&value);
+            if text.parts.len() > kept {
+                lines.push((kept, range));
+            }
+            if !more {
                 break;
             }
         }
-        found
+        found.then_some(RangeSource {
+            pattern,
+            lines,
+            secure_fields: Vec::new(),
+        })
     }
+}
+
+/// Removes the lines that overlap a secure field: the Mac never reads such
+/// a field, but a page's ranges hold its value. The field's own text is not
+/// read; lines whose place cannot be compared go too.
+fn remove_secure_lines(found: &mut Findings) {
+    let mut removed = HashSet::new();
+    for source in &found.sources {
+        for field in &source.secure_fields {
+            // SAFETY: COM calls on interfaces the walk holds; they compare
+            // range ends and return no text.
+            unsafe {
+                let Ok(field) = source.pattern.RangeFromChild(field) else {
+                    removed.extend(source.lines.iter().map(|(index, _)| *index));
+                    break;
+                };
+                for (index, line) in &source.lines {
+                    let apart = line
+                        .CompareEndpoints(
+                            TextPatternRangeEndpoint_Start,
+                            &field,
+                            TextPatternRangeEndpoint_End,
+                        )
+                        .is_ok_and(|order| order >= 0)
+                        || line
+                            .CompareEndpoints(
+                                TextPatternRangeEndpoint_End,
+                                &field,
+                                TextPatternRangeEndpoint_Start,
+                            )
+                            .is_ok_and(|order| order <= 0);
+                    if !apart {
+                        removed.insert(*index);
+                    }
+                }
+            }
+        }
+    }
+    found.text.remove(&removed);
 }
 
 /// What the cache request brought back for one element.
@@ -473,8 +592,10 @@ struct Node {
     control_type: UIA_CONTROLTYPE_ID,
     rect: Option<WindowRect>,
     offscreen: bool,
-    /// `None` when the provider did not say.
+    /// `IsPassword`; `None` when the provider did not say.
     password: Option<bool>,
+    /// A password field or a field named after a secret ([`secure_status`]).
+    secure: Option<bool>,
     text_pattern: bool,
     value_pattern: bool,
     scrolls: bool,
@@ -496,11 +617,20 @@ impl Node {
         // calls reaches the target app.
         unsafe {
             let control_type = element.CachedControlType().unwrap_or_default();
+            let password = element.CachedIsPassword().ok().map(|value| value.as_bool());
+            let labels: Vec<String> = [element.CachedName(), element.CachedHelpText()]
+                .into_iter()
+                .flatten()
+                .map(|label| label.to_string())
+                .collect();
             Node {
                 control_type,
                 rect: element.CachedBoundingRectangle().ok().and_then(window_rect),
-                offscreen: element.CachedIsOffscreen().is_ok_and(|value| value.as_bool()),
-                password: element.CachedIsPassword().ok().map(|value| value.as_bool()),
+                offscreen: element
+                    .CachedIsOffscreen()
+                    .is_ok_and(|value| value.as_bool()),
+                password,
+                secure: secure_status(control_type, password, &labels),
                 text_pattern: cached_flag(element, UIA_IsTextPatternAvailablePropertyId),
                 value_pattern: cached_flag(element, UIA_IsValuePatternAvailablePropertyId),
                 scrolls: cached_flag(element, UIA_IsScrollPatternAvailablePropertyId),
@@ -518,12 +648,14 @@ impl Node {
     }
 
     /// `ScreenVisibleTextPolicy.text`: nothing unless the element is known
-    /// not to be a password field, is on screen and meets the viewport; a
-    /// label's name when it lies fully inside the viewport; otherwise the
-    /// visible ranges of a text control. Whole values are never read: they
-    /// can hold a complete hidden document.
+    /// not to be secure, is on screen and meets the viewport; a label's name
+    /// when it lies fully inside the viewport; otherwise the visible ranges
+    /// of a text control. Whole values are never read: they can hold a
+    /// complete hidden document.
     fn reads(&self, viewport: Option<WindowRect>, covered: bool) -> Reads {
-        if covered || self.offscreen || self.password != Some(false) {
+        // A frame's document is not part of its parent document's ranges.
+        let covered = covered && self.control_type != UIA_DocumentControlTypeId;
+        if covered || self.offscreen || self.secure != Some(false) {
             return Reads::default();
         }
         let (Some(rect), Some(viewport)) = (self.rect, viewport) else {
@@ -578,6 +710,26 @@ fn is_label(control_type: UIA_CONTROLTYPE_ID) -> bool {
         UIA_DataItemControlTypeId,
     ]
     .contains(&control_type)
+}
+
+/// `secureFieldStatus`: a password field, or an element whose name or help
+/// text names a secret (`CotypingSecureFieldDetector.isSecure`). Labels such
+/// as "Password" match too, which keeps their text out; only text entries
+/// make the window count as showing a secure field. A document's name is
+/// the title of a whole page or file, not a field's label.
+fn secure_status(
+    control_type: UIA_CONTROLTYPE_ID,
+    password: Option<bool>,
+    labels: &[String],
+) -> Option<bool> {
+    let named_secret = control_type != UIA_DocumentControlTypeId
+        && labels.iter().any(|label| {
+            let label = label.to_lowercase();
+            SENSITIVE_MARKERS
+                .iter()
+                .any(|marker| label.contains(marker))
+        });
+    if named_secret { Some(true) } else { password }
 }
 
 /// `ScreenAccessibilityReader.isTextEntry`: only an input can hold a secret.
@@ -679,6 +831,7 @@ mod tests {
             control_type,
             rect: area,
             password: Some(false),
+            secure: Some(false),
             ..Node::default()
         }
     }
@@ -744,17 +897,29 @@ mod tests {
             Reads::default(),
             "an ancestor's visible ranges hold it"
         );
+        let frame = Node {
+            text_pattern: true,
+            ..node(UIA_DocumentControlTypeId, rect(10, 100, 300, 200))
+        };
+        assert_eq!(
+            frame.reads(viewport, true),
+            ranges,
+            "frames have ranges of their own"
+        );
         let offscreen = Node {
             offscreen: true,
             ..label.clone()
         };
         assert_eq!(offscreen.reads(viewport, false), Reads::default());
-        let unplaced = Node { rect: None, ..label };
+        let unplaced = Node {
+            rect: None,
+            ..label
+        };
         assert_eq!(unplaced.reads(viewport, false), Reads::default());
     }
 
     #[test]
-    fn password_fields_are_never_read() {
+    fn secure_fields_are_never_read() {
         let viewport = rect(0, 0, 800, 600);
         let field = Node {
             text_pattern: true,
@@ -767,18 +932,82 @@ mod tests {
                 ranges: true
             }
         );
-        let secure = Node {
+        let password = Node {
             password: Some(true),
+            secure: Some(true),
             ..field.clone()
         };
-        assert_eq!(secure.reads(viewport, false), Reads::default());
-        assert!(!secure.walks_children());
+        assert_eq!(password.reads(viewport, false), Reads::default());
+        assert!(!password.walks_children());
+        let named = Node {
+            secure: Some(true),
+            ..field.clone()
+        };
+        assert_eq!(named.reads(viewport, false), Reads::default());
+        assert!(named.walks_children(), "only password fields end the walk");
         let unknown = Node {
             password: None,
+            secure: None,
             ..field
         };
         assert_eq!(unknown.reads(viewport, false), Reads::default());
         assert!(unknown.walks_children());
+    }
+
+    #[test]
+    fn fields_named_after_secrets_are_secure() {
+        let labels =
+            |list: &[&str]| -> Vec<String> { list.iter().map(|s| s.to_string()).collect() };
+        let edit = UIA_EditControlTypeId;
+        assert_eq!(
+            secure_status(edit, Some(false), &labels(&["Card number"])),
+            Some(true)
+        );
+        assert_eq!(
+            secure_status(edit, Some(false), &labels(&["", "Enter the CVV"])),
+            Some(true)
+        );
+        assert_eq!(
+            secure_status(edit, Some(false), &labels(&["Email"])),
+            Some(false)
+        );
+        assert_eq!(
+            secure_status(edit, Some(true), &labels(&["Secret"])),
+            Some(true)
+        );
+        assert_eq!(secure_status(edit, None, &labels(&["Email"])), None);
+        assert_eq!(
+            secure_status(
+                UIA_ButtonControlTypeId,
+                Some(false),
+                &labels(&["Manage passwords"])
+            ),
+            Some(true)
+        );
+        assert_eq!(
+            secure_status(
+                UIA_DocumentControlTypeId,
+                Some(false),
+                &labels(&["Reset your password"])
+            ),
+            Some(false),
+            "a page title is not a field label"
+        );
+    }
+
+    #[test]
+    fn removed_lines_leave_the_rest_in_order() {
+        let mut text = Text::default();
+        for line in [
+            "Card details",
+            "4111 1111 1111 1111",
+            "Expires 12/30",
+            "Pay",
+        ] {
+            text.append(line);
+        }
+        text.remove(&HashSet::from([1, 3]));
+        assert_eq!(text.parts, ["Card details", "Expires 12/30"]);
     }
 
     #[test]
@@ -795,7 +1024,10 @@ mod tests {
         assert_eq!(document.child_viewport(viewport), rect(0, 200, 250, 300));
         let elsewhere = node(UIA_WindowControlTypeId, rect(900, 0, 100, 100));
         assert_eq!(elsewhere.child_viewport(viewport), None);
-        assert_eq!(node(UIA_WindowControlTypeId, None).child_viewport(viewport), None);
+        assert_eq!(
+            node(UIA_WindowControlTypeId, None).child_viewport(viewport),
+            None
+        );
         assert_eq!(scrolling.child_viewport(None), None);
         assert!(pane.walks_children());
         let offscreen = Node {
@@ -815,8 +1047,14 @@ mod tests {
             right,
             bottom,
         };
-        assert_eq!(window_rect(rectangle(10, 20, 110, 70)), rect(10, 20, 100, 50));
-        assert_eq!(window_rect(rectangle(-30, -40, 0, 0)), rect(-30, -40, 30, 40));
+        assert_eq!(
+            window_rect(rectangle(10, 20, 110, 70)),
+            rect(10, 20, 100, 50)
+        );
+        assert_eq!(
+            window_rect(rectangle(-30, -40, 0, 0)),
+            rect(-30, -40, 30, 40)
+        );
         assert_eq!(window_rect(RECT::default()), None);
         assert_eq!(window_rect(rectangle(10, 0, 5, 5)), None);
         assert_eq!(window_rect(rectangle(i32::MIN, 0, 0, 5)), None);
@@ -885,7 +1123,10 @@ mod tests {
                     })
                 })
                 .collect();
-            threads.into_iter().map(|thread| thread.join().unwrap()).collect()
+            threads
+                .into_iter()
+                .map(|thread| thread.join().unwrap())
+                .collect()
         });
         for reader in &mut readers {
             read(reader);
