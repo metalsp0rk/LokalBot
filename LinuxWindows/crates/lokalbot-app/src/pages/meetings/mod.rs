@@ -4,6 +4,7 @@
 
 mod detail;
 pub(crate) mod dialogs;
+mod follow_up;
 mod list;
 mod live;
 pub mod model;
@@ -646,6 +647,11 @@ impl MeetingsPage {
         });
     }
 
+    fn open_follow_up(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let Some(doc) = self.doc.clone() else { return };
+        follow_up::FollowUpSheet::open(self.data.clone(), doc.meeting.clone(), window, cx);
+    }
+
     fn ask_meeting(&mut self, cx: &mut Context<Self>) {
         let Some(meeting_id) = self.selected else {
             return;
@@ -813,6 +819,21 @@ impl Page for MeetingsPage {
             .get()
             .is_some_and(|b| b.size.width < px(900.));
         let has_summary = self.doc.as_ref().is_some_and(|d| d.has_summary());
+        // `Draft follow-up…` needs outcomes that are not being rewritten right
+        // now; a queued or waiting meeting keeps its current outcomes.
+        let can_follow_up = self.doc.as_ref().is_some_and(|d| {
+            use crate::state::ProcessingStage as Stage;
+            d.outcomes.as_ref().is_some_and(|o| !o.is_empty())
+                && !matches!(
+                    self.data.read(cx).processing.get(&d.meeting.id),
+                    Some(
+                        Stage::PreparingModel(_)
+                            | Stage::Transcribing
+                            | Stage::IdentifyingSpeakers
+                            | Stage::Summarizing
+                    )
+                )
+        });
         let has_transcript = self.doc.as_ref().is_some_and(|d| d.has_transcript());
         let page = cx.entity().downgrade();
         let export_page = page.clone();
@@ -914,6 +935,16 @@ impl Page for MeetingsPage {
                                 let _ = p.update(cx, |this, cx| f(this, window, cx));
                             })
                         };
+                        let follow_up = p.clone();
+                        let menu = menu
+                            .item(
+                                PopupMenuItem::new("Draft follow-up…")
+                                    .disabled(!can_follow_up)
+                                    .on_click(move |_, window, cx| {
+                                        let _ = follow_up.update(cx, |this, cx| this.open_follow_up(window, cx));
+                                    }),
+                            )
+                            .separator();
                         menu.item(item("Transcribe & Summarize", |this, _, cx| {
                             this.process(true, true, cx)
                         }))
