@@ -13,7 +13,9 @@
 //! is in flight at a time; a newer field read supersedes it, and a result
 //! that arrives late is shown only if the field still continues it. A newly
 //! focused field has its prompt read ahead, so the first keystroke only adds
-//! what was typed.
+//! what was typed. A field read that arrives while the server is still
+//! starting is answered once it is up, unless it was dismissed or answered
+//! some other way meanwhile.
 //!
 //! Nothing runs unless Autocomplete is on, and nothing is ever downloaded:
 //! without the Autocomplete model and the llama.cpp runtime no suggestion is
@@ -57,6 +59,8 @@ pub(crate) trait Host: Send + Sync + 'static {
     fn recording(&self) -> bool;
     /// The Autocomplete model and the runtime are installed.
     fn ready(&self, settings: &Settings) -> bool;
+    /// The Autocomplete server is up: not stopped, and not still starting.
+    fn server_running(&self) -> bool;
     /// Runs one request against the Autocomplete server. Blocking; called on
     /// the request's own thread.
     fn run(&self, job: &JobKind, settings: &Settings, cancel: &AtomicBool) -> Outcome;
@@ -92,6 +96,14 @@ impl Host for EngineHost {
         model_entry(settings).is_some_and(|entry| {
             self.models.is_installed(entry.id) && self.models.is_installed(RUNTIME_ID)
         })
+    }
+
+    fn server_running(&self) -> bool {
+        self.shared
+            .runtime
+            .server(lokalbot_ai::runtime::Role::Autocomplete)
+            .status()
+            .running
     }
 
     fn run(&self, job: &JobKind, settings: &Settings, cancel: &AtomicBool) -> Outcome {
@@ -397,6 +409,9 @@ struct Worker {
     running: Option<Running>,
     /// Starts once `running` has finished: one request at a time.
     queued: Option<JobKind>,
+    /// The field whose newest read arrived while the server was starting:
+    /// that read is answered once the server is up.
+    pending: Option<u64>,
     jobs: u64,
     last_latency_ms: Option<u64>,
     last_activity: Option<Instant>,
@@ -423,6 +438,7 @@ impl Worker {
             due: None,
             running: None,
             queued: None,
+            pending: None,
             jobs: 0,
             last_latency_ms: None,
             last_activity: None,
@@ -508,6 +524,16 @@ impl Worker {
     }
 
     fn on_context(&mut self, context: FieldContext) {
+        let field_id = context.field_id;
+        self.read_field(context);
+        // A read that arrives while the server is still starting cannot be
+        // answered yet: the newest one is, once it is up (`serve_pending`).
+        if self.field.as_ref().is_some_and(|f| f.field_id == field_id) && self.server_starting() {
+            self.pending = Some(field_id);
+        }
+    }
+
+    fn read_field(&mut self, context: FieldContext) {
         let settings = self.host.settings();
         if !self.allowed(&settings, &context) {
             self.cancel_all();
@@ -699,6 +725,9 @@ impl Worker {
     }
 
     fn request_suggestion(&mut self) {
+        // This answers the newest read, including one that waited for the
+        // server to start.
+        self.pending = None;
         let settings = self.host.settings();
         let Some(field) = self.field.clone() else {
             return;
@@ -987,6 +1016,29 @@ impl Worker {
         {
             self.start(next);
         }
+        if self.running.is_none() {
+            self.serve_pending();
+        }
+    }
+
+    /// A request is on its way to a server that is not up yet: the server
+    /// is starting, the first time or again after being unloaded.
+    fn server_starting(&self) -> bool {
+        (self.running.is_some() || self.queued.is_some()) && !self.host.server_running()
+    }
+
+    /// With nothing else in flight, answers the field read that arrived
+    /// while the server was starting, now that it is up. Not if the field
+    /// lost focus or the read was dismissed (both drop it), or a suggestion
+    /// is on screen or due after the debounce.
+    fn serve_pending(&mut self) {
+        let Some(field_id) = self.pending.take() else {
+            return;
+        };
+        let current = self.field.as_ref().is_some_and(|f| f.field_id == field_id);
+        if current && self.shown.is_none() && self.due.is_none() && self.host.server_running() {
+            self.request_suggestion();
+        }
     }
 
     /// Validates a finished suggestion against the newest field read and
@@ -1179,6 +1231,7 @@ impl Worker {
     fn cancel_all(&mut self) {
         self.due = None;
         self.queued = None;
+        self.pending = None;
         if let Some(running) = &self.running {
             running.cancel.store(true, Ordering::Relaxed);
         }
@@ -1368,6 +1421,7 @@ fn fingerprint(request: &Request, settings: &Settings) -> String {
 mod tests {
     use super::*;
     use std::collections::VecDeque;
+    use std::sync::atomic::AtomicU64;
 
     use crossbeam_channel::Receiver;
     use lokalbot_ai::autocomplete::{Normalized, Timings, normalize};
@@ -1384,6 +1438,10 @@ mod tests {
         prompts: Mutex<Vec<String>>,
         stopped: AtomicBool,
         facts: Mutex<Vec<memory::Item>>,
+        /// Whether the server is up; the first request waits `start_ms` for
+        /// it to start.
+        server_up: AtomicBool,
+        start_ms: AtomicU64,
     }
 
     impl Host for FakeHost {
@@ -1399,6 +1457,9 @@ mod tests {
         fn ready(&self, _: &Settings) -> bool {
             self.ready.load(Ordering::Relaxed)
         }
+        fn server_running(&self) -> bool {
+            self.server_up.load(Ordering::Relaxed)
+        }
         fn run(&self, job: &JobKind, _: &Settings, cancel: &AtomicBool) -> Outcome {
             let (kind, request) = match job {
                 JobKind::Fresh { request, .. } => ("fresh", request),
@@ -1409,6 +1470,11 @@ mod tests {
                 .lock()
                 .push((kind.to_string(), request.prefix.clone()));
             self.prompts.lock().push(request.prompt.clone());
+            if !self.server_up.load(Ordering::Relaxed) {
+                let start = self.start_ms.load(Ordering::Relaxed);
+                std::thread::sleep(Duration::from_millis(start));
+                self.server_up.store(true, Ordering::Relaxed);
+            }
             if kind == "prefill" {
                 return Outcome::Prefilled;
             }
@@ -1455,6 +1521,8 @@ mod tests {
             prompts: Mutex::new(Vec::new()),
             stopped: AtomicBool::new(false),
             facts: Mutex::new(Vec::new()),
+            server_up: AtomicBool::new(true),
+            start_ms: AtomicU64::new(0),
         });
         let autocomplete = Autocomplete::with_host(host.clone());
         Harness {
@@ -1501,6 +1569,12 @@ mod tests {
                     None => panic!("no suggestion"),
                 }
             }
+        }
+
+        /// The server is not up: the next request takes `ms` to start it.
+        fn server_down(&self, ms: u64) {
+            self.host.start_ms.store(ms, Ordering::Relaxed);
+            self.host.server_up.store(false, Ordering::Relaxed);
         }
 
         fn kinds(&self) -> Vec<String> {
@@ -1593,6 +1667,54 @@ mod tests {
         h.send(moved);
         assert_eq!(h.next(), Some(AutocompleteUpdate::Clear));
         assert_eq!(h.quiet(100), vec![]);
+        assert_eq!(h.kinds(), ["prefill", "fresh"]);
+    }
+
+    #[test]
+    fn a_read_while_the_server_starts_is_answered_once_it_is_up() {
+        let h = harness(&[" up on the timeline"], 0);
+        h.server_down(200);
+        // A click into the text, then End, while the server starts.
+        let mut clicked = context(1, "Hi Sarah, I wanted to");
+        clicked.after = " follow".into();
+        h.send(clicked);
+        h.type_text(1, "Hi Sarah, I wanted to follow");
+        assert_eq!(h.quiet(100), vec![]);
+        assert_eq!(h.next(), Some(shown(" up on the timeline", 1)));
+        assert_eq!(h.kinds(), ["prefill", "fresh"]);
+        assert_eq!(h.host.requests.lock()[1].1, "Hi Sarah, I wanted to follow");
+    }
+
+    #[test]
+    fn a_read_dismissed_while_the_server_starts_is_not_answered() {
+        let h = harness(&[" up on the timeline"], 0);
+        h.server_down(150);
+        h.type_text(1, "Hi Sarah, I wanted to follow");
+        h.autocomplete.handle(AutocompleteCommand::Dismiss);
+        assert_eq!(h.quiet(300), vec![]);
+        assert_eq!(h.kinds(), ["prefill"]);
+    }
+
+    #[test]
+    fn only_the_field_focused_last_is_answered_once_the_server_is_up() {
+        let h = harness(&[" up on the timeline"], 0);
+        h.server_down(150);
+        h.type_text(1, "Notes from the review");
+        h.type_text(2, "Hi Sarah, I wanted to follow");
+        assert_eq!(h.next(), Some(shown(" up on the timeline", 2)));
+        assert_eq!(h.quiet(100), vec![]);
+        assert_eq!(h.kinds(), ["prefill", "prefill", "fresh"]);
+        assert_eq!(h.host.requests.lock()[2].1, "Hi Sarah, I wanted to follow");
+    }
+
+    #[test]
+    fn typing_while_the_server_starts_asks_only_once() {
+        let h = harness(&[" up on the timeline", " soon"], 0);
+        h.server_down(150);
+        h.type_text(1, "I wanted to");
+        h.type_text(1, "I wanted to follow");
+        assert_eq!(h.next(), Some(shown(" up on the timeline", 1)));
+        assert_eq!(h.quiet(150), vec![]);
         assert_eq!(h.kinds(), ["prefill", "fresh"]);
     }
 
