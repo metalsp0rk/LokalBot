@@ -78,6 +78,9 @@ impl TimelinePage {
                 .map(|session| self.render_session(model, session, drawer, cx)),
             Some(Selection::Meeting(_)) => Some(self.render_meeting(drawer, cx)),
             Some(Selection::RawCapture) => Some(self.render_raw_capture(model, drawer, cx)),
+            Some(Selection::Moment(id)) => {
+                Some(self.render_moment(model.moments.iter().find(|m| m.id == *id), drawer, cx))
+            }
             None => None,
         };
         let content = content.unwrap_or_else(|| {
@@ -100,7 +103,7 @@ impl TimelinePage {
             .into_any_element()
     }
 
-    fn panel_header(
+    pub(super) fn panel_header(
         &self,
         icon: Ico,
         title: SharedString,
@@ -215,9 +218,15 @@ impl TimelinePage {
                 } else {
                     moment.app.clone()
                 };
+                let id = moment.id;
                 h_flex()
+                    .id(("session-moment", id as u64))
                     .gap(px(10.))
                     .items_center()
+                    .cursor_pointer()
+                    .rounded(metric::ROW_RADIUS)
+                    .hover(|s| s.bg(lb.hover))
+                    .on_click(cx.listener(move |this, _, _, cx| this.select(Some(Selection::Moment(id)), cx)))
                     .child(ui::icon_tile(Ico::ScanText, lb.app_color(&moment.app), px(32.)))
                     .child(
                         v_flex()
@@ -565,11 +574,19 @@ impl TimelinePage {
                         } else {
                             moment.app.clone()
                         };
+                        let id = moment.id;
                         h_flex()
+                            .id(("raw-moment", id as u64))
                             .gap(px(10.))
                             .items_center()
+                            .cursor_pointer()
+                            .rounded(metric::ROW_RADIUS)
+                            .hover(|s| s.bg(lb.hover))
+                            .on_click(cx.listener(move |this, _, _, cx| {
+                                this.select(Some(Selection::Moment(id)), cx)
+                            }))
                             .child(ui::icon_tile(
-                                Ico::ScanText,
+                                if moment.path.is_empty() { Ico::ScanText } else { Ico::Camera },
                                 lb.app_color(&moment.app),
                                 px(28.),
                             ))
@@ -610,13 +627,13 @@ impl TimelinePage {
             .gap(px(16.))
             .child(self.panel_header(Ico::Activity, "Raw capture".into(), capture_counts(model), drawer, cx))
             .child(div().text_size(ty::SECONDARY).text_color(lb.text_secondary).child(
-                "Individual app activity for this day. Use this for exact evidence or cleanup.",
+                "Individual app activity and retained screen moments. Use this for exact evidence or cleanup.",
             ))
             .when(empty, |this| {
                 this.child(ui::empty_state(
                     Ico::Activity,
                     "No raw capture",
-                    "No activity was retained for this day.",
+                    "No activity or screen moments were retained for this day.",
                     cx,
                 ))
             })
@@ -810,20 +827,19 @@ impl TimelinePage {
 pub(super) fn capture_counts(model: &DayModel) -> String {
     let blocks = model.activity.blocks.len();
     let moments = model.moments.len();
-    let entries = format!(
-        "{blocks} {}",
+    format!(
+        "{blocks} {} · {moments} {}",
         if blocks == 1 {
             "activity entry"
         } else {
             "activity entries"
+        },
+        if moments == 1 {
+            "screen moment"
+        } else {
+            "screen moments"
         }
-    );
-    // Linux and Windows record no screen moments; count them only if a library has some.
-    match moments {
-        0 => entries,
-        1 => format!("{entries} · 1 screen moment"),
-        n => format!("{entries} · {n} screen moments"),
-    }
+    )
 }
 
 /// `TimelineContextSection`: icon + headline over grouped content.

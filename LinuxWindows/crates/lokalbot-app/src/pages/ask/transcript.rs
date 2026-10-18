@@ -10,7 +10,7 @@ use gpui_kit::component::spinner::Spinner;
 use gpui_kit::component::{Disableable as _, Icon, Sizable as _, h_flex, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
-    AnyElement, App, Context, Div, FontWeight, InteractiveElement as _, IntoElement,
+    AnyElement, App, AppContext as _, Context, Div, FontWeight, InteractiveElement as _, IntoElement,
     ParentElement as _, SharedString, StatefulInteractiveElement as _, Styled as _, Window, div,
     px, relative,
 };
@@ -407,9 +407,47 @@ impl AskPage {
         );
 
         if !answer.citations.is_empty() && !stopped && error.is_none() {
+            self.load_screen_citations(&answer.citations, cx);
             column = column.child(self.render_evidence(id, &answer.citations, cx));
         }
         column
+    }
+
+    /// Reads the cited screen moments that are not loaded yet, off the UI thread.
+    fn load_screen_citations(&mut self, sources: &[CitationSource], cx: &mut Context<Self>) {
+        let missing: Vec<i64> = sources
+            .iter()
+            .filter_map(|source| match source {
+                CitationSource::Screen { snapshot_id } => Some(*snapshot_id),
+                CitationSource::Meeting { .. } => None,
+            })
+            .filter(|id| {
+                !self.screen_citations.contains_key(id) && !self.loading_screen_citations.contains(id)
+            })
+            .collect();
+        if missing.is_empty() {
+            return;
+        }
+        self.loading_screen_citations.extend(missing.iter().copied());
+        let library = self.data.read(cx).library.clone();
+        cx.spawn(async move |this, cx| {
+            let loaded: Vec<(i64, Option<lokalbot_core::ScreenMoment>)> = cx
+                .background_spawn(async move {
+                    missing
+                        .into_iter()
+                        .map(|id| (id, library.screen_moment(id).ok().flatten()))
+                        .collect()
+                })
+                .await;
+            let _ = this.update(cx, |this, cx| {
+                for (id, moment) in loaded {
+                    this.loading_screen_citations.remove(&id);
+                    this.screen_citations.insert(id, moment);
+                }
+                cx.notify();
+            });
+        })
+        .detach();
     }
 
     fn parsed_answer(&mut self, id: Uuid, text: &str) -> Rc<Answer> {
@@ -427,6 +465,12 @@ impl AskPage {
     }
 
     fn open_citation(&mut self, source: &CitationSource, cx: &mut Context<Self>) {
+        if let CitationSource::Screen { snapshot_id } = source {
+            if let Some(Some(moment)) = self.screen_citations.get(snapshot_id) {
+                super::open_screen_moment(&self.data, moment, cx);
+            }
+            return;
+        }
         let meetings = self.data.read(cx).meetings.clone();
         if let CitationSource::Meeting { at, .. } = source
             && let Some(meeting) = source.meeting(&meetings)
@@ -594,13 +638,13 @@ impl AskPage {
             .get(&id)
             .copied()
             .unwrap_or(sources.len() <= 3);
-        let summary = citations::evidence_summary(sources, &meetings);
+        let summary = citations::evidence_summary(sources, &meetings, &self.screen_citations);
         let key = super::history::element_key(id);
         let rows: Vec<AnyElement> = sources
             .iter()
             .enumerate()
             .map(|(index, source)| {
-                let resolved = citations::resolve(source, &meetings);
+                let resolved = citations::resolve(source, &meetings, &self.screen_citations);
                 let source = source.clone();
                 let available = resolved.available;
                 h_flex()
@@ -767,7 +811,7 @@ impl AskPage {
                     .text_size(ty::BODY)
                     .line_height(px(21.))
                     .text_color(lb.text)
-                    .child("Type keywords to find meetings, or ask a question. Return opens a keyword result or asks a question; Ctrl+Return always asks."),
+                    .child("Type keywords to find meetings and screen moments, or ask a question. Return opens a keyword result or asks a question; Ctrl+Return always asks."),
             )
             .child(v_flex().w_full().items_center().gap(px(8.)).pt(px(4.)).children(suggestions))
     }

@@ -14,6 +14,7 @@ mod models;
 mod pipeline;
 mod recording;
 mod retention;
+mod screen;
 pub mod secrets;
 mod speech;
 
@@ -179,7 +180,10 @@ fn dispatch(shared: Arc<Shared>, commands: Sender<Command>, receiver: Receiver<C
     let ask = ask::AskWorker::new(shared.clone(), models.clone());
     let digest = digest::DigestScheduler::start(shared.clone(), models.clone());
     let meeting_detector = Arc::new(Mutex::new(lokalbot_platform::MeetingDetector::new()));
-    let day_memory = daymemory::DayMemory::start(shared.clone(), meeting_detector.clone());
+    let screen = screen::ScreenContext::new(shared.clone());
+    let day_memory =
+        daymemory::DayMemory::start(shared.clone(), meeting_detector.clone(), screen.boundary_hook());
+    screen.start(day_memory.paused_flag());
     let detector = detector::Detector::start(shared.clone(), commands.clone(), meeting_detector);
     let dictation = dictation::Dictation::new(shared.clone(), models.clone());
     models.publish_status();
@@ -216,6 +220,7 @@ fn dispatch(shared: Arc<Shared>, commands: Sender<Command>, receiver: Receiver<C
             }
             Command::Dictation(command) => dictation.handle(command),
             Command::Autocomplete(_) => {}
+            Command::CaptureScreenNow => screen.capture_now(),
             Command::Shutdown => break,
         }
     }
@@ -224,6 +229,7 @@ fn dispatch(shared: Arc<Shared>, commands: Sender<Command>, receiver: Receiver<C
     recording.stop_for_shutdown();
     detector.stop();
     day_memory.stop();
+    screen.stop();
     digest.stop();
     pipeline.stop();
     shared.runtime.shutdown();

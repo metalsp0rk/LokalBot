@@ -37,6 +37,9 @@ pub enum Command {
     UpdateSettings(Box<Settings>),
     Dictation(DictationCommand),
     Autocomplete(AutocompleteCommand),
+    /// "Capture Screen Now": capture the window in front, or the next one
+    /// to come to the front within a few seconds when LokalBot itself is.
+    CaptureScreenNow,
     Shutdown,
 }
 
@@ -93,6 +96,29 @@ pub enum EngineEvent {
     Dictation(DictationUpdate),
     FollowUp(FollowUpUpdate),
     Autocomplete(AutocompleteUpdate),
+    Screen(ScreenStatus),
+}
+
+/// Screen context capture as Settings shows it (`ScreenshotService`'s
+/// published state and `MemoryHealthSection`).
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ScreenStatus {
+    /// Text and images are being captured (screen context on, tracking on,
+    /// day memory not paused).
+    pub active: bool,
+    /// Why this desktop cannot capture window pixels (and so cannot OCR), if so.
+    pub capture_limitation: Option<String>,
+    /// Why visible text cannot be read through accessibility, if so.
+    pub text_limitation: Option<String>,
+    /// Why images cannot be kept (no system credential store), if so.
+    pub images_unavailable: Option<String>,
+    pub ocr_installed: bool,
+    pub last_capture: Option<DateTime<Utc>>,
+    /// `accessibility`, `ocr`, `hybrid` (with `_redacted`) of the last capture.
+    pub last_text_source: Option<String>,
+    pub last_error: Option<String>,
+    /// "Capture Screen Now" is waiting for another window to come to the front.
+    pub waiting_for_window: bool,
 }
 
 /// The text field the user is typing in, as the desktop integration reads
@@ -223,6 +249,8 @@ pub struct ModelStatus {
     pub think_ready: bool,
     pub autocomplete_ready: bool,
     pub embeddings_ready: bool,
+    /// The screen text recognition (OCR) models are downloaded.
+    pub screen_text_ready: bool,
     pub runtime_backend: Option<String>,
 }
 

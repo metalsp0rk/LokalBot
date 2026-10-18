@@ -32,4 +32,5 @@ uuid.workspace = true
 directories.workspace = true
 parking_lot.workspace = true
 smol = "2"
-image = { version = "0.25", default-features = false, features = ["png"] }
+# PNG for the tray icon; JPEG for screen images decrypted for display.
+image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }

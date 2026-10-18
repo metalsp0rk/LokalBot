@@ -267,7 +267,7 @@ impl Render for AgentPage {
             .gap(px(12.))
             .items_center()
             .child(ui::settings_row::help(
-                "Lets MCP clients and the lokalbot-cli skill list, read, search, and ask about your meetings — read-only and on this PC only. App and window activity has its own switch in Settings → Privacy & Data.",
+                "Lets MCP clients and the lokalbot-cli skill list, read, search, and ask about your meetings — read-only and on this PC only. Screen memory has its own switch in Settings → Privacy & Data.",
                 cx,
             ).flex_1().min_w_0())
             .child(Switch::new("agent-meetings-access").checked(access).on_click(move |on, _, cx| {

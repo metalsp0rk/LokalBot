@@ -136,12 +136,15 @@ pub struct AskRequest {
     pub submit: bool,
 }
 
-/// A request to show a day on Timeline, optionally with a work session open.
+/// A request to show a day on Timeline, optionally with a work session or
+/// a screen moment open.
 #[derive(Clone, Debug, PartialEq)]
 pub struct TimelineFocus {
     pub day: chrono::NaiveDate,
     /// `WorkSession::id`.
     pub session_id: Option<String>,
+    /// `ScreenMoment::id`.
+    pub moment_id: Option<i64>,
 }
 
 /// A request to show a meeting, optionally at a moment of its transcript.
@@ -202,6 +205,8 @@ pub struct AppData {
     pub recording_statuses: Option<(SharedString, SharedString)>,
     /// The latest "Write with Think" for a meeting's follow-up.
     pub follow_up: Option<(Uuid, FollowUpWriting)>,
+    /// Screen context capture, as the engine reports it.
+    pub screen: lokalbot_engine::ScreenStatus,
 }
 
 /// A follow-up being rewritten with Think (`FollowUpDraftSheet`).
@@ -274,6 +279,8 @@ pub struct ModelStatus {
     pub think_ready: bool,
     pub autocomplete_ready: bool,
     pub embeddings_ready: bool,
+    /// The screen text recognition (OCR) models are downloaded.
+    pub screen_text_ready: bool,
     /// "Vulkan" or "CPU" for the built-in llama.cpp runtime, once installed.
     pub runtime_backend: Option<SharedString>,
 }
@@ -333,6 +340,7 @@ impl AppData {
             follow_up: None,
             audio_inputs: Vec::new(),
             shortcut_recording: false,
+            screen: Default::default(),
         }
     }
 
@@ -371,7 +379,22 @@ impl AppData {
         session_id: Option<String>,
         cx: &mut Context<Self>,
     ) {
-        self.timeline_focus = Some(TimelineFocus { day, session_id });
+        self.timeline_focus = Some(TimelineFocus {
+            day,
+            session_id,
+            moment_id: None,
+        });
+        self.section = Section::Timeline;
+        cx.notify();
+    }
+
+    /// Timeline with one screen moment open (`ScreenMomentDetailView`).
+    pub fn open_screen_moment(&mut self, id: i64, ts: DateTime<Utc>, cx: &mut Context<Self>) {
+        self.timeline_focus = Some(TimelineFocus {
+            day: lokalbot_core::time::local_day(ts),
+            session_id: None,
+            moment_id: Some(id),
+        });
         self.section = Section::Timeline;
         cx.notify();
     }
@@ -489,6 +512,55 @@ impl AppData {
                     this.meeting_focus = None;
                 }
                 this.reload(cx);
+            });
+        })
+        .detach();
+    }
+
+    /// Saves a screen moment (or changes its note); saved moments are kept
+    /// past the retention window.
+    pub fn save_screen_moment(&mut self, id: i64, note: String, cx: &mut Context<Self>) {
+        let library = self.library.clone();
+        self.run_library_change(
+            "Could not update the saved moment",
+            move || library.save_moment(id, &note),
+            cx,
+        );
+    }
+
+    pub fn unsave_screen_moment(&mut self, id: i64, cx: &mut Context<Self>) {
+        let library = self.library.clone();
+        self.run_library_change(
+            "Could not update the saved moment",
+            move || library.unsave_moment(id),
+            cx,
+        );
+    }
+
+    /// Deletes a moment's image, text and metadata.
+    pub fn delete_screen_moment(&mut self, id: i64, cx: &mut Context<Self>) {
+        let library = self.library.clone();
+        self.run_library_change(
+            "Could not delete the captured screen",
+            move || library.delete_screen_moments(&[id]).map(|_| ()),
+            cx,
+        );
+    }
+
+    fn run_library_change(
+        &mut self,
+        failure: &'static str,
+        change: impl FnOnce() -> anyhow::Result<()> + Send + 'static,
+        cx: &mut Context<Self>,
+    ) {
+        cx.spawn(async move |this, cx| {
+            let result = cx.background_spawn(async move { change() }).await;
+            let _ = this.update(cx, |this, cx| {
+                if let Err(err) = result {
+                    this.show_error(format!("{failure}: {err:#}"), cx);
+                }
+                this.revision += 1;
+                cx.notify();
             });
         })
         .detach();
@@ -614,6 +686,8 @@ pub enum AppEvent {
     /// Store the API key for the OpenAI-compatible server in the system
     /// credential store (never in settings.json).
     SaveApiKey(String),
+    /// "Capture Screen Now" (tray and Timeline).
+    CaptureScreenNow,
 }
 
 impl gpui_kit::EventEmitter<AppEvent> for AppData {}

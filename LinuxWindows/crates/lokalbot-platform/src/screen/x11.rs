@@ -23,6 +23,7 @@ struct Session {
     net_wm_name: Atom,
     net_wm_pid: Atom,
     utf8_string: Atom,
+    gtk_frame_extents: Atom,
 }
 
 impl Session {
@@ -42,6 +43,7 @@ impl Session {
             net_wm_name: intern(b"_NET_WM_NAME")?,
             net_wm_pid: intern(b"_NET_WM_PID")?,
             utf8_string: intern(b"UTF8_STRING")?,
+            gtk_frame_extents: intern(b"_GTK_FRAME_EXTENTS")?,
             conn,
             screen,
             root,
@@ -91,8 +93,15 @@ impl Session {
             .filter(|pid| *pid != 0))
     }
 
-    /// The window's on-screen rectangle, or `None` when it is not mapped.
+    /// The window's on-screen rectangle without the invisible shadow margin
+    /// client-side decorations draw (`_GTK_FRAME_EXTENTS`), or `None` when
+    /// it is not mapped.
     fn rect(&self, window: Window) -> anyhow::Result<Option<WindowRect>> {
+        Ok(self.rects(window)?.map(|(_, content)| content))
+    }
+
+    /// The window's whole rectangle and its content (see [`Self::rect`]).
+    fn rects(&self, window: Window) -> anyhow::Result<Option<(WindowRect, WindowRect)>> {
         let attributes = match self.conn.get_window_attributes(window)?.reply() {
             Ok(attributes) => attributes,
             Err(ReplyError::X11Error(_)) => return Ok(None),
@@ -106,12 +115,25 @@ impl Session {
             .conn
             .translate_coordinates(window, self.root, 0, 0)?
             .reply()?;
-        Ok(Some(WindowRect {
+        let outer = WindowRect {
             x: i32::from(origin.dst_x),
             y: i32::from(origin.dst_y),
             width: u32::from(geometry.width),
             height: u32::from(geometry.height),
-        }))
+        };
+        let extents = self
+            .property(window, self.gtk_frame_extents, AtomEnum::CARDINAL)?
+            .map(|value| {
+                value
+                    .chunks_exact(4)
+                    .map(|b| u32::from_ne_bytes([b[0], b[1], b[2], b[3]]))
+                    .collect::<Vec<_>>()
+            });
+        let content = match extents.as_deref() {
+            Some([left, right, top, bottom]) => without_margin(outer, *left, *right, *top, *bottom),
+            _ => outer,
+        };
+        Ok(Some((outer, content)))
     }
 
     fn screen_rect(&self) -> WindowRect {
@@ -137,19 +159,20 @@ impl Session {
     }
 
     fn capture(&self, window: Window) -> anyhow::Result<CapturedImage> {
-        let rect = self
-            .rect(window)?
+        let (outer, content) = self
+            .rects(window)?
             .context("the window is no longer on screen")?;
-        let visible = rect
+        let visible = content
             .intersection(&self.screen_rect())
             .context("the window is outside the screen")?;
+        // GetImage takes coordinates inside the whole window.
         let reply = self
             .conn
             .get_image(
                 ImageFormat::Z_PIXMAP,
                 window,
-                (visible.x - rect.x) as i16,
-                (visible.y - rect.y) as i16,
+                (visible.x - outer.x) as i16,
+                (visible.y - outer.y) as i16,
                 visible.width as u16,
                 visible.height as u16,
                 !0,
@@ -179,6 +202,22 @@ impl Session {
             setup.image_byte_order == ImageOrder::MSB_FIRST,
             masks,
         )
+    }
+}
+
+/// `rect` without a margin of `left`/`right`/`top`/`bottom` pixels; the
+/// whole rectangle when the margin would leave nothing.
+fn without_margin(rect: WindowRect, left: u32, right: u32, top: u32, bottom: u32) -> WindowRect {
+    let width = rect.width.saturating_sub(left.saturating_add(right));
+    let height = rect.height.saturating_sub(top.saturating_add(bottom));
+    if width == 0 || height == 0 {
+        return rect;
+    }
+    WindowRect {
+        x: rect.x + left as i32,
+        y: rect.y + top as i32,
+        width,
+        height,
     }
 }
 
@@ -334,6 +373,26 @@ mod tests {
         let image = convert(&data, 1, 1, 16, 32, false, (0xf800, 0x07e0, 0x001f)).unwrap();
         assert_eq!(image.rgba, [255, 255, 255, 255]);
         assert!(convert(&data[..1], 1, 1, 16, 32, false, (0xf800, 0x07e0, 0x001f)).is_err());
+    }
+
+    #[test]
+    fn shadow_margins_are_left_out() {
+        let rect = WindowRect {
+            x: 100,
+            y: 50,
+            width: 900,
+            height: 600,
+        };
+        assert_eq!(
+            without_margin(rect, 26, 26, 23, 29),
+            WindowRect {
+                x: 126,
+                y: 73,
+                width: 848,
+                height: 548
+            }
+        );
+        assert_eq!(without_margin(rect, 500, 500, 0, 0), rect);
     }
 
     #[test]

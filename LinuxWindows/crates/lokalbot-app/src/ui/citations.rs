@@ -4,9 +4,15 @@
 //! `[screen:<n>]` inline. The UI shows them as numbered `[n]` references,
 //! deduped in order of first appearance, so a repeated source keeps its number.
 
+use std::collections::HashMap;
+
 use chrono::{DateTime, Local, Utc};
-use lokalbot_core::Meeting;
+use lokalbot_core::{Meeting, ScreenMoment};
 use uuid::Uuid;
+
+/// Screen moments that citations name, loaded off the UI thread; `None`
+/// once a moment is known to be gone (deleted or expired).
+pub type ScreenCitations = HashMap<i64, Option<ScreenMoment>>;
 
 /// One cited source. Meeting ids may be full UUIDs or short-id prefixes.
 #[derive(Clone, Debug, PartialEq)]
@@ -131,14 +137,18 @@ pub fn display_text(text: &str) -> String {
 
 /// "1 source · Design review", "3 citations · Design review" or
 /// "3 citations · 2 sources" (`EvidenceDisclosure.evidenceSummary`).
-pub fn evidence_summary(citations: &[CitationSource], meetings: &[Meeting]) -> String {
+pub fn evidence_summary(
+    citations: &[CitationSource],
+    meetings: &[Meeting],
+    screens: &ScreenCitations,
+) -> String {
     let Some(first) = citations.first() else {
         return "No sources".into();
     };
     let mut keys: Vec<String> = citations.iter().map(CitationSource::source_key).collect();
     keys.sort();
     keys.dedup();
-    let title = resolve(first, meetings).title;
+    let title = resolve(first, meetings, screens).title;
     if citations.len() == 1 {
         format!("1 source · {title}")
     } else if keys.len() == 1 {
@@ -157,7 +167,11 @@ pub struct ResolvedCitation {
     pub is_screen: bool,
 }
 
-pub fn resolve(source: &CitationSource, meetings: &[Meeting]) -> ResolvedCitation {
+pub fn resolve(
+    source: &CitationSource,
+    meetings: &[Meeting],
+    screens: &ScreenCitations,
+) -> ResolvedCitation {
     match source {
         CitationSource::Meeting { id, at } => match resolve_meeting(id, meetings) {
             Some(meeting) => {
@@ -178,12 +192,30 @@ pub fn resolve(source: &CitationSource, meetings: &[Meeting]) -> ResolvedCitatio
                 is_screen: false,
             },
         },
-        // Screen moments resolve once screen memory lands in the core library.
-        CitationSource::Screen { .. } => ResolvedCitation {
-            title: "Screen moment".into(),
-            detail: "Local source missing".into(),
-            available: false,
-            is_screen: true,
+        CitationSource::Screen { snapshot_id } => match screens.get(snapshot_id) {
+            Some(Some(moment)) => {
+                let title = [&moment.window_title, &moment.document_name]
+                    .into_iter()
+                    .find(|t| !t.trim().is_empty())
+                    .cloned()
+                    .unwrap_or_else(|| moment.app.clone());
+                ResolvedCitation {
+                    title,
+                    detail: format!("Screen · {} · {}", moment.app, date_and_time(moment.ts)),
+                    available: true,
+                    is_screen: true,
+                }
+            }
+            known => ResolvedCitation {
+                title: "Screen moment".into(),
+                detail: if known.is_some() {
+                    "Local source missing".into()
+                } else {
+                    "Screen · Loading…".into()
+                },
+                available: false,
+                is_screen: true,
+            },
         },
     }
 }
@@ -359,14 +391,36 @@ mod tests {
     fn summary_counts_sources() {
         let cited = extract(REDIS);
         assert_eq!(
-            evidence_summary(&cited.citations, &[]),
+            evidence_summary(&cited.citations, &[], &ScreenCitations::new()),
             "3 citations · 2 sources"
         );
         let one = extract("x [screen:3]");
         assert_eq!(
-            evidence_summary(&one.citations, &[]),
+            evidence_summary(&one.citations, &[], &ScreenCitations::new()),
             "1 source · Screen moment"
         );
+        let moment = ScreenMoment {
+            id: 3,
+            ts: Utc::now(),
+            app: "Firefox".into(),
+            window_title: "Quarterly plan".into(),
+            capture_trigger: "app_switch".into(),
+            path: String::new(),
+            source_url: String::new(),
+            document_name: String::new(),
+            meeting_id: None,
+            privacy_redactions: 0,
+            text: None,
+            saved_note: None,
+            is_saved: false,
+        };
+        let screens = ScreenCitations::from([(3, Some(moment))]);
+        let resolved = resolve(&one.citations[0], &[], &screens);
+        assert!(resolved.available && resolved.is_screen);
+        assert_eq!(resolved.title, "Quarterly plan");
+        assert!(resolved.detail.starts_with("Screen · Firefox · "));
+        let gone = ScreenCitations::from([(3, None)]);
+        assert!(!resolve(&one.citations[0], &[], &gone).available);
     }
 
     #[test]

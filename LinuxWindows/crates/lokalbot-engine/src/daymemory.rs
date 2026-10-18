@@ -33,7 +33,13 @@ struct Current {
 }
 
 impl DayMemory {
-    pub fn start(shared: Arc<Shared>, detector: Arc<Mutex<MeetingDetector>>) -> Self {
+    /// `on_boundary(app_changed)` runs when a new activity block begins
+    /// (`ActivitySampler.onActivityBoundary`); screen context captures there.
+    pub fn start(
+        shared: Arc<Shared>,
+        detector: Arc<Mutex<MeetingDetector>>,
+        on_boundary: impl Fn(bool) + Send + 'static,
+    ) -> Self {
         let memory = Self {
             shared,
             paused: Arc::new(AtomicBool::new(false)),
@@ -44,9 +50,14 @@ impl DayMemory {
         let stop = memory.stop.clone();
         std::thread::Builder::new()
             .name("lokalbot-day-memory".into())
-            .spawn(move || run(shared, paused, stop, detector))
+            .spawn(move || run(shared, paused, stop, detector, on_boundary))
             .expect("spawning the day memory thread");
         memory
+    }
+
+    /// The pause switch, shared with screen context.
+    pub fn paused_flag(&self) -> Arc<AtomicBool> {
+        self.paused.clone()
     }
 
     pub fn set_paused(&self, paused: bool) {
@@ -68,6 +79,7 @@ fn run(
     paused: Arc<AtomicBool>,
     stop: Arc<AtomicBool>,
     detector: Arc<Mutex<MeetingDetector>>,
+    on_boundary: impl Fn(bool),
 ) {
     let mut source = lokalbot_platform::activity_source();
     if let Some(limitation) = source.limitation() {
@@ -112,7 +124,9 @@ fn run(
                 persist(&shared, block);
             }
             _ => {
+                let app_changed = current.as_ref().is_none_or(|block| block.app != app);
                 close(&shared, &mut current);
+                on_boundary(app_changed);
                 current = Some(Current {
                     app,
                     title,

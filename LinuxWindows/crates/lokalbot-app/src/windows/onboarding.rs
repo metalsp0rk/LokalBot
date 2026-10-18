@@ -1,9 +1,8 @@
 //! Welcome to LokalBot (`OnboardingView.swift`): four steps. Choices stay a
 //! draft until "Apply Choices and Start"; model downloads happen only when
 //! asked for. macOS permission panes have no equivalent here, so step two
-//! checks the microphone, system audio and activity tracking instead. Day
-//! Memory records app and window activity only (no screen text or images),
-//! and autocomplete is macOS-only, so neither is offered here.
+//! checks the microphone, system audio and activity tracking instead.
+//! Autocomplete is macOS-only, so it is not offered here.
 
 use std::time::Duration;
 
@@ -18,6 +17,7 @@ use gpui_kit::{
     StatefulInteractiveElement as _, Styled as _, Subscription, Window, WindowBounds, WindowKind,
     WindowOptions, div, img, px, relative, size,
 };
+use lokalbot_core::ScreenContextMode;
 use lokalbot_core::settings::{AutoRecordMode, SummarizerBackend};
 
 use crate::pages::ask::composer_inference;
@@ -85,6 +85,18 @@ impl Step {
 struct Draft {
     meeting_mode: AutoRecordMode,
     day_memory: bool,
+    context_mode: ScreenContextMode,
+}
+
+impl Draft {
+    /// Screen context the draft would turn on.
+    fn screen_context(&self) -> ScreenContextMode {
+        if self.day_memory {
+            self.context_mode
+        } else {
+            ScreenContextMode::ActivityOnly
+        }
+    }
 }
 
 pub struct Onboarding {
@@ -107,6 +119,7 @@ impl Onboarding {
             draft: Draft {
                 meeting_mode: settings.auto_record_mode,
                 day_memory: settings.tracking_enabled,
+                context_mode: settings.screen_context_capture_mode,
             },
             _subscriptions: subscriptions,
         }
@@ -125,6 +138,7 @@ impl Onboarding {
                 |s| {
                     s.auto_record_mode = draft.meeting_mode;
                     s.tracking_enabled = draft.day_memory;
+                    s.screen_context_capture_mode = draft.screen_context();
                     s.onboarding_completed = true;
                 },
                 cx,
@@ -135,8 +149,17 @@ impl Onboarding {
     }
 
     fn prepare_models(&mut self, cx: &mut Context<Self>) {
-        self.data
-            .update(cx, |data, cx| data.request(AppEvent::PrepareModels, cx));
+        // The draft is not applied yet, so its screen text model is asked for here.
+        let screen_text = self.draft.screen_context() != ScreenContextMode::ActivityOnly;
+        self.data.update(cx, |data, cx| {
+            data.request(AppEvent::PrepareModels, cx);
+            if screen_text && !data.models.screen_text_ready {
+                data.request(
+                    AppEvent::DownloadModel(lokalbot_ai::ocr::OCR_MODEL_ID.to_string()),
+                    cx,
+                );
+            }
+        });
     }
 
     fn render_capture(&self, cx: &mut Context<Self>) -> Div {
@@ -144,6 +167,7 @@ impl Onboarding {
         let draft = self.draft;
         let page = cx.entity();
         let mode_page = page.clone();
+        let detail_page = page.clone();
         let memory_page = page.clone();
         let retention = match self.data.read(cx).settings.retention_days {
             1 => "1 day".to_string(),
@@ -170,6 +194,29 @@ impl Onboarding {
                 }
                 menu
             });
+        let detail_picker = Button::new("onboarding-context-mode")
+            .outline()
+            .small()
+            .label(draft.context_mode.label())
+            .dropdown_caret(true)
+            .disabled(!draft.day_memory)
+            .dropdown_menu(move |mut menu, _, _| {
+                for mode in ScreenContextMode::ALL {
+                    let page = detail_page.clone();
+                    menu = menu.item(
+                        PopupMenuItem::new(mode.label())
+                            .checked(mode == draft.context_mode)
+                            .on_click(move |_, _, cx| {
+                                page.update(cx, |this, cx| {
+                                    this.draft.context_mode = mode;
+                                    cx.notify();
+                                })
+                            }),
+                    );
+                }
+                menu
+            });
+        let screen_context = draft.screen_context() != ScreenContextMode::ActivityOnly;
         v_flex()
             .gap(px(16.))
             .child(text(
@@ -217,13 +264,35 @@ impl Onboarding {
                                             })
                                         },
                                     )),
+                            )
+                            .child(ui::divider(cx))
+                            .child(
+                                v_flex()
+                                    .gap(px(6.))
+                                    .child(
+                                        h_flex()
+                                            .gap(px(12.))
+                                            .items_center()
+                                            .child(div().flex_1().min_w_0().text_size(ty::BODY).text_color(lb.text).child("Day-Memory Detail"))
+                                            .child(detail_picker),
+                                    )
+                                    .child(text(
+                                        crate::pages::settings::day_memory_mode_detail(draft.context_mode),
+                                        lb.text_secondary,
+                                    )),
                             ),
                     ),
             )
             .child(text(
-                format!(
-                    "Day Memory notes the app in front and its window title, never what you type or what is on screen. Window titles are cleared after {retention}; you can change this in Settings → Privacy & Data."
-                ),
+                if screen_context {
+                    format!(
+                        "Text and images build on app activity. Images are encrypted on disk; captured text remains searchable under your retention policy ({retention}), and passwords, excluded apps and private windows are never captured."
+                    )
+                } else {
+                    format!(
+                        "Day Memory notes the app in front and its window title, never what you type or what is on screen. Window titles are cleared after {retention}; you can change this in Settings → Privacy & Data."
+                    )
+                },
                 lb.text_secondary,
             ))
             .child(
@@ -332,7 +401,14 @@ impl Onboarding {
             .then(|| model_status(embedding_id, status.embeddings_ready));
         // Everything "Prepare" downloads: Transcribe with voice detection and
         // speaker separation, Think, search by meaning, and the llama.cpp runtime.
-        let download: u64 = models_in_use(&settings)
+        let ocr_id = lokalbot_ai::ocr::OCR_MODEL_ID;
+        let screen_text = (self.draft.screen_context() != ScreenContextMode::ActivityOnly)
+            .then(|| model_status(ocr_id, status.screen_text_ready));
+        let mut needed = models_in_use(&settings);
+        if screen_text.is_some() && !needed.iter().any(|id| id == ocr_id) {
+            needed.push(ocr_id.to_string());
+        }
+        let download: u64 = needed
             .iter()
             .filter(|id| !status.installed.contains(id))
             .map(|id| model_bytes(id))
@@ -349,6 +425,9 @@ impl Onboarding {
             .child(model_row("Summaries and Ask", think_name, think, downloads.get(&settings.built_in_model_id).map(|d| d.fraction()), cx))
             .when_some(search, |this, search| {
                 this.child(model_row("Search by meaning", with_size(embedding_id), search, downloads.get(embedding_id).map(|d| d.fraction()), cx))
+            })
+            .when_some(screen_text, |this, screen_text| {
+                this.child(model_row("Screen text", with_size(ocr_id), screen_text, downloads.get(ocr_id).map(|d| d.fraction()), cx))
             })
             .child(
                 h_flex()
@@ -400,7 +479,7 @@ impl Onboarding {
         let status = self.data.read(cx).models.clone();
         let draft = self.draft;
         let day_memory: SharedString = if draft.day_memory {
-            "App and window activity".into()
+            draft.context_mode.label().into()
         } else {
             "Off".into()
         };

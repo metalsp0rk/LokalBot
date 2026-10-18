@@ -42,6 +42,9 @@ pub fn model_name(id: &str) -> String {
     if id == RUNTIME_ID {
         return "llama.cpp runtime".into();
     }
+    if id == lokalbot_ai::ocr::OCR_MODEL_ID {
+        return lokalbot_ai::ocr::OCR_DISPLAY_NAME.into();
+    }
     lokalbot_speech::models::find(id)
         .map(|m| m.display_name.to_string())
         .unwrap_or_else(|| id.to_string())
@@ -59,6 +62,9 @@ pub fn model_bytes(id: &str) -> u64 {
             .map(|a| a.size)
             .max()
             .unwrap_or(0);
+    }
+    if id == lokalbot_ai::ocr::OCR_MODEL_ID {
+        return lokalbot_ai::ocr::total_size();
     }
     lokalbot_speech::models::find(id)
         .map(|m| m.archive.size)
@@ -83,6 +89,9 @@ pub fn models_in_use(settings: &Settings) -> Vec<String> {
     if built_in || settings.semantic_search_enabled {
         ids.push(RUNTIME_ID.to_string());
     }
+    if settings.screen_context_capture_mode != lokalbot_core::ScreenContextMode::ActivityOnly {
+        ids.push(lokalbot_ai::ocr::OCR_MODEL_ID.to_string());
+    }
     ids
 }
 
@@ -103,6 +112,9 @@ fn model_purpose(id: &str) -> &'static str {
     }
     if id == lokalbot_ai::catalog::EMBEDDING_MODEL_ID {
         return "Search by meaning";
+    }
+    if id == lokalbot_ai::ocr::OCR_MODEL_ID {
+        return "Reads screen text";
     }
     if let Some(entry) = lokalbot_ai::catalog::entry(id) {
         return if entry.think {
