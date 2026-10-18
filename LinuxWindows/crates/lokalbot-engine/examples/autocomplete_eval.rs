@@ -221,6 +221,8 @@ struct Outcome {
     name: &'static str,
     suggestion: Option<String>,
     latency_ms: Option<f64>,
+    /// The text before the caret after the last key.
+    before: String,
 }
 
 fn main() -> Result<()> {
@@ -311,7 +313,15 @@ fn main() -> Result<()> {
         "Warm-up",
         "This is a short warm-up sentence to load the",
     );
-    let warm_up = run(&engine, &events, &warm, 1, key_ms, Duration::from_secs(120));
+    let warm_up = run(
+        &engine,
+        &events,
+        &warm,
+        1,
+        key_ms,
+        Duration::from_secs(120),
+        true,
+    );
     eprintln!(
         "warm-up (server start and model load) took {:.1}s: {:?}",
         started.elapsed().as_secs_f64(),
@@ -344,6 +354,7 @@ fn main() -> Result<()> {
             100 + index as u64,
             key_ms,
             Duration::from_secs(8),
+            true,
         );
         eprintln!(
             "{:<28} {:>8}  {:?}",
@@ -355,7 +366,48 @@ fn main() -> Result<()> {
         );
         outcomes.push(outcome);
     }
+    // Accepting word by word keeps the ghost a few words ahead: each Tab
+    // shortens it at once, and a top-up appends more once two words are left.
+    let flows: Vec<(Case, Vec<Step>)> = [
+        case(
+            "email",
+            MAIL,
+            "Re: Quarterly numbers - Mozilla Thunderbird",
+            "Hi Sarah,\n\nThanks for sending over the quarterly numbers. I went through the revenue breakdown with the team this morning, and I wanted to follow",
+        ),
+        case(
+            "notes",
+            NOTES,
+            "Release notes",
+            "Release notes\n\nThis version improves the startup time and fixes a crash that happened when",
+        ),
+    ]
+    .into_iter()
+    .enumerate()
+    .map(|(index, case)| {
+        let steps = accept_word_by_word(&engine, &events, &case, 500 + index as u64, key_ms, 6);
+        (case, steps)
+    })
+    .collect();
     drop(engine);
+
+    for (case, steps) in &flows {
+        println!(
+            "\nAccepting word by word ({}): …{}",
+            case.name,
+            tail(case.before, 40)
+        );
+        for step in steps {
+            println!(
+                "- Tab takes `{}`, ghost now `{}`{}",
+                step.chunk,
+                step.ghost,
+                step.grew_ms
+                    .map(|ms| format!(" (topped up {ms:.0} ms after the Tab)"))
+                    .unwrap_or_default()
+            );
+        }
+    }
 
     let mut latencies: Vec<f64> = outcomes.iter().filter_map(|o| o.latency_ms).collect();
     latencies.sort_by(f64::total_cmp);
@@ -395,20 +447,8 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-/// Focuses a field, types the case's last characters, and waits for the
-/// first suggestion after the last key.
-fn run(
-    engine: &Engine,
-    events: &Receiver<(Instant, AutocompleteUpdate)>,
-    case: &Case,
-    field_id: u64,
-    key_ms: u64,
-    timeout: Duration,
-) -> Outcome {
-    let chars: Vec<char> = case.before.chars().collect();
-    let split = chars.len().saturating_sub(case.typed);
-    let mut before: String = chars[..split].iter().collect();
-    let context = |before: &str| FieldContext {
+fn context(case: &Case, field_id: u64, before: &str) -> FieldContext {
+    FieldContext {
         field_id,
         app_name: case.app_name.into(),
         app_id: case.app_id.into(),
@@ -418,10 +458,111 @@ fn run(
         visible_text: case.visible.map(String::from),
         url: case.url.map(String::from),
         single_line: case.single_line,
-    };
+    }
+}
+
+fn tail(text: &str, n: usize) -> String {
+    let count = text.chars().count();
+    text.chars()
+        .skip(count.saturating_sub(n))
+        .collect::<String>()
+        .replace('\n', "⏎")
+}
+
+struct Step {
+    chunk: String,
+    ghost: String,
+    grew_ms: Option<f64>,
+}
+
+/// Types a case, then presses Tab `presses` times the way the desktop does:
+/// it inserts `accept_chunk` of the ghost, reports it, and the field shows it.
+fn accept_word_by_word(
+    engine: &Engine,
+    events: &Receiver<(Instant, AutocompleteUpdate)>,
+    case: &Case,
+    field_id: u64,
+    key_ms: u64,
+    presses: usize,
+) -> Vec<Step> {
+    let first = run(
+        engine,
+        events,
+        case,
+        field_id,
+        key_ms,
+        Duration::from_secs(8),
+        false,
+    );
+    let mut steps = Vec::new();
+    let mut ghost = first.suggestion.unwrap_or_default();
+    let mut before = first.before;
+    for _ in 0..presses {
+        let chunk = lokalbot_ai::autocomplete::accept_chunk(
+            &ghost,
+            lokalbot_core::settings::AcceptGranularity::Word,
+        );
+        if chunk.is_empty() {
+            break;
+        }
+        let expected = ghost[chunk.len()..].to_string();
+        before.push_str(&chunk);
+        let accepted_at = Instant::now();
+        engine.send(Command::Autocomplete(AutocompleteCommand::Accepted {
+            field_id,
+            text: chunk.clone(),
+        }));
+        engine.send(Command::Autocomplete(AutocompleteCommand::Context(
+            context(case, field_id, &before),
+        )));
+        let mut latest = expected.clone();
+        let mut grew_ms = None;
+        let deadline = accepted_at + Duration::from_millis(1_200);
+        while let Ok((at, update)) = events.recv_deadline(deadline) {
+            match update {
+                AutocompleteUpdate::Suggestion { field_id: id, text } if id == field_id => {
+                    if grew_ms.is_none()
+                        && text.len() > expected.len()
+                        && text.starts_with(&expected)
+                    {
+                        grew_ms = Some(at.duration_since(accepted_at).as_secs_f64() * 1000.0);
+                    }
+                    latest = text;
+                }
+                AutocompleteUpdate::Clear => latest.clear(),
+                _ => {}
+            }
+        }
+        steps.push(Step {
+            chunk,
+            ghost: latest.clone(),
+            grew_ms,
+        });
+        ghost = latest;
+    }
+    engine.send(Command::Autocomplete(AutocompleteCommand::Dismiss));
+    std::thread::sleep(Duration::from_millis(150));
+    while events.try_recv().is_ok() {}
+    steps
+}
+
+/// Focuses a field, types the case's last characters, and waits for the
+/// first suggestion after the last key.
+fn run(
+    engine: &Engine,
+    events: &Receiver<(Instant, AutocompleteUpdate)>,
+    case: &Case,
+    field_id: u64,
+    key_ms: u64,
+    timeout: Duration,
+    dismiss: bool,
+) -> Outcome {
+    let chars: Vec<char> = case.before.chars().collect();
+    let split = chars.len().saturating_sub(case.typed);
+    let mut before: String = chars[..split].iter().collect();
     let send = |before: &str| {
         engine.send(Command::Autocomplete(AutocompleteCommand::Context(
-            context(before),
+            context(case, field_id, before),
         )));
     };
     // Focus: the engine reads the field's prompt ahead and looks up facts.
@@ -441,6 +582,7 @@ fn run(
         name: case.name,
         suggestion: None,
         latency_ms: None,
+        before: before.clone(),
     };
     while let Ok((at, update)) = events.recv_deadline(deadline) {
         if at < last_key {
@@ -454,9 +596,11 @@ fn run(
             break;
         }
     }
-    engine.send(Command::Autocomplete(AutocompleteCommand::Dismiss));
-    std::thread::sleep(Duration::from_millis(150));
-    while events.try_recv().is_ok() {}
+    if dismiss {
+        engine.send(Command::Autocomplete(AutocompleteCommand::Dismiss));
+        std::thread::sleep(Duration::from_millis(150));
+        while events.try_recv().is_ok() {}
+    }
     result
 }
 

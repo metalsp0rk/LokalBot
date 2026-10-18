@@ -345,7 +345,11 @@ pub fn nearby_text(visible: &str) -> Option<String> {
         if line.trim().is_empty() || line.chars().count() > 8_000 || is_sensitive(line) {
             continue;
         }
-        let Some(cleaned) = sanitized_context(line) else {
+        // A line without a letter or digit (a rule, an emoji reaction) adds
+        // nothing (`CotypingWindowText.cleaned`).
+        let Some(cleaned) =
+            sanitized_context(line).filter(|t| t.chars().any(char::is_alphanumeric))
+        else {
             continue;
         };
         let budget = (remaining as usize).min(240);

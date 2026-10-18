@@ -79,6 +79,41 @@ pub fn emoji_ghost(before: &str, suggestion: &str) -> Option<String> {
     emoji::ghost(before, suggestion)
 }
 
+/// Whether the text nearest the caret runs right to left, for placing the
+/// ghost (`CotypingTextDirectionDetector`): the last strongly directional
+/// character before the caret decides.
+pub fn is_right_to_left(before: &str) -> bool {
+    // Hebrew to Arabic Extended, the presentation forms, the RTL mark.
+    const RTL: [(u32, u32); 4] = [
+        (0x0590, 0x08FF),
+        (0xFB1D, 0xFDFF),
+        (0xFE70, 0xFEFF),
+        (0x200F, 0x200F),
+    ];
+    // Latin, Greek, Cyrillic, CJK ideographs, the LTR mark.
+    const LTR: [(u32, u32); 7] = [
+        (0x41, 0x5A),
+        (0x61, 0x7A),
+        (0xC0, 0x24F),
+        (0x370, 0x3FF),
+        (0x400, 0x4FF),
+        (0x4E00, 0x9FFF),
+        (0x200E, 0x200E),
+    ];
+    let within =
+        |ranges: &[(u32, u32)], code: u32| ranges.iter().any(|(a, b)| (*a..=*b).contains(&code));
+    for c in before.chars().rev() {
+        let code = u32::from(c);
+        if within(&RTL, code) {
+            return true;
+        }
+        if within(&LTR, code) {
+            return false;
+        }
+    }
+    false
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -117,5 +152,13 @@ mod tests {
             emoji_ghost("Ship it :roc", "🚀").as_deref(),
             Some("🚀 :rocket:")
         );
+    }
+
+    #[test]
+    fn the_text_nearest_the_caret_sets_the_direction() {
+        assert!(is_right_to_left("Hello \u{5E9}\u{5DC}\u{5D5}\u{5DD} 12 "));
+        assert!(!is_right_to_left("\u{5E9}\u{5DC}\u{5D5}\u{5DD} hello"));
+        assert!(!is_right_to_left("123 ..."));
+        assert!(is_right_to_left("\u{645}\u{631}\u{62D}\u{628}\u{627}"));
     }
 }

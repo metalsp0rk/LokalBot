@@ -398,6 +398,8 @@ struct Worker {
     learning: LearningStore,
     /// What has been accepted of the suggestion on screen.
     batch: AcceptedBatch,
+    /// Autocomplete was on at the last settings change.
+    enabled: bool,
 }
 
 impl Worker {
@@ -420,10 +422,12 @@ impl Worker {
             memory: MemoryLookup::default(),
             learning: LearningStore::new(),
             batch: AcceptedBatch::default(),
+            enabled: false,
         }
     }
 
     fn run(mut self, receiver: Receiver<Message>) {
+        self.enabled = self.host.settings().cotyping_enabled;
         loop {
             let first = match self.deadline() {
                 Some(deadline) => match receiver.recv_deadline(deadline) {
@@ -611,6 +615,7 @@ impl Worker {
 
     fn on_settings_changed(&mut self) {
         let settings = self.host.settings();
+        let was_enabled = std::mem::replace(&mut self.enabled, settings.cotyping_enabled);
         if !settings.cotyping_enabled {
             self.cancel_all();
             self.clear_suggestion();
@@ -618,7 +623,10 @@ impl Worker {
             self.anchors.clear();
             self.memory.reset();
             self.learning.clear();
-            self.host.stop_server();
+            // Turned off: the model does not stay loaded for the idle time.
+            if was_enabled {
+                self.host.stop_server();
+            }
             return;
         }
         if !settings.cotyping_use_meeting_memory {
@@ -653,6 +661,8 @@ impl Worker {
 
     // ----------------------------------------------------------- requests
 
+    /// `CotypingAvailability.disabledReason`, checked again here: on, not an
+    /// excluded app, not a terminal, and no meeting recording.
     fn allowed(&self, settings: &Settings, field: &FieldContext) -> bool {
         settings.cotyping_enabled
             && !is_excluded(
@@ -660,6 +670,8 @@ impl Worker {
                 &field.app_name,
                 &field.app_id,
             )
+            && ac::surface::SurfaceClass::of(&field.app_id, &field.app_name)
+                != ac::surface::SurfaceClass::Terminal
             && !self.host.recording()
     }
 
@@ -1598,6 +1610,12 @@ mod tests {
         h.send(excluded.clone());
         excluded.before = "secret t".into();
         h.send(excluded);
+        let mut terminal = context(5, "cargo bui");
+        terminal.app_id = "org.gnome.Console".into();
+        terminal.app_name = "Console".into();
+        h.send(terminal.clone());
+        terminal.before = "cargo buil".into();
+        h.send(terminal);
         h.host.recording.store(true, Ordering::Relaxed);
         h.type_text(3, "I wanted to");
         h.type_text(3, "I wanted to follow");
