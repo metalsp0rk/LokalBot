@@ -15,6 +15,7 @@ pub mod digest;
 pub mod download;
 pub mod embeddings;
 mod error;
+pub mod follow_up;
 mod http;
 pub mod json;
 pub mod language;
