@@ -16,6 +16,8 @@ struct LokalBotCLI: AsyncParsableCommand {
             ListCommand.self,
             GetCommand.self,
             SearchCommand.self,
+            AskCommand.self,
+            ReplyCommand.self,
             ActionsCommand.self,
             PeopleCommand.self,
             PersonalContextCommand.self,
