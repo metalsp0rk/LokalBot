@@ -317,6 +317,7 @@ pub fn apply(dark: bool, text_scale: f32, window: Option<&mut Window>, cx: &mut 
         c.button_primary_hover = palette.accent_fill_hover;
         c.button_primary_active = palette.accent_fill_hover;
         c.button_primary_foreground = rgb(0xFFFFFF).into();
+        c.switch_thumb = rgb(0xFFFFFF).into();
     });
     cx.set_global(LbTheme(palette));
     cx.refresh_windows();

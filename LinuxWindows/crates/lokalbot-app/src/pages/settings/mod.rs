@@ -1,0 +1,914 @@
+//! Settings (`SettingsView.swift`): categories with teal icons on the left,
+//! a title and grouped form on the right, and search across every category.
+
+mod advanced;
+pub mod catalog;
+mod day_memory;
+mod dictation;
+mod general;
+pub mod meetings;
+mod models;
+mod privacy;
+pub mod writing;
+
+use std::collections::HashSet;
+
+use gpui_kit::component::input::{Input, InputEvent, InputState, TextareaState};
+use gpui_kit::component::slider::{SliderEvent, SliderState};
+use gpui_kit::component::{h_flex, v_flex};
+use gpui_kit::prelude::FluentBuilder as _;
+use gpui_kit::{
+    AnyElement, App, AppContext as _, Context, Entity, Focusable as _, FontWeight,
+    InteractiveElement as _, IntoElement, ParentElement as _, Render, ScrollHandle, SharedString,
+    StatefulInteractiveElement as _, Styled as _, Subscription, Window, div, px,
+};
+use lokalbot_core::Settings;
+use lokalbot_core::access::ScreenScope;
+
+use crate::pages::Page;
+use crate::state::{AppData, SettingsCategory};
+use crate::theme::{LbThemeExt as _, metric, ty};
+use crate::ui::rule_list::{RuleKind, RuleList, RuleListEvent};
+use crate::ui::shortcut_field::{ShortcutEvent, ShortcutField};
+use crate::ui::{self, Ico, settings_row};
+
+pub const CATEGORIES: [SettingsCategory; 8] = [
+    SettingsCategory::General,
+    SettingsCategory::Meetings,
+    SettingsCategory::DayMemory,
+    SettingsCategory::Writing,
+    SettingsCategory::Dictation,
+    SettingsCategory::Models,
+    SettingsCategory::Privacy,
+    SettingsCategory::Advanced,
+];
+
+fn category_icon(category: SettingsCategory) -> Ico {
+    match category {
+        SettingsCategory::General => Ico::Settings,
+        SettingsCategory::Meetings => Ico::Users,
+        SettingsCategory::DayMemory => Ico::ChartGantt,
+        SettingsCategory::Writing => Ico::Pencil,
+        SettingsCategory::Dictation => Ico::Mic,
+        SettingsCategory::Models => Ico::Package,
+        SettingsCategory::Privacy => Ico::Lock,
+        SettingsCategory::Advanced => Ico::SlidersHorizontal,
+    }
+}
+
+fn category_subtitle(category: SettingsCategory) -> &'static str {
+    match category {
+        SettingsCategory::General => "Startup, the main window, shortcuts, and updates.",
+        SettingsCategory::Meetings => "Meeting capture, detection, processing, and summaries.",
+        SettingsCategory::DayMemory => {
+            "Activity, captured context, coding agent sessions, and daily digests."
+        }
+        SettingsCategory::Writing => "Autocomplete and your writing profile.",
+        SettingsCategory::Dictation => {
+            "The dictation shortcut, speech model, and where the text goes."
+        }
+        SettingsCategory::Models => "Choose the models behind Transcribe, Think, and Autocomplete.",
+        SettingsCategory::Privacy => "Control retention, exclusions, and remote processing.",
+        SettingsCategory::Advanced => "Agent CLI, logs, and details about this build.",
+    }
+}
+
+/// One grouped section of a category; `ids` are the rows it holds, for search jumps.
+pub struct Section {
+    pub title: Option<&'static str>,
+    pub ids: Vec<&'static str>,
+    pub rows: Vec<AnyElement>,
+}
+
+impl Section {
+    pub fn new(title: impl Into<Option<&'static str>>) -> Self {
+        Self {
+            title: title.into(),
+            ids: Vec::new(),
+            rows: Vec::new(),
+        }
+    }
+
+    pub fn row(mut self, id: &'static str, element: impl IntoElement) -> Self {
+        self.ids.push(id);
+        self.rows.push(element.into_any_element());
+        self
+    }
+
+    pub fn row_if(
+        self,
+        condition: bool,
+        id: &'static str,
+        element: impl FnOnce() -> AnyElement,
+    ) -> Self {
+        if condition {
+            self.row(id, element())
+        } else {
+            self
+        }
+    }
+}
+
+pub struct SettingsPage {
+    data: Entity<AppData>,
+    search: Entity<InputState>,
+    query: String,
+    /// The setting a search result jumped to; it stays highlighted.
+    focused: Option<&'static str>,
+    pending_scroll: Option<&'static str>,
+    scroll: ScrollHandle,
+    open_details: HashSet<&'static str>,
+    quick_recall_shortcut: Entity<ShortcutField>,
+    dictation_shortcut: Entity<ShortcutField>,
+    digest_prompt: Entity<TextareaState>,
+    cotyping_name: Entity<InputState>,
+    cotyping_style: Entity<InputState>,
+    practice: Entity<TextareaState>,
+    excluded_apps: Entity<RuleList>,
+    excluded_sites: Entity<RuleList>,
+    cotyping_excluded_apps: Entity<RuleList>,
+    retention_slider: Entity<SliderState>,
+    interval_slider: Entity<SliderState>,
+    debounce_slider: Entity<SliderState>,
+    /// External-agent markers, read from disk off the main thread.
+    meetings_access: Option<bool>,
+    screen_access: Option<Option<ScreenScope>>,
+    cli_installed: Option<bool>,
+    models: models::ModelsState,
+    last_settings: Settings,
+    _subscriptions: Vec<Subscription>,
+}
+
+impl SettingsPage {
+    pub fn new(window: &mut Window, cx: &mut Context<Self>) -> Self {
+        let data = AppData::global(cx);
+        let settings = data.read(cx).settings.clone();
+        let search = cx.new(|cx| InputState::new(window, cx).placeholder("Search settings…"));
+        let quick_recall_shortcut = cx.new(|cx| {
+            ShortcutField::new(
+                settings.quick_recall_shortcut.clone(),
+                "Ctrl+Shift+Space",
+                |candidate, cx| {
+                    let settings = &AppData::global(cx).read(cx).settings;
+                    (candidate == settings.dictation_shortcut).then(|| {
+                        "Dictation already uses this shortcut. Choose another.".to_string()
+                    })
+                },
+                window,
+                cx,
+            )
+        });
+        let dictation_shortcut = cx.new(|cx| {
+            ShortcutField::new(
+                settings.dictation_shortcut.clone(),
+                "Alt+Space",
+                |candidate, cx| {
+                    let settings = &AppData::global(cx).read(cx).settings;
+                    (candidate == settings.quick_recall_shortcut).then(|| {
+                        "The Ask shortcut already uses this shortcut. Choose another.".to_string()
+                    })
+                },
+                window,
+                cx,
+            )
+        });
+        let digest_prompt = cx.new(|cx| {
+            TextareaState::new(window, cx)
+                .rows(3)
+                .placeholder("Example: Emphasize decisions, blockers, and next steps.")
+                .default_value(settings.day_digest_custom_prompt.clone())
+        });
+        let cotyping_name = cx.new(|cx| {
+            InputState::new(window, cx)
+                .placeholder("Optional")
+                .default_value(settings.cotyping_user_name.clone())
+        });
+        let cotyping_style = cx.new(|cx| {
+            InputState::new(window, cx)
+                .placeholder("Optional, e.g. concise and friendly")
+                .default_value(settings.cotyping_style_note.clone())
+        });
+        let practice = cx.new(|cx| {
+            TextareaState::new(window, cx)
+                .rows(3)
+                .default_value("Hi Sarah, thanks for the update. I wanted to follow")
+        });
+        let excluded_apps = cx.new(|cx| {
+            RuleList::new(
+                "Never capture these apps",
+                RuleKind::Applications,
+                &settings.excluded_apps,
+                window,
+                cx,
+            )
+        });
+        let excluded_sites = cx.new(|cx| {
+            RuleList::new(
+                "Never capture these sites",
+                RuleKind::Domains,
+                &settings.excluded_screen_domains,
+                window,
+                cx,
+            )
+        });
+        let cotyping_excluded_apps = cx.new(|cx| {
+            RuleList::new(
+                "Never suggest in these apps",
+                RuleKind::Applications,
+                &settings.cotyping_excluded_apps,
+                window,
+                cx,
+            )
+        });
+        let retention_slider = cx.new(|_| {
+            SliderState::new()
+                .min(1.)
+                .max(90.)
+                .step(1.)
+                .default_value(settings.retention_days as f32)
+        });
+        let interval_slider = cx.new(|_| {
+            SliderState::new()
+                .min(1.)
+                .max(15.)
+                .step(1.)
+                .default_value(settings.screenshot_interval_minutes as f32)
+        });
+        let debounce_slider = cx.new(|_| {
+            SliderState::new()
+                .min(20.)
+                .max(1000.)
+                .step(20.)
+                .default_value(settings.cotyping_debounce_ms as f32)
+        });
+
+        let mut subscriptions = vec![
+            cx.observe_in(&data, window, Self::on_data_changed),
+            cx.subscribe_in(&search, window, |this, input, event: &InputEvent, _, cx| {
+                if matches!(event, InputEvent::Change) {
+                    this.query = input.read(cx).value().to_string();
+                    cx.notify();
+                }
+            }),
+            cx.subscribe_in(
+                &quick_recall_shortcut,
+                window,
+                |this, _, event: &ShortcutEvent, _, cx| {
+                    if let ShortcutEvent::Changed(value) = event {
+                        let value = value.clone();
+                        this.update_settings(move |s| s.quick_recall_shortcut = value, cx);
+                    }
+                },
+            ),
+            cx.subscribe_in(
+                &dictation_shortcut,
+                window,
+                |this, _, event: &ShortcutEvent, _, cx| {
+                    if let ShortcutEvent::Changed(value) = event {
+                        let value = value.clone();
+                        this.update_settings(move |s| s.dictation_shortcut = value, cx);
+                    }
+                },
+            ),
+            cx.subscribe_in(
+                &digest_prompt,
+                window,
+                |this, input, event: &InputEvent, _, cx| {
+                    if matches!(event, InputEvent::Change) {
+                        let value = input.read(cx).value().to_string();
+                        this.update_settings(move |s| s.day_digest_custom_prompt = value, cx);
+                    }
+                },
+            ),
+            cx.subscribe_in(
+                &cotyping_name,
+                window,
+                |this, input, event: &InputEvent, _, cx| {
+                    if matches!(event, InputEvent::Change) {
+                        let value = input.read(cx).value().to_string();
+                        this.update_settings(move |s| s.cotyping_user_name = value, cx);
+                    }
+                },
+            ),
+            cx.subscribe_in(
+                &cotyping_style,
+                window,
+                |this, input, event: &InputEvent, _, cx| {
+                    if matches!(event, InputEvent::Change) {
+                        let value = input.read(cx).value().to_string();
+                        this.update_settings(move |s| s.cotyping_style_note = value, cx);
+                    }
+                },
+            ),
+        ];
+        for (list, set) in [
+            (
+                &excluded_apps,
+                (|s: &mut Settings, v: String| s.excluded_apps = v) as fn(&mut Settings, String),
+            ),
+            (&excluded_sites, |s: &mut Settings, v: String| {
+                s.excluded_screen_domains = v
+            }),
+            (&cotyping_excluded_apps, |s: &mut Settings, v: String| {
+                s.cotyping_excluded_apps = v
+            }),
+        ] {
+            subscriptions.push(cx.subscribe_in(
+                list,
+                window,
+                move |this, _, event: &RuleListEvent, _, cx| {
+                    let RuleListEvent::Changed(value) = event;
+                    let value = value.clone();
+                    this.update_settings(move |s| set(s, value), cx);
+                },
+            ));
+        }
+        for (slider, set) in [
+            (
+                &retention_slider,
+                (|s: &mut Settings, v: f32| s.retention_days = v.round() as u32)
+                    as fn(&mut Settings, f32),
+            ),
+            (&interval_slider, |s: &mut Settings, v: f32| {
+                s.screenshot_interval_minutes = f64::from(v.round())
+            }),
+            (&debounce_slider, |s: &mut Settings, v: f32| {
+                s.cotyping_debounce_ms = v.round() as u32
+            }),
+        ] {
+            subscriptions.push(cx.subscribe_in(
+                slider,
+                window,
+                move |this, _, event: &SliderEvent, _, cx| {
+                    let (SliderEvent::Change(value) | SliderEvent::Release(value)) = event;
+                    let value = value.start();
+                    this.update_settings(move |s| set(s, value), cx);
+                },
+            ));
+        }
+
+        let models = models::ModelsState::new(&settings, window, cx);
+        subscriptions.extend(models::ModelsState::subscribe(&models, window, cx));
+        let mut page = Self {
+            data,
+            search,
+            query: String::new(),
+            focused: None,
+            pending_scroll: None,
+            scroll: ScrollHandle::new(),
+            open_details: HashSet::new(),
+            quick_recall_shortcut,
+            dictation_shortcut,
+            digest_prompt,
+            cotyping_name,
+            cotyping_style,
+            practice,
+            excluded_apps,
+            excluded_sites,
+            cotyping_excluded_apps,
+            retention_slider,
+            interval_slider,
+            debounce_slider,
+            meetings_access: None,
+            screen_access: None,
+            cli_installed: None,
+            models,
+            last_settings: settings,
+            _subscriptions: subscriptions,
+        };
+        page.reload_access(cx);
+        page
+    }
+
+    fn update_settings(&self, change: impl FnOnce(&mut Settings), cx: &mut Context<Self>) {
+        self.data
+            .update(cx, |data, cx| data.update_settings(change, cx));
+    }
+
+    /// Keeps entity-backed controls in step with settings changed elsewhere.
+    fn on_data_changed(
+        &mut self,
+        data: Entity<AppData>,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let settings = data.read(cx).settings.clone();
+        if settings == self.last_settings {
+            cx.notify();
+            return;
+        }
+        let old = std::mem::replace(&mut self.last_settings, settings.clone());
+        if old.quick_recall_shortcut != settings.quick_recall_shortcut {
+            self.quick_recall_shortcut.update(cx, |field, cx| {
+                field.set_value(&settings.quick_recall_shortcut, cx)
+            });
+        }
+        if old.dictation_shortcut != settings.dictation_shortcut {
+            self.dictation_shortcut.update(cx, |field, cx| {
+                field.set_value(&settings.dictation_shortcut, cx)
+            });
+        }
+        sync_text(
+            &self.digest_prompt,
+            &settings.day_digest_custom_prompt,
+            window,
+            cx,
+        );
+        sync_input(
+            &self.cotyping_name,
+            &settings.cotyping_user_name,
+            window,
+            cx,
+        );
+        sync_input(
+            &self.cotyping_style,
+            &settings.cotyping_style_note,
+            window,
+            cx,
+        );
+        self.excluded_apps
+            .update(cx, |list, cx| list.set_value(&settings.excluded_apps, cx));
+        self.excluded_sites.update(cx, |list, cx| {
+            list.set_value(&settings.excluded_screen_domains, cx)
+        });
+        self.cotyping_excluded_apps.update(cx, |list, cx| {
+            list.set_value(&settings.cotyping_excluded_apps, cx)
+        });
+        sync_slider(
+            &self.retention_slider,
+            settings.retention_days as f32,
+            window,
+            cx,
+        );
+        sync_slider(
+            &self.interval_slider,
+            settings.screenshot_interval_minutes as f32,
+            window,
+            cx,
+        );
+        sync_slider(
+            &self.debounce_slider,
+            settings.cotyping_debounce_ms as f32,
+            window,
+            cx,
+        );
+        self.models.sync(&old, &settings, window, cx);
+        cx.notify();
+    }
+
+    fn reload_access(&mut self, cx: &mut Context<Self>) {
+        let paths = self.data.read(cx).library.paths().clone();
+        cx.spawn(async move |this, cx| {
+            let (meetings, screen, cli) = cx
+                .background_spawn(async move {
+                    (
+                        lokalbot_core::access::meetings_access_enabled(&paths),
+                        lokalbot_core::access::screen_access_scope(&paths),
+                        advanced::cli_install_path().exists(),
+                    )
+                })
+                .await;
+            let _ = this.update(cx, |this, cx| {
+                this.meetings_access = Some(meetings);
+                this.screen_access = Some(screen);
+                this.cli_installed = Some(cli);
+                cx.notify();
+            });
+        })
+        .detach();
+    }
+
+    fn category(&self, cx: &App) -> SettingsCategory {
+        self.data.read(cx).settings_category
+    }
+
+    fn select_category(
+        &mut self,
+        category: SettingsCategory,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        self.focused = None;
+        self.clear_search(window, cx);
+        self.scroll.set_offset(gpui_kit::point(px(0.), px(0.)));
+        self.data
+            .update(cx, |data, cx| data.open_settings(category, cx));
+    }
+
+    fn clear_search(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if !self.query.is_empty() {
+            self.query.clear();
+            self.search
+                .update(cx, |input, cx| input.set_value("", window, cx));
+        }
+    }
+
+    /// Opens a setting from search: its category, scrolled to and highlighted.
+    fn jump_to(
+        &mut self,
+        entry: &'static catalog::Entry,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        self.clear_search(window, cx);
+        self.focused = Some(entry.id);
+        self.pending_scroll = Some(entry.id);
+        if entry.category == SettingsCategory::Models {
+            self.models.page = models::ModelsPage::for_setting(entry.id);
+        }
+        self.data
+            .update(cx, |data, cx| data.open_settings(entry.category, cx));
+        cx.notify();
+    }
+
+    fn is_focused(&self, id: &str) -> bool {
+        self.focused == Some(id)
+    }
+
+    fn details_open(&self, id: &'static str) -> bool {
+        self.open_details.contains(id)
+    }
+
+    /// A "How this works" disclosure that remembers whether it is open.
+    fn details(
+        &self,
+        id: &'static str,
+        title: &'static str,
+        text: &'static str,
+        cx: &mut Context<Self>,
+    ) -> AnyElement {
+        let page = cx.entity();
+        settings_row::details(
+            id,
+            title,
+            text,
+            self.details_open(id),
+            move |_, cx| {
+                page.update(cx, |page, cx| {
+                    if !page.open_details.remove(id) {
+                        page.open_details.insert(id);
+                    }
+                    cx.notify();
+                })
+            },
+            cx,
+        )
+        .into_any_element()
+    }
+
+    /// A row with a switch bound to one boolean setting.
+    fn toggle(
+        &self,
+        id: &'static str,
+        title: &'static str,
+        help: Option<&'static str>,
+        value: bool,
+        set: fn(&mut Settings, bool),
+        cx: &mut Context<Self>,
+    ) -> AnyElement {
+        let data = self.data.clone();
+        settings_row::row(
+            id,
+            title,
+            help.map(SharedString::from),
+            settings_row::switch(id, value, move |checked, _, cx| {
+                data.update(cx, |data, cx| data.update_settings(|s| set(s, checked), cx))
+            }),
+            self.is_focused(id),
+            cx,
+        )
+        .into_any_element()
+    }
+
+    /// A row with a pop-up picker over `options`.
+    fn choice<T: Copy + PartialEq + 'static>(
+        &self,
+        id: &'static str,
+        title: &'static str,
+        help: Option<SharedString>,
+        options: Vec<(T, SharedString)>,
+        current: T,
+        set: fn(&mut Settings, T),
+        cx: &mut Context<Self>,
+    ) -> AnyElement {
+        let data = self.data.clone();
+        let label = options
+            .iter()
+            .find(|(value, _)| *value == current)
+            .map(|(_, l)| l.clone())
+            .unwrap_or_default();
+        let items: Vec<(SharedString, bool)> = options
+            .iter()
+            .map(|(value, l)| (l.clone(), *value == current))
+            .collect();
+        let values: Vec<T> = options.iter().map(|(value, _)| *value).collect();
+        settings_row::row(
+            id,
+            title,
+            help,
+            settings_row::picker(
+                SharedString::from(format!("{id}-picker")),
+                label,
+                items,
+                move |index, _, cx| {
+                    if let Some(value) = values.get(index).copied() {
+                        data.update(cx, |data, cx| data.update_settings(|s| set(s, value), cx));
+                    }
+                },
+            ),
+            self.is_focused(id),
+            cx,
+        )
+        .into_any_element()
+    }
+
+    fn sections(
+        &mut self,
+        category: SettingsCategory,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> Vec<Section> {
+        match category {
+            SettingsCategory::General => self.general_sections(cx),
+            SettingsCategory::Meetings => self.meetings_sections(cx),
+            SettingsCategory::DayMemory => self.day_memory_sections(cx),
+            SettingsCategory::Writing => self.writing_sections(cx),
+            SettingsCategory::Dictation => self.dictation_sections(cx),
+            SettingsCategory::Models => self.models_sections(window, cx),
+            SettingsCategory::Privacy => self.privacy_sections(cx),
+            SettingsCategory::Advanced => self.advanced_sections(cx),
+        }
+    }
+
+    fn render_categories(
+        &self,
+        category: SettingsCategory,
+        searching: bool,
+        cx: &mut Context<Self>,
+    ) -> impl IntoElement + use<> {
+        let lb = cx.lb().clone();
+        let rows: Vec<AnyElement> = CATEGORIES
+            .iter()
+            .map(|item| {
+                let item = *item;
+                let selected = item == category && !searching;
+                h_flex()
+                    .id(SharedString::from(format!(
+                        "settings-category-{}",
+                        catalog::category_title(item)
+                    )))
+                    .mx(px(8.))
+                    .px(px(10.))
+                    .h(px(34.))
+                    .gap(px(10.))
+                    .items_center()
+                    .rounded(metric::ROW_RADIUS)
+                    .cursor_pointer()
+                    .when(selected, |this| this.bg(lb.sidebar_selection))
+                    .when(!selected, |this| this.hover(|s| s.bg(lb.hover)))
+                    .child(ui::icon(category_icon(item), px(16.), lb.accent_text))
+                    .child(
+                        div()
+                            .text_size(ty::BODY)
+                            .text_color(lb.text)
+                            .when(selected, |this| this.font_weight(FontWeight::MEDIUM))
+                            .child(catalog::category_title(item)),
+                    )
+                    .on_click(cx.listener(move |this, _, window, cx| {
+                        this.select_category(item, window, cx)
+                    }))
+                    .into_any_element()
+            })
+            .collect();
+        v_flex()
+            .w(metric::SETTINGS_CATEGORIES_WIDTH)
+            .flex_none()
+            .h_full()
+            .border_r_1()
+            .border_color(lb.separator)
+            .child(
+                v_flex()
+                    .px(px(20.))
+                    .pt(px(16.))
+                    .gap(px(2.))
+                    .child(
+                        div()
+                            .text_size(ty::COLUMN_TITLE)
+                            .font_weight(FontWeight::BOLD)
+                            .text_color(lb.text)
+                            .child("Settings"),
+                    )
+                    .child(
+                        div()
+                            .text_size(ty::SECONDARY)
+                            .text_color(lb.text_secondary)
+                            .child(format!("LokalBot {}", env!("CARGO_PKG_VERSION"))),
+                    ),
+            )
+            .child(div().px(px(14.)).pt(px(12.)).pb(px(10.)).child(
+                Input::new(&self.search).cleanable(true).prefix(ui::icon(
+                    Ico::Search,
+                    px(14.),
+                    lb.text_secondary,
+                )),
+            ))
+            .child(v_flex().gap(px(2.)).children(rows))
+    }
+
+    fn render_search_results(&self, cx: &mut Context<Self>) -> AnyElement {
+        let lb = cx.lb().clone();
+        let settings = self.data.read(cx).settings.clone();
+        let results = catalog::search(&self.query);
+        if results.is_empty() {
+            return ui::empty_state(
+                Ico::Search,
+                format!("No Results for “{}”", self.query.trim()),
+                "Check the spelling or try a different setting name.",
+                cx,
+            )
+            .size_full()
+            .into_any_element();
+        }
+        let rows: Vec<AnyElement> = results
+            .into_iter()
+            .map(|entry| {
+                let value = (entry.value)(&settings);
+                div()
+                    .id(SharedString::from(format!("settings-result-{}", entry.id)))
+                    .w_full()
+                    .px(px(12.))
+                    .py(px(9.))
+                    .rounded(metric::ROW_RADIUS)
+                    .cursor_pointer()
+                    .hover(|s| s.bg(lb.hover))
+                    .child(
+                        v_flex()
+                            .gap(px(3.))
+                            .child(
+                                div()
+                                    .text_size(ty::BODY)
+                                    .font_weight(FontWeight::SEMIBOLD)
+                                    .text_color(lb.text)
+                                    .child(entry.title),
+                            )
+                            .child(
+                                div()
+                                    .text_size(ty::SECONDARY)
+                                    .text_color(lb.text_secondary)
+                                    .child(format!(
+                                        "{value} · {}",
+                                        catalog::category_title(entry.category)
+                                    )),
+                            ),
+                    )
+                    .on_click(
+                        cx.listener(move |this, _, window, cx| this.jump_to(entry, window, cx)),
+                    )
+                    .into_any_element()
+            })
+            .collect();
+        div()
+            .id("settings-results")
+            .size_full()
+            .overflow_y_scroll()
+            .child(
+                v_flex().w_full().items_center().child(
+                    v_flex()
+                        .w_full()
+                        .max_w(metric::READING_MAX_WIDTH + px(56.))
+                        .px(metric::DETAIL_PADDING)
+                        .pb(metric::DETAIL_PADDING)
+                        .gap(px(2.))
+                        .children(rows),
+                ),
+            )
+            .into_any_element()
+    }
+}
+
+fn sync_input(input: &Entity<InputState>, value: &str, window: &mut Window, cx: &mut App) {
+    if input.read(cx).value().as_ref() != value
+        && !input.read(cx).focus_handle(cx).is_focused(window)
+    {
+        input.update(cx, |input, cx| {
+            input.set_value(value.to_string(), window, cx)
+        });
+    }
+}
+
+fn sync_text(input: &Entity<TextareaState>, value: &str, window: &mut Window, cx: &mut App) {
+    if input.read(cx).value().as_ref() != value
+        && !input.read(cx).focus_handle(cx).is_focused(window)
+    {
+        input.update(cx, |input, cx| {
+            input.set_value(value.to_string(), window, cx)
+        });
+    }
+}
+
+fn sync_slider(slider: &Entity<SliderState>, value: f32, window: &mut Window, cx: &mut App) {
+    if (slider.read(cx).value().start() - value).abs() > f32::EPSILON {
+        slider.update(cx, |slider, cx| slider.set_value(value, window, cx));
+    }
+}
+
+impl Page for SettingsPage {
+    fn title(&self, _cx: &App) -> SharedString {
+        "Settings".into()
+    }
+}
+
+impl Render for SettingsPage {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let lb = cx.lb().clone();
+        let category = self.category(cx);
+        let searching = !self.query.trim().is_empty();
+        let (title, subtitle) = if searching {
+            (
+                "Search settings",
+                "Results across all categories. Choose a setting to edit its value.",
+            )
+        } else {
+            (
+                catalog::category_title(category),
+                category_subtitle(category),
+            )
+        };
+
+        let body = if searching {
+            self.render_search_results(cx)
+        } else {
+            let sections = self.sections(category, window, cx);
+            if let Some(target) = self.pending_scroll.take()
+                && let Some(index) = sections.iter().position(|s| s.ids.contains(&target))
+            {
+                self.scroll.scroll_to_item(index);
+            }
+            let children: Vec<AnyElement> = sections
+                .into_iter()
+                .map(|section| {
+                    div()
+                        .w_full()
+                        .max_w(metric::READING_MAX_WIDTH + px(56.))
+                        .px(metric::DETAIL_PADDING)
+                        .pb(metric::SECTION_SPACING)
+                        .child(settings_row::section(
+                            section.title.map(SharedString::from),
+                            section.rows,
+                            cx,
+                        ))
+                        .into_any_element()
+                })
+                .collect();
+            v_flex()
+                .id(SharedString::from(format!(
+                    "settings-body-{}",
+                    catalog::category_title(category)
+                )))
+                .size_full()
+                .items_center()
+                .overflow_y_scroll()
+                .track_scroll(&self.scroll)
+                .pt(px(4.))
+                .pb(metric::DETAIL_PADDING)
+                .children(children)
+                .into_any_element()
+        };
+
+        h_flex()
+            .size_full()
+            .bg(lb.window)
+            .child(self.render_categories(category, searching, cx))
+            .child(
+                v_flex()
+                    .flex_1()
+                    .min_w_0()
+                    .h_full()
+                    .child(
+                        v_flex().w_full().items_center().child(
+                            v_flex()
+                                .w_full()
+                                .max_w(metric::READING_MAX_WIDTH + px(56.))
+                                .px(metric::DETAIL_PADDING)
+                                .pt(px(16.))
+                                .pb(px(14.))
+                                .gap(px(3.))
+                                .child(
+                                    div()
+                                        .text_size(ty::PAGE_TITLE)
+                                        .font_weight(FontWeight::BOLD)
+                                        .text_color(lb.text)
+                                        .child(title),
+                                )
+                                .child(
+                                    div()
+                                        .text_size(ty::SECONDARY)
+                                        .text_color(lb.text_secondary)
+                                        .child(subtitle),
+                                ),
+                        ),
+                    )
+                    .child(div().flex_1().min_h_0().child(body)),
+            )
+    }
+}

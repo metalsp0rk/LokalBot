@@ -11,6 +11,9 @@ pub mod citations;
 pub mod controls;
 pub mod glyphs;
 pub mod result_row;
+pub mod rule_list;
+pub mod settings_row;
+pub mod shortcut_field;
 
 pub use gpui_kit::assets::IconName as Ico;
 use gpui_kit::component::{Icon, h_flex, v_flex};
