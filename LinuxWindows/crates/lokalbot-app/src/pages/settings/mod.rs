@@ -58,18 +58,16 @@ fn category_icon(category: SettingsCategory) -> Ico {
 
 fn category_subtitle(category: SettingsCategory) -> &'static str {
     match category {
-        SettingsCategory::General => "Startup, the main window, shortcuts, and updates.",
+        SettingsCategory::General => "Startup, appearance, the Ask shortcut, and the version.",
         SettingsCategory::Meetings => "Meeting capture, detection, processing, and summaries.",
-        SettingsCategory::DayMemory => {
-            "Activity, captured context, coding agent sessions, and daily digests."
-        }
-        SettingsCategory::Writing => "Autocomplete and your writing profile.",
+        SettingsCategory::DayMemory => "App and window activity, and the daily digest.",
+        SettingsCategory::Writing => "Your writing profile for Compose dictation.",
         SettingsCategory::Dictation => {
-            "The dictation shortcut, speech model, and where the text goes."
+            "The dictation shortcut, Transcribe or Compose, and where the text goes."
         }
-        SettingsCategory::Models => "Choose the models behind Transcribe, Think, and Autocomplete.",
+        SettingsCategory::Models => "Choose the models behind Transcribe and Think.",
         SettingsCategory::Privacy => "Control retention, exclusions, and remote processing.",
-        SettingsCategory::Advanced => "Agent CLI, logs, and details about this build.",
+        SettingsCategory::Advanced => "Setup, the Agent CLI, logs, and details about this build.",
     }
 }
 
@@ -110,13 +108,9 @@ pub struct SettingsPage {
     digest_prompt: Entity<TextareaState>,
     cotyping_name: Entity<InputState>,
     cotyping_style: Entity<InputState>,
-    practice: Entity<TextareaState>,
     excluded_apps: Entity<RuleList>,
     excluded_sites: Entity<RuleList>,
-    cotyping_excluded_apps: Entity<RuleList>,
     retention_slider: Entity<SliderState>,
-    interval_slider: Entity<SliderState>,
-    debounce_slider: Entity<SliderState>,
     /// External-agent markers, read from disk off the main thread.
     meetings_access: Option<bool>,
     screen_access: Option<Option<ScreenScope>>,
@@ -175,11 +169,6 @@ impl SettingsPage {
                 .placeholder("Optional, e.g. concise and friendly")
                 .default_value(settings.cotyping_style_note.clone())
         });
-        let practice = cx.new(|cx| {
-            TextareaState::new(window, cx)
-                .rows(3)
-                .default_value("Hi Sarah, thanks for the update. I wanted to follow")
-        });
         let excluded_apps = cx.new(|cx| {
             RuleList::new(
                 "Never capture these apps",
@@ -198,35 +187,12 @@ impl SettingsPage {
                 cx,
             )
         });
-        let cotyping_excluded_apps = cx.new(|cx| {
-            RuleList::new(
-                "Never suggest in these apps",
-                RuleKind::Applications,
-                &settings.cotyping_excluded_apps,
-                window,
-                cx,
-            )
-        });
         let retention_slider = cx.new(|_| {
             SliderState::new()
                 .min(1.)
                 .max(90.)
                 .step(1.)
                 .default_value(settings.retention_days as f32)
-        });
-        let interval_slider = cx.new(|_| {
-            SliderState::new()
-                .min(1.)
-                .max(15.)
-                .step(1.)
-                .default_value(settings.screenshot_interval_minutes as f32)
-        });
-        let debounce_slider = cx.new(|_| {
-            SliderState::new()
-                .min(20.)
-                .max(1000.)
-                .step(20.)
-                .default_value(settings.cotyping_debounce_ms as f32)
         });
 
         let mut subscriptions = vec![
@@ -310,9 +276,6 @@ impl SettingsPage {
             (&excluded_sites, |s: &mut Settings, v: String| {
                 s.excluded_screen_domains = v
             }),
-            (&cotyping_excluded_apps, |s: &mut Settings, v: String| {
-                s.cotyping_excluded_apps = v
-            }),
         ] {
             subscriptions.push(cx.subscribe_in(
                 list,
@@ -324,29 +287,15 @@ impl SettingsPage {
                 },
             ));
         }
-        for (slider, set) in [
-            (
-                &retention_slider,
-                (|s: &mut Settings, v: f32| s.retention_days = v.round() as u32)
-                    as fn(&mut Settings, f32),
-            ),
-            (&interval_slider, |s: &mut Settings, v: f32| {
-                s.screenshot_interval_minutes = f64::from(v.round())
-            }),
-            (&debounce_slider, |s: &mut Settings, v: f32| {
-                s.cotyping_debounce_ms = v.round() as u32
-            }),
-        ] {
-            subscriptions.push(cx.subscribe_in(
-                slider,
-                window,
-                move |this, _, event: &SliderEvent, _, cx| {
-                    let (SliderEvent::Change(value) | SliderEvent::Release(value)) = event;
-                    let value = value.start();
-                    this.update_settings(move |s| set(s, value), cx);
-                },
-            ));
-        }
+        subscriptions.push(cx.subscribe_in(
+            &retention_slider,
+            window,
+            |this, _, event: &SliderEvent, _, cx| {
+                let (SliderEvent::Change(value) | SliderEvent::Release(value)) = event;
+                let days = value.start().round() as u32;
+                this.update_settings(move |s| s.retention_days = days, cx);
+            },
+        ));
 
         let models = models::ModelsState::new(&settings, window, cx);
         subscriptions.extend(models::ModelsState::subscribe(&models, window, cx));
@@ -363,13 +312,9 @@ impl SettingsPage {
             digest_prompt,
             cotyping_name,
             cotyping_style,
-            practice,
             excluded_apps,
             excluded_sites,
-            cotyping_excluded_apps,
             retention_slider,
-            interval_slider,
-            debounce_slider,
             meetings_access: None,
             screen_access: None,
             cli_installed: None,
@@ -432,24 +377,9 @@ impl SettingsPage {
         self.excluded_sites.update(cx, |list, cx| {
             list.set_value(&settings.excluded_screen_domains, cx)
         });
-        self.cotyping_excluded_apps.update(cx, |list, cx| {
-            list.set_value(&settings.cotyping_excluded_apps, cx)
-        });
         sync_slider(
             &self.retention_slider,
             settings.retention_days as f32,
-            window,
-            cx,
-        );
-        sync_slider(
-            &self.interval_slider,
-            settings.screenshot_interval_minutes as f32,
-            window,
-            cx,
-        );
-        sync_slider(
-            &self.debounce_slider,
-            settings.cotyping_debounce_ms as f32,
             window,
             cx,
         );
@@ -520,6 +450,14 @@ impl SettingsPage {
         self.data
             .update(cx, |data, cx| data.open_settings(entry.category, cx));
         cx.notify();
+    }
+
+    /// Opens a setting in any category, scrolled to and highlighted, as a
+    /// search result would.
+    fn reveal(&mut self, id: &str, window: &mut Window, cx: &mut Context<Self>) {
+        if let Some(entry) = catalog::ENTRIES.iter().find(|e| e.id == id) {
+            self.jump_to(entry, window, cx);
+        }
     }
 
     fn is_focused(&self, id: &str) -> bool {

@@ -1,16 +1,50 @@
-//! Dictation: the shortcut, how it triggers, where the text goes, and a place
-//! to try it (`DictationSettingsControls.swift`, `DictationView.swift`).
+//! Dictation: the shortcut, how it triggers, Transcribe or Compose, where the
+//! text goes, and a place to try it (`DictationSettingsControls.swift`,
+//! `DictationView.swift`). The start sound and kept audio files are not
+//! implemented on Linux and Windows, so their rows are not shown.
 
 use gpui_kit::component::button::Button;
 use gpui_kit::component::{Icon, Sizable as _, h_flex, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{Context, FontWeight, ParentElement as _, SharedString, Styled as _, div, px};
-use lokalbot_core::settings::{DictationOutputMode, DictationTriggerMode};
+use lokalbot_core::Settings;
+use lokalbot_core::settings::{DictationIntent, DictationOutputMode, DictationTriggerMode};
 
 use super::{Section, SettingsPage};
 use crate::state::AppEvent;
 use crate::theme::{LbThemeExt as _, ty};
 use crate::ui::{Ico, settings_row};
+
+const INTENTS: [DictationIntent; 2] = [DictationIntent::Transcribe, DictationIntent::Compose];
+
+fn intent_label(intent: DictationIntent) -> &'static str {
+    match intent {
+        DictationIntent::Transcribe => "Transcribe",
+        DictationIntent::Compose => "Compose",
+    }
+}
+
+fn intent_detail(intent: DictationIntent) -> &'static str {
+    match intent {
+        DictationIntent::Transcribe => "Keeps the recognized speech. No rewriting.",
+        DictationIntent::Compose => {
+            "Your Think model tidies what you say. Start with “reply…”, “write…” or “draft…” to have it write the text for you."
+        }
+    }
+}
+
+/// "Name, Style" or "Not set" (`DictationView.writingProfileSummary`).
+pub fn writing_profile_summary(settings: &Settings) -> &'static str {
+    match (
+        settings.cotyping_user_name.trim().is_empty(),
+        settings.cotyping_style_note.trim().is_empty(),
+    ) {
+        (false, false) => "Name, Style",
+        (false, true) => "Name",
+        (true, false) => "Style",
+        (true, true) => "Not set",
+    }
+}
 
 impl SettingsPage {
     pub(super) fn dictation_sections(&mut self, cx: &mut Context<Self>) -> Vec<Section> {
@@ -51,6 +85,11 @@ impl SettingsPage {
             .collect();
         let values: Vec<String> = options.iter().map(|(value, _)| value.to_string()).collect();
         let microphone_data = self.data.clone();
+        let intent_data = self.data.clone();
+        let intent_index = INTENTS
+            .iter()
+            .position(|i| *i == settings.dictation_intent)
+            .unwrap_or(0);
 
         let dictation = Section::new("Dictation")
             .row(
@@ -81,12 +120,70 @@ impl SettingsPage {
                     "settings.dictationTriggerMode",
                     "Trigger",
                     None,
-                    DictationTriggerMode::ALL.iter().map(|m| (*m, SharedString::from(m.label()))).collect(),
+                    DictationTriggerMode::ALL
+                        .iter()
+                        .map(|m| (*m, SharedString::from(m.label())))
+                        .collect(),
                     settings.dictation_trigger_mode,
                     |s, v| s.dictation_trigger_mode = v,
                     cx,
                 ),
             )
+            .row(
+                "settings.dictationIntent",
+                settings_row::row(
+                    "settings.dictationIntent",
+                    "Intent",
+                    Some(intent_detail(settings.dictation_intent).into()),
+                    settings_row::segmented(
+                        "settings-dictation-intent",
+                        &INTENTS.map(intent_label),
+                        intent_index,
+                        move |index, _, cx| {
+                            let intent = INTENTS[index];
+                            intent_data.update(cx, |data, cx| {
+                                data.update_settings(|s| s.dictation_intent = intent, cx)
+                            });
+                        },
+                        cx,
+                    ),
+                    self.is_focused("settings.dictationIntent"),
+                    cx,
+                ),
+            );
+        let dictation = if settings.dictation_intent == DictationIntent::Compose {
+            let compose_help = if crate::pages::ask::composer_inference(cx).remote {
+                "Compose uses your name and writing style. What you dictate is sent to your remote Think model for the final wording."
+            } else {
+                "Compose uses your name and writing style, with your Think model on this PC."
+            };
+            dictation.row(
+                "settings.dictationWritingProfile",
+                settings_row::row(
+                    "settings.dictationWritingProfile",
+                    "Writing profile",
+                    Some(compose_help.into()),
+                    h_flex()
+                        .gap(px(8.))
+                        .items_center()
+                        .child(settings_row::value(writing_profile_summary(&settings), cx))
+                        .child(
+                            Button::new("settings-dictation-profile")
+                                .outline()
+                                .small()
+                                .label("Edit…")
+                                .on_click(cx.listener(|this, _, window, cx| {
+                                    this.reveal("settings.cotypingUserName", window, cx)
+                                })),
+                        ),
+                    self.is_focused("settings.dictationWritingProfile"),
+                    cx,
+                ),
+            )
+        } else {
+            dictation
+        };
+        let dictation = dictation
             .row(
                 "settings.dictationOutputMode",
                 self.choice(
@@ -122,28 +219,6 @@ impl SettingsPage {
                     None,
                     settings.dictation_show_overlay,
                     |s, v| s.dictation_show_overlay = v,
-                    cx,
-                ),
-            )
-            .row(
-                "settings.dictationPlaysStartSound",
-                self.toggle(
-                    "settings.dictationPlaysStartSound",
-                    "Play a sound when the microphone is ready",
-                    None,
-                    settings.dictation_plays_start_sound,
-                    |s, v| s.dictation_plays_start_sound = v,
-                    cx,
-                ),
-            )
-            .row(
-                "settings.dictationRetainAudio",
-                self.toggle(
-                    "settings.dictationRetainAudio",
-                    "Keep dictation audio files",
-                    None,
-                    settings.dictation_retain_audio,
-                    |s, v| s.dictation_retain_audio = v,
                     cx,
                 ),
             );

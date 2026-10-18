@@ -1,7 +1,9 @@
 //! Quick Recall (`QuickRecallView.swift`, `QuickRecallRow.swift`,
-//! `QuickRecallFooter.swift`): a 660×480 search panel over meetings and
-//! screen memory. Return opens the selected result in the main window,
-//! Ctrl+Return opens Ask with the query, Escape or leaving the panel closes it.
+//! `QuickRecallFooter.swift`): a 660×480 search panel over meetings. Return
+//! opens the selected result in the main window, Ctrl+Return opens Ask with
+//! the query, Escape or leaving the panel closes it. Linux and Windows have
+//! no screen memory, so the Mac's screen results and saved moments are not
+//! searched.
 
 use std::time::Duration;
 
@@ -101,7 +103,6 @@ pub struct QuickRecall {
     input: Entity<InputState>,
     query: String,
     results: search::Results,
-    saved: Vec<ScreenMoment>,
     selection: usize,
     searching: bool,
     search_task: Option<Task<()>>,
@@ -146,21 +147,18 @@ impl QuickRecall {
                 }
             }),
         ];
-        let mut view = Self {
+        Self {
             data,
             input,
             query: String::new(),
             results: search::Results::default(),
-            saved: Vec::new(),
             selection: 0,
             searching: false,
             search_task: None,
             scroll: ScrollHandle::new(),
             was_active: false,
             _subscriptions: subscriptions,
-        };
-        view.load_saved(cx);
-        view
+        }
     }
 
     fn focus_input(&mut self, window: &mut Window, cx: &mut Context<Self>) {
@@ -168,20 +166,6 @@ impl QuickRecall {
             input.focus(window, cx);
             input.select_all(window, cx);
         });
-    }
-
-    fn load_saved(&mut self, cx: &mut Context<Self>) {
-        let library = self.data.read(cx).library.clone();
-        cx.spawn(async move |this, cx| {
-            let saved = cx
-                .background_spawn(async move { library.saved_moments().unwrap_or_default() })
-                .await;
-            let _ = this.update(cx, |this, cx| {
-                this.saved = saved.into_iter().take(12).collect();
-                cx.notify();
-            });
-        })
-        .detach();
     }
 
     fn search(&mut self, window: &mut Window, cx: &mut Context<Self>) {
@@ -201,7 +185,7 @@ impl QuickRecall {
         let query = search::Query {
             text,
             meetings: true,
-            screen: true,
+            screen: false,
             limit: 20,
             ..Default::default()
         };
@@ -226,19 +210,10 @@ impl QuickRecall {
         cx.notify();
     }
 
-    /// Screens first (saved moments without a query), then meetings.
+    /// Screen results first (none on this platform), then meetings.
     fn rows(&self) -> (Vec<Row>, Vec<Row>) {
         if self.query.trim().is_empty() {
-            let screens = self
-                .saved
-                .iter()
-                .map(|moment| Row::Screen {
-                    moment: moment.clone(),
-                    snippet: None,
-                    captures: 1,
-                })
-                .collect();
-            return (screens, Vec::new());
+            return (Vec::new(), Vec::new());
         }
         let screens = self
             .results
@@ -624,14 +599,20 @@ impl QuickRecall {
                             .gap(px(6.))
                             .items_center()
                             .child(ui::icon(Ico::Search, px(14.), lb.text))
-                            .child(div().text_size(ty::SECTION).font_weight(FontWeight::BOLD).text_color(lb.text).child("No local matches")),
+                            .child(
+                                div()
+                                    .text_size(ty::SECTION)
+                                    .font_weight(FontWeight::BOLD)
+                                    .text_color(lb.text)
+                                    .child("No local matches"),
+                            ),
                     )
                     .child(
                         div()
                             .text_center()
                             .text_size(ty::SECONDARY)
                             .text_color(lb.text_secondary)
-                            .child("Nothing in saved moments, captured screens, or meetings matches this search."),
+                            .child("No meeting matches this search."),
                     )
                     .into_any_element(),
             );
@@ -729,7 +710,7 @@ impl QuickRecall {
                     .text_center()
                     .text_size(ty::BODY)
                     .text_color(lb.text_secondary)
-                    .child("Type to search meetings, screens, and saved moments. Return opens a result; Ask is a separate action."),
+                    .child("Type to search your meetings. Return opens a result; Ask is a separate action."),
             )
             .child(v_flex().gap(px(7.)).pt(px(6.)).children(suggestions))
             .into_any_element()

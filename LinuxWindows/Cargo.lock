@@ -4230,6 +4230,7 @@ dependencies = [
  "lokalbot-core",
  "lokalbot-engine",
  "lokalbot-platform",
+ "lokalbot-speech",
  "parking_lot",
  "serde",
  "serde_json",

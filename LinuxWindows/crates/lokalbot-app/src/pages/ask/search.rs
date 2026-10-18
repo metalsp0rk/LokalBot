@@ -85,33 +85,30 @@ pub enum Facet {
     Summaries,
     Notes,
     Outcomes,
-    Screen,
 }
 
 impl Facet {
-    pub const ALL: [Facet; 6] = [
+    pub const ALL: [Facet; 5] = [
         Facet::All,
         Facet::Transcripts,
         Facet::Summaries,
         Facet::Notes,
         Facet::Outcomes,
-        Facet::Screen,
     ];
 
     pub fn label(self) -> &'static str {
         match self {
-            Facet::All => "All",
+            Facet::All => "All results",
             Facet::Transcripts => "Transcripts",
             Facet::Summaries => "Summaries",
             Facet::Notes => "Notes",
             Facet::Outcomes => "Outcomes",
-            Facet::Screen => "Screen",
         }
     }
 
     fn kinds(self) -> Option<Vec<DocKind>> {
         match self {
-            Facet::All | Facet::Screen => None,
+            Facet::All => None,
             Facet::Transcripts => Some(vec![DocKind::Segment]),
             Facet::Summaries => Some(vec![DocKind::Summary]),
             Facet::Notes => Some(vec![DocKind::Notes]),
@@ -168,7 +165,7 @@ pub fn run(library: &Library, meetings: &[Meeting], query: &Query) -> Results {
     if text.is_empty() {
         return results;
     }
-    if query.meetings && query.facet != Facet::Screen {
+    if query.meetings {
         ensure_indexed(library);
         let search = SearchQuery {
             text: text.to_string(),
@@ -212,7 +209,7 @@ pub fn run(library: &Library, meetings: &[Meeting], query: &Query) -> Results {
             results.truncated = true;
         }
     }
-    let screen_facet = matches!(query.facet, Facet::All | Facet::Screen);
+    let screen_facet = query.facet == Facet::All;
     if query.screen && screen_facet && query.meeting_ids.is_none() {
         match library.search_screen_hits(text, None, None, query.limit.max(1)) {
             Ok(hits) => {

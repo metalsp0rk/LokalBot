@@ -767,7 +767,7 @@ impl AskPage {
                     .text_size(ty::BODY)
                     .line_height(px(21.))
                     .text_color(lb.text)
-                    .child("Type keywords to find meetings and screen moments, or ask a question. Return opens a keyword result or asks a question; Ctrl+Return always asks."),
+                    .child("Type keywords to find meetings, or ask a question. Return opens a keyword result or asks a question; Ctrl+Return always asks."),
             )
             .child(v_flex().w_full().items_center().gap(px(8.)).pt(px(4.)).children(suggestions))
     }

@@ -1,33 +1,20 @@
-//! Day Memory: activity tracking, screen context, coding agent sessions and
-//! the day digest.
+//! Day Memory: app and window activity and the day digest. Screen context
+//! (screen text, screenshots, OCR) and coding agent sessions are not
+//! implemented on Linux and Windows, so their rows are not shown; their
+//! values stay in settings.json for the Mac app.
 
 use gpui_kit::component::button::Button;
 use gpui_kit::component::input::Textarea;
-use gpui_kit::component::slider::Slider;
 use gpui_kit::component::{Sizable as _, h_flex, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
-use gpui_kit::{Context, ParentElement as _, SharedString, Styled as _, div, px};
-use lokalbot_core::ScreenContextMode;
+use gpui_kit::{Context, ParentElement as _, Styled as _, div, px};
 
 use super::{Section, SettingsPage};
-use crate::state::SettingsCategory;
 use crate::theme::{LbThemeExt as _, ty};
 use crate::ui::settings_row;
 
 /// The first characters of the digest instructions that are used.
 pub const DIGEST_PROMPT_LIMIT: usize = 500;
-
-fn mode_detail(mode: ScreenContextMode) -> &'static str {
-    match mode {
-        ScreenContextMode::ActivityOnly => "Records the active app and window title only.",
-        ScreenContextMode::Text => {
-            "Reads visible interface text through accessibility; no screenshots are stored."
-        }
-        ScreenContextMode::TextAndVisual => {
-            "Pairs accessible text with an encrypted screenshot, using local OCR only when needed."
-        }
-    }
-}
 
 fn hour_label(hour: u32) -> String {
     match hour % 24 {
@@ -43,182 +30,50 @@ impl SettingsPage {
         let settings = self.data.read(cx).settings.clone();
         let data = self.data.clone();
         let lb = cx.lb().clone();
-        let captures_text = settings.screen_context_capture_mode != ScreenContextMode::ActivityOnly;
 
-        let tracking_data = data.clone();
-        let mode_data = data.clone();
-        let retention_data = data.clone();
-        let exclusions_data = data.clone();
-        let mode_items: Vec<(SharedString, bool)> = ScreenContextMode::ALL
-            .iter()
-            .map(|m| {
-                (
-                    SharedString::from(m.label()),
-                    *m == settings.screen_context_capture_mode,
-                )
-            })
-            .collect();
-        let mut memory = Section::new("Day Memory")
+        let memory = Section::new("Day Memory")
             .row(
                 "settings.trackingEnabled",
-                settings_row::row(
+                self.toggle(
                     "settings.trackingEnabled",
                     "Track app & window activity",
-                    Some("Records which app and window you're using for the Timeline and day digest.".into()),
-                    settings_row::switch("settings.trackingEnabled", settings.tracking_enabled, move |on, _, cx| {
-                        tracking_data.update(cx, |data, cx| {
-                            data.update_settings(
-                                |s| {
-                                    s.tracking_enabled = on;
-                                    if !on {
-                                        s.screen_context_capture_mode = ScreenContextMode::ActivityOnly;
-                                    }
-                                },
-                                cx,
-                            )
-                        })
-                    }),
-                    self.is_focused("settings.trackingEnabled"),
+                    Some("Records which app and window you're using for the Timeline and day digest."),
+                    settings.tracking_enabled,
+                    |s, v| s.tracking_enabled = v,
                     cx,
                 ),
             )
             .row(
-                "settings.screenContextCaptureMode",
-                settings_row::row(
-                    "settings.screenContextCaptureMode",
-                    "Screen context",
-                    Some(mode_detail(settings.screen_context_capture_mode).into()),
-                    settings_row::picker(
-                        "settings-screen-context",
-                        settings.screen_context_capture_mode.label(),
-                        mode_items,
-                        move |index, _, cx| {
-                            let mode = ScreenContextMode::ALL[index];
-                            mode_data.update(cx, |data, cx| {
-                                data.update_settings(
-                                    |s| {
-                                        s.screen_context_capture_mode = mode;
-                                        if mode != ScreenContextMode::ActivityOnly {
-                                            s.tracking_enabled = true;
-                                        }
-                                    },
-                                    cx,
-                                )
-                            })
-                        },
+                "settings.activityManage",
+                settings_row::content_row(
+                    "settings.activityManage",
+                    h_flex()
+                        .gap(px(8.))
+                        .flex_wrap()
+                        .child(Button::new("settings-manage-retention").outline().small().label("Manage retention…").on_click(
+                            cx.listener(|this, _, window, cx| this.reveal("settings.retentionDays", window, cx)),
+                        ))
+                        .child(Button::new("settings-manage-exclusions").outline().small().label("Manage exclusions…").on_click(
+                            cx.listener(|this, _, window, cx| this.reveal("settings.excludedApps", window, cx)),
+                        )),
+                    false,
+                    cx,
+                ),
+            )
+            .row(
+                "settings.activityDetails",
+                settings_row::content_row(
+                    "settings.activityDetails",
+                    self.details(
+                        "settings.activityDetails",
+                        "What is recorded",
+                        "Every few seconds LokalBot notes the app in front and its window title, and how long you stay. It never records what you type, the clipboard, or what is on screen. Excluded apps and sites are logged as “Private” with the time only, password managers are always excluded, and passwords or keys in window titles are redacted. Window titles are cleared after the retention period in Privacy & Data.",
+                        cx,
                     ),
-                    self.is_focused("settings.screenContextCaptureMode"),
+                    false,
                     cx,
                 ),
             );
-        if captures_text {
-            let minutes = settings.screenshot_interval_minutes.round() as u32;
-            memory = memory
-                .row(
-                    "settings.screenshotIntervalMinutes",
-                    settings_row::stacked_row(
-                        "settings.screenshotIntervalMinutes",
-                        format!("Idle fallback: at least every {minutes} min"),
-                        None,
-                        Slider::new(&self.interval_slider).w_full(),
-                        self.is_focused("settings.screenshotIntervalMinutes"),
-                        cx,
-                    ),
-                )
-                .row(
-                    "settings.suggestActionCompletion",
-                    self.toggle(
-                        "settings.suggestActionCompletion",
-                        "Suggest actions that look done",
-                        Some("When later captured text shows an action's words with a completion such as “message sent” or “merged”, the action offers Mark Done. Nothing changes until you confirm."),
-                        settings.suggest_action_completion,
-                        |s, v| s.suggest_action_completion = v,
-                        cx,
-                    ),
-                )
-                .row(
-                    "settings.captureManage",
-                    settings_row::content_row(
-                        "settings.captureManage",
-                        h_flex()
-                            .gap(px(8.))
-                            .child(Button::new("settings-manage-retention").outline().small().label("Manage retention and cleanup…").on_click(
-                                move |_, _, cx| retention_data.update(cx, |data, cx| data.open_settings(SettingsCategory::Privacy, cx)),
-                            ))
-                            .child(Button::new("settings-manage-exclusions").outline().small().label("Manage capture exclusions…").on_click(
-                                move |_, _, cx| exclusions_data.update(cx, |data, cx| data.open_settings(SettingsCategory::Privacy, cx)),
-                            )),
-                        false,
-                        cx,
-                    ),
-                )
-                .row(
-                    "settings.captureDetails",
-                    settings_row::content_row(
-                        "settings.captureDetails",
-                        self.details(
-                            "settings.captureDetails",
-                            "How screen context is captured",
-                            "Captures context after app or window changes, clicks, typing pauses, settled scrolls, or a clipboard change, without storing raw keys, pointer positions, or clipboard contents. Accessible text is preferred; local OCR fills gaps. Private windows, excluded domains, secure fields, and detected credentials are never captured. Visuals are encrypted on disk; extracted text follows the same retention (see Privacy & Data). Saved moments keep their encrypted frame and text until you unsave or delete them. Excluded apps log as “Private”.",
-                            cx,
-                        ),
-                        false,
-                        cx,
-                    ),
-                );
-        }
-
-        let agents_enabled = settings.coding_agent_evidence_enabled;
-        let mut agents = Section::new("Coding agent sessions").row(
-            "settings.codingAgentEvidenceEnabled",
-            self.toggle(
-                "settings.codingAgentEvidenceEnabled",
-                "Read coding agent sessions",
-                Some("Adds Claude Code and Codex sessions on this PC to the day digest: your requests, changed file names, commits, and pull requests. Tool output and file contents are never read."),
-                agents_enabled,
-                |s, v| s.coding_agent_evidence_enabled = v,
-                cx,
-            ),
-        );
-        if agents_enabled {
-            agents = agents
-                .row(
-                    "settings.codingAgentReadsClaudeCode",
-                    self.toggle(
-                        "settings.codingAgentReadsClaudeCode",
-                        "Claude Code",
-                        None,
-                        settings.coding_agent_reads_claude_code,
-                        |s, v| s.coding_agent_reads_claude_code = v,
-                        cx,
-                    ),
-                )
-                .row(
-                    "settings.codingAgentReadsCodex",
-                    self.toggle(
-                        "settings.codingAgentReadsCodex",
-                        "Codex",
-                        None,
-                        settings.coding_agent_reads_codex,
-                        |s, v| s.coding_agent_reads_codex = v,
-                        cx,
-                    ),
-                );
-        }
-        agents = agents.row(
-            "settings.codingAgentDetails",
-            settings_row::content_row(
-                "settings.codingAgentDetails",
-                self.details(
-                    "settings.codingAgentDetails",
-                    "What is read",
-                    "LokalBot reads the session files in ~/.claude/projects and ~/.codex/sessions, never the agents' credentials or settings. It keeps your requests, the agent's final report, changed file names, and actions such as commits, pull requests, pushes, and test runs. Tool output, command output, file contents, and reasoning are skipped, and detected credentials are redacted. Work in progress is added after ten quiet minutes. Saved sessions follow screen-text retention, and turning this off keeps them until you delete them. The agents' own files are never changed.",
-                    cx,
-                ),
-                false,
-                cx,
-            ),
-        );
 
         let hour = settings.day_digest_hour.min(23);
         let hour_data = data.clone();
@@ -291,7 +146,7 @@ impl SettingsPage {
             ),
         );
 
-        vec![memory, agents, digest]
+        vec![memory, digest]
     }
 }
 

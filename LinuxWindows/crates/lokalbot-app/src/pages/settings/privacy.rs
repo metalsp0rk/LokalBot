@@ -1,5 +1,7 @@
-//! Privacy & Data: where data lives, screen retention, external agent access
-//! and capture exclusions.
+//! Privacy & Data: where data lives, activity retention, external agent
+//! access and activity exclusions. Linux and Windows record no screen text
+//! or screenshots, so "Keep screen text forever" is not shown, and "screen
+//! memory" for agents means app and window activity.
 
 use gpui_kit::component::slider::Slider;
 use gpui_kit::component::{h_flex, v_flex};
@@ -19,9 +21,17 @@ const SCOPES: [ScreenScope; 3] = [
 
 fn scope_detail(scope: ScreenScope) -> &'static str {
     match scope {
-        ScreenScope::Today => "Agents can read screen memory captured since midnight.",
-        ScreenScope::RecentWeek => "Agents can read screen memory from the last 7 days.",
-        ScreenScope::RetainedHistory => "Agents can read all screen memory LokalBot still keeps.",
+        ScreenScope::Today => "Agents can read activity since midnight.",
+        ScreenScope::RecentWeek => "Agents can read activity from the last 7 days.",
+        ScreenScope::RetainedHistory => "Agents can read all activity LokalBot still keeps.",
+    }
+}
+
+fn days_label(days: u32) -> String {
+    if days == 1 {
+        "1 day".into()
+    } else {
+        format!("{days} days")
     }
 }
 
@@ -59,7 +69,7 @@ impl SettingsPage {
                 .await;
             if let Err(err) = result {
                 data.update(cx, |data, cx| {
-                    data.show_error(format!("Could not change screen access: {err}"), cx)
+                    data.show_error(format!("Could not change activity access: {err}"), cx)
                 });
             }
             let _ = this.update(cx, |this, cx| this.reload_access(cx));
@@ -79,14 +89,14 @@ impl SettingsPage {
         let lb = cx.lb().clone();
 
         let where_text = if settings.think_is_local() {
-            "Audio, transcripts, and captured context stay on this PC. Network access is limited to model downloads and updates.".to_string()
+            "Audio, transcripts, and activity stay on this PC. Network access is limited to model downloads.".to_string()
         } else {
             let backend = match settings.summarizer_backend {
                 SummarizerBackend::Ollama => "Ollama",
                 _ => "OpenAI-compatible server",
             };
             format!(
-                "Audio stays on this PC. Transcripts and approved context may be sent to your remote Think model ({backend}). Other network access is for models and updates."
+                "Audio stays on this PC. Transcripts and approved context may be sent to your remote Think model ({backend}). Other network access is for model downloads."
             )
         };
         let local = settings.think_is_local();
@@ -135,26 +145,15 @@ impl SettingsPage {
             );
 
         let days = settings.retention_days.clamp(1, 90);
-        let retention = Section::new("Screen memory retention")
+        let retention = Section::new("Activity retention")
             .row(
                 "settings.retentionDays",
                 settings_row::stacked_row(
                     "settings.retentionDays",
-                    format!("Keep screen context {days} days"),
-                    Some("Old images, screen text, screen titles, URLs, document names, saved coding agent sessions, and activity titles expire. App names and durations remain. Saved moments stay until unsaved or deleted.".into()),
+                    format!("Keep activity details {}", days_label(days)),
+                    Some(format!("Window titles older than {} are cleared. App names and time spent stay, and meetings are never removed.", days_label(days)).into()),
                     Slider::new(&self.retention_slider).w_full(),
                     self.is_focused("settings.retentionDays"),
-                    cx,
-                ),
-            )
-            .row(
-                "settings.keepOCRTextForever",
-                self.toggle(
-                    "settings.keepOCRTextForever",
-                    "Keep screen text forever",
-                    Some("Images and activity titles still expire. Screen text, titles, URLs, and document names stay searchable."),
-                    settings.keep_ocr_text_forever,
-                    |s, v| s.keep_ocr_text_forever = v,
                     cx,
                 ),
             )
@@ -162,7 +161,7 @@ impl SettingsPage {
                 "settings.retentionNote",
                 settings_row::content_row(
                     "settings.retentionNote",
-                    settings_row::help("Generated journals retract when their source is removed. Saved Ask conversations and exported files have separate lifetimes: delete conversations in Ask, and remove exported files from their folders.", cx),
+                    settings_row::help("Retention doesn't change day digests, saved Ask conversations, or files you export. Delete conversations in Ask, and remove exported files from their folders.", cx),
                     false,
                     cx,
                 ),
@@ -192,7 +191,7 @@ impl SettingsPage {
                 settings_row::row(
                     "settings.screenMemoryAccess",
                     "Allow external agents to read screen memory",
-                    Some("Separate, scoped, read-only access to captured text and metadata. Screenshot pixels are never returned.".into()),
+                    Some("On this PC, screen memory is your app and window activity: app names, window titles, and time spent. Separate from meetings, read-only, and limited to the history you grant. Off by default.".into()),
                     settings_row::switch("settings.screenMemoryAccess", screen_scope.is_some(), move |on, _, cx| {
                         screen_page.update(cx, |page, cx| page.set_screen_access(on.then_some(ScreenScope::RecentWeek), cx))
                     }),
@@ -227,7 +226,7 @@ impl SettingsPage {
             );
         }
 
-        let exclusions = Section::new("Capture exclusions")
+        let exclusions = Section::new("Activity exclusions")
             .row(
                 "settings.excludedApps",
                 settings_row::content_row("settings.excludedApps", self.excluded_apps.clone(), self.is_focused("settings.excludedApps"), cx),
@@ -245,7 +244,7 @@ impl SettingsPage {
                 "settings.exclusionsHelp",
                 settings_row::content_row(
                     "settings.exclusionsHelp",
-                    settings_row::help("Every app and window is tracked, including browsers and private windows. Add apps or sites here to keep them out. Password managers (1Password, Bitwarden, KeePassXC), focused password fields, and detected credentials are never captured.", cx),
+                    settings_row::help("Every app and window is tracked, including browsers and private windows. Apps and sites listed here are logged as “Private”, with the time only. Password managers (1Password, Bitwarden, KeePassXC, and others) are always excluded, and passwords or keys in window titles are redacted. Browsers don't share the page address, so while any site is listed, browser window titles aren't kept.", cx),
                     false,
                     cx,
                 ),

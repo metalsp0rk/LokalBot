@@ -27,7 +27,7 @@ use gpui_kit::{
 use lokalbot_core::{ChatRole, Conversation};
 use uuid::Uuid;
 
-use self::scope::{DateScope, Sources};
+use self::scope::DateScope;
 use self::search::{Facet, MeetingGroup, ScreenResult};
 use crate::pages::Page;
 use crate::state::{AppData, AppEvent, AskRequest, MeetingTab, Section};
@@ -100,7 +100,6 @@ pub struct AskPage {
     history_query: String,
     composer: Entity<TextareaState>,
     query: String,
-    sources: Sources,
     date_scope: DateScope,
     facet: Facet,
     /// Evidence boundary from "Ask This Meeting" or from asking about results.
@@ -195,7 +194,6 @@ impl AskPage {
             history_query: String::new(),
             composer,
             query: String::new(),
-            sources: Sources::default(),
             date_scope: DateScope::AnyTime,
             facet: Facet::All,
             meeting_scope: None,
@@ -334,7 +332,6 @@ impl AskPage {
         self.selected = None;
         self.meeting_scope = None;
         self.date_scope = DateScope::AnyTime;
-        self.sources = Sources::default();
         self.facet = Facet::All;
         self.pending_question = None;
         self.set_composer_text("", window, cx);
@@ -435,7 +432,7 @@ impl AskPage {
             self.meeting_scope = Some(self.results.meetings.iter().map(|g| g.meeting.id).collect());
         }
         let conversation_id = *self.selected.get_or_insert_with(Uuid::new_v4);
-        let scope = scope::ask_scope(self.sources, self.date_scope, self.meeting_scope.as_deref());
+        let scope = scope::ask_scope(self.date_scope, self.meeting_scope.as_deref());
         self.follow_stream = true;
         self.data.update(cx, |data, cx| {
             data.request(
@@ -488,7 +485,7 @@ impl AskPage {
             return;
         };
         self.results = Results::default();
-        let scope = scope::ask_scope(self.sources, self.date_scope, self.meeting_scope.as_deref());
+        let scope = scope::ask_scope(self.date_scope, self.meeting_scope.as_deref());
         self.follow_stream = true;
         self.data.update(cx, |data, cx| {
             data.request(
@@ -540,7 +537,7 @@ impl AskPage {
         self.results.screens.clear();
         self.results.truncated = false;
         self.results.expanded.clear();
-        if text.is_empty() || !(self.sources.meetings || self.sources.screen) {
+        if text.is_empty() {
             self.results.running = false;
             self.search_task = None;
             return;
@@ -554,8 +551,8 @@ impl AskPage {
         let query = search::Query {
             text,
             facet: self.facet,
-            meetings: self.sources.meetings,
-            screen: self.sources.screen,
+            meetings: true,
+            screen: false,
             meeting_ids: self.meeting_scope.clone(),
             since: bounds.map(|(since, _)| since),
             until: bounds.map(|(_, until)| until),

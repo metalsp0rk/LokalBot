@@ -573,7 +573,7 @@ impl TodayPage {
         };
         let models = self.data.clone();
         let tracking_data = self.data.clone();
-        let writing = self.data.clone();
+        let dictation = self.data.clone();
         let dismiss = self.data.clone();
         let link_step = |id: &'static str,
                          label: &'static str,
@@ -640,11 +640,11 @@ impl TodayPage {
                         .child(
                             h_flex()
                                 .gap(px(10.))
-                                .child(pillar(Ico::Keyboard, "Write", "Dictate or autocomplete text in the app where you're working."))
+                                .child(pillar(Ico::Keyboard, "Write", "Dictate text into the app where you're working."))
                                 .child(pillar(
                                     Ico::SquareArrowOutUpRight,
                                     "Act",
-                                    "Create inspectable drafts, exports, and approved agent sessions.",
+                                    "Create inspectable drafts and exports, and share meetings with your coding agent.",
                                 )),
                         ),
                 )
@@ -682,12 +682,12 @@ impl TodayPage {
                         .child(step(
                             false,
                             link_step(
-                                "gs-autocomplete",
-                                "Try autocomplete",
-                                "— inline AI autocomplete that stays on your PC.",
+                                "gs-dictation",
+                                "Try dictation",
+                                "— speak, and LokalBot types it in the app you're using.",
                                 Box::new(move |cx| {
-                                    writing.update(cx, |data, cx| {
-                                        data.open_settings(crate::state::SettingsCategory::Writing, cx)
+                                    dictation.update(cx, |data, cx| {
+                                        data.open_settings(crate::state::SettingsCategory::Dictation, cx)
                                     })
                                 }),
                             ),

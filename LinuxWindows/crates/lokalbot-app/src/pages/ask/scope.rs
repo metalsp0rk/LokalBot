@@ -1,85 +1,12 @@
-//! What a question may draw on: sources and a date scope (`AskSourceScope`,
-//! `AskDateScope`).
+//! The date scope of a question or search (`AskDateScope`). The Mac's
+//! source picker (`AskSourceScope`) is not offered: Linux and Windows have
+//! no screen memory, and answers draw on meetings only (activity is not a
+//! source in `lokalbot_ai::ask`).
 
 use chrono::{DateTime, Datelike as _, Days, Local, NaiveDate, Utc};
 use uuid::Uuid;
 
 use crate::state::AskScope;
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct Sources {
-    pub meetings: bool,
-    pub activity: bool,
-    pub screen: bool,
-}
-
-impl Default for Sources {
-    fn default() -> Self {
-        Self {
-            meetings: true,
-            activity: true,
-            screen: true,
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Source {
-    Meetings,
-    Activity,
-    Screen,
-}
-
-impl Source {
-    pub const ALL: [Source; 3] = [Source::Meetings, Source::Activity, Source::Screen];
-
-    pub fn label(self) -> &'static str {
-        match self {
-            Source::Meetings => "Meetings",
-            Source::Activity => "Activity",
-            Source::Screen => "Screen",
-        }
-    }
-}
-
-impl Sources {
-    pub fn contains(&self, source: Source) -> bool {
-        match source {
-            Source::Meetings => self.meetings,
-            Source::Activity => self.activity,
-            Source::Screen => self.screen,
-        }
-    }
-
-    pub fn count(&self) -> usize {
-        Source::ALL.iter().filter(|s| self.contains(**s)).count()
-    }
-
-    /// Toggles a source, keeping at least one selected.
-    pub fn toggle(&mut self, source: Source) {
-        if self.contains(source) && self.count() == 1 {
-            return;
-        }
-        match source {
-            Source::Meetings => self.meetings = !self.meetings,
-            Source::Activity => self.activity = !self.activity,
-            Source::Screen => self.screen = !self.screen,
-        }
-    }
-
-    /// "All sources" or "Meetings, Screen".
-    pub fn summary(&self) -> String {
-        if *self == Sources::default() {
-            return "All sources".into();
-        }
-        Source::ALL
-            .iter()
-            .filter(|s| self.contains(**s))
-            .map(|s| s.label())
-            .collect::<Vec<_>>()
-            .join(", ")
-    }
-}
 
 /// The calendar range a question or search is limited to.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -133,14 +60,14 @@ impl DateScope {
     }
 }
 
-/// The request sent to the engine for one question.
-pub fn ask_scope(sources: Sources, date: DateScope, meeting_ids: Option<&[Uuid]>) -> AskScope {
+/// The request sent to the engine for one question: meetings only.
+pub fn ask_scope(date: DateScope, meeting_ids: Option<&[Uuid]>) -> AskScope {
     let bounds = date.bounds();
     AskScope {
         meeting_ids: meeting_ids.map(<[Uuid]>::to_vec).unwrap_or_default(),
-        include_meetings: sources.meetings,
-        include_activity: sources.activity,
-        include_screen: sources.screen,
+        include_meetings: true,
+        include_activity: false,
+        include_screen: false,
         since: bounds.map(|(since, _)| since),
         until: bounds.map(|(_, until)| until),
     }
@@ -151,14 +78,11 @@ mod tests {
     use super::*;
 
     #[test]
-    fn keeps_one_source() {
-        let mut sources = Sources::default();
-        assert_eq!(sources.summary(), "All sources");
-        sources.toggle(Source::Activity);
-        assert_eq!(sources.summary(), "Meetings, Screen");
-        sources.toggle(Source::Meetings);
-        sources.toggle(Source::Screen);
-        assert_eq!(sources.summary(), "Screen");
+    fn asks_meetings_only() {
+        let scope = ask_scope(DateScope::Today, None);
+        assert!(scope.include_meetings);
+        assert!(!scope.include_activity && !scope.include_screen);
+        assert!(scope.since.is_some() && scope.until.is_some());
     }
 
     #[test]
