@@ -13,9 +13,10 @@ pub fn primary(id: impl Into<ElementId>, label: impl Into<SharedString>) -> Butt
     Button::new(id).primary().label(label)
 }
 
-/// Bordered button for secondary actions ("Review Actions…").
+/// macOS `.bordered` button for secondary actions ("Review Actions…"): a soft
+/// grey fill with accent text (colors come from the theme's secondary button).
 pub fn bordered(id: impl Into<ElementId>, label: impl Into<SharedString>) -> Button {
-    Button::new(id).outline().label(label)
+    Button::new(id).secondary().label(label)
 }
 
 /// Bordered button with a leading icon.
@@ -24,7 +25,10 @@ pub fn bordered_icon(
     icon: Ico,
     label: impl Into<SharedString>,
 ) -> Button {
-    Button::new(id).outline().icon(Icon::new(icon)).label(label)
+    Button::new(id)
+        .secondary()
+        .icon(Icon::new(icon))
+        .label(label)
 }
 
 /// Icon-only toolbar button with a tooltip.

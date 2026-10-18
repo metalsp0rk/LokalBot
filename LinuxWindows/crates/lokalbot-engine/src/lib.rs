@@ -1,1 +1,225 @@
 //! LokalBot's background engine for Linux and Windows.
+//!
+//! The app sends [`Command`]s; the engine does the work on its own threads and
+//! reports back through [`EngineEvent`]s. Nothing here touches the UI.
+
+mod ask;
+mod compat;
+mod daymemory;
+mod detector;
+mod dictation;
+mod digest;
+pub mod events;
+mod models;
+mod pipeline;
+mod recording;
+pub mod secrets;
+mod speech;
+
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::thread::JoinHandle;
+
+use anyhow::Result;
+use crossbeam_channel::{Receiver, Sender, unbounded};
+use parking_lot::{Mutex, RwLock};
+
+use lokalbot_core::{Library, Settings};
+
+pub use events::*;
+
+/// State every subsystem shares.
+pub(crate) struct Shared {
+    pub library: Library,
+    settings: RwLock<Settings>,
+    emit: Box<dyn Fn(EngineEvent) + Send + Sync>,
+    /// True while a meeting or dictation is capturing audio; heavy work waits.
+    pub capture_active: AtomicBool,
+    /// True while a meeting is being recorded.
+    pub recording_active: AtomicBool,
+    pub speech: Arc<speech::SpeechCache>,
+    pub runtime: lokalbot_ai::runtime::RuntimeManager,
+    background: Mutex<Vec<BackgroundItem>>,
+    pub shutting_down: AtomicBool,
+}
+
+impl Shared {
+    pub fn emit(&self, event: EngineEvent) {
+        (self.emit)(event);
+    }
+
+    pub fn settings(&self) -> Settings {
+        self.settings.read().clone()
+    }
+
+    pub fn message(&self, text: impl Into<String>) {
+        self.emit(EngineEvent::Message {
+            text: text.into(),
+            is_error: false,
+        });
+    }
+
+    pub fn error(&self, text: impl Into<String>) {
+        self.emit(EngineEvent::Message {
+            text: text.into(),
+            is_error: true,
+        });
+    }
+
+    /// Adds or replaces one row of the sidebar's "In progress" card.
+    pub fn set_background(&self, item: BackgroundItem) {
+        let snapshot = {
+            let mut items = self.background.lock();
+            match items.iter_mut().find(|existing| existing.id == item.id) {
+                Some(existing) => *existing = item,
+                None => items.push(item),
+            }
+            items.clone()
+        };
+        self.emit(EngineEvent::Background(snapshot));
+    }
+
+    pub fn clear_background(&self, id: &str) {
+        let snapshot = {
+            let mut items = self.background.lock();
+            items.retain(|item| item.id != id);
+            items.clone()
+        };
+        self.emit(EngineEvent::Background(snapshot));
+    }
+
+    /// The Think client for the current settings, with the stored API key.
+    pub fn think(&self, settings: &Settings) -> Result<lokalbot_ai::think::ThinkClient> {
+        let client = lokalbot_ai::think::ThinkClient::new(&self.runtime, settings)?;
+        Ok(match settings.summarizer_backend {
+            lokalbot_core::settings::SummarizerBackend::OpenAICompatible => {
+                client.with_api_key(secrets::openai_api_key())
+            }
+            _ => client,
+        })
+    }
+
+    pub fn is_shutting_down(&self) -> bool {
+        self.shutting_down.load(Ordering::Relaxed)
+    }
+}
+
+/// Handle to the running engine. Dropping it shuts the engine down.
+pub struct Engine {
+    commands: Sender<Command>,
+    shared: Arc<Shared>,
+    dispatcher: Option<JoinHandle<()>>,
+}
+
+impl Engine {
+    /// Starts every background service. `on_event` is called from engine
+    /// threads; it must be cheap (forward into a channel).
+    pub fn start(
+        library: Library,
+        settings: Settings,
+        on_event: impl Fn(EngineEvent) + Send + Sync + 'static,
+    ) -> Result<Engine> {
+        let runtime = lokalbot_ai::runtime::RuntimeManager::new(library.paths().clone(), &settings);
+        let shared = Arc::new(Shared {
+            library,
+            settings: RwLock::new(settings),
+            emit: Box::new(on_event),
+            capture_active: AtomicBool::new(false),
+            recording_active: AtomicBool::new(false),
+            speech: Arc::new(speech::SpeechCache::default()),
+            runtime,
+            background: Mutex::new(Vec::new()),
+            shutting_down: AtomicBool::new(false),
+        });
+        let (commands, receiver) = unbounded();
+        let dispatcher = {
+            let shared = shared.clone();
+            let commands = commands.clone();
+            std::thread::Builder::new()
+                .name("lokalbot-engine".into())
+                .spawn(move || dispatch(shared, commands, receiver))?
+        };
+        Ok(Engine {
+            commands,
+            shared,
+            dispatcher: Some(dispatcher),
+        })
+    }
+
+    pub fn send(&self, command: Command) {
+        if self.commands.send(command).is_err() {
+            log::warn!("engine is not running");
+        }
+    }
+
+    /// A clone of the command channel, for platform callbacks (tray, shortcuts).
+    pub fn sender(&self) -> Sender<Command> {
+        self.commands.clone()
+    }
+
+    pub fn library(&self) -> &Library {
+        &self.shared.library
+    }
+}
+
+impl Drop for Engine {
+    fn drop(&mut self) {
+        let _ = self.commands.send(Command::Shutdown);
+        if let Some(dispatcher) = self.dispatcher.take() {
+            let _ = dispatcher.join();
+        }
+    }
+}
+
+fn dispatch(shared: Arc<Shared>, commands: Sender<Command>, receiver: Receiver<Command>) {
+    let models = models::Models::new(shared.clone());
+    let pipeline = pipeline::Pipeline::start(shared.clone(), models.clone());
+    let recording = recording::Recording::new(shared.clone(), pipeline.clone());
+    let ask = ask::AskWorker::new(shared.clone(), models.clone());
+    let digest = digest::DigestScheduler::start(shared.clone(), models.clone());
+    let meeting_detector = Arc::new(Mutex::new(lokalbot_platform::MeetingDetector::new()));
+    let day_memory = daymemory::DayMemory::start(shared.clone(), meeting_detector.clone());
+    let detector = detector::Detector::start(shared.clone(), commands.clone(), meeting_detector);
+    let dictation = dictation::Dictation::new(shared.clone(), models.clone());
+    models.publish_status();
+
+    while let Ok(command) = receiver.recv() {
+        log::debug!("engine command: {command:?}");
+        match command {
+            Command::StartRecording { title, app_name } => recording.start(title, app_name),
+            Command::StopRecording => recording.stop(),
+            Command::ProcessMeeting {
+                meeting_id,
+                transcribe,
+                summarize,
+            } => pipeline.enqueue(meeting_id, transcribe, summarize, true),
+            Command::RegenerateDigest(day) => digest.regenerate(day),
+            Command::Ask {
+                conversation_id,
+                question,
+                scope,
+            } => ask.ask(conversation_id, question, scope),
+            Command::StopAnswer => ask.stop(),
+            Command::DownloadModel(id) => models.download(&id),
+            Command::CancelDownload(id) => models.cancel(&id),
+            Command::DeleteModel(id) => models.delete(&id),
+            Command::PrepareModels => models.prepare_for_settings(),
+            Command::SetDayMemoryPaused(paused) => day_memory.set_paused(paused),
+            Command::WriteProjectNote(project_id) => ask.write_project_note(project_id),
+            Command::UpdateSettings(settings) => {
+                *shared.settings.write() = *settings;
+                models.publish_status();
+            }
+            Command::Dictation(command) => dictation.handle(command),
+            Command::Shutdown => break,
+        }
+    }
+
+    shared.shutting_down.store(true, Ordering::Relaxed);
+    recording.stop_for_shutdown();
+    detector.stop();
+    day_memory.stop();
+    digest.stop();
+    pipeline.stop();
+    shared.runtime.shutdown();
+}

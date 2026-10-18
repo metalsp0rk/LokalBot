@@ -281,12 +281,17 @@ pub fn apply(dark: bool, text_scale: f32, window: Option<&mut Window>, cx: &mut 
         c.secondary_hover = palette.hover.opacity(1.8);
         c.secondary_active = palette.hover.opacity(2.4);
         c.secondary_foreground = palette.text;
+        c.button_secondary = palette.chip_fill;
+        c.button_secondary_hover = palette.chip_fill.opacity(1.7);
+        c.button_secondary_active = palette.chip_fill.opacity(2.3);
+        c.button_secondary_foreground = palette.accent_text;
         c.accent = palette.hover;
         c.accent_foreground = palette.text;
         c.link = palette.accent_text;
         c.link_hover = palette.accent_text.opacity(0.85);
         c.link_active = palette.accent_text;
         c.switch = palette.chip_fill.opacity(2.0);
+        c.switch_thumb = rgb(0xFFFFFF).into();
         c.list = palette.window;
         c.list_hover = palette.hover;
         c.list_active = palette.accent_wash;

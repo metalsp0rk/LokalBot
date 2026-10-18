@@ -35,6 +35,8 @@ foreach ($page in $Pages) {
   Start-Sleep -Seconds $WaitSeconds
   $h = $p.MainWindowHandle
   [LbWin]::SetForegroundWindow($h) | Out-Null
+  # Park the pointer in a corner so no hover state shows.
+  [System.Windows.Forms.Cursor]::Position = New-Object System.Drawing.Point(([System.Windows.Forms.Screen]::PrimaryScreen.Bounds.Width - 2), ([System.Windows.Forms.Screen]::PrimaryScreen.Bounds.Height - 2))
   Start-Sleep -Milliseconds 600
   $frame = New-Object LbWin+RECT
   [LbWin]::DwmGetWindowAttribute($h, 9, [ref]$frame, 16) | Out-Null
