@@ -6,8 +6,8 @@ use gpui_kit::component::input::Textarea;
 use gpui_kit::component::{Sizable as _, h_flex, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
-    AnyElement, Context, FontWeight, Hsla, IntoElement, ParentElement as _, Styled as _, Window,
-    div, px,
+    AnyElement, Context, FontWeight, Hsla, IntoElement, ParentElement as _, SharedString,
+    Styled as _, Window, div, px,
 };
 
 use super::{MeetingsPage, NotesStatus, status_text};
@@ -180,18 +180,28 @@ impl MeetingsPage {
         cx: &mut Context<Self>,
     ) -> impl IntoElement {
         let lb = cx.lb().clone();
-        let mic_status = if mic > 0.01 {
-            "Receiving audio"
-        } else {
-            "Waiting for audio"
-        };
-        let system_status = if !has_system {
-            "Not attached"
-        } else if system > 0.01 {
-            "Receiving audio"
-        } else {
-            "Waiting for audio"
-        };
+        // The engine reports each track's state; levels only fill in until
+        // its first update arrives.
+        let statuses = self.data.read(cx).recording_statuses.clone();
+        let (mic_status, system_status): (SharedString, SharedString) =
+            statuses.unwrap_or_else(|| {
+                (
+                    if mic > 0.01 {
+                        "Receiving audio"
+                    } else {
+                        "Waiting for audio"
+                    }
+                    .into(),
+                    if !has_system {
+                        "Not attached"
+                    } else if system > 0.01 {
+                        "Receiving audio"
+                    } else {
+                        "Waiting for audio"
+                    }
+                    .into(),
+                )
+            });
         let line = |icon: Ico, label: String, level: Option<f32>| {
             h_flex()
                 .gap(px(8.))
