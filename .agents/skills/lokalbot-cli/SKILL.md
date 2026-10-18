@@ -132,6 +132,25 @@ Changing settings:
 - `[read_only]` settings can't be changed from the terminal.
 - Never write LokalBot's preferences with `defaults write`, and never create or edit files in its `control/` folder: a partial preferences write silently resets other settings (it can turn automatic recording on), and the running app overwrites it anyway.
 
+## Setting up LokalBot
+
+When the user wants LokalBot installed or set up, follow [AGENT_SETUP.md](https://github.com/stevyhacker/lokalbot/blob/master/AGENT_SETUP.md):
+
+```bash
+lokalbot-cli setup start --wait 300        # the user clicks Allow in LokalBot; the only way to get access
+lokalbot-cli setup plan > plan.json        # talk it through, then edit to the user's answers
+lokalbot-cli setup apply plan.json --wait 300
+lokalbot-cli models status                 # poll until meetingReady
+lokalbot-cli permissions                   # then: permissions request <name>, restart if macOS asks
+lokalbot-cli setup finish
+lokalbot-cli doctor                        # exit 0 when ready; nextSteps otherwise
+```
+
+- Ask before adding `--meeting-library` or `--screen-memory` to `setup start`, and before requesting any setting in the plan's `notes.needsApproval`.
+- Exit 3 means the user hasn't answered yet, 4 means they declined (don't ask again unless they say so), and 5 means the request expired.
+- For permissions, tell the user exactly what to click, then poll `permissions` until it shows the grant.
+- Never install by removing the quarantine attribute, and never write LokalBot's preferences or files in `control/` yourself.
+
 ## MCP alternative (and ask_library)
 
 The same library is available over MCP for GUI clients and anything else that speaks it: `lokalbot-cli mcp` serves `get_briefing` (call it first; same text as `brief`), `list_meetings`, `get_meeting`, `search_meetings`, `ask_library`, `get_action_items`, `list_people`, and `get_person` on stdio. It also advertises `search_screen`, `get_timeline`, `get_recent_activity`, `get_app_usage`, and `get_screenshot_detail`; those return OCR and metadata only, never decrypted pixels or screenshot paths. `get_personal_context` returns what the user shared about themselves under its own permission.

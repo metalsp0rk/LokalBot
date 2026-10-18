@@ -101,6 +101,11 @@ extension AppState {
 
     // MARK: From the terminal
 
+    /// Shows an agent's setup request, if one is waiting.
+    func showAgentSetupIfRequested() {
+        if agentSetup.check() { WindowAccess.shared.open("agent-setup") }
+    }
+
     /// Applies checked plan items and records them for the audit log and
     /// Undo. Returns a warning for each value that did not stick.
     func applyAgentSettings(

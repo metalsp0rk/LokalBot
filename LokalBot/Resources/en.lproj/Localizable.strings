@@ -60,11 +60,14 @@
 "All meetings" = "All meetings";
 "All retained history" = "All retained history";
 "All three core models will run on this Mac." = "All three core models will run on this Mac.";
+"Allow" = "Allow";
 "Allow Once" = "Allow Once";
 "Allow external agents to change LokalBot settings" = "Allow external agents to change LokalBot settings";
 "Allow external agents to read screen memory" = "Allow external agents to read screen memory";
 "Allow external agents to read your meeting library" = "Allow external agents to read your meeting library";
 "Allow multi-line suggestions" = "Allow multi-line suggestions";
+"Allow only an agent you started yourself. Any program on this Mac can make this request." = "Allow only an agent you started yourself. Any program on this Mac can make this request.";
+"Allowing it lets the agent change your LokalBot settings, download models, and walk you through macOS permissions. Turning on capture, a data source, or sharing still asks you here. You can turn this off at any time in Settings → Privacy." = "Allowing it lets the agent change your LokalBot settings, download models, and walk you through macOS permissions. Turning on capture, a data source, or sharing still asks you here. You can turn this off at any time in Settings → Privacy.";
 "Also allow relevant work memory derived from screen activity and daily journals. Reads what is already saved; it does not capture new screens or start an overnight review. Mixed meeting and screen memories require both settings." = "Also allow relevant work memory derived from screen activity and daily journals. Reads what is already saved; it does not capture new screens or start an overnight review. Mixed meeting and screen memories require both settings.";
 "Also assigned to another voice" = "Also assigned to another voice";
 "Also prepare Autocomplete (optional)" = "Also prepare Autocomplete (optional)";
@@ -102,6 +105,7 @@
 "Ask via notification waits for you to start recording. Manual mode keeps Record Now available." = "Ask via notification waits for you to start recording. Manual mode keeps Record Now available.";
 "Ask your work memory" = "Ask your work memory";
 "Asks before recording meetings" = "Asks before recording meetings";
+"asks to set up LokalBot for you from the terminal." = "asks to set up LokalBot for you from the terminal.";
 "Ask…" = "Ask…";
 "Attach context" = "Attach context";
 "Auto-detect" = "Auto-detect";
@@ -188,6 +192,7 @@
 "Clear search filters" = "Clear search filters";
 "Clear selection" = "Clear selection";
 "Dictation already uses this shortcut. Choose another." = "Dictation already uses this shortcut. Choose another.";
+"Don't Allow" = "Don't Allow";
 "Hold the modifiers and press a key, like ⌃⇧ Space." = "Hold the modifiers and press a key, like ⌃⇧ Space.";
 "macOS already uses this shortcut. Choose another." = "macOS already uses this shortcut. Choose another.";
 "Model folder selection cleared" = "Model folder selection cleared";
@@ -888,6 +893,8 @@
 "Session preview" = "Session preview";
 "Sessions" = "Sessions";
 "Set by the model" = "Set by the model";
+"Set up LokalBot with your agent" = "Set up LokalBot with your agent";
+"Set Up with Your Agent" = "Set Up with Your Agent";
 "Settings" = "Settings";
 "Settings categories" = "Settings categories";
 "Settings changed from the terminal. Undo restores the earlier value while the setting still holds the agent's." = "Settings changed from the terminal. Undo restores the earlier value while the setting still holds the agent's.";

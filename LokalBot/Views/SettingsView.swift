@@ -1530,6 +1530,12 @@ private struct AgentSettingsChangesList: View {
     }
 
     private func summary(_ entry: AgentSettingsChanges.Entry) -> String {
+        switch entry.key {
+        case "setup.access": return "Agent setup allowed: \(entry.value?.stringValue ?? "settings")"
+        case "models.preset": return "Model preset: \(entry.value?.stringValue ?? "changed")"
+        case "launchAtLogin": return "Launch at login: \(entry.value == .bool(true) ? "on" : "off")"
+        default: break
+        }
         if let secret = AppSecret(rawValue: String(entry.key.dropFirst("secret.".count))), entry.key.hasPrefix("secret.") {
             return "\(secret.title): \(entry.value?.stringValue ?? "changed")"
         }

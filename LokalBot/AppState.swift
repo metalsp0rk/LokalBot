@@ -599,6 +599,9 @@ final class AppState: ObservableObject {
     private(set) lazy var agentSettingsChanges = AgentSettingsChanges(root: storage.rootURL)
     /// Terminal requests waiting for the person: widening changes and API keys.
     private(set) lazy var settingsApprovals = SettingsApprovals()
+    /// An agent's `setup start` request, the one way the terminal asks for access.
+    private(set) lazy var agentSetup = AgentSetupRequests(
+        controlDirectory: SettingsControlGate(root: storage.rootURL).controlDirectory)
     var agentSecrets = AgentSecretStore.keychain
     private(set) lazy var quickRecallHotKey: QuickRecallHotKeyController = {
         let controller = QuickRecallHotKeyController()
@@ -1249,6 +1252,14 @@ final class AppState: ObservableObject {
         settingsApprovals.announce = { request in RecordingNotifier.shared.settingsApprovalRequested(request) }
         settingsApprovals.withdraw = { request in RecordingNotifier.shared.withdrawSettingsApproval(request.id) }
         settingsControl.start()
+        // `lokalbot-cli setup start` leaves a request and launches the app,
+        // or tells a running copy to look for it.
+        DistributedNotificationCenter.default().addObserver(
+            forName: Notification.Name(AgentSetup.notificationName), object: nil, queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in self?.showAgentSetupIfRequested() }
+        }
+        showAgentSetupIfRequested()
         applyQuickRecallSetting()
         applyDailyMemoryExportSetting()
         applyMeetingNoteExportSetting()
@@ -1268,7 +1279,9 @@ final class AppState: ObservableObject {
         if !UserDefaults.standard.bool(forKey: Self.onboardingShownKey) {
             if PermissionManager.shared.allGranted {
                 UserDefaults.standard.set(true, forKey: Self.onboardingShownKey)
-            } else {
+            } else if agentSetup.pending == nil {
+                // An agent's setup request replaces the wizard; declining it
+                // opens onboarding instead.
                 WindowAccess.shared.open("onboarding")
             }
         }

@@ -34,9 +34,26 @@ enum AppControlProtocol {
         case secretList = "secret.list"
         case secretSet = "secret.set"
         case secretClear = "secret.clear"
+        case setupPlan = "setup.plan"
+        case setupFinish = "setup.finish"
+        case modelsStatus = "models.status"
+        case modelsPreset = "models.preset"
+        case modelsDownload = "models.download"
+        case modelsCancel = "models.cancel"
+        case permissionsList = "permissions.list"
+        case permissionsRequest = "permissions.request"
+        case launchAtLogin = "app.launchAtLogin"
+        case restart = "app.restart"
+        case doctor
         case status
         case open
     }
+
+    /// Names `permissions request` accepts.
+    static let permissionNames = ["microphone", "accessibility", "screen-recording", "input-monitoring", "calendar"]
+
+    /// Model presets `models preset` and setup plans accept.
+    static let modelPresets = ["recommended", "lightweight"]
 }
 
 struct AppControlRequest: Codable, Equatable {

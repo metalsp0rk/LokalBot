@@ -491,6 +491,16 @@ program that made it, in the library's `diagnostics/settings-changes.jsonl` and
 listed under the toggle with Undo. Turning the toggle off declines every request
 still waiting. When LokalBot is not running, these commands start it in the
 background, which also starts the capture and schedules you have turned on.
+
+An agent setting LokalBot up for you can ask for this access with
+`lokalbot-cli setup start`. The CLI leaves a short-lived request in the
+library's `control/` folder, and LokalBot shows it in a window that names the
+program that asked. Only clicking Allow turns access on. Read access to the
+meeting library or screen memory appears as separate boxes, off unless you
+tick them, and Don't Allow leaves everything off. With access, the agent can
+also choose a model preset (which downloads models), show you macOS permission
+prompts, set launch at login, and restart LokalBot when macOS needs it. The
+permissions themselves are always yours to grant.
 This toggle grants no meeting-library, screen-memory, or personal-context
 access, and none of those grants it.
 

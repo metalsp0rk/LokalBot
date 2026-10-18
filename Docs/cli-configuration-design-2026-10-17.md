@@ -645,7 +645,7 @@ Phase 2 is implemented in PR #288:
 - `status` reports model readiness and onboarding; `open` accepts the
   non-setting Settings sections.
 
-Phase 3 is implemented in the follow-up PR:
+Phase 3 is implemented in PR #288 as well:
 
 - `SettingsApprovals` queues requests with widening changes and new API keys.
   The app posts a notification, opens the approval window when notifications
@@ -663,6 +663,24 @@ Phase 3 is implemented in the follow-up PR:
 - Undo is not offered for retention changes, which could delete without a
   review. `screenshotsEnabled` became read-only: it follows the capture mode.
 
+Phase 4 is implemented in the follow-up PR:
+
+- `setup start` (`AgentSetup`, `AgentSetupRequests`): the request file, the
+  `agent-setup` window (shown instead of the onboarding wizard on a new
+  install; declining opens the wizard), separate read-access boxes off by
+  default, and the answer file `--wait` reads. Only Allow writes markers.
+- `setup plan` (current values for `SetupPlan.keys`, the preset suited to this
+  Mac's memory, and the settings that need approval) and `setup apply`
+  (preferences directly, consent changes on one card, then the model preset
+  and launch at login), `setup finish`, and `setup launch-at-login`.
+- `models status|preset|download|cancel`, `permissions [request <name>]`,
+  `restart` (refused while recording), and `doctor` (exits 1 while something
+  the person turned on is blocked).
+- `/lokalbot:setup` in the Claude Code plugin, `AGENT_SETUP.md`, and a
+  "Setting up LokalBot" section in the skill.
+- Not done: "Review individually" on the consent card, `models
+  list|recommend|check`, and a website copy of `AGENT_SETUP.md`.
+
 ## Phases
 
 | Phase | Scope | Size |
@@ -670,7 +688,7 @@ Phase 3 is implemented in the follow-up PR:
 | 0 | Registry and coverage tests. Done in PR #281, except building `SettingDescriptor` from the registry and moving couplings, which go with Phase 2 | Done (part) |
 | 1 | `config schema/describe/search`, settings grant and marker, control socket, background launch, `config list/get`, `status`, `open` | Done in PR #281 |
 | 2 | Preference writes, audit log, Undo list. `status` gains model readiness and onboarding state; `open` accepts non-registry destinations | Done in PR #288 |
-| 3 | Approval requests (notification, menu bar, approval window), one combined card for multi-change requests, `--wait`, `secret set`, retention review through approval. Settings-view side effects (permission requests, couplings) moved into `AppState` | Medium |
+| 3 | Approval requests (notification, menu bar, approval window), one combined card for multi-change requests, `--wait`, `secret set`, retention review through approval. Settings-view side effects (permission requests, couplings) moved into `AppState` | Done in PR #288 |
 | 4 | Agent-led setup: `setup start` (bootstrap request in onboarding), `setup plan/apply`, `models`, `permissions`, `restart`, `setup finish`, `doctor`. Plus `/lokalbot:setup`, `AGENT_SETUP.md`, and the skill section | Medium–large |
 | 5 | MCP tools; optional App Intents generated from the registry | Small–medium |
 | Later | Other actions over the socket (recording, processing, digest, Dream); headless flags forward to a running app | Medium–large |

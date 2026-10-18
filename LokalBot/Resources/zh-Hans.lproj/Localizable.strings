@@ -60,11 +60,14 @@
 "All meetings" = "所有会议";
 "All retained history" = "所有保留的历史";
 "All three core models will run on this Mac." = "三个核心模型都会在这台 Mac 上运行。";
+"Allow" = "允许";
 "Allow Once" = "允许一次";
 "Allow external agents to change LokalBot settings" = "允许外部智能体更改 LokalBot 设置";
 "Allow external agents to read screen memory" = "允许外部智能体读取屏幕记忆";
 "Allow external agents to read your meeting library" = "允许外部智能体读取会议资料库";
 "Allow multi-line suggestions" = "允许多行建议";
+"Allow only an agent you started yourself. Any program on this Mac can make this request." = "只允许你自己启动的智能体。这台 Mac 上的任何程序都可以发出此请求。";
+"Allowing it lets the agent change your LokalBot settings, download models, and walk you through macOS permissions. Turning on capture, a data source, or sharing still asks you here. You can turn this off at any time in Settings → Privacy." = "允许后，智能体可以更改你的 LokalBot 设置、下载模型，并引导你完成 macOS 权限设置。开启采集、数据来源或共享仍会在这里询问你。你可以随时在“设置”→“隐私”中关闭此权限。";
 "Also allow relevant work memory derived from screen activity and daily journals. Reads what is already saved; it does not capture new screens or start an overnight review. Mixed meeting and screen memories require both settings." = "也允许使用来自屏幕活动和每日日志的相关工作记忆。仅读取已保存内容，不会采集新屏幕或启动夜间回顾。混合会议与屏幕的记忆需要同时开启两项设置。";
 "Also assigned to another voice" = "也已分配给另一个声音";
 "Also prepare Autocomplete (optional)" = "同时准备自动补全（可选）";
@@ -102,6 +105,7 @@
 "Ask via notification waits for you to start recording. Manual mode keeps Record Now available." = "“通过通知询问”会等待你主动开始录制。手动模式下仍可使用“立即录制”。";
 "Ask your work memory" = "向工作记忆提问";
 "Asks before recording meetings" = "录制会议前询问";
+"asks to set up LokalBot for you from the terminal." = "请求从终端为你设置 LokalBot。";
 "Ask…" = "问答…";
 "Attach context" = "附加上下文";
 "Auto-detect" = "自动检测";
@@ -188,6 +192,7 @@
 "Clear search filters" = "清除搜索筛选";
 "Clear selection" = "清除选择";
 "Dictation already uses this shortcut. Choose another." = "听写已在使用此快捷键。请选择其他快捷键。";
+"Don't Allow" = "不允许";
 "Hold the modifiers and press a key, like ⌃⇧ Space." = "请按住修饰键再按一个按键，例如 ⌃⇧ Space。";
 "macOS already uses this shortcut. Choose another." = "macOS 已在使用此快捷键。请选择其他快捷键。";
 "Model folder selection cleared" = "已清除模型文件夹选择";
@@ -888,6 +893,8 @@
 "Session preview" = "会话预览";
 "Sessions" = "会话";
 "Set by the model" = "由模型决定";
+"Set up LokalBot with your agent" = "与你的智能体一起设置 LokalBot";
+"Set Up with Your Agent" = "与智能体一起设置";
 "Settings" = "设置";
 "Settings categories" = "设置分类";
 "Settings changed from the terminal. Undo restores the earlier value while the setting still holds the agent's." = "在终端中更改的设置。只要该设置仍是智能体设定的值，撤销即可恢复之前的值。";

@@ -45,8 +45,18 @@ final class AgentSettingsChanges: ObservableObject {
 
     /// An API key, which the log names but never stores.
     func recordSecret(_ secret: AppSecret, isSet: Bool, caller: String, time: Date = Date()) {
-        let entry = Entry(time: time, caller: caller, key: "secret.\(secret.rawValue)",
-                          previous: nil, value: .string(isSet ? "set" : "cleared"))
+        recordEvent("secret.\(secret.rawValue)", .string(isSet ? "set" : "cleared"), caller: caller, time: time)
+    }
+
+    /// Access the person allowed from an agent's setup request.
+    func recordSetup(_ grants: [AgentSetup.Grant], caller: String, time: Date = Date()) {
+        recordEvent("setup.access", .string(grants.map(\.rawValue).joined(separator: ", ")), caller: caller, time: time)
+    }
+
+    /// Something an agent did that is not a stored setting, such as choosing
+    /// a model preset or launch at login. Listed, never undone.
+    func recordEvent(_ key: String, _ value: JSONValue, caller: String, time: Date = Date()) {
+        let entry = Entry(time: time, caller: caller, key: key, previous: nil, value: value)
         append([entry])
         recent = Array(([entry] + recent).prefix(Self.recentLimit))
     }

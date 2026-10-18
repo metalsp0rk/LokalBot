@@ -53,6 +53,10 @@ extension ControlOutput {
     /// Polls the running app until the request is answered or `seconds` pass.
     /// Never starts LokalBot: a request lives only in the copy that took it.
     static func waitForAnswer(id: String, seconds: Double, launchTimeout: Double) throws {
+        try report(poll(id: id, seconds: seconds, launchTimeout: launchTimeout))
+    }
+
+    static func poll(id: String, seconds: Double, launchTimeout: Double) throws -> JSONValue {
         let deadline = Date().addingTimeInterval(min(seconds, 300))
         var request: JSONValue
         repeat {
@@ -61,24 +65,29 @@ extension ControlOutput {
             guard request["state"]?.stringValue == SettingsRequestState.pending.rawValue else { break }
             Thread.sleep(forTimeInterval: 1)
         } while Date() < deadline
-        try report(request)
+        return request
     }
 
     /// Prints a request and exits with the code its state maps to.
     static func report(_ request: JSONValue) throws {
         print(json(request))
-        switch SettingsRequestState(rawValue: request["state"]?.stringValue ?? "") {
+        if let exit = exitCode(for: request["state"]?.stringValue) { throw exit }
+    }
+
+    /// Nil for approved; otherwise the exit code, with the reason on stderr.
+    static func exitCode(for state: String?) -> ExitCode? {
+        switch SettingsRequestState(rawValue: state ?? "") {
         case .approved:
-            return
+            return nil
         case .denied:
             standardError(AppControlError.denied.errorDescription ?? "")
-            throw ApprovalExit.denied
+            return ApprovalExit.denied
         case .expired:
             standardError(AppControlError.expired.errorDescription ?? "")
-            throw ApprovalExit.expired
+            return ApprovalExit.expired
         case .pending, nil:
             standardError("[needs_approval] Still waiting for the person in LokalBot.")
-            throw ApprovalExit.waiting
+            return ApprovalExit.waiting
         }
     }
 

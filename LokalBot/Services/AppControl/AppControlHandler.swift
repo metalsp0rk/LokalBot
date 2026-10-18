@@ -65,6 +65,9 @@ final class AppControlHandler {
                 let secret = try Self.secret(request.params ?? [:])
                 try app.setAgentSecret(secret, to: nil, caller: peer.description)
                 return .success(["cleared": .string(secret.rawValue)])
+            case .setupPlan, .setupFinish, .modelsStatus, .modelsPreset, .modelsDownload, .modelsCancel,
+                 .permissionsList, .permissionsRequest, .launchAtLogin, .restart, .doctor:
+                return .success(try setupResponse(method, request.params ?? [:], peer: peer, in: app))
             case .status:
                 return .success(status(of: app))
             case .open:
