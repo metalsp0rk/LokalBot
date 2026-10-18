@@ -7,8 +7,8 @@ use gpui_kit::component::menu::{DropdownMenu as _, PopupMenuItem};
 use gpui_kit::component::{Sizable as _, WindowExt as _, h_flex, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
-    App, AppContext as _, Context, Entity, FontWeight, IntoElement, ParentElement as _, Render, SharedString,
-    Styled as _, Window, div, px,
+    App, AppContext as _, Context, Entity, FontWeight, IntoElement, ParentElement as _, Render,
+    SharedString, Styled as _, Window, div, px,
 };
 use lokalbot_core::{ActionState, ActionStatus, Library, Meeting, Transcript};
 use uuid::Uuid;
@@ -18,7 +18,12 @@ use crate::state::AppData;
 use crate::theme::{LbThemeExt as _, ty};
 
 /// "Delete N meeting(s)?" with the macOS wording.
-pub(crate) fn confirm_delete(data: Entity<AppData>, ids: Vec<Uuid>, window: &mut Window, cx: &mut App) {
+pub(crate) fn confirm_delete(
+    data: Entity<AppData>,
+    ids: Vec<Uuid>,
+    window: &mut Window,
+    cx: &mut App,
+) {
     if ids.is_empty() {
         return;
     }
@@ -33,7 +38,12 @@ pub(crate) fn confirm_delete(data: Entity<AppData>, ids: Vec<Uuid>, window: &mut
         let data = data.clone();
         dialog
             .w(px(440.))
-            .title(div().text_size(ty::COLUMN_TITLE).font_weight(FontWeight::BOLD).child(title.clone()))
+            .title(
+                div()
+                    .text_size(ty::COLUMN_TITLE)
+                    .font_weight(FontWeight::BOLD)
+                    .child(title.clone()),
+            )
             .child(
                 div()
                     .text_size(ty::BODY)
@@ -45,9 +55,14 @@ pub(crate) fn confirm_delete(data: Entity<AppData>, ids: Vec<Uuid>, window: &mut
                     .w_full()
                     .gap_2()
                     .justify_end()
-                    .child(Button::new("delete-cancel").outline().label("Cancel").on_click(|_, window, cx| {
-                        window.close_dialog(cx);
-                    }))
+                    .child(
+                        Button::new("delete-cancel")
+                            .outline()
+                            .label("Cancel")
+                            .on_click(|_, window, cx| {
+                                window.close_dialog(cx);
+                            }),
+                    )
                     .child(
                         Button::new("delete-confirm")
                             .danger()
@@ -82,11 +97,14 @@ pub(crate) fn save_correction(
 ) -> anyhow::Result<()> {
     let mut state = library.outcome_state(meeting)?;
     let now = chrono::Utc::now();
-    let entry = state.actions.entry(action_id.to_string()).or_insert_with(|| {
-        let mut fresh = ActionState::new(ActionStatus::Open);
-        fresh.user_edited = false;
-        fresh
-    });
+    let entry = state
+        .actions
+        .entry(action_id.to_string())
+        .or_insert_with(|| {
+            let mut fresh = ActionState::new(ActionStatus::Open);
+            fresh.user_edited = false;
+            fresh
+        });
     if let Some(text) = text {
         entry.text_correction = Some(text);
         entry.text_corrected_at = Some(now);
@@ -138,14 +156,25 @@ impl CorrectionSheet {
         let sheet = cx.new(|cx| {
             let text = cx.new(|cx| InputState::new(window, cx).default_value(action.text.clone()));
             let owner = cx.new(|cx| {
-                InputState::new(window, cx).placeholder("Owner").default_value(action.owner.clone().unwrap_or_default())
+                InputState::new(window, cx)
+                    .placeholder("Owner")
+                    .default_value(action.owner.clone().unwrap_or_default())
             });
             let due = cx.new(|cx| {
                 InputState::new(window, cx)
                     .placeholder("Due date as agreed")
                     .default_value(action.due.clone().unwrap_or_default())
             });
-            Self { data, meeting, action, suggestions, text, owner, due, error: None }
+            Self {
+                data,
+                meeting,
+                action,
+                suggestions,
+                text,
+                owner,
+                due,
+                error: None,
+            }
         });
         window.open_dialog(cx, move |dialog, _, _| {
             dialog.w(px(460.)).close_button(false).child(sheet.clone())
@@ -154,17 +183,21 @@ impl CorrectionSheet {
 
     fn set_owner(&mut self, owner: &str, window: &mut Window, cx: &mut Context<Self>) {
         let owner = owner.to_string();
-        self.owner.update(cx, |input, cx| input.set_value(owner, window, cx));
+        self.owner
+            .update(cx, |input, cx| input.set_value(owner, window, cx));
     }
 
     fn save(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         let text = self.text.read(cx).value().trim().to_string();
         let owner = self.owner.read(cx).value().trim().to_string();
         let due = self.due.read(cx).value().trim().to_string();
-        let text_change = (!text.is_empty() && text != self.action.original_text && text != self.action.text).then_some(text);
+        let text_change =
+            (!text.is_empty() && text != self.action.original_text && text != self.action.text)
+                .then_some(text);
         let owner_change = (owner != self.action.owner.clone().unwrap_or_default())
             .then(|| (!owner.is_empty() && owner != "Unassigned").then_some(owner));
-        let due_change = (due != self.action.due.clone().unwrap_or_default()).then(|| (!due.is_empty()).then_some(due));
+        let due_change = (due != self.action.due.clone().unwrap_or_default())
+            .then(|| (!due.is_empty()).then_some(due));
         if text_change.is_none() && owner_change.is_none() && due_change.is_none() {
             window.close_dialog(cx);
             return;
@@ -176,7 +209,14 @@ impl CorrectionSheet {
         cx.spawn_in(window, async move |this, cx| {
             let result = cx
                 .background_spawn(async move {
-                    save_correction(&library, &meeting, &action_id, text_change, owner_change, due_change)
+                    save_correction(
+                        &library,
+                        &meeting,
+                        &action_id,
+                        text_change,
+                        owner_change,
+                        due_change,
+                    )
                 })
                 .await;
             let _ = this.update_in(cx, |this, window, cx| match result {
@@ -207,11 +247,28 @@ impl Render for CorrectionSheet {
         };
         let suggestions = self.suggestions.clone();
         let sheet = cx.entity().downgrade();
-        let label = |text: &'static str| div().text_size(ty::SECONDARY).font_weight(FontWeight::MEDIUM).text_color(lb.text_secondary).child(text);
+        let label = |text: &'static str| {
+            div()
+                .text_size(ty::SECONDARY)
+                .font_weight(FontWeight::MEDIUM)
+                .text_color(lb.text_secondary)
+                .child(text)
+        };
         v_flex()
             .gap(px(14.))
-            .child(div().text_size(ty::QUESTION).font_weight(FontWeight::BOLD).text_color(lb.text).child("Correct action details"))
-            .child(v_flex().gap(px(6.)).child(label("Corrected wording")).child(Input::new(&self.text)))
+            .child(
+                div()
+                    .text_size(ty::QUESTION)
+                    .font_weight(FontWeight::BOLD)
+                    .text_color(lb.text)
+                    .child("Correct action details"),
+            )
+            .child(
+                v_flex()
+                    .gap(px(6.))
+                    .child(label("Corrected wording"))
+                    .child(Input::new(&self.text)),
+            )
             .child(
                 h_flex()
                     .gap(px(8.))
@@ -227,21 +284,36 @@ impl Render for CorrectionSheet {
                                 let pick = |name: &str| {
                                     let sheet = sheet.clone();
                                     let value = name.to_string();
-                                    move |_: &gpui_kit::ClickEvent, window: &mut Window, cx: &mut App| {
-                                        let _ = sheet.update(cx, |this, cx| this.set_owner(&value, window, cx));
+                                    move |_: &gpui_kit::ClickEvent,
+                                          window: &mut Window,
+                                          cx: &mut App| {
+                                        let _ = sheet.update(cx, |this, cx| {
+                                            this.set_owner(&value, window, cx)
+                                        });
                                     }
                                 };
-                                let mut menu = menu.item(PopupMenuItem::new("You").on_click(pick("Me")));
+                                let mut menu =
+                                    menu.item(PopupMenuItem::new("You").on_click(pick("Me")));
                                 for name in &suggestions {
-                                    menu = menu.item(PopupMenuItem::new(name.clone()).on_click(pick(name)));
+                                    menu = menu.item(
+                                        PopupMenuItem::new(name.clone()).on_click(pick(name)),
+                                    );
                                 }
-                                menu.item(PopupMenuItem::new("Unresolved speaker").on_click(pick("Unresolved speaker")))
-                                    .item(PopupMenuItem::new("Unassigned").on_click(pick("")))
+                                menu.item(
+                                    PopupMenuItem::new("Unresolved speaker")
+                                        .on_click(pick("Unresolved speaker")),
+                                )
+                                .item(PopupMenuItem::new("Unassigned").on_click(pick("")))
                             }),
                     ),
             )
             .child(Input::new(&self.owner))
-            .child(v_flex().gap(px(6.)).child(label("Due date as agreed")).child(Input::new(&self.due)))
+            .child(
+                v_flex()
+                    .gap(px(6.))
+                    .child(label("Due date as agreed"))
+                    .child(Input::new(&self.due)),
+            )
             .child(
                 div()
                     .text_size(ty::SECONDARY)
@@ -249,15 +321,25 @@ impl Render for CorrectionSheet {
                     .child("This correction is stored separately from the extracted source."),
             )
             .when_some(self.error.clone(), |this, error| {
-                this.child(div().text_size(ty::SECONDARY).text_color(lb.attention_text).child(error))
+                this.child(
+                    div()
+                        .text_size(ty::SECONDARY)
+                        .text_color(lb.attention_text)
+                        .child(error),
+                )
             })
             .child(
                 h_flex()
                     .gap_2()
                     .justify_end()
-                    .child(Button::new("correction-cancel").outline().label("Cancel").on_click(|_, window, cx| {
-                        window.close_dialog(cx);
-                    }))
+                    .child(
+                        Button::new("correction-cancel")
+                            .outline()
+                            .label("Cancel")
+                            .on_click(|_, window, cx| {
+                                window.close_dialog(cx);
+                            }),
+                    )
                     .child(
                         Button::new("correction-save")
                             .primary()
@@ -288,19 +370,38 @@ impl NameSpeakerSheet {
         window: &mut Window,
         cx: &mut App,
     ) {
-        let current = transcript.speaker_aliases.get(&speaker.key).cloned().unwrap_or_default();
+        let current = transcript
+            .speaker_aliases
+            .get(&speaker.key)
+            .cloned()
+            .unwrap_or_default();
         let sheet = cx.new(|cx| {
-            let name = cx.new(|cx| InputState::new(window, cx).placeholder("Name this speaker").default_value(current));
-            Self { data, meeting, transcript, speaker, name, error: None }
+            let name = cx.new(|cx| {
+                InputState::new(window, cx)
+                    .placeholder("Name this speaker")
+                    .default_value(current)
+            });
+            Self {
+                data,
+                meeting,
+                transcript,
+                speaker,
+                name,
+                error: None,
+            }
         });
-        window.open_dialog(cx, move |dialog, _, _| dialog.w(px(560.)).close_button(false).child(sheet.clone()));
+        window.open_dialog(cx, move |dialog, _, _| {
+            dialog.w(px(560.)).close_button(false).child(sheet.clone())
+        });
     }
 
     fn save(&mut self, alias: Option<String>, window: &mut Window, cx: &mut Context<Self>) {
         let mut transcript = self.transcript.clone();
         match alias.filter(|a| !a.trim().is_empty()) {
             Some(alias) => {
-                transcript.speaker_aliases.insert(self.speaker.key.clone(), alias.trim().to_string());
+                transcript
+                    .speaker_aliases
+                    .insert(self.speaker.key.clone(), alias.trim().to_string());
             }
             None => {
                 transcript.speaker_aliases.remove(&self.speaker.key);
@@ -310,7 +411,9 @@ impl NameSpeakerSheet {
         let meeting = self.meeting.clone();
         let data = self.data.clone();
         cx.spawn_in(window, async move |this, cx| {
-            let result = cx.background_spawn(async move { library.save_transcript(&meeting, &transcript) }).await;
+            let result = cx
+                .background_spawn(async move { library.save_transcript(&meeting, &transcript) })
+                .await;
             let _ = this.update_in(cx, |this, window, cx| match result {
                 Ok(()) => {
                     data.update(cx, |data, cx| data.mark_library_changed(cx));

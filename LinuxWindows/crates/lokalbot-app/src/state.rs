@@ -526,7 +526,9 @@ pub enum AppEvent {
     ToggleDictation,
     /// Start the live transcript preview of the current recording, from the
     /// latest 12 seconds or from the beginning.
-    LivePreview { from_beginning: bool },
+    LivePreview {
+        from_beginning: bool,
+    },
 }
 
 impl gpui_kit::EventEmitter<AppEvent> for AppData {}

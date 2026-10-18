@@ -6,8 +6,9 @@ use gpui_kit::component::scroll::ScrollableElement as _;
 use gpui_kit::component::{Disableable as _, Icon, Sizable as _, h_flex, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
-    AnyElement, Context, FontWeight, HighlightStyle, InteractiveElement as _, IntoElement, ParentElement as _,
-    StatefulInteractiveElement as _, Styled as _, StyledText, Window, div, list, px,
+    AnyElement, Context, FontWeight, HighlightStyle, InteractiveElement as _, IntoElement,
+    ParentElement as _, StatefulInteractiveElement as _, Styled as _, StyledText, Window, div,
+    list, px,
 };
 
 use super::MeetingsPage;
@@ -27,53 +28,78 @@ impl MeetingsPage {
             Some(format!("{} of {total} · Transcript", self.find.current + 1))
         };
         let has_matches = total > 0;
-        h_flex().w_full().justify_end().px(metric::DETAIL_PADDING).py(px(10.)).child(
-            ui::grouped_surface(cx)
-                .w_full()
-                .max_w(metric::READING_MAX_WIDTH)
-                .px(px(10.))
-                .py(px(4.))
-                .flex()
-                .items_center()
-                .gap(px(8.))
-                .child(ui::icon(Ico::Search, px(15.), lb.text_secondary))
-                .child(div().flex_1().min_w_0().child(Input::new(&self.find.input).appearance(false).small().cleanable(true)))
-                .when_some(status, |this, status| {
-                    this.child(div().flex_none().text_size(ty::SECONDARY).text_color(lb.text_secondary).child(status))
-                })
-                .child(div().w(px(1.)).h(px(18.)).bg(lb.separator))
-                .child(
-                    Button::new("find-previous")
-                        .ghost()
-                        .small()
-                        .icon(Icon::new(Ico::ChevronUp))
-                        .tooltip("Previous match")
-                        .disabled(!has_matches)
-                        .on_click(cx.listener(|this, _, _, cx| this.move_find(-1, cx))),
-                )
-                .child(
-                    Button::new("find-next")
-                        .ghost()
-                        .small()
-                        .icon(Icon::new(Ico::ChevronDown))
-                        .tooltip("Next match")
-                        .disabled(!has_matches)
-                        .on_click(cx.listener(|this, _, _, cx| this.move_find(1, cx))),
-                )
-                .when(self.find.open, |this| {
-                    this.child(
-                        Button::new("find-close")
+        h_flex()
+            .w_full()
+            .justify_end()
+            .px(metric::DETAIL_PADDING)
+            .py(px(10.))
+            .child(
+                ui::grouped_surface(cx)
+                    .w_full()
+                    .max_w(metric::READING_MAX_WIDTH)
+                    .px(px(10.))
+                    .py(px(4.))
+                    .flex()
+                    .items_center()
+                    .gap(px(8.))
+                    .child(ui::icon(Ico::Search, px(15.), lb.text_secondary))
+                    .child(
+                        div().flex_1().min_w_0().child(
+                            Input::new(&self.find.input)
+                                .appearance(false)
+                                .small()
+                                .cleanable(true),
+                        ),
+                    )
+                    .when_some(status, |this, status| {
+                        this.child(
+                            div()
+                                .flex_none()
+                                .text_size(ty::SECONDARY)
+                                .text_color(lb.text_secondary)
+                                .child(status),
+                        )
+                    })
+                    .child(div().w(px(1.)).h(px(18.)).bg(lb.separator))
+                    .child(
+                        Button::new("find-previous")
                             .ghost()
                             .small()
-                            .icon(Icon::new(Ico::X))
-                            .tooltip("Close search")
-                            .on_click(cx.listener(|this, _, window, cx| this.close_find(window, cx))),
+                            .icon(Icon::new(Ico::ChevronUp))
+                            .tooltip("Previous match")
+                            .disabled(!has_matches)
+                            .on_click(cx.listener(|this, _, _, cx| this.move_find(-1, cx))),
                     )
-                }),
-        )
+                    .child(
+                        Button::new("find-next")
+                            .ghost()
+                            .small()
+                            .icon(Icon::new(Ico::ChevronDown))
+                            .tooltip("Next match")
+                            .disabled(!has_matches)
+                            .on_click(cx.listener(|this, _, _, cx| this.move_find(1, cx))),
+                    )
+                    .when(self.find.open, |this| {
+                        this.child(
+                            Button::new("find-close")
+                                .ghost()
+                                .small()
+                                .icon(Icon::new(Ico::X))
+                                .tooltip("Close search")
+                                .on_click(
+                                    cx.listener(|this, _, window, cx| this.close_find(window, cx)),
+                                ),
+                        )
+                    }),
+            )
     }
 
-    pub(super) fn render_transcript(&mut self, doc: &MeetingDoc, _window: &mut Window, cx: &mut Context<Self>) -> AnyElement {
+    pub(super) fn render_transcript(
+        &mut self,
+        doc: &MeetingDoc,
+        _window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> AnyElement {
         if doc.rows.is_empty() {
             let lb = cx.lb().clone();
             return div()
@@ -86,7 +112,13 @@ impl MeetingsPage {
                         .pt(px(4.))
                         .gap(metric::SECTION_SPACING)
                         .children(self.render_status(doc, cx))
-                        .child(div().py(px(6.)).text_size(ty::BODY).text_color(lb.text_secondary).child("No transcript yet.")),
+                        .child(
+                            div()
+                                .py(px(6.))
+                                .text_size(ty::BODY)
+                                .text_color(lb.text_secondary)
+                                .child("No transcript yet."),
+                        ),
                 )
                 .into_any_element();
         }
@@ -97,7 +129,9 @@ impl MeetingsPage {
             .child(
                 list(
                     self.transcript_state.clone(),
-                    cx.processor(|this, ix: usize, window, cx| this.render_transcript_item(ix, window, cx)),
+                    cx.processor(|this, ix: usize, window, cx| {
+                        this.render_transcript_item(ix, window, cx)
+                    }),
                 )
                 .size_full(),
             )
@@ -105,11 +139,22 @@ impl MeetingsPage {
             .into_any_element()
     }
 
-    fn render_transcript_item(&mut self, ix: usize, _window: &mut Window, cx: &mut Context<Self>) -> AnyElement {
-        let Some(doc) = self.doc.clone() else { return div().into_any_element() };
+    fn render_transcript_item(
+        &mut self,
+        ix: usize,
+        _window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> AnyElement {
+        let Some(doc) = self.doc.clone() else {
+            return div().into_any_element();
+        };
         let lb = cx.lb().clone();
         if ix == 0 {
-            let engine = doc.transcript.as_ref().map(|t| t.engine.clone()).unwrap_or_default();
+            let engine = doc
+                .transcript
+                .as_ref()
+                .map(|t| t.engine.clone())
+                .unwrap_or_default();
             return v_flex()
                 .px(metric::DETAIL_PADDING)
                 .pt(px(4.))
@@ -135,7 +180,9 @@ impl MeetingsPage {
                 .into_any_element();
         }
         let row_ix = ix - 1;
-        let Some(row) = doc.rows.get(row_ix).cloned() else { return div().into_any_element() };
+        let Some(row) = doc.rows.get(row_ix).cloned() else {
+            return div().into_any_element();
+        };
         let focused_row = self.focus_at.and_then(|at| doc.row_at(at));
         let current_match = self.find.matches.get(self.find.current).cloned();
         let highlights: Vec<_> = self
@@ -144,13 +191,27 @@ impl MeetingsPage {
             .iter()
             .filter(|(r, range)| *r == row_ix && !range.is_empty())
             .map(|(_, range)| {
-                let is_current = current_match.as_ref().is_some_and(|(r, cr)| *r == row_ix && cr == range);
-                let color = if is_current { lb.attention.opacity(0.55) } else { lb.attention.opacity(0.22) };
-                (range.clone(), HighlightStyle { background_color: Some(color), ..Default::default() })
+                let is_current = current_match
+                    .as_ref()
+                    .is_some_and(|(r, cr)| *r == row_ix && cr == range);
+                let color = if is_current {
+                    lb.attention.opacity(0.55)
+                } else {
+                    lb.attention.opacity(0.22)
+                };
+                (
+                    range.clone(),
+                    HighlightStyle {
+                        background_color: Some(color),
+                        ..Default::default()
+                    },
+                )
             })
             .collect();
         let is_focused = focused_row == Some(row_ix)
-            || current_match.as_ref().is_some_and(|(r, range)| *r == row_ix && range.is_empty());
+            || current_match
+                .as_ref()
+                .is_some_and(|(r, range)| *r == row_ix && range.is_empty());
         let start = row.start;
         let speaker_key = row.speaker.clone();
         let stamp = lokalbot_core::time::stamp(start);
@@ -171,7 +232,8 @@ impl MeetingsPage {
             .child(crate::ui::waveform::play_glyph(px(9.), lb.accent_text))
             .child(stamp.clone())
             .tooltip(move |window, cx| {
-                gpui_kit::component::tooltip::Tooltip::new(format!("Play from {stamp}")).build(window, cx)
+                gpui_kit::component::tooltip::Tooltip::new(format!("Play from {stamp}"))
+                    .build(window, cx)
             })
             .on_click(cx.listener(move |this, _, _, cx| {
                 this.focus_at = Some(start);
@@ -209,7 +271,10 @@ impl MeetingsPage {
                 .tooltip({
                     let name = row.name.clone();
                     move |window, cx| {
-                        gpui_kit::component::tooltip::Tooltip::new(format!("Rename speaker: {name}")).build(window, cx)
+                        gpui_kit::component::tooltip::Tooltip::new(format!(
+                            "Rename speaker: {name}"
+                        ))
+                        .build(window, cx)
                     }
                 })
                 .on_click(cx.listener(move |this, _, window, cx| {
@@ -248,7 +313,9 @@ impl MeetingsPage {
                             .child(StyledText::new(row.text.clone()).with_highlights(highlights)),
                     ),
             )
-            .when(row_ix + 1 == doc.rows.len(), |this| this.pb(metric::DETAIL_PADDING))
+            .when(row_ix + 1 == doc.rows.len(), |this| {
+                this.pb(metric::DETAIL_PADDING)
+            })
             .into_any_element()
     }
 }

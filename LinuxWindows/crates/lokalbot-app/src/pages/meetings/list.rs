@@ -7,8 +7,9 @@ use gpui_kit::component::spinner::Spinner;
 use gpui_kit::component::{Sizable as _, h_flex, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
-    AnyElement, Context, FontWeight, InteractiveElement as _, IntoElement, KeyDownEvent, MouseButton,
-    ParentElement as _, StatefulInteractiveElement as _, Styled as _, Window, div, list, px, white,
+    AnyElement, Context, FontWeight, InteractiveElement as _, IntoElement, KeyDownEvent,
+    MouseButton, ParentElement as _, StatefulInteractiveElement as _, Styled as _, Window, div,
+    list, px, white,
 };
 use lokalbot_core::Meeting;
 
@@ -22,7 +23,13 @@ impl MeetingsPage {
     pub(super) fn rebuild_entries(&mut self, cx: &mut Context<Self>) {
         let data = self.data.read(cx);
         let live = data.recording.meeting().cloned();
-        let key = (data.revision, self.query.clone(), live.as_ref().map(|m| m.id), data.meetings_loaded, data.meetings.len());
+        let key = (
+            data.revision,
+            self.query.clone(),
+            live.as_ref().map(|m| m.id),
+            data.meetings_loaded,
+            data.meetings.len(),
+        );
         if self.entries_key.as_ref() == Some(&key) {
             return;
         }
@@ -36,16 +43,26 @@ impl MeetingsPage {
         let live_id = live.as_ref().map(|m| m.id);
         if let Some(live) = live.filter(|m| matches(m)) {
             entries.push(Entry::Header("Recording Now".into()));
-            entries.push(Entry::Meeting { meeting: live, live: true });
+            entries.push(Entry::Meeting {
+                meeting: live,
+                live: true,
+            });
         }
         let mut current: Option<String> = None;
-        for meeting in data.meetings.iter().filter(|m| Some(m.id) != live_id && matches(m)) {
+        for meeting in data
+            .meetings
+            .iter()
+            .filter(|m| Some(m.id) != live_id && matches(m))
+        {
             let label = day_label(meeting.started_at);
             if current.as_deref() != Some(label.as_str()) {
                 entries.push(Entry::Header(label.clone().into()));
                 current = Some(label);
             }
-            entries.push(Entry::Meeting { meeting: meeting.clone(), live: false });
+            entries.push(Entry::Meeting {
+                meeting: meeting.clone(),
+                live: false,
+            });
         }
         let old = self.list_state.item_count();
         self.list_state.splice(0..old, entries.len());
@@ -68,14 +85,20 @@ impl MeetingsPage {
         if ids.is_empty() {
             return;
         }
-        let current = self.selected.and_then(|id| ids.iter().position(|m| *m == id));
+        let current = self
+            .selected
+            .and_then(|id| ids.iter().position(|m| *m == id));
         let next = match current {
             Some(ix) => (ix as isize + by).clamp(0, ids.len() as isize - 1) as usize,
             None => 0,
         };
         let id = ids[next];
         self.select(id, window, cx);
-        if let Some(entry_ix) = self.entries.iter().position(|e| matches!(e, Entry::Meeting { meeting, .. } if meeting.id == id)) {
+        if let Some(entry_ix) = self
+            .entries
+            .iter()
+            .position(|e| matches!(e, Entry::Meeting { meeting, .. } if meeting.id == id))
+        {
             self.list_state.scroll_to_reveal_item(entry_ix);
         }
     }
@@ -94,10 +117,18 @@ impl MeetingsPage {
         cx.stop_propagation();
     }
 
-    pub(super) fn render_list_column(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    pub(super) fn render_list_column(
+        &mut self,
+        _window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> impl IntoElement {
         let lb = cx.lb().clone();
         let data = self.data.read(cx);
-        let count = data.meetings.iter().filter(|m| !m.is_merged_source()).count();
+        let count = data
+            .meetings
+            .iter()
+            .filter(|m| !m.is_merged_source())
+            .count();
         let recording = data.recording.is_active();
         let loaded = data.meetings_loaded;
         let library_empty = data.meetings.is_empty() && data.recording.meeting().is_none();
@@ -127,7 +158,11 @@ impl MeetingsPage {
                 .hover(move |s| s.bg(tint.opacity(0.18)))
                 .cursor_pointer()
                 .child(if recording {
-                    div().size(px(11.)).rounded(px(2.)).bg(tint).into_any_element()
+                    div()
+                        .size(px(11.))
+                        .rounded(px(2.))
+                        .bg(tint)
+                        .into_any_element()
                 } else {
                     div()
                         .size(px(13.))
@@ -144,13 +179,23 @@ impl MeetingsPage {
                         .text_size(ty::SECONDARY)
                         .font_weight(FontWeight::SEMIBOLD)
                         .text_color(text)
-                        .child(if recording { "Stop Recording" } else { "Record" }),
+                        .child(if recording {
+                            "Stop Recording"
+                        } else {
+                            "Record"
+                        }),
                 )
                 .tooltip(move |window, cx| {
-                    gpui_kit::component::tooltip::Tooltip::new(if recording { "Stop Recording" } else { "Record Now" })
-                        .build(window, cx)
+                    gpui_kit::component::tooltip::Tooltip::new(if recording {
+                        "Stop Recording"
+                    } else {
+                        "Record Now"
+                    })
+                    .build(window, cx)
                 })
-                .on_click(move |_, _, cx| data_entity.update(cx, |data, cx| data.toggle_recording(cx)))
+                .on_click(move |_, _, cx| {
+                    data_entity.update(cx, |data, cx| data.toggle_recording(cx))
+                })
         };
 
         let header = v_flex()
@@ -177,7 +222,10 @@ impl MeetingsPage {
                                 div()
                                     .text_size(ty::SECONDARY)
                                     .text_color(lb.text_secondary)
-                                    .child(format!("{count} {}", if count == 1 { "meeting" } else { "meetings" })),
+                                    .child(format!(
+                                        "{count} {}",
+                                        if count == 1 { "meeting" } else { "meetings" }
+                                    )),
                             ),
                     )
                     .child(record_button),
@@ -192,17 +240,31 @@ impl MeetingsPage {
                         .items_center()
                         .text_size(ty::SECONDARY)
                         .child(ui::icon(Ico::TriangleAlert, px(14.), lb.attention_text))
-                        .child(div().flex_1().text_color(lb.attention_text).child(format!("{} failed", failed.len())))
-                        .child(ui::link("meetings-retry-failed", "Retry", move |_, cx| {
-                            data_entity.update(cx, |data, cx| {
-                                for id in &failed {
-                                    data.request(
-                                        crate::state::AppEvent::ProcessMeeting { meeting_id: *id, transcribe: true, summarize: true },
-                                        cx,
-                                    );
-                                }
-                            })
-                        }, cx)),
+                        .child(
+                            div()
+                                .flex_1()
+                                .text_color(lb.attention_text)
+                                .child(format!("{} failed", failed.len())),
+                        )
+                        .child(ui::link(
+                            "meetings-retry-failed",
+                            "Retry",
+                            move |_, cx| {
+                                data_entity.update(cx, |data, cx| {
+                                    for id in &failed {
+                                        data.request(
+                                            crate::state::AppEvent::ProcessMeeting {
+                                                meeting_id: *id,
+                                                transcribe: true,
+                                                summarize: true,
+                                            },
+                                            cx,
+                                        );
+                                    }
+                                })
+                            },
+                            cx,
+                        )),
                 )
             });
 
@@ -213,13 +275,24 @@ impl MeetingsPage {
                 .justify_center()
                 .gap(px(8.))
                 .child(Spinner::new().small())
-                .child(div().text_size(ty::BODY).text_color(lb.text_secondary).child("Loading your meeting library…"))
+                .child(
+                    div()
+                        .text_size(ty::BODY)
+                        .text_color(lb.text_secondary)
+                        .child("Loading your meeting library…"),
+                )
                 .into_any_element()
         } else if self.entries.is_empty() {
             let (title, message) = if library_empty && self.query.is_empty() {
-                ("No meetings yet", "LokalBot detects meeting apps automatically, or start a recording now.")
+                (
+                    "No meetings yet",
+                    "LokalBot detects meeting apps automatically, or start a recording now.",
+                )
             } else {
-                ("No matching meetings", "Try different words, a meeting title, or app.")
+                (
+                    "No matching meetings",
+                    "Try different words, a meeting title, or app.",
+                )
             };
             div()
                 .flex_1()
@@ -235,8 +308,13 @@ impl MeetingsPage {
                 .flex_1()
                 .min_h_0()
                 .child(
-                    list(self.list_state.clone(), cx.processor(|this, ix: usize, window, cx| this.render_entry(ix, window, cx)))
-                        .size_full(),
+                    list(
+                        self.list_state.clone(),
+                        cx.processor(|this, ix: usize, window, cx| {
+                            this.render_entry(ix, window, cx)
+                        }),
+                    )
+                    .size_full(),
                 )
                 .vertical_scrollbar(&self.list_state)
                 .into_any_element()
@@ -255,9 +333,16 @@ impl MeetingsPage {
             .child(body)
     }
 
-    fn render_entry(&mut self, ix: usize, _window: &mut Window, cx: &mut Context<Self>) -> AnyElement {
+    fn render_entry(
+        &mut self,
+        ix: usize,
+        _window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> AnyElement {
         let lb = cx.lb().clone();
-        let Some(entry) = self.entries.get(ix).cloned() else { return div().into_any_element() };
+        let Some(entry) = self.entries.get(ix).cloned() else {
+            return div().into_any_element();
+        };
         match entry {
             Entry::Header(label) => div()
                 .px(px(18.))
@@ -271,7 +356,8 @@ impl MeetingsPage {
             Entry::Meeting { meeting, live } => {
                 let selected = self.selected == Some(meeting.id);
                 let next_selected = matches!(self.entries.get(ix + 1), Some(Entry::Meeting { meeting: next, .. }) if Some(next.id) == self.selected);
-                let next_is_meeting = matches!(self.entries.get(ix + 1), Some(Entry::Meeting { .. }));
+                let next_is_meeting =
+                    matches!(self.entries.get(ix + 1), Some(Entry::Meeting { .. }));
                 let stage = self.data.read(cx).processing.get(&meeting.id).cloned();
                 let id = meeting.id;
                 let detail = model::row_detail(&meeting, live);
@@ -297,7 +383,9 @@ impl MeetingsPage {
                                 h_flex()
                                     .gap(px(6.))
                                     .items_center()
-                                    .when(live, |this| this.child(ui::status_dot(lb.recording, px(9.))))
+                                    .when(live, |this| {
+                                        this.child(ui::status_dot(lb.recording, px(9.)))
+                                    })
                                     .child(
                                         div()
                                             .flex_1()
@@ -317,18 +405,25 @@ impl MeetingsPage {
                                     .child(detail),
                             ),
                     )
-                    .when_some(stage.filter(|_| !live), |this, stage| this.child(stage_badge(&stage, id, data, cx)))
-                    .on_mouse_down(MouseButton::Left, cx.listener(|this, _, window, cx| {
-                        this.list_focus.focus(window, cx);
-                    }))
+                    .when_some(stage.filter(|_| !live), |this, stage| {
+                        this.child(stage_badge(&stage, id, data, cx))
+                    })
+                    .on_mouse_down(
+                        MouseButton::Left,
+                        cx.listener(|this, _, window, cx| {
+                            this.list_focus.focus(window, cx);
+                        }),
+                    )
                     .on_click(cx.listener(move |this, _, window, cx| this.select(id, window, cx)))
                     .context_menu({
                         let data = self.data.clone();
                         move |menu, _, _| {
                             let data = data.clone();
-                            menu.item(PopupMenuItem::new("Delete meeting…").on_click(move |_, window, cx| {
-                                dialogs::confirm_delete(data.clone(), vec![id], window, cx);
-                            }))
+                            menu.item(PopupMenuItem::new("Delete meeting…").on_click(
+                                move |_, window, cx| {
+                                    dialogs::confirm_delete(data.clone(), vec![id], window, cx);
+                                },
+                            ))
                         }
                     });
                 v_flex()
@@ -338,7 +433,9 @@ impl MeetingsPage {
                     .when(next_is_meeting && !selected && !next_selected, |this| {
                         this.child(div().mx(px(8.)).h(px(1.)).bg(lb.separator))
                     })
-                    .when(!(next_is_meeting && !selected && !next_selected), |this| this.child(div().h(px(1.))))
+                    .when(!(next_is_meeting && !selected && !next_selected), |this| {
+                        this.child(div().h(px(1.)))
+                    })
                     .into_any_element()
             }
         }
@@ -364,7 +461,14 @@ fn stage_badge(
             .child(label)
             .on_click(move |_, _, cx| {
                 data.update(cx, |data, cx| {
-                    data.request(crate::state::AppEvent::ProcessMeeting { meeting_id, transcribe: true, summarize: true }, cx)
+                    data.request(
+                        crate::state::AppEvent::ProcessMeeting {
+                            meeting_id,
+                            transcribe: true,
+                            summarize: true,
+                        },
+                        cx,
+                    )
                 })
             })
     };
@@ -386,7 +490,9 @@ fn stage_badge(
             .id(("row-failed", meeting_id.as_u128() as u64))
             .tooltip({
                 let reason = reason.clone();
-                move |window, cx| gpui_kit::component::tooltip::Tooltip::new(reason.clone()).build(window, cx)
+                move |window, cx| {
+                    gpui_kit::component::tooltip::Tooltip::new(reason.clone()).build(window, cx)
+                }
             })
             .into_any_element(),
         ProcessingStage::WaitingForModels => v_flex()

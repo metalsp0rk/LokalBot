@@ -10,8 +10,8 @@ use gpui_kit::component::text::TextView;
 use gpui_kit::component::{Disableable as _, Icon, Sizable as _, h_flex, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
-    AnyElement, Context, FontWeight, InteractiveElement as _, IntoElement, ParentElement as _, SharedString,
-    StatefulInteractiveElement as _, Styled as _, Window, div, px, white,
+    AnyElement, Context, FontWeight, InteractiveElement as _, IntoElement, ParentElement as _,
+    SharedString, StatefulInteractiveElement as _, Styled as _, Window, div, px, white,
 };
 use lokalbot_core::ActionStatus;
 
@@ -23,8 +23,16 @@ use crate::theme::{LbThemeExt as _, metric, ty};
 use crate::ui::{self, Ico, action_row};
 
 impl MeetingsPage {
-    pub(super) fn render_detail(&mut self, window: &mut Window, cx: &mut Context<Self>) -> AnyElement {
-        let Some(doc) = self.doc.clone().filter(|d| Some(d.meeting.id) == self.selected) else {
+    pub(super) fn render_detail(
+        &mut self,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> AnyElement {
+        let Some(doc) = self
+            .doc
+            .clone()
+            .filter(|d| Some(d.meeting.id) == self.selected)
+        else {
             return if self.selected.is_some() && self.doc_loading {
                 v_flex()
                     .size_full()
@@ -32,7 +40,12 @@ impl MeetingsPage {
                     .justify_center()
                     .gap(px(8.))
                     .child(Spinner::new())
-                    .child(div().text_size(ty::BODY).text_color(cx.lb().text_secondary).child("Loading meeting…"))
+                    .child(
+                        div()
+                            .text_size(ty::BODY)
+                            .text_color(cx.lb().text_secondary)
+                            .child("Loading meeting…"),
+                    )
                     .into_any_element()
             } else {
                 div()
@@ -82,7 +95,8 @@ impl MeetingsPage {
         v_flex()
             .size_full()
             .when(show_find, |this| {
-                this.child(self.render_find_bar(cx)).child(div().h(px(1.)).w_full().bg(lb.separator))
+                this.child(self.render_find_bar(cx))
+                    .child(div().h(px(1.)).w_full().bg(lb.separator))
             })
             .child(
                 v_flex()
@@ -113,11 +127,17 @@ impl MeetingsPage {
                 .child(text)
         };
         let mut chips = vec![
-            chip(Ico::Calendar, model::date_label(meeting.started_at), lb.supporting).into_any_element(),
+            chip(
+                Ico::Calendar,
+                model::date_label(meeting.started_at),
+                lb.supporting,
+            )
+            .into_any_element(),
             chip(Ico::Clock, model::duration_label(meeting), lb.supporting).into_any_element(),
         ];
         if !meeting.is_merged_meeting() {
-            chips.push(chip(Ico::Video, meeting.app_name.clone(), lb.supporting).into_any_element());
+            chips
+                .push(chip(Ico::Video, meeting.app_name.clone(), lb.supporting).into_any_element());
         }
         if meeting.has_system_track {
             chips.push(chip(Ico::Volume2, "Mic + system".into(), lb.supporting).into_any_element());
@@ -144,7 +164,14 @@ impl MeetingsPage {
                     .line_clamp(2)
                     .child(meeting.display_title()),
             )
-            .child(h_flex().flex_wrap().gap_x(px(14.)).gap_y(px(6.)).items_center().children(chips))
+            .child(
+                h_flex()
+                    .flex_wrap()
+                    .gap_x(px(14.))
+                    .gap_y(px(6.))
+                    .items_center()
+                    .children(chips),
+            )
     }
 
     fn render_audio_bar(&self, doc: &MeetingDoc, cx: &mut Context<Self>) -> impl IntoElement {
@@ -167,7 +194,11 @@ impl MeetingsPage {
                         .justify_center()
                         .child(crate::ui::waveform::play_glyph(px(12.), white())),
                 )
-                .child(div().text_size(ty::SECONDARY).child("No recording available"))
+                .child(
+                    div()
+                        .text_size(ty::SECONDARY)
+                        .child("No recording available"),
+                )
                 .into_any_element();
         }
         let duration = doc.meeting.duration_seconds();
@@ -195,7 +226,10 @@ impl MeetingsPage {
                     .items_center()
                     .justify_center()
                     .child(crate::ui::waveform::play_glyph(px(12.), white()))
-                    .tooltip(|window, cx| gpui_kit::component::tooltip::Tooltip::new("Play / pause (Space)").build(window, cx))
+                    .tooltip(|window, cx| {
+                        gpui_kit::component::tooltip::Tooltip::new("Play / pause (Space)")
+                            .build(window, cx)
+                    })
                     .on_click(cx.listener(|this, _, _, cx| this.toggle_playback(cx))),
             )
             .child(crate::ui::waveform::waveform(
@@ -222,7 +256,11 @@ impl MeetingsPage {
                     .flex_none()
                     .text_size(ty::SECONDARY)
                     .text_color(lb.supporting)
-                    .child(format!("{} / {}", lokalbot_core::time::stamp(current), lokalbot_core::time::stamp(duration))),
+                    .child(format!(
+                        "{} / {}",
+                        lokalbot_core::time::stamp(current),
+                        lokalbot_core::time::stamp(duration)
+                    )),
             )
             .child(
                 Button::new("audio-speed")
@@ -235,30 +273,35 @@ impl MeetingsPage {
                         for value in [0.75f32, 1., 1.25, 1.5, 1.75, 2.] {
                             let target = speed_target.clone();
                             menu = menu.item(
-                                PopupMenuItem::new(speed_label(value)).checked((speed - value).abs() < 0.01).on_click(
-                                    move |_, _, cx| {
+                                PopupMenuItem::new(speed_label(value))
+                                    .checked((speed - value).abs() < 0.01)
+                                    .on_click(move |_, _, cx| {
                                         let _ = target.update(cx, |this, cx| {
                                             this.speed = value;
                                             cx.notify();
                                         });
-                                    },
-                                ),
+                                    }),
                             );
                         }
                         let target = speed_target.clone();
-                        menu.separator().item(PopupMenuItem::new("Reset to 1x").on_click(move |_, _, cx| {
-                            let _ = target.update(cx, |this, cx| {
-                                this.speed = 1.;
-                                cx.notify();
-                            });
-                        }))
+                        menu.separator()
+                            .item(PopupMenuItem::new("Reset to 1x").on_click(move |_, _, cx| {
+                                let _ = target.update(cx, |this, cx| {
+                                    this.speed = 1.;
+                                    cx.notify();
+                                });
+                            }))
                     }),
             )
             .into_any_element()
     }
 
     /// Processing, empty-speech and speaker-review lines above the tab content.
-    pub(super) fn render_status(&self, doc: &MeetingDoc, cx: &mut Context<Self>) -> Vec<AnyElement> {
+    pub(super) fn render_status(
+        &self,
+        doc: &MeetingDoc,
+        cx: &mut Context<Self>,
+    ) -> Vec<AnyElement> {
         let lb = cx.lb().clone();
         let mut out = Vec::new();
         if let Some(stage) = self.data.read(cx).processing.get(&doc.meeting.id).cloned() {
@@ -269,7 +312,9 @@ impl MeetingsPage {
             };
             let button = match &stage {
                 ProcessingStage::Failed(_) => Some(("Retry", "status-retry")),
-                ProcessingStage::WaitingForModels => Some(("Download & process", "status-download")),
+                ProcessingStage::WaitingForModels => {
+                    Some(("Download & process", "status-download"))
+                }
                 _ => None,
             };
             out.push(
@@ -289,17 +334,19 @@ impl MeetingsPage {
                     )
                     .when_some(button, |this, (label, id)| {
                         this.child(
-                            Button::new(id)
-                                .outline()
-                                .small()
-                                .label(label)
-                                .on_click(cx.listener(|this, _, _, cx| this.process(true, true, cx))),
+                            Button::new(id).outline().small().label(label).on_click(
+                                cx.listener(|this, _, _, cx| this.process(true, true, cx)),
+                            ),
                         )
                     })
                     .into_any_element(),
             );
         }
-        if doc.transcript.as_ref().is_some_and(|t| t.segments.is_empty()) {
+        if doc
+            .transcript
+            .as_ref()
+            .is_some_and(|t| t.segments.is_empty())
+        {
             out.push(
                 div()
                     .text_size(ty::BODY)
@@ -316,7 +363,9 @@ impl MeetingsPage {
                 for segment in &t.segments {
                     let key = lokalbot_core::Transcript::canonical_speaker_key(&segment.speaker);
                     let remote = key.starts_with("them")
-                        || segment.attribution.is_some_and(|a| a.source == lokalbot_core::AttributionSource::System);
+                        || segment
+                            .attribution
+                            .is_some_and(|a| a.source == lokalbot_core::AttributionSource::System);
                     if remote && !t.speaker_aliases.contains_key(&key) && !seen.contains(&key) {
                         seen.push(key);
                     }
@@ -338,13 +387,22 @@ impl MeetingsPage {
                     .items_center()
                     .gap(px(10.))
                     .child(ui::icon(Ico::Users, px(16.), lb.attention_text))
-                    .child(div().flex_1().min_w_0().text_size(ty::BODY).text_color(lb.text).child(text))
+                    .child(
+                        div()
+                            .flex_1()
+                            .min_w_0()
+                            .text_size(ty::BODY)
+                            .text_color(lb.text)
+                            .child(text),
+                    )
                     .child(
                         Button::new("review-speakers")
                             .outline()
                             .small()
                             .label("Review Speakers…")
-                            .on_click(cx.listener(|this, _, _, cx| this.set_tab(MeetingTab::Review, cx))),
+                            .on_click(
+                                cx.listener(|this, _, _, cx| this.set_tab(MeetingTab::Review, cx)),
+                            ),
                     )
                     .into_any_element(),
             );
@@ -359,12 +417,25 @@ impl MeetingsPage {
         let mut sections: Vec<AnyElement> = Vec::new();
         if !doc.recap.is_empty() {
             let total = doc.recap.len();
-            let shown = if self.recap_expanded { total } else { total.min(5) };
+            let shown = if self.recap_expanded {
+                total
+            } else {
+                total.min(5)
+            };
             let points = doc.recap.iter().take(shown).map(|point| {
-                div().text_size(ty::BODY).line_height(px(21.)).text_color(lb.text).child(point.clone()).into_any_element()
+                div()
+                    .text_size(ty::BODY)
+                    .line_height(px(21.))
+                    .text_color(lb.text)
+                    .child(point.clone())
+                    .into_any_element()
             });
             let toggle = (total > 5).then(|| {
-                let label = if self.recap_expanded { "Show Less".to_string() } else { format!("Show {} More Points", total - 5) };
+                let label = if self.recap_expanded {
+                    "Show Less".to_string()
+                } else {
+                    format!("Show {} More Points", total - 5)
+                };
                 div()
                     .id("recap-more")
                     .text_size(ty::SECONDARY)
@@ -379,11 +450,17 @@ impl MeetingsPage {
                     }))
                     .into_any_element()
             });
-            sections.push(card("Recap", v_flex().gap(px(10.)).children(points).children(toggle), cx));
+            sections.push(card(
+                "Recap",
+                v_flex().gap(px(10.)).children(points).children(toggle),
+                cx,
+            ));
         }
         sections.push(self.render_action_items(doc, cx));
         let has_outcomes = doc.outcomes.as_ref().is_some_and(|o| {
-            !o.action_items.is_empty() || !o.decision_records.is_empty() || !o.open_questions.is_empty()
+            !o.action_items.is_empty()
+                || !o.decision_records.is_empty()
+                || !o.open_questions.is_empty()
         });
         if has_outcomes {
             let decisions: AnyElement = if doc.decisions.is_empty() {
@@ -396,7 +473,11 @@ impl MeetingsPage {
                         h_flex()
                             .gap(px(10.))
                             .items_start()
-                            .child(div().mt(px(2.)).child(ui::icon(Ico::CircleCheck, px(16.), lb.success_text)))
+                            .child(div().mt(px(2.)).child(ui::icon(
+                                Ico::CircleCheck,
+                                px(16.),
+                                lb.success_text,
+                            )))
                             .child(
                                 div()
                                     .flex_1()
@@ -414,7 +495,8 @@ impl MeetingsPage {
                                     start,
                                     Some(citation.excerpt.clone().into()),
                                     move |_, cx| {
-                                        let _ = page.update(cx, |this, cx| this.show_evidence(start, cx));
+                                        let _ = page
+                                            .update(cx, |this, cx| this.show_evidence(start, cx));
                                     },
                                     cx,
                                 ))
@@ -429,7 +511,11 @@ impl MeetingsPage {
                     h_flex()
                         .gap(px(10.))
                         .items_start()
-                        .child(div().mt(px(2.)).child(ui::icon(Ico::CircleQuestionMark, px(16.), lb.attention_text)))
+                        .child(div().mt(px(2.)).child(ui::icon(
+                            Ico::CircleQuestionMark,
+                            px(16.),
+                            lb.attention_text,
+                        )))
                         .child(
                             div()
                                 .flex_1()
@@ -441,14 +527,25 @@ impl MeetingsPage {
                         )
                         .into_any_element()
                 });
-                sections.push(card("Open Questions", v_flex().gap(px(10.)).children(rows), cx));
+                sections.push(card(
+                    "Open Questions",
+                    v_flex().gap(px(10.)).children(rows),
+                    cx,
+                ));
             }
         }
         sections.push(self.render_full_notes(doc, cx));
-        v_flex().gap(metric::SECTION_SPACING).children(sections).into_any_element()
+        v_flex()
+            .gap(metric::SECTION_SPACING)
+            .children(sections)
+            .into_any_element()
     }
 
-    pub(super) fn render_action_items(&self, doc: &MeetingDoc, cx: &mut Context<Self>) -> AnyElement {
+    pub(super) fn render_action_items(
+        &self,
+        doc: &MeetingDoc,
+        cx: &mut Context<Self>,
+    ) -> AnyElement {
         let lb = cx.lb().clone();
         let content: AnyElement = if doc.actions.is_empty() {
             empty_row("No action items were extracted from this meeting.", cx)
@@ -459,7 +556,9 @@ impl MeetingsPage {
                     let row = self.render_action(ix, action, doc, cx);
                     v_flex()
                         .child(row)
-                        .when(ix + 1 < count, |this| this.child(div().h(px(1.)).bg(lb.separator)))
+                        .when(ix + 1 < count, |this| {
+                            this.child(div().h(px(1.)).bg(lb.separator))
+                        })
                         .into_any_element()
                 }))
                 .into_any_element()
@@ -467,7 +566,13 @@ impl MeetingsPage {
         card("Action Items", content, cx)
     }
 
-    fn render_action(&self, ix: usize, action: &MeetingAction, doc: &MeetingDoc, cx: &mut Context<Self>) -> AnyElement {
+    fn render_action(
+        &self,
+        ix: usize,
+        action: &MeetingAction,
+        doc: &MeetingDoc,
+        cx: &mut Context<Self>,
+    ) -> AnyElement {
         let lb = cx.lb().clone();
         let done = action.status == ActionStatus::Done;
         let toggle_id = action.id.clone();
@@ -480,15 +585,30 @@ impl MeetingsPage {
                 move |_, cx| {
                     let id = toggle_id.clone();
                     let _ = page.update(cx, |this, cx| {
-                        this.set_action_status(id, if done { ActionStatus::Open } else { ActionStatus::Done }, cx)
+                        this.set_action_status(
+                            id,
+                            if done {
+                                ActionStatus::Open
+                            } else {
+                                ActionStatus::Done
+                            },
+                            cx,
+                        )
                     });
                 }
             },
             cx,
         );
         let mut meta: Vec<AnyElement> = Vec::new();
-        let owner_text = action.owner_label.clone().unwrap_or_else(|| "Owner unclear".into());
-        let owner_color = if action.owner_label.is_some() { lb.text_secondary } else { lb.attention_text };
+        let owner_text = action
+            .owner_label
+            .clone()
+            .unwrap_or_else(|| "Owner unclear".into());
+        let owner_color = if action.owner_label.is_some() {
+            lb.text_secondary
+        } else {
+            lb.attention_text
+        };
         let correct_page = cx.entity().downgrade();
         let correct_action = action.clone();
         meta.push(
@@ -501,7 +621,8 @@ impl MeetingsPage {
                 .child(owner_text)
                 .on_click(move |_, window, cx| {
                     let action = correct_action.clone();
-                    let _ = correct_page.update(cx, |this, cx| this.open_correction(action, window, cx));
+                    let _ = correct_page
+                        .update(cx, |this, cx| this.open_correction(action, window, cx));
                 })
                 .into_any_element(),
         );
@@ -529,28 +650,54 @@ impl MeetingsPage {
         let menu_action = action.clone();
         let menu = action_row::options_menu(("action-menu", ix), move |menu, _, _| {
             let mut menu = menu;
-            for option in [ActionStatus::Open, ActionStatus::Done, ActionStatus::Deferred] {
+            for option in [
+                ActionStatus::Open,
+                ActionStatus::Done,
+                ActionStatus::Deferred,
+            ] {
                 let page = menu_page.clone();
                 let id = menu_action.id.clone();
-                menu = menu.item(PopupMenuItem::new(option.label()).checked(option == status).on_click(move |_, _, cx| {
-                    let id = id.clone();
-                    let _ = page.update(cx, |this, cx| this.set_action_status(id, option, cx));
-                }));
+                menu = menu.item(
+                    PopupMenuItem::new(option.label())
+                        .checked(option == status)
+                        .on_click(move |_, _, cx| {
+                            let id = id.clone();
+                            let _ =
+                                page.update(cx, |this, cx| this.set_action_status(id, option, cx));
+                        }),
+                );
             }
             let page = menu_page.clone();
             let action = menu_action.clone();
-            menu.separator().item(PopupMenuItem::new("Correct owner or due date").on_click(move |_, window, cx| {
-                let action = action.clone();
-                let _ = page.update(cx, |this, cx| this.open_correction(action, window, cx));
-            }))
+            menu.separator()
+                .item(PopupMenuItem::new("Correct owner or due date").on_click(
+                    move |_, window, cx| {
+                        let action = action.clone();
+                        let _ =
+                            page.update(cx, |this, cx| this.open_correction(action, window, cx));
+                    },
+                ))
         });
         let _ = doc;
-        action_row::action_row(toggle, action.text.clone(), done, meta, None, menu, cx).into_any_element()
+        action_row::action_row(toggle, action.text.clone(), done, meta, None, menu, cx)
+            .into_any_element()
     }
 
-    fn open_correction(&mut self, action: MeetingAction, window: &mut Window, cx: &mut Context<Self>) {
+    fn open_correction(
+        &mut self,
+        action: MeetingAction,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
         let Some(doc) = self.doc.clone() else { return };
-        CorrectionSheet::open(self.data.clone(), doc.meeting.clone(), action, &doc.review, window, cx);
+        CorrectionSheet::open(
+            self.data.clone(),
+            doc.meeting.clone(),
+            action,
+            &doc.review,
+            window,
+            cx,
+        );
     }
 
     fn render_full_notes(&self, doc: &MeetingDoc, cx: &mut Context<Self>) -> AnyElement {
@@ -563,7 +710,15 @@ impl MeetingsPage {
             .cursor_pointer()
             .text_size(ty::BODY)
             .text_color(lb.text)
-            .child(ui::icon(if expanded { Ico::ChevronDown } else { Ico::ChevronRight }, px(14.), lb.text_secondary))
+            .child(ui::icon(
+                if expanded {
+                    Ico::ChevronDown
+                } else {
+                    Ico::ChevronRight
+                },
+                px(14.),
+                lb.text_secondary,
+            ))
             .child("Show Full Notes")
             .on_click(cx.listener(|this, _, _, cx| {
                 this.full_notes_expanded = !this.full_notes_expanded;
@@ -596,23 +751,40 @@ impl MeetingsPage {
                                     .child(ui::icon(Ico::SquarePen, px(14.), lb.text_secondary))
                                     .child("Your notes"),
                             )
-                            .child(div().text_size(ty::BODY).text_color(lb.text).child(notes.clone())),
+                            .child(
+                                div()
+                                    .text_size(ty::BODY)
+                                    .text_color(lb.text)
+                                    .child(notes.clone()),
+                            ),
                     )
                 })
                 .when_some(doc.summary_meta.clone(), |this, meta| {
-                    this.child(div().text_size(ty::SECONDARY).text_color(lb.text_secondary).child(meta))
+                    this.child(
+                        div()
+                            .text_size(ty::SECONDARY)
+                            .text_color(lb.text_secondary)
+                            .child(meta),
+                    )
                 })
                 .when(doc.has_summary(), |this| {
                     this.child(
                         div().text_size(ty::BODY).child(
-                            TextView::markdown(SharedString::from(format!("summary-{}", doc.meeting.id)), doc.summary_body.clone())
-                                .selectable(true),
+                            TextView::markdown(
+                                SharedString::from(format!("summary-{}", doc.meeting.id)),
+                                doc.summary_body.clone(),
+                            )
+                            .selectable(true),
                         ),
                     )
                 })
                 .into_any_element()
         };
-        v_flex().gap(px(12.)).child(disclosure).child(card("Summary", body, cx)).into_any_element()
+        v_flex()
+            .gap(px(12.))
+            .child(disclosure)
+            .child(card("Summary", body, cx))
+            .into_any_element()
     }
 
     // ---------------------------------------------------------------- notes
@@ -633,12 +805,19 @@ impl MeetingsPage {
                             .text_color(lb.text)
                             .child("Your notes"),
                     )
-                    .child(div().text_size(ty::SECONDARY).text_color(lb.text_secondary).child(status_text(&status))),
+                    .child(
+                        div()
+                            .text_size(ty::SECONDARY)
+                            .text_color(lb.text_secondary)
+                            .child(status_text(&status)),
+                    ),
             )
             .child(
-                ui::grouped_surface(cx)
-                    .p(px(6.))
-                    .child(Textarea::new(&self.notes.input).appearance(false).h(px(460.))),
+                ui::grouped_surface(cx).p(px(6.)).child(
+                    Textarea::new(&self.notes.input)
+                        .appearance(false)
+                        .h(px(460.)),
+                ),
             )
             .when_some(
                 match status {
@@ -646,7 +825,13 @@ impl MeetingsPage {
                     _ => None,
                 },
                 |this, message| {
-                    this.child(div().text_size(ty::SECONDARY).text_color(lb.attention_text).child(message)).child(
+                    this.child(
+                        div()
+                            .text_size(ty::SECONDARY)
+                            .text_color(lb.attention_text)
+                            .child(message),
+                    )
+                    .child(
                         Button::new("notes-retry")
                             .outline()
                             .small()
@@ -663,7 +848,11 @@ impl MeetingsPage {
     fn render_review(&mut self, doc: &MeetingDoc, cx: &mut Context<Self>) -> AnyElement {
         let lb = cx.lb().clone();
         let total = doc.review.len();
-        let shown = if self.speakers_expanded { total } else { total.min(5) };
+        let shown = if self.speakers_expanded {
+            total
+        } else {
+            total.min(5)
+        };
         let mut speaker_rows: Vec<AnyElement> = vec![
             div()
                 .text_size(ty::BODY)
@@ -764,17 +953,26 @@ impl MeetingsPage {
             speaker_rows.push(row.into_any_element());
         }
         if total > 5 {
-            let label = if self.speakers_expanded { "Show Fewer Speakers".to_string() } else { format!("Show {} More Speakers", total - 5) };
+            let label = if self.speakers_expanded {
+                "Show Fewer Speakers".to_string()
+            } else {
+                format!("Show {} More Speakers", total - 5)
+            };
             speaker_rows.push(
-                ui::link("speakers-more", label, {
-                    let page = cx.entity().downgrade();
-                    move |_, cx| {
-                        let _ = page.update(cx, |this, cx| {
-                            this.speakers_expanded = !this.speakers_expanded;
-                            cx.notify();
-                        });
-                    }
-                }, cx)
+                ui::link(
+                    "speakers-more",
+                    label,
+                    {
+                        let page = cx.entity().downgrade();
+                        move |_, cx| {
+                            let _ = page.update(cx, |this, cx| {
+                                this.speakers_expanded = !this.speakers_expanded;
+                                cx.notify();
+                            });
+                        }
+                    },
+                    cx,
+                )
                 .text_size(ty::SECONDARY)
                 .into_any_element(),
             );
@@ -789,7 +987,10 @@ impl MeetingsPage {
             .is_some_and(|stage| !matches!(stage, ProcessingStage::Failed(_)));
         let has_summary = doc.has_summary();
         let (freshness, freshness_icon) = if has_summary {
-            ("Notes use the latest saved speaker details", Ico::CircleCheck)
+            (
+                "Notes use the latest saved speaker details",
+                Ico::CircleCheck,
+            )
         } else {
             ("No derived notes yet", Ico::FileText)
         };
@@ -856,10 +1057,24 @@ impl MeetingsPage {
             .into_any_element()
     }
 
-    pub(super) fn open_name_speaker(&mut self, speaker: model::ReviewSpeaker, window: &mut Window, cx: &mut Context<Self>) {
+    pub(super) fn open_name_speaker(
+        &mut self,
+        speaker: model::ReviewSpeaker,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
         let Some(doc) = self.doc.clone() else { return };
-        let Some(transcript) = doc.transcript.clone() else { return };
-        NameSpeakerSheet::open(self.data.clone(), doc.meeting.clone(), transcript, speaker, window, cx);
+        let Some(transcript) = doc.transcript.clone() else {
+            return;
+        };
+        NameSpeakerSheet::open(
+            self.data.clone(),
+            doc.meeting.clone(),
+            transcript,
+            speaker,
+            window,
+            cx,
+        );
     }
 
     // ------------------------------------------------------------- playback
@@ -867,8 +1082,9 @@ impl MeetingsPage {
     /// Playback arrives with `lokalbot-audio`; until then the bar only moves
     /// its playhead.
     pub(super) fn toggle_playback(&mut self, cx: &mut Context<Self>) {
-        self.data
-            .update(cx, |data, cx| data.show_message("Playback is not connected yet in this build.", cx));
+        self.data.update(cx, |data, cx| {
+            data.show_message("Playback is not connected yet in this build.", cx)
+        });
     }
 
     fn seek(&mut self, at: f32, cx: &mut Context<Self>) {
@@ -902,7 +1118,11 @@ fn stage_label(stage: &ProcessingStage) -> String {
 }
 
 /// `WorkspaceSection`: bold title, 8px gap, padded grouped panel.
-pub(super) fn card(title: &'static str, content: impl IntoElement, cx: &mut Context<MeetingsPage>) -> AnyElement {
+pub(super) fn card(
+    title: &'static str,
+    content: impl IntoElement,
+    cx: &mut Context<MeetingsPage>,
+) -> AnyElement {
     ui::section(title, v_flex().gap(px(8.)).child(content), cx).into_any_element()
 }
 

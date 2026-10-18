@@ -8,9 +8,10 @@ use std::sync::Arc;
 
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
-    App, Bounds, Corners, Div, ElementId, FontWeight, Hsla, InteractiveElement as _, IntoElement, MouseButton,
-    ParentElement as _, PathBuilder, Pixels, Point, Stateful, StatefulInteractiveElement as _, Styled as _, Window,
-    canvas, div, point, px, quad, size, transparent_black,
+    App, Bounds, Corners, Div, ElementId, FontWeight, Hsla, InteractiveElement as _, IntoElement,
+    MouseButton, ParentElement as _, PathBuilder, Pixels, Point, Stateful,
+    StatefulInteractiveElement as _, Styled as _, Window, canvas, div, point, px, quad, size,
+    transparent_black,
 };
 
 use crate::theme::{LbThemeExt as _, ty};
@@ -41,8 +42,14 @@ pub fn resample(peaks: &[f32], count: usize) -> Vec<f32> {
     (0..count)
         .map(|ix| {
             let start = ix * peaks.len() / count;
-            let end = ((ix + 1) * peaks.len() / count).max(start + 1).min(peaks.len());
-            peaks[start..end].iter().copied().fold(0., f32::max).clamp(0., 1.)
+            let end = ((ix + 1) * peaks.len() / count)
+                .max(start + 1)
+                .min(peaks.len());
+            peaks[start..end]
+                .iter()
+                .copied()
+                .fold(0., f32::max)
+                .clamp(0., 1.)
         })
         .collect()
 }
@@ -72,7 +79,9 @@ pub fn waveform(
     let paint_bounds = bounds_cell.clone();
     let painter = canvas(
         move |bounds, _, _| paint_bounds.set(bounds),
-        move |bounds, _, window, _| paint_waveform(bounds, peaks.as_deref(), progress, hover, colors, window),
+        move |bounds, _, window, _| {
+            paint_waveform(bounds, peaks.as_deref(), progress, hover, colors, window)
+        },
     )
     .absolute()
     .size_full();
@@ -148,12 +157,23 @@ fn paint_waveform(
     let center = height / 2.;
     let cut = width * progress;
     let origin = bounds.origin;
-    let rect = |x: f32, y: f32, w: f32, h: f32| Bounds::new(origin + point(px(x), px(y)), size(px(w), px(h)));
+    let rect = |x: f32, y: f32, w: f32, h: f32| {
+        Bounds::new(origin + point(px(x), px(y)), size(px(w), px(h)))
+    };
     let fill = |window: &mut Window, b: Bounds<Pixels>, radius: f32, color: Hsla| {
-        window.paint_quad(quad(b, Corners::all(px(radius)), color, px(0.), transparent_black(), Default::default()));
+        window.paint_quad(quad(
+            b,
+            Corners::all(px(radius)),
+            color,
+            px(0.),
+            transparent_black(),
+            Default::default(),
+        ));
     };
 
-    let bars = peaks.map(|peaks| resample(peaks, (width / BAR_STEP).floor().max(0.) as usize)).unwrap_or_default();
+    let bars = peaks
+        .map(|peaks| resample(peaks, (width / BAR_STEP).floor().max(0.) as usize))
+        .unwrap_or_default();
     if bars.is_empty() {
         // Flat line until peaks are available, as on macOS.
         fill(window, rect(0., center - 1., width, 2.), 1., colors.bars);
@@ -164,12 +184,21 @@ fn paint_waveform(
         for (ix, peak) in bars.iter().enumerate() {
             let x = ix as f32 * BAR_STEP;
             let h = (peak * (height - 10.)).max(2.);
-            let color = if x + 1. <= cut { colors.played } else { colors.bars };
+            let color = if x + 1. <= cut {
+                colors.played
+            } else {
+                colors.bars
+            };
             fill(window, rect(x, center - h / 2., 2., h), 1., color);
         }
     }
     let playhead_x = (cut - 1.).clamp(0., (width - 2.).max(0.));
-    fill(window, rect(playhead_x, 3., 2., height - 6.), 1., colors.playhead);
+    fill(
+        window,
+        rect(playhead_x, 3., 2., height - 6.),
+        1.,
+        colors.playhead,
+    );
     if let Some(hover) = hover {
         let x = (width * hover).clamp(0., (width - 1.).max(0.));
         fill(window, rect(x, 10., 1., height - 15.), 0., colors.hover);

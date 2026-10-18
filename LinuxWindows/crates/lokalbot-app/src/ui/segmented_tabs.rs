@@ -6,8 +6,8 @@ use std::rc::Rc;
 use gpui_kit::component::h_flex;
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
-    App, Div, ElementId, FontWeight, InteractiveElement as _, MouseButton, ParentElement as _, Pixels, Stateful,
-    StatefulInteractiveElement as _, Styled as _, Window, div, px, white,
+    App, Div, ElementId, FontWeight, InteractiveElement as _, MouseButton, ParentElement as _,
+    Pixels, Stateful, StatefulInteractiveElement as _, Styled as _, Window, div, px, white,
 };
 
 use crate::theme::{LbThemeExt as _, ty};
@@ -55,10 +55,14 @@ pub fn segmented_tabs(
                 .rounded_full()
                 .text_size(ty::SECONDARY)
                 .when(is_selected, |this| {
-                    this.bg(lb.accent_fill).text_color(white()).font_weight(FontWeight::SEMIBOLD)
+                    this.bg(lb.accent_fill)
+                        .text_color(white())
+                        .font_weight(FontWeight::SEMIBOLD)
                 })
                 .when(!is_selected, |this| {
-                    this.text_color(lb.text).font_weight(FontWeight::MEDIUM).hover(move |s| s.bg(hover))
+                    this.text_color(lb.text)
+                        .font_weight(FontWeight::MEDIUM)
+                        .hover(move |s| s.bg(hover))
                 })
                 .child(*label)
                 .on_click(move |_, window, cx| on_select(ix, window, cx))

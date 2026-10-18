@@ -18,9 +18,9 @@ use gpui_kit::component::input::{InputEvent, InputState, TextareaState};
 use gpui_kit::component::menu::{DropdownMenu as _, PopupMenuItem};
 use gpui_kit::component::{Icon, h_flex};
 use gpui_kit::{
-    AnyElement, App, AppContext as _, Bounds, ClipboardItem, Context, Entity, FocusHandle, IntoElement, ListAlignment,
-    ListState, ParentElement as _, Pixels, Render, SharedString, Styled as _, Subscription, Task, Window, anchored,
-    canvas, deferred, div, point, px,
+    AnyElement, App, AppContext as _, Bounds, ClipboardItem, Context, Entity, FocusHandle,
+    IntoElement, ListAlignment, ListState, ParentElement as _, Pixels, Render, SharedString,
+    Styled as _, Subscription, Task, Window, anchored, canvas, deferred, div, point, px,
 };
 use lokalbot_core::{ActionStatus, Meeting};
 use uuid::Uuid;
@@ -124,39 +124,59 @@ impl MeetingsPage {
         let search = cx.new(|cx| InputState::new(window, cx).placeholder("Search meetings"));
         let find_input = cx.new(|cx| InputState::new(window, cx).placeholder("Search Transcript"));
         let notes_input = cx.new(|cx| {
-            TextareaState::new(window, cx)
-                .rows(18)
-                .placeholder("Add context, reminders, or your own wording. Notes save automatically.")
+            TextareaState::new(window, cx).rows(18).placeholder(
+                "Add context, reminders, or your own wording. Notes save automatically.",
+            )
         });
-        let live_input = cx.new(|cx| TextareaState::new(window, cx).rows(12).placeholder("Meeting notes"));
+        let live_input = cx.new(|cx| {
+            TextareaState::new(window, cx)
+                .rows(12)
+                .placeholder("Meeting notes")
+        });
 
         let mut subscriptions = vec![
-            cx.observe_in(&data, window, |this, _, window, cx| this.on_data_changed(window, cx)),
+            cx.observe_in(&data, window, |this, _, window, cx| {
+                this.on_data_changed(window, cx)
+            }),
             cx.subscribe_in(&search, window, |this, input, event: &InputEvent, _, cx| {
                 if let InputEvent::Change = event {
                     this.query = input.read(cx).value().trim().to_string();
                     cx.notify();
                 }
             }),
-            cx.subscribe_in(&find_input, window, |this, input, event: &InputEvent, _, cx| match event {
-                InputEvent::Change => {
-                    this.find.query = input.read(cx).value().to_string();
-                    this.update_find_matches(true, cx);
-                }
-                InputEvent::PressEnter { shift, .. } => this.move_find(if *shift { -1 } else { 1 }, cx),
-                _ => {}
-            }),
+            cx.subscribe_in(
+                &find_input,
+                window,
+                |this, input, event: &InputEvent, _, cx| match event {
+                    InputEvent::Change => {
+                        this.find.query = input.read(cx).value().to_string();
+                        this.update_find_matches(true, cx);
+                    }
+                    InputEvent::PressEnter { shift, .. } => {
+                        this.move_find(if *shift { -1 } else { 1 }, cx)
+                    }
+                    _ => {}
+                },
+            ),
         ];
-        subscriptions.push(cx.subscribe_in(&notes_input, window, |this, _, event: &InputEvent, _, cx| {
-            if let InputEvent::Change = event {
-                this.schedule_notes_save(false, cx);
-            }
-        }));
-        subscriptions.push(cx.subscribe_in(&live_input, window, |this, _, event: &InputEvent, _, cx| {
-            if let InputEvent::Change = event {
-                this.schedule_notes_save(true, cx);
-            }
-        }));
+        subscriptions.push(cx.subscribe_in(
+            &notes_input,
+            window,
+            |this, _, event: &InputEvent, _, cx| {
+                if let InputEvent::Change = event {
+                    this.schedule_notes_save(false, cx);
+                }
+            },
+        ));
+        subscriptions.push(cx.subscribe_in(
+            &live_input,
+            window,
+            |this, _, event: &InputEvent, _, cx| {
+                if let InputEvent::Change = event {
+                    this.schedule_notes_save(true, cx);
+                }
+            },
+        ));
 
         let mut this = Self {
             data,
@@ -178,7 +198,13 @@ impl MeetingsPage {
             full_notes_expanded: false,
             speakers_expanded: false,
             transcript_state: ListState::new(0, ListAlignment::Top, px(600.)),
-            find: FindBar { input: find_input, open: false, query: String::new(), matches: Vec::new(), current: 0 },
+            find: FindBar {
+                input: find_input,
+                open: false,
+                query: String::new(),
+                matches: Vec::new(),
+                current: 0,
+            },
             notes: NotesEditor {
                 input: notes_input,
                 meeting: None,
@@ -240,7 +266,9 @@ impl MeetingsPage {
             return;
         }
         let live = data.recording.meeting().map(|m| m.id);
-        let exists = self.selected.is_some_and(|id| data.meeting(id).is_some() || Some(id) == live);
+        let exists = self
+            .selected
+            .is_some_and(|id| data.meeting(id).is_some() || Some(id) == live);
         if !exists {
             self.selected = live.or_else(|| data.meetings.first().map(|m| m.id));
             self.doc = None;
@@ -291,7 +319,9 @@ impl MeetingsPage {
         self.load_generation += 1;
         let generation = self.load_generation;
         cx.spawn_in(window, async move |this, cx| {
-            let doc = cx.background_spawn(async move { model::load(&library, meeting) }).await;
+            let doc = cx
+                .background_spawn(async move { model::load(&library, meeting) })
+                .await;
             let _ = this.update_in(cx, |this, window, cx| {
                 if this.load_generation != generation {
                     return;
@@ -358,7 +388,11 @@ impl MeetingsPage {
     fn load_notes_editor(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         let Some(doc) = self.doc.clone() else { return };
         let live = self.is_live_selected(cx);
-        let editor = if live { &mut self.live_notes } else { &mut self.notes };
+        let editor = if live {
+            &mut self.live_notes
+        } else {
+            &mut self.notes
+        };
         if editor.meeting == Some(doc.meeting.id) {
             return;
         }
@@ -368,13 +402,23 @@ impl MeetingsPage {
         editor.save_task = None;
         editor.loading = true;
         let text = doc.notes.clone();
-        editor.input.update(cx, |input, cx| input.set_value(text, window, cx));
-        let editor = if live { &mut self.live_notes } else { &mut self.notes };
+        editor
+            .input
+            .update(cx, |input, cx| input.set_value(text, window, cx));
+        let editor = if live {
+            &mut self.live_notes
+        } else {
+            &mut self.notes
+        };
         editor.loading = false;
     }
 
     fn schedule_notes_save(&mut self, live: bool, cx: &mut Context<Self>) {
-        let editor = if live { &mut self.live_notes } else { &mut self.notes };
+        let editor = if live {
+            &mut self.live_notes
+        } else {
+            &mut self.notes
+        };
         if editor.loading {
             return;
         }
@@ -388,26 +432,49 @@ impl MeetingsPage {
         editor.status = NotesStatus::Saving;
         let delay = if live { 600 } else { 400 };
         editor.save_task = Some(cx.spawn(async move |this, cx| {
-            cx.background_executor().timer(Duration::from_millis(delay)).await;
+            cx.background_executor()
+                .timer(Duration::from_millis(delay))
+                .await;
             let _ = this.update(cx, |this, cx| this.save_notes(live, cx));
         }));
         cx.notify();
     }
 
     fn save_notes(&mut self, live: bool, cx: &mut Context<Self>) {
-        let editor = if live { &mut self.live_notes } else { &mut self.notes };
-        let Some(meeting_id) = editor.meeting else { return };
+        let editor = if live {
+            &mut self.live_notes
+        } else {
+            &mut self.notes
+        };
+        let Some(meeting_id) = editor.meeting else {
+            return;
+        };
         let text = editor.input.read(cx).value().to_string();
         let data = self.data.read(cx);
-        let meeting = data.recording.meeting().filter(|m| m.id == meeting_id).cloned().or_else(|| data.meeting(meeting_id).cloned());
+        let meeting = data
+            .recording
+            .meeting()
+            .filter(|m| m.id == meeting_id)
+            .cloned()
+            .or_else(|| data.meeting(meeting_id).cloned());
         let Some(meeting) = meeting else { return };
         let library = data.library.clone();
-        let editor = if live { &mut self.live_notes } else { &mut self.notes };
+        let editor = if live {
+            &mut self.live_notes
+        } else {
+            &mut self.notes
+        };
         editor.save_task = Some(cx.spawn(async move |this, cx| {
             let saved_text = text.clone();
-            let result = cx.background_spawn(async move { library.save_notes(&meeting, &text) }).await;
+            let result = cx
+                .background_spawn(async move { library.save_notes(&meeting, &text) })
+                .await;
             let _ = this.update(cx, |this, cx| {
-                let editor = if live { &mut this.live_notes } else { &mut this.notes };
+                let editor = if live {
+                    &mut this.live_notes
+                } else {
+                    &mut this.notes
+                };
                 match result {
                     Ok(()) => {
                         editor.saved = saved_text;
@@ -435,7 +502,9 @@ impl MeetingsPage {
     pub(crate) fn open_find(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.find.open = true;
         self.tab = MeetingTab::Transcript;
-        self.find.input.update(cx, |input, cx| input.focus(window, cx));
+        self.find
+            .input
+            .update(cx, |input, cx| input.focus(window, cx));
         cx.notify();
     }
 
@@ -443,7 +512,9 @@ impl MeetingsPage {
         self.find.open = false;
         self.find.query.clear();
         self.find.matches.clear();
-        self.find.input.update(cx, |input, cx| input.set_value("", window, cx));
+        self.find
+            .input
+            .update(cx, |input, cx| input.set_value("", window, cx));
         cx.notify();
     }
 
@@ -465,7 +536,9 @@ impl MeetingsPage {
                 let mut from = 0;
                 while let Some(found) = haystack[from..].find(&needle) {
                     let start = from + found;
-                    self.find.matches.push((row_ix, start..start + needle.len()));
+                    self.find
+                        .matches
+                        .push((row_ix, start..start + needle.len()));
                     from = start + needle.len().max(1);
                 }
             }
@@ -489,20 +562,40 @@ impl MeetingsPage {
 
     // -------------------------------------------------------------- actions
 
-    pub(crate) fn set_action_status(&mut self, action_id: String, status: ActionStatus, cx: &mut Context<Self>) {
-        let Some(meeting_id) = self.doc.as_ref().map(|d| d.meeting.id) else { return };
-        self.data.update(cx, |data, cx| data.set_action_status(meeting_id, action_id, status, cx));
+    pub(crate) fn set_action_status(
+        &mut self,
+        action_id: String,
+        status: ActionStatus,
+        cx: &mut Context<Self>,
+    ) {
+        let Some(meeting_id) = self.doc.as_ref().map(|d| d.meeting.id) else {
+            return;
+        };
+        self.data.update(cx, |data, cx| {
+            data.set_action_status(meeting_id, action_id, status, cx)
+        });
     }
 
     pub(crate) fn process(&mut self, transcribe: bool, summarize: bool, cx: &mut Context<Self>) {
-        let Some(meeting_id) = self.selected else { return };
+        let Some(meeting_id) = self.selected else {
+            return;
+        };
         self.data.update(cx, |data, cx| {
-            data.request(AppEvent::ProcessMeeting { meeting_id, transcribe, summarize }, cx)
+            data.request(
+                AppEvent::ProcessMeeting {
+                    meeting_id,
+                    transcribe,
+                    summarize,
+                },
+                cx,
+            )
         });
     }
 
     fn ask_meeting(&mut self, cx: &mut Context<Self>) {
-        let Some(meeting_id) = self.selected else { return };
+        let Some(meeting_id) = self.selected else {
+            return;
+        };
         self.data.update(cx, |data, cx| {
             data.ask(
                 AskRequest {
@@ -518,19 +611,27 @@ impl MeetingsPage {
     fn copy_text(&self, text: String, message: &str, cx: &mut Context<Self>) {
         cx.write_to_clipboard(ClipboardItem::new_string(text));
         let message = message.to_string();
-        self.data.update(cx, |data, cx| data.show_message(message, cx));
+        self.data
+            .update(cx, |data, cx| data.show_message(message, cx));
     }
 
     fn export_markdown(&mut self, cx: &mut Context<Self>) {
         let Some(doc) = self.doc.clone() else { return };
         let markdown = model::meeting_markdown(&doc);
-        let name = format!("{}.md", lokalbot_core::ids::slugify(&doc.meeting.display_title()));
+        let name = format!(
+            "{}.md",
+            lokalbot_core::ids::slugify(&doc.meeting.display_title())
+        );
         let directory = directories_home();
         let receiver = cx.prompt_for_new_path(&directory, Some(&name));
         let data = self.data.clone();
         cx.spawn(async move |_, cx| {
-            let Ok(Ok(Some(path))) = receiver.await else { return };
-            let result = cx.background_spawn(async move { std::fs::write(&path, markdown) }).await;
+            let Ok(Ok(Some(path))) = receiver.await else {
+                return;
+            };
+            let result = cx
+                .background_spawn(async move { std::fs::write(&path, markdown) })
+                .await;
             let _ = data.update(cx, |data, cx| match result {
                 Ok(()) => data.show_message("Meeting exported as Markdown.", cx),
                 Err(err) => data.show_error(format!("Meeting export failed: {err}"), cx),
@@ -546,7 +647,9 @@ impl MeetingsPage {
         if live_visible && self.tick.is_none() {
             self.tick = Some(cx.spawn(async move |this, cx| {
                 loop {
-                    cx.background_executor().timer(Duration::from_millis(200)).await;
+                    cx.background_executor()
+                        .timer(Duration::from_millis(200))
+                        .await;
                     if this.update(cx, |_, cx| cx.notify()).is_err() {
                         break;
                     }
@@ -565,7 +668,8 @@ impl MeetingsPage {
         let segment = if compact { px(72.) } else { px(86.) };
         let width = segmented_tabs::width(TABS.len(), segment);
         let x = page.origin.x + page.size.width / 2. - width / 2.;
-        let y = page.origin.y - metric::TOOLBAR_HEIGHT + (metric::TOOLBAR_HEIGHT - segmented_tabs::HEIGHT) / 2.;
+        let y = page.origin.y - metric::TOOLBAR_HEIGHT
+            + (metric::TOOLBAR_HEIGHT - segmented_tabs::HEIGHT) / 2.;
         let on_select = cx.listener(|this, ix: &usize, _, cx| this.set_tab(tab_at(*ix), cx));
         let tabs = segmented_tabs::segmented_tabs(
             "meeting-tabs",
@@ -588,7 +692,9 @@ fn directories_home() -> std::path::PathBuf {
 
 impl Page for MeetingsPage {
     fn title(&self, cx: &App) -> SharedString {
-        let Some(meeting) = self.selected_meeting(cx) else { return "Meetings".into() };
+        let Some(meeting) = self.selected_meeting(cx) else {
+            return "Meetings".into();
+        };
         let title = meeting.display_title();
         // Keep the title clear of the centered tabs.
         let budget = self
@@ -621,7 +727,10 @@ impl Page for MeetingsPage {
                     .into_any_element(),
             );
         }
-        let compact = self.page_bounds.get().is_some_and(|b| b.size.width < px(900.));
+        let compact = self
+            .page_bounds
+            .get()
+            .is_some_and(|b| b.size.width < px(900.));
         let has_summary = self.doc.as_ref().is_some_and(|d| d.has_summary());
         let has_transcript = self.doc.as_ref().is_some_and(|d| d.has_transcript());
         let page = cx.entity().downgrade();
@@ -654,30 +763,52 @@ impl Page for MeetingsPage {
                         let p2 = export_page.clone();
                         let p3 = export_page.clone();
                         let p4 = export_page.clone();
-                        menu.item(PopupMenuItem::new("Copy Meeting as Markdown").on_click(move |_, _, cx| {
-                            let _ = p1.update(cx, |this, cx| {
-                                if let Some(doc) = this.doc.clone() {
-                                    this.copy_text(model::meeting_markdown(&doc), "Meeting copied as Markdown.", cx);
-                                }
-                            });
-                        }))
-                        .item(PopupMenuItem::new("Export Meeting as Markdown…").on_click(move |_, _, cx| {
-                            let _ = p2.update(cx, |this, cx| this.export_markdown(cx));
-                        }))
-                        .item(PopupMenuItem::new("Copy Summary").disabled(!has_summary).on_click(move |_, _, cx| {
-                            let _ = p3.update(cx, |this, cx| {
-                                if let Some(summary) = this.doc.as_ref().and_then(|d| d.summary.clone()) {
-                                    this.copy_text(summary, "Summary copied.", cx);
-                                }
-                            });
-                        }))
-                        .item(PopupMenuItem::new("Copy Transcript").disabled(!has_transcript).on_click(move |_, _, cx| {
-                            let _ = p4.update(cx, |this, cx| {
-                                if let Some(doc) = this.doc.clone() {
-                                    this.copy_text(model::transcript_text(&doc), "Transcript copied.", cx);
-                                }
-                            });
-                        }))
+                        menu.item(PopupMenuItem::new("Copy Meeting as Markdown").on_click(
+                            move |_, _, cx| {
+                                let _ = p1.update(cx, |this, cx| {
+                                    if let Some(doc) = this.doc.clone() {
+                                        this.copy_text(
+                                            model::meeting_markdown(&doc),
+                                            "Meeting copied as Markdown.",
+                                            cx,
+                                        );
+                                    }
+                                });
+                            },
+                        ))
+                        .item(PopupMenuItem::new("Export Meeting as Markdown…").on_click(
+                            move |_, _, cx| {
+                                let _ = p2.update(cx, |this, cx| this.export_markdown(cx));
+                            },
+                        ))
+                        .item(
+                            PopupMenuItem::new("Copy Summary")
+                                .disabled(!has_summary)
+                                .on_click(move |_, _, cx| {
+                                    let _ = p3.update(cx, |this, cx| {
+                                        if let Some(summary) =
+                                            this.doc.as_ref().and_then(|d| d.summary.clone())
+                                        {
+                                            this.copy_text(summary, "Summary copied.", cx);
+                                        }
+                                    });
+                                }),
+                        )
+                        .item(
+                            PopupMenuItem::new("Copy Transcript")
+                                .disabled(!has_transcript)
+                                .on_click(move |_, _, cx| {
+                                    let _ = p4.update(cx, |this, cx| {
+                                        if let Some(doc) = this.doc.clone() {
+                                            this.copy_text(
+                                                model::transcript_text(&doc),
+                                                "Transcript copied.",
+                                                cx,
+                                            );
+                                        }
+                                    });
+                                }),
+                        )
                     }),
             )
             .child(
@@ -695,32 +826,45 @@ impl Page for MeetingsPage {
                     .tooltip("More meeting actions")
                     .dropdown_menu(move |menu, _, _| {
                         let p = more_page.clone();
-                        let item = |label: &'static str, f: fn(&mut MeetingsPage, &mut Window, &mut Context<MeetingsPage>)| {
+                        let item = |label: &'static str,
+                                    f: fn(
+                            &mut MeetingsPage,
+                            &mut Window,
+                            &mut Context<MeetingsPage>,
+                        )| {
                             let p = p.clone();
                             PopupMenuItem::new(label).on_click(move |_, window, cx| {
                                 let _ = p.update(cx, |this, cx| f(this, window, cx));
                             })
                         };
-                        menu.item(item("Transcribe & Summarize", |this, _, cx| this.process(true, true, cx)))
-                            .item(item("Transcribe only", |this, _, cx| this.process(true, false, cx)))
-                            .item(item("Summarize again", |this, _, cx| this.process(false, true, cx)))
-                            .separator()
-                            .item(item("Show in Folder", |this, _, cx| {
-                                if let Some(doc) = this.doc.as_ref() {
-                                    cx.reveal_path(&doc.folder);
-                                }
-                            }))
-                            .item(item("Copy Meeting Path", |this, _, cx| {
-                                if let Some(path) = this.doc.as_ref().map(|d| d.folder.display().to_string()) {
-                                    this.copy_text(path, "Meeting path copied.", cx);
-                                }
-                            }))
-                            .separator()
-                            .item(item("Delete…", |this, window, cx| {
-                                if let Some(id) = this.selected {
-                                    dialogs::confirm_delete(this.data.clone(), vec![id], window, cx);
-                                }
-                            }))
+                        menu.item(item("Transcribe & Summarize", |this, _, cx| {
+                            this.process(true, true, cx)
+                        }))
+                        .item(item("Transcribe only", |this, _, cx| {
+                            this.process(true, false, cx)
+                        }))
+                        .item(item("Summarize again", |this, _, cx| {
+                            this.process(false, true, cx)
+                        }))
+                        .separator()
+                        .item(item("Show in Folder", |this, _, cx| {
+                            if let Some(doc) = this.doc.as_ref() {
+                                cx.reveal_path(&doc.folder);
+                            }
+                        }))
+                        .item(item("Copy Meeting Path", |this, _, cx| {
+                            if let Some(path) =
+                                this.doc.as_ref().map(|d| d.folder.display().to_string())
+                            {
+                                this.copy_text(path, "Meeting path copied.", cx);
+                            }
+                        }))
+                        .separator()
+                        .item(item("Delete…", |this, window, cx| {
+                            if let Some(id) = this.selected {
+                                dialogs::confirm_delete(this.data.clone(), vec![id], window, cx);
+                            }
+                        }))
                     }),
             );
         Some(toolbar.into_any_element())
@@ -754,13 +898,11 @@ impl Render for MeetingsPage {
             .relative()
             .child(measure)
             .child(self.render_list_column(window, cx))
-            .child(
-                div()
-                    .flex_1()
-                    .min_w_0()
-                    .h_full()
-                    .child(if live { self.render_live(window, cx) } else { self.render_detail(window, cx) }),
-            )
+            .child(div().flex_1().min_w_0().h_full().child(if live {
+                self.render_live(window, cx)
+            } else {
+                self.render_detail(window, cx)
+            }))
     }
 }
 
@@ -777,4 +919,3 @@ pub(crate) fn status_text(status: &NotesStatus) -> SharedString {
         NotesStatus::Failed(_) => "Not saved".into(),
     }
 }
-

@@ -9,8 +9,8 @@ use std::sync::Arc;
 use chrono::{DateTime, Local, Utc};
 use gpui_kit::SharedString;
 use lokalbot_core::{
-    ActionItem, ActionState, ActionStatus, Decision, Library, Meeting, MeetingOutcomes, OutcomeSourceCitation,
-    OutcomeState, Transcript,
+    ActionItem, ActionState, ActionStatus, Decision, Library, Meeting, MeetingOutcomes,
+    OutcomeSourceCitation, OutcomeState, Transcript,
 };
 
 /// A meeting's files and their display projection.
@@ -38,11 +38,15 @@ pub struct MeetingDoc {
 
 impl MeetingDoc {
     pub fn has_summary(&self) -> bool {
-        self.summary.as_deref().is_some_and(|s| !s.trim().is_empty())
+        self.summary
+            .as_deref()
+            .is_some_and(|s| !s.trim().is_empty())
     }
 
     pub fn has_transcript(&self) -> bool {
-        self.transcript.as_ref().is_some_and(|t| !t.segments.is_empty())
+        self.transcript
+            .as_ref()
+            .is_some_and(|t| !t.segments.is_empty())
     }
 
     /// Row index whose segment contains `seconds` (or the nearest before it).
@@ -55,7 +59,10 @@ impl MeetingDoc {
 
     /// Remote speakers that still carry a placeholder name.
     pub fn unnamed_remote_speakers(&self) -> usize {
-        self.review.iter().filter(|s| !s.is_user && !s.is_named && s.can_confirm).count()
+        self.review
+            .iter()
+            .filter(|s| !s.is_user && !s.is_named && s.can_confirm)
+            .count()
     }
 }
 
@@ -126,7 +133,9 @@ pub struct Speakers {
 impl Speakers {
     pub fn new(transcript: Option<&Transcript>) -> Self {
         let mut this = Self::default();
-        let Some(transcript) = transcript else { return this };
+        let Some(transcript) = transcript else {
+            return this;
+        };
         for segment in &transcript.segments {
             let key = Transcript::canonical_speaker_key(&segment.speaker);
             let confirmed_user = segment
@@ -157,7 +166,8 @@ impl Speakers {
             if this.users.contains(key) {
                 this.owner_users.insert(name.to_lowercase());
             }
-            this.names.insert(key.clone(), display_label(&name, this.users.contains(key)));
+            this.names
+                .insert(key.clone(), display_label(&name, this.users.contains(key)));
         }
         this
     }
@@ -171,12 +181,18 @@ impl Speakers {
     }
 
     pub fn color_index(&self, speaker: &str) -> usize {
-        self.colors.get(&Transcript::canonical_speaker_key(speaker)).copied().unwrap_or(1)
+        self.colors
+            .get(&Transcript::canonical_speaker_key(speaker))
+            .copied()
+            .unwrap_or(1)
     }
 
     /// An action owner as people should read it ("You", "Other speaker").
     pub fn owner(&self, value: &str, is_for_user: bool) -> String {
-        display_label(value, is_for_user || self.owner_users.contains(&value.trim().to_lowercase()))
+        display_label(
+            value,
+            is_for_user || self.owner_users.contains(&value.trim().to_lowercase()),
+        )
     }
 }
 
@@ -186,12 +202,19 @@ pub fn display_label(name: &str, is_user: bool) -> String {
     let trimmed = name.trim();
     let lower = trimmed.to_lowercase();
     if lower == "me" {
-        return if is_user { "You".into() } else { trimmed.to_string() };
+        return if is_user {
+            "You".into()
+        } else {
+            trimmed.to_string()
+        };
     }
     if lower == "them" {
         return "Other speaker".into();
     }
-    if let Some(n) = lower.strip_prefix("them ").filter(|n| n.chars().all(|c| c.is_ascii_digit()) && !n.is_empty()) {
+    if let Some(n) = lower
+        .strip_prefix("them ")
+        .filter(|n| n.chars().all(|c| c.is_ascii_digit()) && !n.is_empty())
+    {
         return format!("Speaker {n}");
     }
     trimmed.to_string()
@@ -200,13 +223,30 @@ pub fn display_label(name: &str, is_user: bool) -> String {
 fn is_placeholder_name(name: &str) -> bool {
     let lower = name.trim().to_lowercase();
     lower.is_empty()
-        || ["me", "them", "you", "other speaker", "local speaker", "speaker unclear", "remote speaker"].contains(&lower.as_str())
-        || lower.strip_prefix("speaker ").is_some_and(|n| n.chars().all(|c| c.is_ascii_digit()))
-        || lower.strip_prefix("them ").is_some_and(|n| n.chars().all(|c| c.is_ascii_digit()))
+        || [
+            "me",
+            "them",
+            "you",
+            "other speaker",
+            "local speaker",
+            "speaker unclear",
+            "remote speaker",
+        ]
+        .contains(&lower.as_str())
+        || lower
+            .strip_prefix("speaker ")
+            .is_some_and(|n| n.chars().all(|c| c.is_ascii_digit()))
+        || lower
+            .strip_prefix("them ")
+            .is_some_and(|n| n.chars().all(|c| c.is_ascii_digit()))
 }
 
 /// Applies `outcome-state.json` corrections to one extracted action.
-pub fn merge_action(item: &ActionItem, state: Option<&ActionState>, speakers: &Speakers) -> MeetingAction {
+pub fn merge_action(
+    item: &ActionItem,
+    state: Option<&ActionState>,
+    speakers: &Speakers,
+) -> MeetingAction {
     let status = state.map(|s| s.status).unwrap_or_default();
     let text = state
         .and_then(|s| s.text_correction.clone())
@@ -223,11 +263,16 @@ pub fn merge_action(item: &ActionItem, state: Option<&ActionState>, speakers: &S
         _ => item.due.clone(),
     };
     let is_for_user = if owner_corrected {
-        owner.as_deref().is_some_and(|o| o.trim().eq_ignore_ascii_case("me"))
+        owner
+            .as_deref()
+            .is_some_and(|o| o.trim().eq_ignore_ascii_case("me"))
     } else {
         item.is_for_user
     };
-    let owner_label = owner.as_deref().filter(|o| !o.trim().is_empty()).map(|o| speakers.owner(o, is_for_user));
+    let owner_label = owner
+        .as_deref()
+        .filter(|o| !o.trim().is_empty())
+        .map(|o| speakers.owner(o, is_for_user));
     MeetingAction {
         id: item.id.clone(),
         text,
@@ -258,21 +303,50 @@ pub fn load(library: &Library, meeting: Meeting) -> MeetingDoc {
         .into_iter()
         .flatten()
         .filter_map(|path| wav_peaks(path, 720))
-        .reduce(|a, b| a.iter().zip(b.iter().chain(std::iter::repeat(&0.))).map(|(x, y)| x.max(*y)).collect())
+        .reduce(|a, b| {
+            a.iter()
+                .zip(b.iter().chain(std::iter::repeat(&0.)))
+                .map(|(x, y)| x.max(*y))
+                .collect()
+        })
         .map(normalize)
         .map(Arc::from);
 
     let speakers = Speakers::new(transcript.as_ref());
     let actions: Vec<MeetingAction> = outcomes
         .as_ref()
-        .map(|o| o.action_items.iter().map(|item| merge_action(item, state.actions.get(&item.id), &speakers)).collect())
+        .map(|o| {
+            o.action_items
+                .iter()
+                .map(|item| merge_action(item, state.actions.get(&item.id), &speakers))
+                .collect()
+        })
         .unwrap_or_default();
-    let decisions = outcomes.as_ref().map(|o| o.decision_records.clone()).unwrap_or_default();
-    let questions = outcomes.as_ref().map(|o| o.open_questions.clone()).unwrap_or_default();
-    let (summary_meta, summary_body) = summary.as_deref().map(split_summary).unwrap_or((None, String::new()));
-    let recap = summary.as_deref().and_then(recap).map(|text| recap_points(&text)).unwrap_or_default();
-    let rows = transcript.as_ref().map(|t| transcript_rows(t, &speakers)).unwrap_or_default();
-    let review = transcript.as_ref().map(|t| review_speakers(t, &speakers, &actions)).unwrap_or_default();
+    let decisions = outcomes
+        .as_ref()
+        .map(|o| o.decision_records.clone())
+        .unwrap_or_default();
+    let questions = outcomes
+        .as_ref()
+        .map(|o| o.open_questions.clone())
+        .unwrap_or_default();
+    let (summary_meta, summary_body) = summary
+        .as_deref()
+        .map(split_summary)
+        .unwrap_or((None, String::new()));
+    let recap = summary
+        .as_deref()
+        .and_then(recap)
+        .map(|text| recap_points(&text))
+        .unwrap_or_default();
+    let rows = transcript
+        .as_ref()
+        .map(|t| transcript_rows(t, &speakers))
+        .unwrap_or_default();
+    let review = transcript
+        .as_ref()
+        .map(|t| review_speakers(t, &speakers, &actions))
+        .unwrap_or_default();
 
     MeetingDoc {
         meeting,
@@ -318,7 +392,11 @@ fn transcript_rows(transcript: &Transcript, speakers: &Speakers) -> Vec<Transcri
     rows
 }
 
-fn review_speakers(transcript: &Transcript, speakers: &Speakers, actions: &[MeetingAction]) -> Vec<ReviewSpeaker> {
+fn review_speakers(
+    transcript: &Transcript,
+    speakers: &Speakers,
+    actions: &[MeetingAction],
+) -> Vec<ReviewSpeaker> {
     let mut seen = Vec::<String>::new();
     for segment in &transcript.segments {
         let key = Transcript::canonical_speaker_key(&segment.speaker);
@@ -329,25 +407,46 @@ fn review_speakers(transcript: &Transcript, speakers: &Speakers, actions: &[Meet
     let mut items: Vec<ReviewSpeaker> = seen
         .iter()
         .map(|key| {
-            let segments: Vec<_> =
-                transcript.segments.iter().filter(|s| Transcript::canonical_speaker_key(&s.speaker) == *key).collect();
+            let segments: Vec<_> = transcript
+                .segments
+                .iter()
+                .filter(|s| Transcript::canonical_speaker_key(&s.speaker) == *key)
+                .collect();
             let sample = segments
                 .iter()
-                .filter(|s| s.start.is_finite() && s.end > s.start && Transcript::display_text(&s.text).split_whitespace().count() >= 3)
+                .filter(|s| {
+                    s.start.is_finite()
+                        && s.end > s.start
+                        && Transcript::display_text(&s.text).split_whitespace().count() >= 3
+                })
                 .max_by(|a, b| {
                     let score = |s: &&&lokalbot_core::Segment| {
-                        (Transcript::display_text(&s.text).split_whitespace().count().min(25) as f64) + (s.end - s.start).min(12.)
+                        (Transcript::display_text(&s.text)
+                            .split_whitespace()
+                            .count()
+                            .min(25) as f64)
+                            + (s.end - s.start).min(12.)
                     };
-                    score(a).partial_cmp(&score(b)).unwrap_or(std::cmp::Ordering::Equal).then(b.start.total_cmp(&a.start))
+                    score(a)
+                        .partial_cmp(&score(b))
+                        .unwrap_or(std::cmp::Ordering::Equal)
+                        .then(b.start.total_cmp(&a.start))
                 })
                 .map(|s| (s.start, Transcript::display_text(&s.text)));
             let name = speakers.name(key);
-            let alias = transcript.speaker_aliases.get(key).filter(|a| !a.trim().is_empty());
+            let alias = transcript
+                .speaker_aliases
+                .get(key)
+                .filter(|a| !a.trim().is_empty());
             let action_count = actions
                 .iter()
                 .filter(|a| {
-                    a.owner.as_deref().is_some_and(|o| Transcript::canonical_speaker_key(o) == *key || o == name)
-                        || a.citation.as_ref().is_some_and(|c| Transcript::canonical_speaker_key(&c.speaker) == *key)
+                    a.owner
+                        .as_deref()
+                        .is_some_and(|o| Transcript::canonical_speaker_key(o) == *key || o == name)
+                        || a.citation
+                            .as_ref()
+                            .is_some_and(|c| Transcript::canonical_speaker_key(&c.speaker) == *key)
                 })
                 .count();
             ReviewSpeaker {
@@ -362,7 +461,11 @@ fn review_speakers(transcript: &Transcript, speakers: &Speakers, actions: &[Meet
             }
         })
         .collect();
-    let order: HashMap<String, usize> = seen.iter().enumerate().map(|(ix, key)| (key.clone(), ix)).collect();
+    let order: HashMap<String, usize> = seen
+        .iter()
+        .enumerate()
+        .map(|(ix, key)| (key.clone(), ix))
+        .collect();
     items.sort_by(|a, b| {
         (b.action_count > 0)
             .cmp(&(a.action_count > 0))
@@ -381,10 +484,14 @@ pub fn split_summary(markdown: &str) -> (Option<String>, String) {
         if trimmed.is_empty() || trimmed.starts_with('#') {
             continue;
         }
-        let Some(items) = metadata_items(trimmed).filter(|items| items.len() >= 2) else { break };
+        let Some(items) = metadata_items(trimmed).filter(|items| items.len() >= 2) else {
+            break;
+        };
         let shown: Vec<String> = items
             .into_iter()
-            .filter(|(label, value)| label != "Sources" && !(label == "App" && value == "Merged meetings"))
+            .filter(|(label, value)| {
+                label != "Sources" && !(label == "App" && value == "Merged meetings")
+            })
             .map(|(label, value)| format!("{label} {value}"))
             .collect();
         let body = lines
@@ -421,7 +528,10 @@ fn metadata_items(line: &str) -> Option<Vec<(String, String)>> {
 pub fn recap(markdown: &str) -> Option<String> {
     let (_, body) = split_summary(markdown);
     let lines: Vec<&str> = body.lines().collect();
-    if let Some(heading) = lines.iter().position(|l| l.trim().eq_ignore_ascii_case("## tl;dr")) {
+    if let Some(heading) = lines
+        .iter()
+        .position(|l| l.trim().eq_ignore_ascii_case("## tl;dr"))
+    {
         let section = lines[heading + 1..]
             .iter()
             .take_while(|l| !l.trim_start().starts_with('#'))
@@ -496,27 +606,44 @@ fn strip_trailing_stamp(line: &str) -> String {
 
 /// One recap point per non-empty line.
 pub fn recap_points(text: &str) -> Vec<String> {
-    text.lines().map(str::trim).filter(|l| !l.is_empty()).map(str::to_string).collect()
+    text.lines()
+        .map(str::trim)
+        .filter(|l| !l.is_empty())
+        .map(str::to_string)
+        .collect()
 }
 
 // ------------------------------------------------------------------ labels
 
 /// "Oct 8, 2026 at 11:57 AM".
 pub fn date_label(at: DateTime<Utc>) -> String {
-    at.with_timezone(&Local).format("%b %-d, %Y at %-I:%M %p").to_string()
+    at.with_timezone(&Local)
+        .format("%b %-d, %Y at %-I:%M %p")
+        .to_string()
 }
 
 /// Duration chip text: "2 min", "1 hr 5 min" (minutes floored, as on macOS).
 pub fn duration_label(meeting: &Meeting) -> String {
     let minutes = (meeting.duration_seconds() / 60.).floor() as u64;
-    if minutes >= 60 { format!("{} hr {} min", minutes / 60, minutes % 60) } else { format!("{minutes} min") }
+    if minutes >= 60 {
+        format!("{} hr {} min", minutes / 60, minutes % 60)
+    } else {
+        format!("{minutes} min")
+    }
 }
 
 /// List row metadata: "Zoom · 10:57 AM · 2 min"; merged meetings omit the app.
 pub fn row_detail(meeting: &Meeting, live: bool) -> String {
-    let time = if live { "in progress".to_string() } else { lokalbot_core::time::clock_time(meeting.started_at) };
+    let time = if live {
+        "in progress".to_string()
+    } else {
+        lokalbot_core::time::clock_time(meeting.started_at)
+    };
     let duration = if live {
-        format!("{} min", ((Utc::now() - meeting.started_at).num_seconds().max(60) / 60))
+        format!(
+            "{} min",
+            ((Utc::now() - meeting.started_at).num_seconds().max(60) / 60)
+        )
     } else {
         duration_label(meeting)
     };
@@ -562,7 +689,14 @@ pub fn meeting_markdown(doc: &MeetingDoc) -> String {
 pub fn transcript_text(doc: &MeetingDoc) -> String {
     doc.rows
         .iter()
-        .map(|row| format!("[{}] {}: {}", lokalbot_core::time::stamp(row.start), row.name, row.text))
+        .map(|row| {
+            format!(
+                "[{}] {}: {}",
+                lokalbot_core::time::stamp(row.start),
+                row.name,
+                row.text
+            )
+        })
         .collect::<Vec<_>>()
         .join("\n")
 }
@@ -574,7 +708,10 @@ pub fn transcript_text(doc: &MeetingDoc) -> String {
 /// Stand-in until `lokalbot_audio::waveform_peaks` is wired; other formats
 /// (`.m4a` from macOS libraries) return `None`.
 pub fn wav_peaks(path: &Path, buckets: usize) -> Option<Vec<f32>> {
-    if path.extension().is_none_or(|e| !e.eq_ignore_ascii_case("wav")) {
+    if path
+        .extension()
+        .is_none_or(|e| !e.eq_ignore_ascii_case("wav"))
+    {
         return None;
     }
     let bytes = std::fs::read(path).ok()?;
@@ -610,7 +747,9 @@ pub fn wav_peaks(path: &Path, buckets: usize) -> Option<Vec<f32>> {
         let offset = frame * frame_bytes;
         match (format, bits) {
             (1, 16) => i16::from_le_bytes([data[offset], data[offset + 1]]) as f32 / 32768.,
-            (3, 32) | (0xFFFE, 32) => f32::from_le_bytes(data[offset..offset + 4].try_into().unwrap_or([0; 4])),
+            (3, 32) | (0xFFFE, 32) => {
+                f32::from_le_bytes(data[offset..offset + 4].try_into().unwrap_or([0; 4]))
+            }
             _ => 0.,
         }
     };
@@ -647,7 +786,10 @@ mod tests {
     #[test]
     fn recap_bullets_drop_labels_and_stamps() {
         let summary = "## TL;DR\n- **Caching:** Redis wins — [00:12]\n- Ship Friday";
-        assert_eq!(recap_points(&recap(summary).unwrap()), vec!["• Redis wins", "• Ship Friday"]);
+        assert_eq!(
+            recap_points(&recap(summary).unwrap()),
+            vec!["• Redis wins", "• Ship Friday"]
+        );
     }
 
     #[test]

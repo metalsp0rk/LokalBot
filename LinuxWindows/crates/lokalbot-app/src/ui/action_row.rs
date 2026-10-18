@@ -8,8 +8,9 @@ use gpui_kit::component::tooltip::Tooltip;
 use gpui_kit::component::{Sizable as _, h_flex, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
-    AnyElement, App, Context, Div, ElementId, FontWeight, InteractiveElement as _, IntoElement, ParentElement as _,
-    SharedString, Stateful, StatefulInteractiveElement as _, Styled as _, Window, div, px, white,
+    AnyElement, App, Context, Div, ElementId, FontWeight, InteractiveElement as _, IntoElement,
+    ParentElement as _, SharedString, Stateful, StatefulInteractiveElement as _, Styled as _,
+    Window, div, px, white,
 };
 use lokalbot_core::ActionStatus;
 
@@ -28,7 +29,11 @@ pub fn status_toggle(
     let lb = cx.lb();
     let size = metric::ACTION_TOGGLE;
     let done = status == ActionStatus::Done && !mixed;
-    let tooltip: SharedString = if done { "Reopen action".into() } else { "Mark action done".into() };
+    let tooltip: SharedString = if done {
+        "Reopen action".into()
+    } else {
+        "Mark action done".into()
+    };
     let hover_ring = lb.accent_text;
     div()
         .id(id)
@@ -40,12 +45,23 @@ pub fn status_toggle(
         .items_center()
         .justify_center()
         .cursor_pointer()
-        .when(done, |this| this.bg(lb.accent_fill).child(icon(Ico::Check, px(12.), white())))
+        .when(done, |this| {
+            this.bg(lb.accent_fill)
+                .child(icon(Ico::Check, px(12.), white()))
+        })
         .when(!done, |this| {
             this.border_color(lb.text_secondary)
                 .border(px(1.5))
                 .hover(move |s| s.border_color(hover_ring))
-                .when(mixed, |this| this.child(div().w(px(8.)).h(px(1.5)).rounded_full().bg(lb.text_secondary)))
+                .when(mixed, |this| {
+                    this.child(
+                        div()
+                            .w(px(8.))
+                            .h(px(1.5))
+                            .rounded_full()
+                            .bg(lb.text_secondary),
+                    )
+                })
         })
         .tooltip(move |window, cx| Tooltip::new(tooltip.clone()).build(window, cx))
         .on_click(move |_, window, cx| on_click(window, cx))
@@ -86,7 +102,11 @@ pub fn evidence_pill(
 
 /// Plain metadata text in the row's second line.
 pub fn meta_text(text: impl Into<SharedString>, color: gpui_kit::Hsla) -> Div {
-    div().flex_none().text_size(ty::SECONDARY).text_color(color).child(text.into())
+    div()
+        .flex_none()
+        .text_size(ty::SECONDARY)
+        .text_color(color)
+        .child(text.into())
 }
 
 /// A teal metadata link (meeting title, "Mentioned in 3 meetings").
@@ -115,7 +135,11 @@ pub fn meta_link(
 /// Compact due chip with a calendar symbol ("by Thursday").
 pub fn due_chip(text: impl Into<SharedString>, overdue: bool, cx: &App) -> Div {
     let lb = cx.lb();
-    let color = if overdue { lb.attention_text } else { lb.supporting };
+    let color = if overdue {
+        lb.attention_text
+    } else {
+        lb.supporting
+    };
     h_flex()
         .flex_none()
         .gap(px(4.))
@@ -136,7 +160,12 @@ pub fn options_menu(
     id: impl Into<ElementId>,
     build: impl Fn(PopupMenu, &mut Window, &mut Context<PopupMenu>) -> PopupMenu + 'static,
 ) -> impl IntoElement {
-    Button::new(id).ghost().small().icon(Ico::Ellipsis).tooltip("Options").dropdown_menu(build)
+    Button::new(id)
+        .ghost()
+        .small()
+        .icon(Ico::Ellipsis)
+        .tooltip("Options")
+        .dropdown_menu(build)
 }
 
 /// One row: toggle, text with its metadata line and optional hint, menu.
@@ -170,7 +199,14 @@ pub fn action_row(
                         .child(text.into()),
                 )
                 .when(!meta.is_empty(), |this| {
-                    this.child(h_flex().flex_wrap().gap_x(px(8.)).gap_y(px(2.)).items_center().children(meta))
+                    this.child(
+                        h_flex()
+                            .flex_wrap()
+                            .gap_x(px(8.))
+                            .gap_y(px(2.))
+                            .items_center()
+                            .children(meta),
+                    )
                 })
                 .children(extra),
         )
