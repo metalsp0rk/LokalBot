@@ -110,9 +110,8 @@ impl TimelinePage {
                 this.set_day(*day, cx);
             }),
         ];
-        let moment_note = cx.new(|cx| {
-            InputState::new(window, cx).placeholder("Why does this moment matter?")
-        });
+        let moment_note =
+            cx.new(|cx| InputState::new(window, cx).placeholder("Why does this moment matter?"));
         let mut this = Self {
             data,
             day: today,
@@ -742,9 +741,8 @@ impl Page for TimelinePage {
                             "Capture Screen Now: captures the next window you switch to",
                         )
                         .on_click(move |_, _, cx| {
-                            capture_data.update(cx, |data, cx| {
-                                data.request(AppEvent::CaptureScreenNow, cx)
-                            })
+                            capture_data
+                                .update(cx, |data, cx| data.request(AppEvent::CaptureScreenNow, cx))
                         }),
                     )
                 })

@@ -19,17 +19,17 @@ use std::time::Duration;
 
 pub mod privacy;
 
+#[cfg(target_os = "linux")]
+mod atspi;
 mod events;
 #[cfg(target_os = "linux")]
 mod linux;
-#[cfg(target_os = "linux")]
-mod atspi;
+#[cfg(windows)]
+mod uia;
 #[cfg(target_os = "linux")]
 mod wayland;
 #[cfg(windows)]
 mod win32;
-#[cfg(windows)]
-mod uia;
 #[cfg(target_os = "linux")]
 mod x11;
 
@@ -68,7 +68,7 @@ impl CapturedImage {
                 let mut sum = [0u32; 4];
                 for sy in y0..y1 {
                     let row = &self.rgba[(sy * src_w + x0) * 4..(sy * src_w + x1) * 4];
-                    for pixel in row.chunks_exact(4) {
+                    for pixel in row.as_chunks::<4>().0 {
                         for (total, value) in sum.iter_mut().zip(pixel) {
                             *total += u32::from(*value);
                         }
@@ -90,7 +90,7 @@ impl CapturedImage {
 
     /// True when every pixel has the same color (a blank or black frame).
     pub fn is_uniform(&self) -> bool {
-        let mut pixels = self.rgba.chunks_exact(4);
+        let mut pixels = self.rgba.as_chunks::<4>().0.iter();
         let Some(first) = pixels.next() else {
             return true;
         };
@@ -387,13 +387,7 @@ mod tests {
             })
         );
         assert!(!screen.contains(&window));
-        assert_eq!(
-            screen.intersection(&WindowRect {
-                x: 200,
-                ..window
-            }),
-            None
-        );
+        assert_eq!(screen.intersection(&WindowRect { x: 200, ..window }), None);
     }
 
     #[test]
@@ -401,9 +395,21 @@ mod tests {
         let mut parts = Vec::new();
         let mut seen = std::collections::HashSet::new();
         let mut total = 0;
-        assert!(append_text("  Hello\u{0} ", &mut parts, &mut seen, &mut total, 10));
+        assert!(append_text(
+            "  Hello\u{0} ",
+            &mut parts,
+            &mut seen,
+            &mut total,
+            10
+        ));
         assert!(append_text("Hello", &mut parts, &mut seen, &mut total, 10));
-        assert!(!append_text("World wide", &mut parts, &mut seen, &mut total, 10));
+        assert!(!append_text(
+            "World wide",
+            &mut parts,
+            &mut seen,
+            &mut total,
+            10
+        ));
         assert_eq!(parts, ["Hello", "World"]);
         assert!(!append_text("more", &mut parts, &mut seen, &mut total, 10));
     }

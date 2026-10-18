@@ -9,9 +9,9 @@ use gpui_kit::component::scroll::ScrollableElement as _;
 use gpui_kit::component::spinner::Spinner;
 use gpui_kit::component::{Icon, Sizable as _, TitleBar, h_flex, v_flex};
 use gpui_kit::{
-    AppContext as _, Bounds, Context, FontWeight, InteractiveElement as _, IntoElement,
-    ObjectFit, ParentElement as _, Render, RenderImage, SharedString, Styled as _, StyledImage as _, Window, WindowBounds, WindowKind, WindowOptions, div, img, px,
-    size,
+    AppContext as _, Bounds, Context, FontWeight, InteractiveElement as _, IntoElement, ObjectFit,
+    ParentElement as _, Render, RenderImage, SharedString, Styled as _, StyledImage as _, Window,
+    WindowBounds, WindowKind, WindowOptions, div, img, px, size,
 };
 use lokalbot_core::{Library, ScreenMoment};
 
@@ -42,7 +42,9 @@ pub fn load(library: &Library, moment: &ScreenMoment, max: u32) -> ScreenImage {
     };
     let bytes = match lokalbot_core::screen::read_image(&key, &path) {
         Ok(bytes) => bytes,
-        Err(lokalbot_core::screen::ImageError::OtherKey) => return ScreenImage::Unavailable(OTHER_KEY),
+        Err(lokalbot_core::screen::ImageError::OtherKey) => {
+            return ScreenImage::Unavailable(OTHER_KEY);
+        }
         Err(err) => {
             log::debug!("screen image {}: {err}", moment.id);
             return ScreenImage::Unavailable(MISSING);
@@ -58,7 +60,7 @@ pub fn load(library: &Library, moment: &ScreenMoment, max: u32) -> ScreenImage {
     };
     let mut rgba = decoded.into_rgba8();
     // GPUI draws BGRA.
-    for pixel in rgba.chunks_exact_mut(4) {
+    for pixel in rgba.as_chunks_mut::<4>().0 {
         pixel.swap(0, 2);
     }
     ScreenImage::Ready(Arc::new(RenderImage::new(vec![image::Frame::new(rgba)])))
@@ -283,6 +285,12 @@ impl Render for ScreenImageViewer {
             )
             .child(toolbar)
             .child(div().h(px(1.)).bg(lb.separator))
-            .child(div().flex_1().min_h_0().bg(gpui_kit::black().opacity(0.82)).child(body))
+            .child(
+                div()
+                    .flex_1()
+                    .min_h_0()
+                    .bg(gpui_kit::black().opacity(0.82))
+                    .child(body),
+            )
     }
 }

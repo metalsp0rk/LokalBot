@@ -63,7 +63,14 @@ fn main() -> anyhow::Result<()> {
     if let Some(path) = save {
         let image = capture.capture(&window)?;
         let mut ppm = format!("P6\n{} {}\n255\n", image.width, image.height).into_bytes();
-        ppm.extend(image.rgba.chunks_exact(4).flat_map(|p| [p[0], p[1], p[2]]));
+        ppm.extend(
+            image
+                .rgba
+                .as_chunks::<4>()
+                .0
+                .iter()
+                .flat_map(|[r, g, b, _]| [*r, *g, *b]),
+        );
         std::fs::write(&path, ppm)?;
         println!("saved {}×{} pixels to {path}", image.width, image.height);
     }

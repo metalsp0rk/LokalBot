@@ -445,10 +445,9 @@ fn backfill_unlinked_text(db: &rusqlite::Connection) -> Result<()> {
             "SELECT rowid, CAST(ts AS REAL), app FROM ocr_fts \
              WHERE CAST(snapshot_id AS INTEGER) <= 0 ORDER BY rowid",
         )?;
-        let rows = statement
+        statement
             .query_map([], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)))?
-            .collect::<rusqlite::Result<_>>()?;
-        rows
+            .collect::<rusqlite::Result<_>>()?
     };
     if rows.is_empty() || !table_exists(db, "screenshots")? {
         return Ok(());
@@ -595,7 +594,9 @@ mod tests {
         let path = capture_file_path(Path::new("/lib"), ts, id);
         assert_eq!(
             path,
-            Path::new("/lib/activity/2026-10-17/shots/1792279800250-6f9619ff-8b86-d011-b42d-00cf4fc964ff.jpg.enc")
+            Path::new(
+                "/lib/activity/2026-10-17/shots/1792279800250-6f9619ff-8b86-d011-b42d-00cf4fc964ff.jpg.enc"
+            )
         );
     }
 
@@ -613,12 +614,18 @@ mod tests {
             Some(root.join("activity/2026-10-17/shots/2-b.heic.enc"))
         );
         assert_eq!(
-            resolve_capture_path(root, r"C:\Users\me\AppData\Local\LokalBot\activity\d\shots\3.jpg.enc"),
+            resolve_capture_path(
+                root,
+                r"C:\Users\me\AppData\Local\LokalBot\activity\d\shots\3.jpg.enc"
+            ),
             Some(root.join("activity/d/shots/3.jpg.enc"))
         );
         assert_eq!(resolve_capture_path(root, ""), None);
         assert_eq!(resolve_capture_path(root, "/etc/passwd"), None);
-        assert_eq!(resolve_capture_path(root, "/x/activity/../../etc/passwd"), None);
+        assert_eq!(
+            resolve_capture_path(root, "/x/activity/../../etc/passwd"),
+            None
+        );
         assert_eq!(
             resolve_capture_path(root, "/home/u/.local/share/LokalBot/../secret"),
             None
@@ -678,7 +685,11 @@ mod tests {
                 text_source: "accessibility_redacted".into(),
                 privacy_redactions: 1,
                 meeting_id: Some(Uuid::nil()),
-                ..capture(now + chrono::Duration::seconds(90), "token=[REDACTED]", None)
+                ..capture(
+                    now + chrono::Duration::seconds(90),
+                    "token=[REDACTED]",
+                    None,
+                )
             })
             .unwrap();
 
@@ -738,7 +749,12 @@ mod tests {
         assert_eq!(library.delete_screen_moments(&[id, 999]).unwrap(), 1);
         assert!(!file.exists());
         assert!(library.screen_moment(id).unwrap().is_none());
-        assert!(library.search_screen("launch", None, None, 5).unwrap().is_empty());
+        assert!(
+            library
+                .search_screen("launch", None, None, 5)
+                .unwrap()
+                .is_empty()
+        );
         let leftovers: i64 = library
             .with_db(|db| {
                 Ok(db.query_row(
@@ -778,7 +794,13 @@ mod tests {
             library.screen_moment(id).unwrap().unwrap().text.as_deref(),
             Some("fresh text")
         );
-        assert_eq!(library.search_screen("invoice", None, None, 5).unwrap().len(), 1);
+        assert_eq!(
+            library
+                .search_screen("invoice", None, None, 5)
+                .unwrap()
+                .len(),
+            1
+        );
     }
 
     #[test]

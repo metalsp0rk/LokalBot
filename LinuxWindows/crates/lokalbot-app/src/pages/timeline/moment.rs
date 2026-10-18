@@ -10,8 +10,7 @@ use gpui_kit::component::{Disableable as _, Icon, Sizable as _, WindowExt as _, 
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
     AnyElement, AppContext as _, Context, FontWeight, InteractiveElement as _, IntoElement as _,
-    ObjectFit,
-    ParentElement as _, SharedString, StatefulInteractiveElement as _, Styled as _,
+    ObjectFit, ParentElement as _, SharedString, StatefulInteractiveElement as _, Styled as _,
     StyledImage as _, Window, div, img, px,
 };
 use lokalbot_core::ScreenMoment;
@@ -34,7 +33,11 @@ pub(super) struct MomentImage {
 impl TimelinePage {
     /// Decrypts the selected moment's image off the UI thread.
     pub(super) fn load_moment_image(&mut self, moment: &ScreenMoment, cx: &mut Context<Self>) {
-        if self.moment_image.as_ref().is_some_and(|m| m.id == moment.id) {
+        if self
+            .moment_image
+            .as_ref()
+            .is_some_and(|m| m.id == moment.id)
+        {
             return;
         }
         self.release_moment_image();
@@ -87,12 +90,20 @@ impl TimelinePage {
         let Some(moment) = moment else {
             return v_flex()
                 .gap(px(14.))
-                .child(self.panel_header(Ico::ScanText, "Screen moment".into(), String::new(), drawer, cx))
+                .child(self.panel_header(
+                    Ico::ScanText,
+                    "Screen moment".into(),
+                    String::new(),
+                    drawer,
+                    cx,
+                ))
                 .child(
                     div()
                         .text_size(ty::BODY)
                         .text_color(lb.text_secondary)
-                        .child("This moment is no longer kept. It may have been deleted or expired."),
+                        .child(
+                            "This moment is no longer kept. It may have been deleted or expired.",
+                        ),
                 )
                 .into_any_element();
         };
@@ -103,7 +114,11 @@ impl TimelinePage {
             .to_string();
         let has_pixels = !moment.path.is_empty();
         let header = self.panel_header(
-            if has_pixels { Ico::Camera } else { Ico::ScanText },
+            if has_pixels {
+                Ico::Camera
+            } else {
+                Ico::ScanText
+            },
             moment.app.clone().into(),
             when,
             drawer,
@@ -136,7 +151,11 @@ impl TimelinePage {
                         .items_center()
                         .gap(px(6.))
                         .px(px(24.))
-                        .child(ui::icon(Ico::ImageOff, px(22.), gpui_kit::white().opacity(0.7)))
+                        .child(ui::icon(
+                            Ico::ImageOff,
+                            px(22.),
+                            gpui_kit::white().opacity(0.7),
+                        ))
                         .child(
                             div()
                                 .text_center()
@@ -213,12 +232,7 @@ impl TimelinePage {
                                 .child("Text Context"),
                         ),
                 )
-                .child(
-                    div()
-                        .text_size(ty::BODY)
-                        .text_color(lb.text)
-                        .child(shown),
-                )
+                .child(div().text_size(ty::BODY).text_color(lb.text).child(shown))
                 .when(long_text, |this| {
                     let expanded = self.moment_text_expanded;
                     this.child(
@@ -262,7 +276,11 @@ impl TimelinePage {
                 Button::new("moment-save")
                     .outline()
                     .small()
-                    .icon(Icon::new(if saved { Ico::BookmarkCheck } else { Ico::Bookmark }))
+                    .icon(Icon::new(if saved {
+                        Ico::BookmarkCheck
+                    } else {
+                        Ico::Bookmark
+                    }))
                     .label(if saved { "Saved" } else { "Save Moment" })
                     .on_click(move |_, _, cx| {
                         let note = note_input.read(cx).value().to_string();
@@ -397,7 +415,10 @@ impl TimelinePage {
             let count = moment.privacy_redactions;
             rows.push((
                 "Privacy",
-                format!("{count} secret{} redacted", if count == 1 { "" } else { "s" }),
+                format!(
+                    "{count} secret{} redacted",
+                    if count == 1 { "" } else { "s" }
+                ),
             ));
         }
         v_flex()
@@ -409,7 +430,11 @@ impl TimelinePage {
                     .items_center()
                     .cursor_pointer()
                     .child(ui::icon(
-                        if open { Ico::ChevronDown } else { Ico::ChevronRight },
+                        if open {
+                            Ico::ChevronDown
+                        } else {
+                            Ico::ChevronRight
+                        },
                         px(12.),
                         lb.text_secondary,
                     ))
@@ -427,29 +452,32 @@ impl TimelinePage {
                     })),
             )
             .when(open, |this| {
-                this.child(v_flex().gap(px(7.)).pl(px(18.)).children(rows.into_iter().map(
-                    |(label, value)| {
-                        h_flex()
-                            .gap(px(12.))
-                            .items_start()
-                            .child(
-                                div()
-                                    .w(px(84.))
-                                    .flex_none()
-                                    .text_size(ty::BODY)
-                                    .text_color(lb.text_secondary)
-                                    .child(label),
-                            )
-                            .child(
-                                div()
-                                    .flex_1()
-                                    .min_w_0()
-                                    .text_size(ty::BODY)
-                                    .text_color(lb.text)
-                                    .child(SharedString::from(value)),
-                            )
-                    },
-                )))
+                this.child(
+                    v_flex()
+                        .gap(px(7.))
+                        .pl(px(18.))
+                        .children(rows.into_iter().map(|(label, value)| {
+                            h_flex()
+                                .gap(px(12.))
+                                .items_start()
+                                .child(
+                                    div()
+                                        .w(px(84.))
+                                        .flex_none()
+                                        .text_size(ty::BODY)
+                                        .text_color(lb.text_secondary)
+                                        .child(label),
+                                )
+                                .child(
+                                    div()
+                                        .flex_1()
+                                        .min_w_0()
+                                        .text_size(ty::BODY)
+                                        .text_color(lb.text)
+                                        .child(SharedString::from(value)),
+                                )
+                        })),
+                )
             })
             .into_any_element()
     }

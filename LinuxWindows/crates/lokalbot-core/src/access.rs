@@ -408,7 +408,10 @@ mod tests {
         std::fs::create_dir_all(paths.control_dir()).unwrap();
         // The earlier binary gate wrote an empty marker: all retained history.
         std::fs::write(&marker, b"").unwrap();
-        assert_eq!(screen_access_scope(&paths), Some(ScreenScope::RetainedHistory));
+        assert_eq!(
+            screen_access_scope(&paths),
+            Some(ScreenScope::RetainedHistory)
+        );
         // Anything that does not decode falls back to the safe default.
         for content in [&b"\n"[..], &b"{"[..], &br#"{"scope":"forever"}"#[..]] {
             std::fs::write(&marker, content).unwrap();

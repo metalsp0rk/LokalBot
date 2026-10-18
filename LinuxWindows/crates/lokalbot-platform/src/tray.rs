@@ -606,7 +606,9 @@ mod tests {
             "Resume day memory"
         )));
         // Nothing is captured while day memory is paused.
-        assert!(!live.iter().any(|item| matches!(item, TrayItem::Action { id, .. } if id == item_ids::CAPTURE_SCREEN)));
+        assert!(!live.iter().any(
+            |item| matches!(item, TrayItem::Action { id, .. } if id == item_ids::CAPTURE_SCREEN)
+        ));
         let capturing = standard_items(&TrayMenuState {
             screen_capture: true,
             ..Default::default()

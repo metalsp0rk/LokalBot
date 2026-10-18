@@ -94,7 +94,12 @@ pub(crate) struct CapturePolicy {
 }
 
 impl CapturePolicy {
-    pub(crate) fn should_capture(&self, trigger: Trigger, idle_interval: Duration, now: Instant) -> bool {
+    pub(crate) fn should_capture(
+        &self,
+        trigger: Trigger,
+        idle_interval: Duration,
+        now: Instant,
+    ) -> bool {
         let Some(last) = self.last_check else {
             return true;
         };
@@ -117,7 +122,8 @@ fn idle_interval(settings: &Settings) -> Duration {
 }
 
 fn captures_text(settings: &Settings) -> bool {
-    settings.tracking_enabled && settings.screen_context_capture_mode != ScreenContextMode::ActivityOnly
+    settings.tracking_enabled
+        && settings.screen_context_capture_mode != ScreenContextMode::ActivityOnly
 }
 
 /// The settings a capture was started under (`ScreenshotCaptureConsent`).
@@ -214,14 +220,23 @@ impl Processor {
         };
         let suffix = |redacted: bool| if redacted { "_redacted" } else { "" };
         let (text, text_source) = if rich {
-            (accessible, format!("accessibility{}", suffix(accessibility_redactions > 0)))
+            (
+                accessible,
+                format!("accessibility{}", suffix(accessibility_redactions > 0)),
+            )
         } else if !accessible.is_empty() && !ocr.is_empty() {
             (
-                format!("{accessible}\n{ocr}").chars().take(MAX_TEXT_CHARS).collect(),
+                format!("{accessible}\n{ocr}")
+                    .chars()
+                    .take(MAX_TEXT_CHARS)
+                    .collect(),
                 format!("hybrid{}", suffix(accessibility_redactions + ocr_count > 0)),
             )
         } else if !accessible.is_empty() {
-            (accessible, format!("accessibility{}", suffix(accessibility_redactions > 0)))
+            (
+                accessible,
+                format!("accessibility{}", suffix(accessibility_redactions > 0)),
+            )
         } else {
             (ocr, format!("ocr{}", suffix(ocr_count > 0)))
         };
@@ -269,12 +284,19 @@ fn text_fingerprint(app: &str, title: &str, text: &str) -> [u8; 32] {
 fn encode_jpeg(frame: &CapturedImage) -> Result<Vec<u8>> {
     let rgb: Vec<u8> = frame
         .rgba
-        .chunks_exact(4)
-        .flat_map(|p| [p[0], p[1], p[2]])
+        .as_chunks::<4>()
+        .0
+        .iter()
+        .flat_map(|[r, g, b, _]| [*r, *g, *b])
         .collect();
     let mut out = Vec::new();
     image::codecs::jpeg::JpegEncoder::new_with_quality(&mut out, JPEG_QUALITY)
-        .encode(&rgb, frame.width, frame.height, image::ExtendedColorType::Rgb8)
+        .encode(
+            &rgb,
+            frame.width,
+            frame.height,
+            image::ExtendedColorType::Rgb8,
+        )
         .context("encoding the screen image")?;
     Ok(out)
 }
@@ -495,7 +517,10 @@ impl Worker {
             self.enabled_since = None;
         }
         // The model files and the backend's limits change rarely.
-        if self.last_probe.is_none_or(|at| at.elapsed() >= Duration::from_secs(5)) {
+        if self
+            .last_probe
+            .is_none_or(|at| at.elapsed() >= Duration::from_secs(5))
+        {
             self.last_probe = Some(Instant::now());
             if let Some(devices) = &self.devices {
                 self.status.capture_limitation = devices.capture.limitation();
@@ -544,7 +569,11 @@ impl Worker {
             Ok(stored) => {
                 log::info!(
                     "context ok: {} ({} chars, source: {}, app: {}, trigger: {}, {:.2}s)",
-                    if stored.pixels { "image + text" } else { "text only" },
+                    if stored.pixels {
+                        "image + text"
+                    } else {
+                        "text only"
+                    },
                     stored.chars,
                     stored.text_source,
                     stored.app,
@@ -572,14 +601,16 @@ impl Worker {
                     log::debug!("context skip ({}): {reason}", trigger.raw());
                 }
                 if manual {
-                    self.shared.message(format!("Nothing was captured: {reason}."));
+                    self.shared
+                        .message(format!("Nothing was captured: {reason}."));
                 }
             }
             Err(CaptureError::Failed(err)) => {
                 log::warn!("context FAILED ({}): {err:#}", trigger.raw());
                 self.status.last_error = Some(format!("{err:#}"));
                 if manual {
-                    self.shared.error(format!("The screen capture failed: {err:#}"));
+                    self.shared
+                        .error(format!("The screen capture failed: {err:#}"));
                 }
             }
         }
@@ -604,7 +635,10 @@ impl Worker {
             }
         }
         let now = Instant::now();
-        if !self.policy.should_capture(trigger, idle_interval(settings), now) {
+        if !self
+            .policy
+            .should_capture(trigger, idle_interval(settings), now)
+        {
             return Err(Skipped(Skip::Quiet("cooldown")));
         }
         let consent = Consent::of(settings);
@@ -644,12 +678,16 @@ impl Worker {
             .capture
             .focused()
             .map_err(CaptureError::Failed)?
-            .ok_or(Skipped(Skip::Note("the window in front could not be found".into())))?;
+            .ok_or(Skipped(Skip::Note(
+                "the window in front could not be found".into(),
+            )))?;
         if window.pid == Some(std::process::id()) {
             return Err(Skipped(Skip::Quiet("LokalBot is in front")));
         }
         if !window.title.is_empty() && !sample.title.is_empty() && window.title != sample.title {
-            return Err(Skipped(Skip::Note("the window changed while it was read".into())));
+            return Err(Skipped(Skip::Note(
+                "the window changed while it was read".into(),
+            )));
         }
 
         let accessible = read_accessibility(devices.reader.as_mut(), &window, true)?;
@@ -669,9 +707,14 @@ impl Worker {
             return Err(Skipped(Skip::Quiet("private windows are not captured")));
         }
 
-        let source_url = lokalbot_platform::privacy::sanitized_url(observation.source_url.as_deref());
-        let (accessible_text, text_count) =
-            redaction(accessible.as_ref().map(|a| a.text.as_str()).unwrap_or_default());
+        let source_url =
+            lokalbot_platform::privacy::sanitized_url(observation.source_url.as_deref());
+        let (accessible_text, text_count) = redaction(
+            accessible
+                .as_ref()
+                .map(|a| a.text.as_str())
+                .unwrap_or_default(),
+        );
         let (title, title_count) = redaction(&title);
         let (source_url, url_count) = redaction(source_url.as_deref().unwrap_or_default());
         let document = accessible
@@ -711,7 +754,10 @@ impl Worker {
             if trigger != Trigger::Manual && Some(fingerprint) == self.last_text_fingerprint {
                 return Err(Skipped(Skip::Note("unchanged text".into())));
             }
-            if !consent.permits(&Consent::of(&self.shared.settings()), self.paused.load(Ordering::Relaxed)) {
+            if !consent.permits(
+                &Consent::of(&self.shared.settings()),
+                self.paused.load(Ordering::Relaxed),
+            ) {
                 return Err(Skipped(Skip::Quiet("settings changed during the capture")));
             }
             capture.text_source = (if prior_redactions > 0 {
@@ -741,11 +787,19 @@ impl Worker {
             .devices
             .as_mut()
             .ok_or(Skipped(Skip::Quiet("capture is not running")))?;
-        let image = devices.capture.capture(&window).map_err(CaptureError::Failed)?;
+        let image = devices
+            .capture
+            .capture(&window)
+            .map_err(CaptureError::Failed)?;
         // The window, its address or its password-field state can change
         // while the pixels are read; any change discards them.
         let recheck = read_accessibility(devices.reader.as_mut(), &window, false)?;
-        if !focus_still_matches(&window, accessible.as_ref(), recheck.as_ref(), devices.capture.as_mut()) {
+        if !focus_still_matches(
+            &window,
+            accessible.as_ref(),
+            recheck.as_ref(),
+            devices.capture.as_mut(),
+        ) {
             return Err(Skipped(Skip::Note(
                 "the window or its privacy state changed during the capture".into(),
             )));
@@ -778,7 +832,10 @@ impl Worker {
         if processed.text.trim().is_empty() && !processed.keep_pixels {
             return Err(Skipped(Skip::Note("no readable text".into())));
         }
-        if !consent.permits(&Consent::of(&self.shared.settings()), self.paused.load(Ordering::Relaxed)) {
+        if !consent.permits(
+            &Consent::of(&self.shared.settings()),
+            self.paused.load(Ordering::Relaxed),
+        ) {
             return Err(Skipped(Skip::Quiet("settings changed during the capture")));
         }
         capture.text = processed.text.clone();
@@ -789,7 +846,11 @@ impl Worker {
         if let (true, Some(key)) = (processed.keep_pixels, image_key) {
             let jpeg = encode_jpeg(&processed.frame).map_err(CaptureError::Failed)?;
             let sealed = store::seal_image(&key, &jpeg).map_err(CaptureError::Failed)?;
-            let path = store::capture_file_path(self.shared.library.paths().root(), ts, uuid::Uuid::new_v4());
+            let path = store::capture_file_path(
+                self.shared.library.paths().root(),
+                ts,
+                uuid::Uuid::new_v4(),
+            );
             lokalbot_core::library::write_atomic(&path, &sealed)
                 .context("writing the screen image")
                 .map_err(CaptureError::Failed)?;
@@ -808,7 +869,10 @@ impl Worker {
         self.processor.commit(processed.content_hash);
         self.policy.note_check(now);
         if processed.used_ocr {
-            log::debug!("screen text recognized ({} chars)", processed.text.chars().count());
+            log::debug!(
+                "screen text recognized ({} chars)",
+                processed.text.chars().count()
+            );
         }
         Ok(Stored {
             app,
@@ -832,9 +896,10 @@ impl Worker {
             });
             self.image_key = Some(key);
         }
-        self.image_key.as_ref().and_then(|key| key.as_ref().ok().copied())
+        self.image_key
+            .as_ref()
+            .and_then(|key| key.as_ref().ok().copied())
     }
-
 }
 
 /// The OCR engine, loaded on first use and kept while screen context is on.
@@ -931,7 +996,9 @@ fn focus_still_matches(
     capture: &mut dyn WindowCapture,
 ) -> bool {
     let still_in_front = match capture.focused() {
-        Ok(Some(current)) => current.id == window.id && (window.title.is_empty() || current.title == window.title),
+        Ok(Some(current)) => {
+            current.id == window.id && (window.title.is_empty() || current.title == window.title)
+        }
         _ => false,
     };
     if !still_in_front {
@@ -978,7 +1045,10 @@ mod tests {
         let mut policy = CapturePolicy::default();
         let t0 = Instant::now();
         let idle = Duration::from_secs(180);
-        assert!(policy.should_capture(Trigger::AppSwitch, idle, t0), "first check");
+        assert!(
+            policy.should_capture(Trigger::AppSwitch, idle, t0),
+            "first check"
+        );
         policy.note_check(t0);
         assert!(!policy.should_capture(Trigger::AppSwitch, idle, t0 + Duration::from_secs(5)));
         assert!(!policy.should_capture(Trigger::WindowChange, idle, t0 + Duration::from_secs(19)));
@@ -1033,7 +1103,8 @@ mod tests {
         let mut processor = Processor::default();
         let image = frame(40);
         let mut ocr = |_: &CapturedImage| Some("Quarterly report revenue grew".to_string());
-        let Outcome::Stored(first) = processor.process(&request(&image, Trigger::AppSwitch, ""), &mut ocr)
+        let Outcome::Stored(first) =
+            processor.process(&request(&image, Trigger::AppSwitch, ""), &mut ocr)
         else {
             panic!("the first capture is stored");
         };
@@ -1069,7 +1140,8 @@ mod tests {
             "Deployment settings for the local desktop application. This paragraph is deliberately long enough to be useful without optical recognition. API key: {secret}"
         );
         let mut ocr = |_: &CapturedImage| -> Option<String> { panic!("rich text must avoid OCR") };
-        let Outcome::Stored(stored) = processor.process(&request(&image, Trigger::TypingPause, &text), &mut ocr)
+        let Outcome::Stored(stored) =
+            processor.process(&request(&image, Trigger::TypingPause, &text), &mut ocr)
         else {
             panic!("the redacted text is kept");
         };
@@ -1086,7 +1158,8 @@ mod tests {
         let mut processor = Processor::default();
         let image = frame(90);
         let mut ocr = |_: &CapturedImage| Some("password: hunter2222".to_string());
-        let Outcome::Stored(stored) = processor.process(&request(&image, Trigger::Interval, "Sign in"), &mut ocr)
+        let Outcome::Stored(stored) =
+            processor.process(&request(&image, Trigger::Interval, "Sign in"), &mut ocr)
         else {
             panic!("stored");
         };
@@ -1120,7 +1193,8 @@ mod tests {
             seen.push((frame.width, frame.height));
             Some("Text recovered from the bounded frame".to_string())
         };
-        let Outcome::Stored(stored) = processor.process(&request(&image, Trigger::Manual, ""), &mut ocr)
+        let Outcome::Stored(stored) =
+            processor.process(&request(&image, Trigger::Manual, ""), &mut ocr)
         else {
             panic!("stored");
         };

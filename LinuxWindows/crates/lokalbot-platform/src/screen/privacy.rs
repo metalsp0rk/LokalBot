@@ -24,7 +24,10 @@ pub struct Observation {
 
 /// Whether the focus state allows a capture. Apps that never report keyboard
 /// focus (Chrome) are captured only while no password field is visible.
-pub fn focus_permits_capture(focused_secure_field: Option<bool>, contains_secure_field: bool) -> bool {
+pub fn focus_permits_capture(
+    focused_secure_field: Option<bool>,
+    contains_secure_field: bool,
+) -> bool {
     match focused_secure_field {
         Some(false) => true,
         Some(true) => false,
@@ -166,7 +169,9 @@ pub fn page_address(document: Option<&str>, web_area_urls: &[Option<String>]) ->
             page = Some(raw.to_string());
             continue;
         }
-        if Some(&sanitized) != sanitized_url(page.as_deref()).as_ref() && !framed.contains(&sanitized) {
+        if Some(&sanitized) != sanitized_url(page.as_deref()).as_ref()
+            && !framed.contains(&sanitized)
+        {
             framed.push(sanitized);
         }
     }
@@ -217,7 +222,10 @@ mod tests {
             app_id: "keepassxc".into(),
             ..observation()
         };
-        assert!(!permits_content(&keepass, &[], &[], true), "password managers always");
+        assert!(
+            !permits_content(&keepass, &[], &[], true),
+            "password managers always"
+        );
         let secure = Observation {
             focused_secure_field: Some(true),
             ..observation()
@@ -302,7 +310,10 @@ mod tests {
             sanitized_document_name(Some(r"C:\Users\me\report.docx")).as_deref(),
             Some("report.docx")
         );
-        assert_eq!(sanitized_document_name(Some("https://mail.example/#inbox")), None);
+        assert_eq!(
+            sanitized_document_name(Some("https://mail.example/#inbox")),
+            None
+        );
         assert_eq!(sanitized_document_name(Some("  ")), None);
     }
 
@@ -320,15 +331,24 @@ mod tests {
                 Some("https://docs.example/a"),
             ]),
         );
-        assert_eq!(address.source_url.as_deref(), Some("https://docs.example/a?x=1"));
+        assert_eq!(
+            address.source_url.as_deref(),
+            Some("https://docs.example/a?x=1")
+        );
         assert_eq!(address.framed_urls, ["https://ads.example/frame"]);
         assert!(!address.has_unattributed_web_content);
         let unreadable = page_address(None, &urls(&[None, Some("blob:https://x.example/1")]));
         assert_eq!(unreadable.source_url, None);
         assert!(unreadable.has_unattributed_web_content);
         assert_eq!(unreadable.framed_urls, ["https://x.example/1"]);
-        let documented = page_address(Some("https://site.example/"), &urls(&[Some("https://site.example/")]));
-        assert_eq!(documented.source_url.as_deref(), Some("https://site.example/"));
+        let documented = page_address(
+            Some("https://site.example/"),
+            &urls(&[Some("https://site.example/")]),
+        );
+        assert_eq!(
+            documented.source_url.as_deref(),
+            Some("https://site.example/")
+        );
         assert!(documented.framed_urls.is_empty());
     }
 }

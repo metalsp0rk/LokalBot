@@ -77,8 +77,16 @@ fn screensaver_active() -> bool {
         return false;
     };
     [
-        ("org.freedesktop.ScreenSaver", "/org/freedesktop/ScreenSaver", "org.freedesktop.ScreenSaver"),
-        ("org.gnome.ScreenSaver", "/org/gnome/ScreenSaver", "org.gnome.ScreenSaver"),
+        (
+            "org.freedesktop.ScreenSaver",
+            "/org/freedesktop/ScreenSaver",
+            "org.freedesktop.ScreenSaver",
+        ),
+        (
+            "org.gnome.ScreenSaver",
+            "/org/gnome/ScreenSaver",
+            "org.gnome.ScreenSaver",
+        ),
     ]
     .iter()
     .any(|(name, path, interface)| {
@@ -90,8 +98,8 @@ fn screensaver_active() -> bool {
         owned
             && bus
                 .call_method(Some(*name), *path, Some(*interface), "GetActive", &())
-            .ok()
-            .and_then(|reply| reply.body().deserialize::<bool>().ok())
-            .unwrap_or(false)
+                .ok()
+                .and_then(|reply| reply.body().deserialize::<bool>().ok())
+                .unwrap_or(false)
     })
 }

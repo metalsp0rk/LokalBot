@@ -95,7 +95,9 @@ pub fn download(
     let mut finished = 0u64;
     for spec in download_specs(paths) {
         let size = spec.size;
-        download::download(&spec, cancel, &mut |done, _| progress(finished + done, total))?;
+        download::download(&spec, cancel, &mut |done, _| {
+            progress(finished + done, total)
+        })?;
         finished += size;
     }
     progress(total, total);
@@ -211,7 +213,10 @@ mod tests {
         download(&paths, &AtomicBool::new(false), &mut |_, _| {}).unwrap();
         let engine = OcrEngine::load(&paths).unwrap();
         let (width, height, rgba) = banner();
-        let text = engine.recognize(&rgba, width, height).unwrap().to_uppercase();
+        let text = engine
+            .recognize(&rgba, width, height)
+            .unwrap()
+            .to_uppercase();
         // The blocky test font's K can read as E.
         assert!(text.starts_with("LO") && text.ends_with("ALBOT"), "{text}");
     }
@@ -219,14 +224,30 @@ mod tests {
     /// "LOKALBOT" in a 5×7 bitmap font, scaled up, black on white.
     pub(super) fn banner() -> (u32, u32, Vec<u8>) {
         const GLYPHS: [[&str; 7]; 8] = [
-            ["X....", "X....", "X....", "X....", "X....", "X....", "XXXXX"],
-            [".XXX.", "X...X", "X...X", "X...X", "X...X", "X...X", ".XXX."],
-            ["X...X", "X..X.", "X.X..", "XX...", "X.X..", "X..X.", "X...X"],
-            [".XXX.", "X...X", "X...X", "XXXXX", "X...X", "X...X", "X...X"],
-            ["X....", "X....", "X....", "X....", "X....", "X....", "XXXXX"],
-            ["XXXX.", "X...X", "X...X", "XXXX.", "X...X", "X...X", "XXXX."],
-            [".XXX.", "X...X", "X...X", "X...X", "X...X", "X...X", ".XXX."],
-            ["XXXXX", "..X..", "..X..", "..X..", "..X..", "..X..", "..X.."],
+            [
+                "X....", "X....", "X....", "X....", "X....", "X....", "XXXXX",
+            ],
+            [
+                ".XXX.", "X...X", "X...X", "X...X", "X...X", "X...X", ".XXX.",
+            ],
+            [
+                "X...X", "X..X.", "X.X..", "XX...", "X.X..", "X..X.", "X...X",
+            ],
+            [
+                ".XXX.", "X...X", "X...X", "XXXXX", "X...X", "X...X", "X...X",
+            ],
+            [
+                "X....", "X....", "X....", "X....", "X....", "X....", "XXXXX",
+            ],
+            [
+                "XXXX.", "X...X", "X...X", "XXXX.", "X...X", "X...X", "XXXX.",
+            ],
+            [
+                ".XXX.", "X...X", "X...X", "X...X", "X...X", "X...X", ".XXX.",
+            ],
+            [
+                "XXXXX", "..X..", "..X..", "..X..", "..X..", "..X..", "..X..",
+            ],
         ];
         let scale = 6u32;
         let (width, height) = (8 * 6 * scale + 40, 7 * scale + 40);

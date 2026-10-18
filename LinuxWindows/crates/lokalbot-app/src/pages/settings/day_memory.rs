@@ -5,7 +5,9 @@ use gpui_kit::component::input::Textarea;
 use gpui_kit::component::slider::Slider;
 use gpui_kit::component::{Disableable as _, Icon, Sizable as _, h_flex, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
-use gpui_kit::{AnyElement, Context, IntoElement as _, ParentElement as _, SharedString, Styled as _, div, px};
+use gpui_kit::{
+    AnyElement, Context, IntoElement as _, ParentElement as _, SharedString, Styled as _, div, px,
+};
 use lokalbot_core::ScreenContextMode;
 
 use super::{Section, SettingsPage};
@@ -111,7 +113,10 @@ impl SettingsPage {
                 ),
             );
         if captures_text {
-            let minutes = settings.screenshot_interval_minutes.round().clamp(1.0, 15.0) as u32;
+            let minutes = settings
+                .screenshot_interval_minutes
+                .round()
+                .clamp(1.0, 15.0) as u32;
             memory = memory
                 .row(
                     "settings.screenContextStatus",
@@ -282,7 +287,11 @@ impl SettingsPage {
         let lb = cx.lb().clone();
         let (status, settings, paused) = {
             let data = self.data.read(cx);
-            (data.screen.clone(), data.settings.clone(), data.day_memory_paused)
+            (
+                data.screen.clone(),
+                data.settings.clone(),
+                data.day_memory_paused,
+            )
         };
         let visual = settings.screen_context_capture_mode == ScreenContextMode::TextAndVisual;
         let mut notes: Vec<(Ico, String, bool)> = Vec::new();
@@ -293,7 +302,11 @@ impl SettingsPage {
             notes.push((Ico::TriangleAlert, images.clone(), true));
         }
         if paused {
-            notes.push((Ico::Pause, "Day memory is paused, so nothing is captured.".into(), false));
+            notes.push((
+                Ico::Pause,
+                "Day memory is paused, so nothing is captured.".into(),
+                false,
+            ));
         }
         let last = match (&status.last_capture, &status.last_text_source) {
             (Some(at), source) => format!(
@@ -308,7 +321,11 @@ impl SettingsPage {
         };
         notes.push((Ico::ScanText, last, false));
         if let Some(error) = &status.last_error {
-            notes.push((Ico::CircleAlert, format!("The last capture failed: {error}"), true));
+            notes.push((
+                Ico::CircleAlert,
+                format!("The last capture failed: {error}"),
+                true,
+            ));
         }
         let capture_data = self.data.clone();
         v_flex()
@@ -320,7 +337,11 @@ impl SettingsPage {
                     .child(div().pt(px(2.)).child(ui::icon(
                         icon,
                         px(14.),
-                        if warn { lb.attention_text } else { lb.text_secondary },
+                        if warn {
+                            lb.attention_text
+                        } else {
+                            lb.text_secondary
+                        },
                     )))
                     .child(settings_row::help(text, cx).flex_1().min_w_0())
             }))
@@ -333,7 +354,8 @@ impl SettingsPage {
                         .label("Capture Screen Now")
                         .disabled(paused)
                         .on_click(move |_, _, cx| {
-                            capture_data.update(cx, |data, cx| data.request(AppEvent::CaptureScreenNow, cx))
+                            capture_data
+                                .update(cx, |data, cx| data.request(AppEvent::CaptureScreenNow, cx))
                         }),
                 ),
             )
@@ -360,7 +382,10 @@ impl SettingsPage {
             (Some(progress), _) if progress.error.is_none() => div()
                 .text_size(ty::SECONDARY)
                 .text_color(lb.text_secondary)
-                .child(format!("Downloading · {}%", (progress.fraction() * 100.).round()))
+                .child(format!(
+                    "Downloading · {}%",
+                    (progress.fraction() * 100.).round()
+                ))
                 .into_any_element(),
             (_, true) => settings_row::value("Ready", cx).into_any_element(),
             _ => Button::new("settings-download-ocr")

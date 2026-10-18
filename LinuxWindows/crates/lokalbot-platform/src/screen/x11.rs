@@ -70,7 +70,11 @@ impl Session {
     fn active_window(&self) -> anyhow::Result<Option<Window>> {
         Ok(self
             .property(self.root, self.net_active_window, AtomEnum::WINDOW)?
-            .and_then(|value| value.get(..4).map(|b| u32::from_ne_bytes([b[0], b[1], b[2], b[3]])))
+            .and_then(|value| {
+                value
+                    .get(..4)
+                    .map(|b| u32::from_ne_bytes([b[0], b[1], b[2], b[3]]))
+            })
             .filter(|window| *window != x11rb::NONE))
     }
 
@@ -89,7 +93,11 @@ impl Session {
     fn pid(&self, window: Window) -> anyhow::Result<Option<u32>> {
         Ok(self
             .property(window, self.net_wm_pid, AtomEnum::CARDINAL)?
-            .and_then(|value| value.get(..4).map(|b| u32::from_ne_bytes([b[0], b[1], b[2], b[3]])))
+            .and_then(|value| {
+                value
+                    .get(..4)
+                    .map(|b| u32::from_ne_bytes([b[0], b[1], b[2], b[3]]))
+            })
             .filter(|pid| *pid != 0))
     }
 
@@ -125,8 +133,10 @@ impl Session {
             .property(window, self.gtk_frame_extents, AtomEnum::CARDINAL)?
             .map(|value| {
                 value
-                    .chunks_exact(4)
-                    .map(|b| u32::from_ne_bytes([b[0], b[1], b[2], b[3]]))
+                    .as_chunks::<4>()
+                    .0
+                    .iter()
+                    .map(|bytes| u32::from_ne_bytes(*bytes))
                     .collect::<Vec<_>>()
             });
         let content = match extents.as_deref() {
@@ -300,7 +310,9 @@ impl X11Capture {
 
     fn reset_on_error<T>(&mut self, result: anyhow::Result<T>) -> anyhow::Result<T> {
         if let Err(err) = &result
-            && (err.downcast_ref::<x11rb::errors::ConnectionError>().is_some()
+            && (err
+                .downcast_ref::<x11rb::errors::ConnectionError>()
+                .is_some()
                 || matches!(
                     err.downcast_ref::<ReplyError>(),
                     Some(ReplyError::ConnectionError(_))

@@ -68,7 +68,10 @@ fn main() -> Result<()> {
         println!("no window is in front");
         return Ok(());
     };
-    println!("window: {:?} (pid {:?}) at {:?}", window.title, window.pid, window.rect);
+    println!(
+        "window: {:?} (pid {:?}) at {:?}",
+        window.title, window.pid, window.rect
+    );
 
     let mut reader = screen::text_reader();
     let started = Instant::now();
@@ -101,8 +104,10 @@ fn main() -> Result<()> {
     let path = save.unwrap_or_else(|| paths.root().join("screen-capture.jpg"));
     let rgb: Vec<u8> = image
         .rgba
-        .chunks_exact(4)
-        .flat_map(|p| [p[0], p[1], p[2]])
+        .as_chunks::<4>()
+        .0
+        .iter()
+        .flat_map(|[r, g, b, _]| [*r, *g, *b])
         .collect();
     let mut jpeg = Vec::new();
     image::codecs::jpeg::JpegEncoder::new_with_quality(&mut jpeg, 90).encode(

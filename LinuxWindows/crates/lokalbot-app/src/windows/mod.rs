@@ -35,11 +35,15 @@ fn activate(handle: Option<AnyWindowHandle>, cx: &mut App) -> bool {
 pub fn activate_main(cx: &mut App) {
     let skip: Vec<_> = {
         let windows = secondary(cx);
-        [windows.quick_recall, windows.onboarding, windows.screen_image]
-            .into_iter()
-            .flatten()
-            .map(|h| h.window_id())
-            .collect()
+        [
+            windows.quick_recall,
+            windows.onboarding,
+            windows.screen_image,
+        ]
+        .into_iter()
+        .flatten()
+        .map(|h| h.window_id())
+        .collect()
     };
     for handle in cx.windows() {
         if skip.contains(&handle.window_id()) {

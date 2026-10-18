@@ -9,7 +9,9 @@ use std::ffi::c_void;
 
 use anyhow::{Context as _, bail};
 use windows::Win32::Foundation::{HWND, RECT};
-use windows::Win32::Graphics::Dwm::{DWMWA_CLOAKED, DWMWA_EXTENDED_FRAME_BOUNDS, DwmGetWindowAttribute};
+use windows::Win32::Graphics::Dwm::{
+    DWMWA_CLOAKED, DWMWA_EXTENDED_FRAME_BOUNDS, DwmGetWindowAttribute,
+};
 use windows::Win32::Graphics::Gdi::{
     BI_RGB, BITMAPINFO, BITMAPINFOHEADER, BitBlt, CAPTUREBLT, CreateCompatibleBitmap,
     CreateCompatibleDC, DIB_RGB_COLORS, DeleteDC, DeleteObject, GetDC, GetDIBits, HGDIOBJ,
@@ -20,8 +22,7 @@ use windows::Win32::System::RemoteDesktop::{
     WTSINFOEXW, WTSQuerySessionInformationW, WTSSessionInfoEx,
 };
 use windows::Win32::UI::HiDpi::{
-    DPI_AWARENESS_CONTEXT, DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2,
-    SetThreadDpiAwarenessContext,
+    DPI_AWARENESS_CONTEXT, DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2, SetThreadDpiAwarenessContext,
 };
 use windows::Win32::UI::WindowsAndMessaging::{
     GetForegroundWindow, GetSystemMetrics, GetWindowRect, GetWindowTextLengthW, GetWindowTextW,
@@ -200,7 +201,7 @@ fn copy_screen(area: WindowRect) -> anyhow::Result<CapturedImage> {
             bail!("reading the copied pixels failed");
         }
         // BGRA to RGBA; the screen has no alpha.
-        for pixel in pixels.chunks_exact_mut(4) {
+        for pixel in pixels.as_chunks_mut::<4>().0 {
             pixel.swap(0, 2);
             pixel[3] = 255;
         }
@@ -280,7 +281,8 @@ pub(super) fn session_locked() -> bool {
         }
         let locked = (bytes as usize >= size_of::<WTSINFOEXW>()).then(|| {
             let info = &*(buffer.0 as *const WTSINFOEXW);
-            info.Level == 1 && info.Data.WTSInfoExLevel1.SessionFlags as u32 == WTS_SESSIONSTATE_LOCK
+            info.Level == 1
+                && info.Data.WTSInfoExLevel1.SessionFlags as u32 == WTS_SESSIONSTATE_LOCK
         });
         WTSFreeMemory(buffer.0.cast());
         locked.unwrap_or(false)

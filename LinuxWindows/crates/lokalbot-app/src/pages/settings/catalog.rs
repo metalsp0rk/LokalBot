@@ -202,7 +202,12 @@ pub const ENTRIES: &[Entry] = &[
         title: "Idle fallback",
         category: DayMemory,
         aliases: "screen capture interval minutes screenshots",
-        value: |s| format!("at least every {} min", s.screenshot_interval_minutes.round()),
+        value: |s| {
+            format!(
+                "at least every {} min",
+                s.screenshot_interval_minutes.round()
+            )
+        },
     },
     Entry {
         id: "settings.dayDigestAutoEnabled",

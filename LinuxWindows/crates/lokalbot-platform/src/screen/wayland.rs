@@ -57,7 +57,9 @@ impl WindowCapture for Grim {
         let Some(current) = current.filter(|c| c.id == window.id) else {
             bail!("another window came to the front");
         };
-        let rect = current.rect.context("the compositor did not say where the window is")?;
+        let rect = current
+            .rect
+            .context("the compositor did not say where the window is")?;
         let geometry = format!("{},{} {}x{}", rect.x, rect.y, rect.width, rect.height);
         let output = run_with_timeout(
             Command::new(&self.program).args(["-g", &geometry, "-t", "ppm", "-"]),
@@ -149,8 +151,10 @@ fn parse_ppm(bytes: &[u8]) -> anyhow::Result<CapturedImage> {
         .get(position..position + expected)
         .context("the screenshot is shorter than its header says")?;
     let rgba = pixels
-        .chunks_exact(3)
-        .flat_map(|rgb| [rgb[0], rgb[1], rgb[2], 255])
+        .as_chunks::<3>()
+        .0
+        .iter()
+        .flat_map(|[r, g, b]| [*r, *g, *b, 255])
         .collect();
     Ok(CapturedImage {
         width,
@@ -237,9 +241,18 @@ fn hyprland_focused() -> anyhow::Result<Option<FocusedWindow>> {
         .context("HYPRLAND_INSTANCE_SIGNATURE is not set")?;
     let mut candidates = Vec::new();
     if let Some(runtime) = std::env::var_os("XDG_RUNTIME_DIR") {
-        candidates.push(PathBuf::from(runtime).join("hypr").join(&signature).join(".socket.sock"));
+        candidates.push(
+            PathBuf::from(runtime)
+                .join("hypr")
+                .join(&signature)
+                .join(".socket.sock"),
+        );
     }
-    candidates.push(PathBuf::from("/tmp/hypr").join(&signature).join(".socket.sock"));
+    candidates.push(
+        PathBuf::from("/tmp/hypr")
+            .join(&signature)
+            .join(".socket.sock"),
+    );
     let socket = candidates
         .into_iter()
         .find(|path| path.exists())
@@ -302,7 +315,9 @@ impl Portal {
     fn supports_active_window(&mut self) -> bool {
         *self.active_window.get_or_insert_with(|| {
             futures_lite::future::block_on(async {
-                let proxy = ashpd::desktop::screenshot::ScreenshotProxy::new().await.ok()?;
+                let proxy = ashpd::desktop::screenshot::ScreenshotProxy::new()
+                    .await
+                    .ok()?;
                 let targets = proxy.available_targets().await.ok()?;
                 Some(targets.contains(ashpd::desktop::screenshot::AvailableTargets::ActiveWindow))
             })
@@ -344,9 +359,7 @@ impl WindowCapture for Portal {
                     .send()
                     .await
                     .context("the screenshot portal refused the request")?;
-                let response = request
-                    .response()
-                    .context("the screenshot was not taken")?;
+                let response = request.response().context("the screenshot was not taken")?;
                 anyhow::Ok(response.uri().to_string())
             },
             async {
@@ -376,18 +389,27 @@ fn decode_png(bytes: &[u8]) -> anyhow::Result<CapturedImage> {
     let mut decoder = png::Decoder::new(std::io::Cursor::new(bytes));
     decoder.set_transformations(png::Transformations::normalize_to_color8());
     let mut reader = decoder.read_info()?;
-    let mut buffer = vec![0u8; reader.output_buffer_size().context("the image is too large")?];
+    let mut buffer = vec![
+        0u8;
+        reader
+            .output_buffer_size()
+            .context("the image is too large")?
+    ];
     let info = reader.next_frame(&mut buffer)?;
     let pixels = &buffer[..info.buffer_size()];
     let rgba: Vec<u8> = match info.color_type {
         png::ColorType::Rgba => pixels.to_vec(),
         png::ColorType::Rgb => pixels
-            .chunks_exact(3)
-            .flat_map(|p| [p[0], p[1], p[2], 255])
+            .as_chunks::<3>()
+            .0
+            .iter()
+            .flat_map(|[r, g, b]| [*r, *g, *b, 255])
             .collect(),
         png::ColorType::GrayscaleAlpha => pixels
-            .chunks_exact(2)
-            .flat_map(|p| [p[0], p[0], p[0], p[1]])
+            .as_chunks::<2>()
+            .0
+            .iter()
+            .flat_map(|[v, a]| [*v, *v, *v, *a])
             .collect(),
         png::ColorType::Grayscale => pixels.iter().flat_map(|&v| [v, v, v, 255]).collect(),
         png::ColorType::Indexed => bail!("unexpected indexed PNG"),

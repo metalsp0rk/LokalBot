@@ -10,9 +10,9 @@ use gpui_kit::component::spinner::Spinner;
 use gpui_kit::component::{Disableable as _, Icon, Sizable as _, h_flex, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
-    AnyElement, App, AppContext as _, Context, Div, FontWeight, InteractiveElement as _, IntoElement,
-    ParentElement as _, SharedString, StatefulInteractiveElement as _, Styled as _, Window, div,
-    px, relative,
+    AnyElement, App, AppContext as _, Context, Div, FontWeight, InteractiveElement as _,
+    IntoElement, ParentElement as _, SharedString, StatefulInteractiveElement as _, Styled as _,
+    Window, div, px, relative,
 };
 use lokalbot_core::{ChatActivity, ChatRole, settings::SummarizerBackend};
 use uuid::Uuid;
@@ -422,13 +422,15 @@ impl AskPage {
                 CitationSource::Meeting { .. } => None,
             })
             .filter(|id| {
-                !self.screen_citations.contains_key(id) && !self.loading_screen_citations.contains(id)
+                !self.screen_citations.contains_key(id)
+                    && !self.loading_screen_citations.contains(id)
             })
             .collect();
         if missing.is_empty() {
             return;
         }
-        self.loading_screen_citations.extend(missing.iter().copied());
+        self.loading_screen_citations
+            .extend(missing.iter().copied());
         let library = self.data.read(cx).library.clone();
         cx.spawn(async move |this, cx| {
             let loaded: Vec<(i64, Option<lokalbot_core::ScreenMoment>)> = cx

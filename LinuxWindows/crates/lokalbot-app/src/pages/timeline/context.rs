@@ -586,7 +586,11 @@ impl TimelinePage {
                                 this.select(Some(Selection::Moment(id)), cx)
                             }))
                             .child(ui::icon_tile(
-                                if moment.path.is_empty() { Ico::ScanText } else { Ico::Camera },
+                                if moment.path.is_empty() {
+                                    Ico::ScanText
+                                } else {
+                                    Ico::Camera
+                                },
                                 lb.app_color(&moment.app),
                                 px(28.),
                             ))

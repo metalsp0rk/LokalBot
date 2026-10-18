@@ -181,8 +181,11 @@ fn dispatch(shared: Arc<Shared>, commands: Sender<Command>, receiver: Receiver<C
     let digest = digest::DigestScheduler::start(shared.clone(), models.clone());
     let meeting_detector = Arc::new(Mutex::new(lokalbot_platform::MeetingDetector::new()));
     let screen = screen::ScreenContext::new(shared.clone());
-    let day_memory =
-        daymemory::DayMemory::start(shared.clone(), meeting_detector.clone(), screen.boundary_hook());
+    let day_memory = daymemory::DayMemory::start(
+        shared.clone(),
+        meeting_detector.clone(),
+        screen.boundary_hook(),
+    );
     screen.start(day_memory.paused_flag());
     let detector = detector::Detector::start(shared.clone(), commands.clone(), meeting_detector);
     let dictation = dictation::Dictation::new(shared.clone(), models.clone());

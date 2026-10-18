@@ -56,7 +56,9 @@ pub fn screen_image_key(create: bool) -> Result<[u8; lokalbot_core::screen::IMAG
                 .context("saving the screen image key")?;
             // Read it back: a store that silently drops secrets must not
             // leave images that nothing can open.
-            let stored = entry.get_password().context("reading the screen image key back")?;
+            let stored = entry
+                .get_password()
+                .context("reading the screen image key back")?;
             anyhow::ensure!(
                 decode_key(&stored) == Some(key),
                 "the credential store did not keep the screen image key"
