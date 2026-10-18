@@ -1,6 +1,8 @@
 //! Projects page.
 
-use gpui_kit::{App, Context, IntoElement, ParentElement as _, Render, SharedString, Styled as _, Window, div};
+use gpui_kit::{
+    App, Context, IntoElement, ParentElement as _, Render, SharedString, Styled as _, Window, div,
+};
 
 use crate::pages::Page;
 use crate::ui::{self, Ico};
@@ -21,11 +23,16 @@ impl Page for ProjectsPage {
 
 impl Render for ProjectsPage {
     fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        div().size_full().flex().items_center().justify_center().child(ui::empty_state(
-            Ico::Folder,
-            "Projects",
-            "This page is being built.",
-            cx,
-        ))
+        div()
+            .size_full()
+            .flex()
+            .items_center()
+            .justify_center()
+            .child(ui::empty_state(
+                Ico::Folder,
+                "Projects",
+                "This page is being built.",
+                cx,
+            ))
     }
 }

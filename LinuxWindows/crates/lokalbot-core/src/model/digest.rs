@@ -25,7 +25,11 @@ pub struct DigestMeta {
     pub quality: DigestQuality,
     #[serde(with = "iso_seconds")]
     pub generated_at: DateTime<Utc>,
-    #[serde(default, with = "iso_seconds::option", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        with = "iso_seconds::option",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub evidence_latest_at: Option<DateTime<Utc>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub evidence_signature: Option<String>,

@@ -33,7 +33,9 @@ fn default_outcomes_schema() -> u32 {
 }
 
 /// v1 stored decisions as plain strings.
-fn decisions_compat<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<Vec<Decision>, D::Error> {
+fn decisions_compat<'de, D: serde::Deserializer<'de>>(
+    deserializer: D,
+) -> Result<Vec<Decision>, D::Error> {
     #[derive(Deserialize)]
     #[serde(untagged)]
     enum Either {
@@ -100,7 +102,12 @@ pub struct Decision {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct OutcomeSourceCitation {
-    #[serde(default, with = "uuid_upper_serde::option", skip_serializing_if = "Option::is_none", rename = "meetingID")]
+    #[serde(
+        default,
+        with = "uuid_upper_serde::option",
+        skip_serializing_if = "Option::is_none",
+        rename = "meetingID"
+    )]
     pub meeting_id: Option<Uuid>,
     #[serde(rename = "segmentID")]
     pub segment_id: String,
@@ -202,11 +209,23 @@ pub struct ActionState {
     pub due_was_cleared: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub text_correction: Option<String>,
-    #[serde(default, with = "iso_millis::option", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        with = "iso_millis::option",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub text_corrected_at: Option<DateTime<Utc>>,
-    #[serde(default, with = "iso_millis::option", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        with = "iso_millis::option",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub owner_corrected_at: Option<DateTime<Utc>>,
-    #[serde(default, with = "iso_millis::option", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        with = "iso_millis::option",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub due_corrected_at: Option<DateTime<Utc>>,
     #[serde(default)]
     pub is_thread_excluded: bool,
@@ -276,9 +295,17 @@ pub struct ActionThread {
 impl ActionThread {
     /// Open if any member is open, else deferred if any, else done.
     pub fn status(&self) -> ActionStatus {
-        if self.references.iter().any(|r| r.status == ActionStatus::Open) {
+        if self
+            .references
+            .iter()
+            .any(|r| r.status == ActionStatus::Open)
+        {
             ActionStatus::Open
-        } else if self.references.iter().any(|r| r.status == ActionStatus::Deferred) {
+        } else if self
+            .references
+            .iter()
+            .any(|r| r.status == ActionStatus::Deferred)
+        {
             ActionStatus::Deferred
         } else {
             ActionStatus::Done

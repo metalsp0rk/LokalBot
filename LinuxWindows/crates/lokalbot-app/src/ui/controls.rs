@@ -19,13 +19,24 @@ pub fn bordered(id: impl Into<ElementId>, label: impl Into<SharedString>) -> But
 }
 
 /// Bordered button with a leading icon.
-pub fn bordered_icon(id: impl Into<ElementId>, icon: Ico, label: impl Into<SharedString>) -> Button {
+pub fn bordered_icon(
+    id: impl Into<ElementId>,
+    icon: Ico,
+    label: impl Into<SharedString>,
+) -> Button {
     Button::new(id).outline().icon(Icon::new(icon)).label(label)
 }
 
 /// Icon-only toolbar button with a tooltip.
-pub fn toolbar_icon(id: impl Into<ElementId>, icon: Ico, tooltip: impl Into<SharedString>) -> Button {
-    Button::new(id).ghost().icon(Icon::new(icon)).tooltip(tooltip)
+pub fn toolbar_icon(
+    id: impl Into<ElementId>,
+    icon: Ico,
+    tooltip: impl Into<SharedString>,
+) -> Button {
+    Button::new(id)
+        .ghost()
+        .icon(Icon::new(icon))
+        .tooltip(tooltip)
 }
 
 /// Small quiet button, used inside rows and cards.

@@ -1,6 +1,9 @@
 //! LokalBot for Linux and Windows.
 
-#![cfg_attr(all(target_os = "windows", not(debug_assertions)), windows_subsystem = "windows")]
+#![cfg_attr(
+    all(target_os = "windows", not(debug_assertions)),
+    windows_subsystem = "windows"
+)]
 
 mod assets;
 mod pages;
@@ -11,8 +14,8 @@ mod ui;
 
 use gpui_kit::component::TitleBar;
 use gpui_kit::{
-    App, AppContext as _, Bounds, Entity, KeyBinding, Size, Window, WindowBounds, WindowKind, WindowOptions, actions,
-    px, size,
+    App, AppContext as _, Bounds, Entity, KeyBinding, Size, Window, WindowBounds, WindowKind,
+    WindowOptions, actions, px, size,
 };
 use lokalbot_core::{Library, LibraryPaths, Settings};
 
@@ -30,7 +33,10 @@ struct Options {
 
 fn parse_options() -> Options {
     let args: Vec<String> = std::env::args().collect();
-    let mut options = Options { storage_root: LibraryPaths::root_from_args(&args), ..Default::default() };
+    let mut options = Options {
+        storage_root: LibraryPaths::root_from_args(&args),
+        ..Default::default()
+    };
     let mut iter = args.iter();
     while let Some(arg) = iter.next() {
         if arg == "--page" {
@@ -61,27 +67,32 @@ fn main() {
     let library = match Library::open(paths.clone()) {
         Ok(library) => library,
         Err(err) => {
-            eprintln!("LokalBot could not open its library at {}: {err:#}", paths.root().display());
+            eprintln!(
+                "LokalBot could not open its library at {}: {err:#}",
+                paths.root().display()
+            );
             std::process::exit(1);
         }
     };
     let settings = Settings::load(&paths.settings_file());
     log::info!("library: {}", paths.root().display());
 
-    gpui_kit::application().with_assets(assets::Assets).run(move |cx: &mut App| {
-        gpui_kit::init(cx);
-        assets::load_fonts(cx);
-        cx.set_app_identity("com.lokalbot.LokalBot", "LokalBot");
+    gpui_kit::application()
+        .with_assets(assets::Assets)
+        .run(move |cx: &mut App| {
+            gpui_kit::init(cx);
+            assets::load_fonts(cx);
+            cx.set_app_identity("com.lokalbot.LokalBot", "LokalBot");
 
-        let data = cx.new(|_| AppData::new(library, settings));
-        if let Some(section) = options.section {
-            data.update(cx, |data, _| data.section = section);
-        }
-        cx.set_global(AppHandle(data.clone()));
-        bind_actions(cx);
-        open_main_window(data.clone(), cx);
-        data.update(cx, |data, cx| data.reload(cx));
-    });
+            let data = cx.new(|_| AppData::new(library, settings));
+            if let Some(section) = options.section {
+                data.update(cx, |data, _| data.section = section);
+            }
+            cx.set_global(AppHandle(data.clone()));
+            bind_actions(cx);
+            open_main_window(data.clone(), cx);
+            data.update(cx, |data, cx| data.reload(cx));
+        });
 }
 
 fn bind_actions(cx: &mut App) {
@@ -103,8 +114,15 @@ fn open_main_window(data: Entity<AppData>, cx: &mut App) {
         window_size.height = window_size.height.min(display_size.height * 0.92);
     }
     let options = WindowOptions {
-        window_bounds: Some(WindowBounds::Windowed(Bounds::centered(None, window_size, cx))),
-        window_min_size: Some(Size { width: px(960.), height: px(640.) }),
+        window_bounds: Some(WindowBounds::Windowed(Bounds::centered(
+            None,
+            window_size,
+            cx,
+        ))),
+        window_min_size: Some(Size {
+            width: px(960.),
+            height: px(640.),
+        }),
         kind: WindowKind::Normal,
         app_id: Some("com.lokalbot.LokalBot".into()),
         #[cfg(target_os = "linux")]
@@ -120,7 +138,9 @@ fn open_main_window(data: Entity<AppData>, cx: &mut App) {
             .detach();
         let subscribed = data.clone();
         window
-            .subscribe(&data, cx, move |_, event: &AppEvent, window, cx| handle_event(&subscribed, event, window, cx))
+            .subscribe(&data, cx, move |_, event: &AppEvent, window, cx| {
+                handle_event(&subscribed, event, window, cx)
+            })
             .detach();
         cx.new(|cx| shell::Workspace::new(window, cx))
     });
@@ -142,7 +162,9 @@ fn handle_event(data: &Entity<AppData>, event: &AppEvent, window: &mut Window, c
         AppEvent::SettingsChanged => {}
         other => {
             log::info!("engine request not wired yet: {other:?}");
-            data.update(cx, |data, cx| data.show_message("This action is not connected yet in this build.", cx));
+            data.update(cx, |data, cx| {
+                data.show_message("This action is not connected yet in this build.", cx)
+            });
         }
     }
 }

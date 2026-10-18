@@ -49,7 +49,10 @@ impl LibraryPaths {
             if arg == STORAGE_ROOT_FLAG {
                 return args.next().map(|v| PathBuf::from(v.as_ref()));
             }
-            if let Some(value) = arg.strip_prefix(STORAGE_ROOT_FLAG).and_then(|r| r.strip_prefix('=')) {
+            if let Some(value) = arg
+                .strip_prefix(STORAGE_ROOT_FLAG)
+                .and_then(|r| r.strip_prefix('='))
+            {
                 return Some(PathBuf::from(value));
             }
         }

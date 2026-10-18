@@ -211,7 +211,9 @@ impl Settings {
     }
 
     fn load_field_by_field(bytes: &[u8]) -> Self {
-        let Ok(serde_json::Value::Object(stored)) = serde_json::from_slice::<serde_json::Value>(bytes) else {
+        let Ok(serde_json::Value::Object(stored)) =
+            serde_json::from_slice::<serde_json::Value>(bytes)
+        else {
             return Self::default();
         };
         let serde_json::Value::Object(mut merged) =
@@ -245,7 +247,9 @@ impl Settings {
         match self.summarizer_backend {
             SummarizerBackend::BuiltIn => true,
             SummarizerBackend::Ollama => crate::access::is_loopback_url(&self.ollama_base_url),
-            SummarizerBackend::OpenAICompatible => crate::access::is_loopback_url(&self.openai_base_url),
+            SummarizerBackend::OpenAICompatible => {
+                crate::access::is_loopback_url(&self.openai_base_url)
+            }
         }
     }
 
@@ -334,7 +338,13 @@ pub enum NoteTemplate {
 }
 
 impl NoteTemplate {
-    pub const ALL: [NoteTemplate; 5] = [Self::Meeting, Self::Lecture, Self::StudyGuide, Self::Podcast, Self::Freeform];
+    pub const ALL: [NoteTemplate; 5] = [
+        Self::Meeting,
+        Self::Lecture,
+        Self::StudyGuide,
+        Self::Podcast,
+        Self::Freeform,
+    ];
 
     pub fn label(self) -> &'static str {
         match self {
@@ -495,7 +505,11 @@ mod tests {
     fn a_bad_field_does_not_reset_the_rest() {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("settings.json");
-        std::fs::write(&path, r#"{"retentionDays": "fourteen", "trackingEnabled": false, "dayDigestHour": 9}"#).unwrap();
+        std::fs::write(
+            &path,
+            r#"{"retentionDays": "fourteen", "trackingEnabled": false, "dayDigestHour": 9}"#,
+        )
+        .unwrap();
         let settings = Settings::load(&path);
         assert_eq!(settings.retention_days, 14);
         assert!(!settings.tracking_enabled);

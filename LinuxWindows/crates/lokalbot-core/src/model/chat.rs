@@ -39,7 +39,11 @@ pub struct ChatMessage {
     pub text: String,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub activity: Vec<ChatActivity>,
-    #[serde(default, with = "iso_seconds::option", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        with = "iso_seconds::option",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub created_at: Option<DateTime<Utc>>,
 }
 
@@ -71,7 +75,9 @@ impl Citation {
         let mut cursor = 0;
         while let Some(open) = text[cursor..].find('[') {
             let start = cursor + open;
-            let Some(close_rel) = text[start..].find(']') else { break };
+            let Some(close_rel) = text[start..].find(']') else {
+                break;
+            };
             let end = start + close_rel + 1;
             let inner = &text[start + 1..end - 1];
             if let Some(rest) = inner.strip_prefix("meeting:") {

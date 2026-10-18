@@ -78,7 +78,8 @@ pub fn set_screen_access(paths: &LibraryPaths, scope: Option<ScreenScope>) -> st
     match scope {
         Some(scope) => {
             ensure_private_dir(&paths.control_dir())?;
-            let json = serde_json::to_vec(&ScreenProfile { scope }).map_err(std::io::Error::other)?;
+            let json =
+                serde_json::to_vec(&ScreenProfile { scope }).map_err(std::io::Error::other)?;
             crate::library::write_atomic(&marker, &json)?;
             restrict_file(&marker);
             Ok(())
@@ -122,7 +123,11 @@ pub fn origin_of(url: &str) -> Option<String> {
     if authority.is_empty() {
         return None;
     }
-    Some(format!("{}://{}", scheme.to_lowercase(), authority.to_lowercase()))
+    Some(format!(
+        "{}://{}",
+        scheme.to_lowercase(),
+        authority.to_lowercase()
+    ))
 }
 
 fn host_of(url: &str) -> Option<String> {
@@ -131,12 +136,25 @@ fn host_of(url: &str) -> Option<String> {
     if let Some(stripped) = authority.strip_prefix('[') {
         return stripped.split(']').next().map(str::to_string);
     }
-    Some(authority.rsplit_once(':').map(|(h, p)| if p.chars().all(|c| c.is_ascii_digit()) { h.to_string() } else { authority.clone() }).unwrap_or(authority))
+    Some(
+        authority
+            .rsplit_once(':')
+            .map(|(h, p)| {
+                if p.chars().all(|c| c.is_ascii_digit()) {
+                    h.to_string()
+                } else {
+                    authority.clone()
+                }
+            })
+            .unwrap_or(authority),
+    )
 }
 
 /// `localhost`, `*.localhost`, `::1` and `127.0.0.0/8`. `0.0.0.0` is not loopback.
 pub fn is_loopback_url(url: &str) -> bool {
-    let Some(host) = host_of(url) else { return false };
+    let Some(host) = host_of(url) else {
+        return false;
+    };
     if host == "localhost" || host.ends_with(".localhost") {
         return true;
     }
@@ -150,7 +168,9 @@ pub fn is_loopback_url(url: &str) -> bool {
 /// RFC 1918, link-local, CGNAT (Tailscale), unique-local IPv6, `.local`,
 /// `.home.arpa`, `.ts.net` and single-label names.
 pub fn is_private_network_url(url: &str) -> bool {
-    let Some(host) = host_of(url) else { return false };
+    let Some(host) = host_of(url) else {
+        return false;
+    };
     match host.parse::<IpAddr>() {
         Ok(IpAddr::V4(v4)) => {
             let [a, b, ..] = v4.octets();
@@ -161,7 +181,10 @@ pub fn is_private_network_url(url: &str) -> bool {
             (first & 0xfe00) == 0xfc00 || (first & 0xffc0) == 0xfe80
         }
         Err(_) => {
-            host.ends_with(".local") || host.ends_with(".home.arpa") || host.ends_with(".ts.net") || !host.contains('.')
+            host.ends_with(".local")
+                || host.ends_with(".home.arpa")
+                || host.ends_with(".ts.net")
+                || !host.contains('.')
         }
     }
 }
@@ -176,12 +199,16 @@ pub fn remote_block_reason(url: &str, approved: &[String]) -> Option<String> {
     };
     let https = origin.starts_with("https://");
     if !https && !is_private_network_url(url) {
-        return Some(format!("{origin} must use HTTPS before LokalBot can send it context."));
+        return Some(format!(
+            "{origin} must use HTTPS before LokalBot can send it context."
+        ));
     }
     if approved.iter().any(|a| a.eq_ignore_ascii_case(&origin)) {
         None
     } else {
-        Some(format!("Allow sending context to {origin} in Settings → Models first."))
+        Some(format!(
+            "Allow sending context to {origin} in Settings → Models first."
+        ))
     }
 }
 
@@ -203,9 +230,16 @@ mod tests {
     #[test]
     fn remote_servers_need_https_and_approval() {
         assert_eq!(remote_block_reason("http://localhost:1234/v1", &[]), None);
-        assert!(remote_block_reason("http://example.com/v1", &[]).unwrap().contains("HTTPS"));
+        assert!(
+            remote_block_reason("http://example.com/v1", &[])
+                .unwrap()
+                .contains("HTTPS")
+        );
         let approved = vec!["https://openrouter.ai".to_string()];
-        assert_eq!(remote_block_reason("https://openrouter.ai/api/v1", &approved), None);
+        assert_eq!(
+            remote_block_reason("https://openrouter.ai/api/v1", &approved),
+            None
+        );
         assert!(remote_block_reason("https://api.openai.com/v1", &approved).is_some());
     }
 

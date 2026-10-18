@@ -158,7 +158,11 @@ impl Palette {
 
 fn hsv(h: f32, s: f32, v: f32) -> Hsla {
     let l = v * (1.0 - s / 2.0);
-    let sl = if l == 0.0 || l == 1.0 { 0.0 } else { (v - l) / l.min(1.0 - l) };
+    let sl = if l == 0.0 || l == 1.0 {
+        0.0
+    } else {
+        (v - l) / l.min(1.0 - l)
+    };
     hsla(h, sl, l, 1.0)
 }
 
@@ -224,14 +228,29 @@ pub fn is_dark(choice: AppTheme, appearance: WindowAppearance) -> bool {
     match choice {
         AppTheme::Light => false,
         AppTheme::Dark => true,
-        AppTheme::System => matches!(appearance, WindowAppearance::Dark | WindowAppearance::VibrantDark),
+        AppTheme::System => matches!(
+            appearance,
+            WindowAppearance::Dark | WindowAppearance::VibrantDark
+        ),
     }
 }
 
 /// Installs the palette and themes GPUI Kit's components to match.
 pub fn apply(dark: bool, text_scale: f32, window: Option<&mut Window>, cx: &mut App) {
-    let palette = if dark { Palette::dark() } else { Palette::light() };
-    Theme::change(if dark { ThemeMode::Dark } else { ThemeMode::Light }, window, cx);
+    let palette = if dark {
+        Palette::dark()
+    } else {
+        Palette::light()
+    };
+    Theme::change(
+        if dark {
+            ThemeMode::Dark
+        } else {
+            ThemeMode::Light
+        },
+        window,
+        cx,
+    );
     let theme = Theme::global_mut(cx);
     theme.font_family = FONT_FAMILY.into();
     theme.font_size = px(14. * text_scale);

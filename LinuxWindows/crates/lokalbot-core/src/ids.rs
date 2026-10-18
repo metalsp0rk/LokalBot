@@ -48,7 +48,11 @@ pub fn slugify(title: &str) -> String {
         }
     }
     let trimmed = slug.trim_matches('-');
-    if trimmed.is_empty() { "meeting".into() } else { trimmed.to_string() }
+    if trimmed.is_empty() {
+        "meeting".into()
+    } else {
+        trimmed.to_string()
+    }
 }
 
 /// Case- and diacritic-folded text with collapsed whitespace, used by search
@@ -80,16 +84,22 @@ pub mod uuid_upper_serde {
         use serde::{Deserialize, Deserializer, Serializer};
         use uuid::Uuid;
 
-        pub fn serialize<S: Serializer>(value: &Option<Uuid>, serializer: S) -> Result<S::Ok, S::Error> {
+        pub fn serialize<S: Serializer>(
+            value: &Option<Uuid>,
+            serializer: S,
+        ) -> Result<S::Ok, S::Error> {
             match value {
                 Some(id) => serializer.serialize_str(&super::super::uuid_upper(id)),
                 None => serializer.serialize_none(),
             }
         }
 
-        pub fn deserialize<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Option<Uuid>, D::Error> {
+        pub fn deserialize<'de, D: Deserializer<'de>>(
+            deserializer: D,
+        ) -> Result<Option<Uuid>, D::Error> {
             let raw = Option::<String>::deserialize(deserializer)?;
-            raw.map(|r| Uuid::parse_str(&r).map_err(serde::de::Error::custom)).transpose()
+            raw.map(|r| Uuid::parse_str(&r).map_err(serde::de::Error::custom))
+                .transpose()
         }
     }
 
@@ -97,7 +107,10 @@ pub mod uuid_upper_serde {
         use serde::{Deserialize, Deserializer, Serializer, ser::SerializeSeq};
         use uuid::Uuid;
 
-        pub fn serialize<S: Serializer>(value: &Option<Vec<Uuid>>, serializer: S) -> Result<S::Ok, S::Error> {
+        pub fn serialize<S: Serializer>(
+            value: &Option<Vec<Uuid>>,
+            serializer: S,
+        ) -> Result<S::Ok, S::Error> {
             match value {
                 None => serializer.serialize_none(),
                 Some(ids) => {
@@ -110,7 +123,9 @@ pub mod uuid_upper_serde {
             }
         }
 
-        pub fn deserialize<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Option<Vec<Uuid>>, D::Error> {
+        pub fn deserialize<'de, D: Deserializer<'de>>(
+            deserializer: D,
+        ) -> Result<Option<Vec<Uuid>>, D::Error> {
             let raw = Option::<Vec<String>>::deserialize(deserializer)?;
             raw.map(|items| {
                 items
@@ -129,7 +144,10 @@ mod tests {
 
     #[test]
     fn slugify_matches_storage_manager() {
-        assert_eq!(slugify("Customer call - Northwind"), "customer-call-northwind");
+        assert_eq!(
+            slugify("Customer call - Northwind"),
+            "customer-call-northwind"
+        );
         assert_eq!(slugify("Čaj s Anom"), "caj-s-anom");
         assert_eq!(slugify("  ***  "), "meeting");
     }

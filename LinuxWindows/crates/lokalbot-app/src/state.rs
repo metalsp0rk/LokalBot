@@ -216,7 +216,11 @@ pub struct DownloadProgress {
 
 impl DownloadProgress {
     pub fn fraction(&self) -> f32 {
-        if self.total_bytes == 0 { 0.0 } else { self.done_bytes as f32 / self.total_bytes as f32 }
+        if self.total_bytes == 0 {
+            0.0
+        } else {
+            self.done_bytes as f32 / self.total_bytes as f32
+        }
     }
 }
 
@@ -295,8 +299,18 @@ impl AppData {
         cx.notify();
     }
 
-    pub fn open_meeting(&mut self, meeting_id: Uuid, tab: MeetingTab, at: Option<f64>, cx: &mut Context<Self>) {
-        self.meeting_focus = Some(MeetingFocus { meeting_id, tab, at });
+    pub fn open_meeting(
+        &mut self,
+        meeting_id: Uuid,
+        tab: MeetingTab,
+        at: Option<f64>,
+        cx: &mut Context<Self>,
+    ) {
+        self.meeting_focus = Some(MeetingFocus {
+            meeting_id,
+            tab,
+            at,
+        });
         self.section = Section::Meetings;
         cx.notify();
     }
@@ -319,7 +333,9 @@ impl AppData {
     pub fn reload(&mut self, cx: &mut Context<Self>) {
         let library = self.library.clone();
         cx.spawn(async move |this, cx| {
-            let loaded = cx.background_spawn(async move { library.list_meetings() }).await;
+            let loaded = cx
+                .background_spawn(async move { library.list_meetings() })
+                .await;
             let _ = this.update(cx, |this, cx| {
                 match loaded {
                     Ok(meetings) => this.meetings = meetings,
@@ -337,12 +353,22 @@ impl AppData {
         self.meetings.iter().find(|m| m.id == id)
     }
 
-    pub fn set_action_status(&mut self, meeting_id: Uuid, action_id: String, status: ActionStatus, cx: &mut Context<Self>) {
-        let Some(meeting) = self.meeting(meeting_id).cloned() else { return };
+    pub fn set_action_status(
+        &mut self,
+        meeting_id: Uuid,
+        action_id: String,
+        status: ActionStatus,
+        cx: &mut Context<Self>,
+    ) {
+        let Some(meeting) = self.meeting(meeting_id).cloned() else {
+            return;
+        };
         let library = self.library.clone();
         cx.spawn(async move |this, cx| {
             let result = cx
-                .background_spawn(async move { library.set_action_status(&meeting, &action_id, status) })
+                .background_spawn(
+                    async move { library.set_action_status(&meeting, &action_id, status) },
+                )
                 .await;
             let _ = this.update(cx, |this, cx| {
                 if let Err(err) = result {
@@ -356,15 +382,23 @@ impl AppData {
     }
 
     pub fn delete_meeting(&mut self, meeting_id: Uuid, cx: &mut Context<Self>) {
-        let Some(meeting) = self.meeting(meeting_id).cloned() else { return };
+        let Some(meeting) = self.meeting(meeting_id).cloned() else {
+            return;
+        };
         let library = self.library.clone();
         cx.spawn(async move |this, cx| {
-            let result = cx.background_spawn(async move { library.delete_meeting(&meeting) }).await;
+            let result = cx
+                .background_spawn(async move { library.delete_meeting(&meeting) })
+                .await;
             let _ = this.update(cx, |this, cx| {
                 if let Err(err) = result {
                     this.show_error(format!("Could not delete the meeting: {err:#}"), cx);
                 }
-                if this.meeting_focus.as_ref().is_some_and(|f| f.meeting_id == meeting_id) {
+                if this
+                    .meeting_focus
+                    .as_ref()
+                    .is_some_and(|f| f.meeting_id == meeting_id)
+                {
                     this.meeting_focus = None;
                 }
                 this.reload(cx);
@@ -393,7 +427,9 @@ impl AppData {
             }
         })
         .detach();
-        if before.app_theme != self.settings.app_theme || before.text_size != self.settings.text_size {
+        if before.app_theme != self.settings.app_theme
+            || before.text_size != self.settings.text_size
+        {
             cx.emit(AppEvent::AppearanceChanged);
         }
         cx.emit(AppEvent::SettingsChanged);
@@ -421,12 +457,18 @@ impl AppData {
     // ---------------------------------------------------------------- toasts
 
     pub fn show_message(&mut self, message: impl Into<SharedString>, cx: &mut Context<Self>) {
-        self.toast = Some(Toast { message: message.into(), is_error: false });
+        self.toast = Some(Toast {
+            message: message.into(),
+            is_error: false,
+        });
         cx.notify();
     }
 
     pub fn show_error(&mut self, message: impl Into<SharedString>, cx: &mut Context<Self>) {
-        self.toast = Some(Toast { message: message.into(), is_error: true });
+        self.toast = Some(Toast {
+            message: message.into(),
+            is_error: true,
+        });
         cx.notify();
     }
 
@@ -446,11 +488,19 @@ pub enum AppEvent {
     SettingsChanged,
     AppearanceChanged,
     /// Transcribe and/or summarize a meeting again (Retry, "Transcribe & Summarize", "Summarize again").
-    ProcessMeeting { meeting_id: Uuid, transcribe: bool, summarize: bool },
+    ProcessMeeting {
+        meeting_id: Uuid,
+        transcribe: bool,
+        summarize: bool,
+    },
     /// Write or rewrite the day digest.
     RegenerateDigest(chrono::NaiveDate),
     /// Ask a question in a conversation (a new id starts a new conversation).
-    AskQuestion { conversation_id: Uuid, question: String, scope: AskScope },
+    AskQuestion {
+        conversation_id: Uuid,
+        question: String,
+        scope: AskScope,
+    },
     StopAnswer,
     /// Download a model by catalog id (Think, Autocomplete, embeddings or speech).
     DownloadModel(String),

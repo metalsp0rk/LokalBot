@@ -14,7 +14,11 @@ pub struct Transcript {
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub speaker_aliases: BTreeMap<String, String>,
     /// Canonical speaker key to an opaque calendar participant ID.
-    #[serde(default, skip_serializing_if = "BTreeMap::is_empty", rename = "speakerCalendarIdentityIDs")]
+    #[serde(
+        default,
+        skip_serializing_if = "BTreeMap::is_empty",
+        rename = "speakerCalendarIdentityIDs"
+    )]
     pub speaker_calendar_identity_ids: BTreeMap<String, String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub echo_report: Option<EchoReport>,
@@ -84,7 +88,11 @@ pub enum AttributionMethod {
 #[serde(rename_all = "camelCase")]
 pub struct EchoReport {
     pub status: EchoStatus,
-    #[serde(default, skip_serializing_if = "Option::is_none", rename = "reductionDB")]
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "reductionDB"
+    )]
     pub reduction_db: Option<f64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub delay_seconds: Option<f64>,
@@ -187,7 +195,10 @@ impl Transcript {
     }
 
     pub fn word_count(&self) -> usize {
-        self.segments.iter().map(|s| s.text.split_whitespace().count()).sum()
+        self.segments
+            .iter()
+            .map(|s| s.text.split_whitespace().count())
+            .sum()
     }
 
     pub fn duration(&self) -> f64 {
@@ -197,10 +208,18 @@ impl Transcript {
 
 impl SpeakerAttribution {
     pub fn microphone_user() -> Self {
-        Self { source: AttributionSource::Microphone, identity: SpeakerIdentity::User, method: AttributionMethod::Track }
+        Self {
+            source: AttributionSource::Microphone,
+            identity: SpeakerIdentity::User,
+            method: AttributionMethod::Track,
+        }
     }
 
     pub fn system_other() -> Self {
-        Self { source: AttributionSource::System, identity: SpeakerIdentity::Other, method: AttributionMethod::Track }
+        Self {
+            source: AttributionSource::System,
+            identity: SpeakerIdentity::Other,
+            method: AttributionMethod::Track,
+        }
     }
 }

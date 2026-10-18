@@ -109,15 +109,24 @@ pub enum MeetingLookup {
 impl Library {
     /// Opens (creating if needed) the library and its SQLite schema.
     pub fn open(paths: LibraryPaths) -> Result<Self> {
-        fs::create_dir_all(paths.root()).with_context(|| format!("creating {}", paths.root().display()))?;
+        fs::create_dir_all(paths.root())
+            .with_context(|| format!("creating {}", paths.root().display()))?;
         fs::create_dir_all(paths.meetings_dir())?;
         let db = Connection::open(paths.database()).context("opening lokalbotv3.sqlite")?;
         db.busy_timeout(std::time::Duration::from_secs(5))?;
-        db.execute_batch("PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA foreign_keys=ON;")?;
+        db.execute_batch(
+            "PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA foreign_keys=ON;",
+        )?;
         db.execute_batch(SCHEMA).context("creating schema")?;
         // Older pipeline_jobs tables predate last_error.
         let _ = db.execute("ALTER TABLE pipeline_jobs ADD COLUMN last_error TEXT", []);
-        Ok(Self { inner: Arc::new(Inner { paths, db: Mutex::new(db), read_only: false }) })
+        Ok(Self {
+            inner: Arc::new(Inner {
+                paths,
+                db: Mutex::new(db),
+                read_only: false,
+            }),
+        })
     }
 
     /// Opens an existing library for reading only (CLI, MCP). Missing database
@@ -126,13 +135,20 @@ impl Library {
         let db = if paths.database().is_file() {
             Connection::open_with_flags(
                 paths.database(),
-                rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY | rusqlite::OpenFlags::SQLITE_OPEN_NO_MUTEX,
+                rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY
+                    | rusqlite::OpenFlags::SQLITE_OPEN_NO_MUTEX,
             )?
         } else {
             Connection::open_in_memory()?
         };
         db.busy_timeout(std::time::Duration::from_secs(5))?;
-        Ok(Self { inner: Arc::new(Inner { paths, db: Mutex::new(db), read_only: true }) })
+        Ok(Self {
+            inner: Arc::new(Inner {
+                paths,
+                db: Mutex::new(db),
+                read_only: true,
+            }),
+        })
     }
 
     pub fn paths(&self) -> &LibraryPaths {
@@ -170,7 +186,12 @@ impl Library {
         }
         let parents: std::collections::HashMap<Uuid, Uuid> = meetings
             .iter()
-            .flat_map(|m| m.merged_source_meeting_ids.iter().flatten().map(move |s| (*s, m.id)))
+            .flat_map(|m| {
+                m.merged_source_meeting_ids
+                    .iter()
+                    .flatten()
+                    .map(move |s| (*s, m.id))
+            })
             .collect();
         meetings.retain(|m| !m.is_merged_source() && !parents.contains_key(&m.id));
         meetings.sort_by(|a, b| b.started_at.cmp(&a.started_at));
@@ -202,14 +223,26 @@ impl Library {
         let reference = reference.trim().to_lowercase();
         let meetings = self.list_meetings()?;
         if reference == "latest" {
-            return Ok(meetings.into_iter().next().map(MeetingLookup::Found).unwrap_or(MeetingLookup::NotFound));
+            return Ok(meetings
+                .into_iter()
+                .next()
+                .map(MeetingLookup::Found)
+                .unwrap_or(MeetingLookup::NotFound));
         }
         if let Ok(id) = Uuid::parse_str(&reference) {
-            return Ok(meetings.into_iter().find(|m| m.id == id).map(MeetingLookup::Found).unwrap_or(MeetingLookup::NotFound));
+            return Ok(meetings
+                .into_iter()
+                .find(|m| m.id == id)
+                .map(MeetingLookup::Found)
+                .unwrap_or(MeetingLookup::NotFound));
         }
         let matches: Vec<Meeting> = meetings
             .into_iter()
-            .filter(|m| m.id.simple().to_string().starts_with(&reference.replace('-', "")))
+            .filter(|m| {
+                m.id.simple()
+                    .to_string()
+                    .starts_with(&reference.replace('-', ""))
+            })
             .collect();
         Ok(match matches.len() {
             0 => MeetingLookup::NotFound,
@@ -219,7 +252,12 @@ impl Library {
     }
 
     /// Creates `meetings/YYYY/MM/DD-<slug>[-N]/meta.json` for a new recording.
-    pub fn create_meeting(&self, title: &str, app_name: &str, started_at: DateTime<Utc>) -> Result<Meeting> {
+    pub fn create_meeting(
+        &self,
+        title: &str,
+        app_name: &str,
+        started_at: DateTime<Utc>,
+    ) -> Result<Meeting> {
         let local = started_at.with_timezone(&Local);
         let base = format!(
             "meetings/{:04}/{:02}/{:02}-{}",
@@ -292,7 +330,10 @@ impl Library {
                 rusqlite::params![id, crate::time::to_epoch(Utc::now())],
             )?;
             db.execute("DELETE FROM docs WHERE meeting_id = ?1", [&id])?;
-            db.execute("DELETE FROM search_document_rows WHERE meeting_id = ?1", [&id])?;
+            db.execute(
+                "DELETE FROM search_document_rows WHERE meeting_id = ?1",
+                [&id],
+            )?;
             db.execute("DELETE FROM indexed_meetings WHERE meeting_id = ?1", [&id])?;
             db.execute("DELETE FROM embeddings WHERE meeting_id = ?1", [&id])?;
             db.execute("DELETE FROM embedded_meetings WHERE meeting_id = ?1", [&id])?;
@@ -316,7 +357,10 @@ impl Library {
     pub fn save_transcript(&self, meeting: &Meeting, transcript: &Transcript) -> Result<()> {
         let dir = self.meeting_dir(meeting);
         write_json(&dir.join(TRANSCRIPT_FILE), transcript)?;
-        write_atomic(&dir.join(TRANSCRIPT_MD_FILE), transcript.markdown().as_bytes())?;
+        write_atomic(
+            &dir.join(TRANSCRIPT_MD_FILE),
+            transcript.markdown().as_bytes(),
+        )?;
         Ok(())
     }
 
@@ -325,7 +369,10 @@ impl Library {
     }
 
     pub fn save_summary(&self, meeting: &Meeting, markdown: &str) -> Result<()> {
-        write_atomic(&self.meeting_dir(meeting).join(SUMMARY_FILE), markdown.as_bytes())?;
+        write_atomic(
+            &self.meeting_dir(meeting).join(SUMMARY_FILE),
+            markdown.as_bytes(),
+        )?;
         Ok(())
     }
 
@@ -364,9 +411,17 @@ impl Library {
     }
 
     /// Marks one extracted action open, done or deferred.
-    pub fn set_action_status(&self, meeting: &Meeting, action_id: &str, status: ActionStatus) -> Result<()> {
+    pub fn set_action_status(
+        &self,
+        meeting: &Meeting,
+        action_id: &str,
+        status: ActionStatus,
+    ) -> Result<()> {
         let mut state = self.outcome_state(meeting)?;
-        let entry = state.actions.entry(action_id.to_string()).or_insert_with(|| ActionState::new(status));
+        let entry = state
+            .actions
+            .entry(action_id.to_string())
+            .or_insert_with(|| ActionState::new(status));
         entry.status = status;
         entry.updated_at = Utc::now();
         entry.user_edited = true;
@@ -378,7 +433,9 @@ impl Library {
     pub fn conversations(&self) -> Result<Vec<Conversation>> {
         let dir = self.paths().chats_dir();
         let mut out = Vec::new();
-        let Ok(entries) = fs::read_dir(&dir) else { return Ok(out) };
+        let Ok(entries) = fs::read_dir(&dir) else {
+            return Ok(out);
+        };
         for entry in entries.flatten() {
             let path = entry.path();
             if path.extension().is_some_and(|e| e == "json") {
@@ -394,12 +451,18 @@ impl Library {
     }
 
     pub fn save_conversation(&self, conversation: &Conversation) -> Result<()> {
-        let path = self.paths().chats_dir().join(format!("{}.json", conversation.id.hyphenated()));
+        let path = self
+            .paths()
+            .chats_dir()
+            .join(format!("{}.json", conversation.id.hyphenated()));
         write_json(&path, conversation)
     }
 
     pub fn delete_conversation(&self, id: Uuid) -> Result<()> {
-        let path = self.paths().chats_dir().join(format!("{}.json", id.hyphenated()));
+        let path = self
+            .paths()
+            .chats_dir()
+            .join(format!("{}.json", id.hyphenated()));
         match fs::remove_file(path) {
             Err(err) if err.kind() != std::io::ErrorKind::NotFound => Err(err.into()),
             _ => Ok(()),
@@ -409,7 +472,9 @@ impl Library {
     // --------------------------------------------------------------- digest
 
     pub fn journal_path(&self, day: chrono::NaiveDate) -> PathBuf {
-        self.paths().journal_dir().join(format!("{}.md", day.format("%Y-%m-%d")))
+        self.paths()
+            .journal_dir()
+            .join(format!("{}.md", day.format("%Y-%m-%d")))
     }
 
     pub fn journal_markdown(&self, day: chrono::NaiveDate) -> Result<Option<String>> {
@@ -417,13 +482,29 @@ impl Library {
     }
 
     pub fn digest_meta(&self, day: chrono::NaiveDate) -> Result<Option<DigestMeta>> {
-        read_json(&self.paths().journal_dir().join(format!("{}.meta.json", day.format("%Y-%m-%d"))))
+        read_json(
+            &self
+                .paths()
+                .journal_dir()
+                .join(format!("{}.meta.json", day.format("%Y-%m-%d"))),
+        )
     }
 
     /// Writes the journal and its sidecar (journal first, as on macOS).
-    pub fn save_digest(&self, day: chrono::NaiveDate, markdown: &str, meta: &DigestMeta) -> Result<()> {
+    pub fn save_digest(
+        &self,
+        day: chrono::NaiveDate,
+        markdown: &str,
+        meta: &DigestMeta,
+    ) -> Result<()> {
         write_atomic(&self.journal_path(day), markdown.as_bytes())?;
-        write_json(&self.paths().journal_dir().join(format!("{}.meta.json", day.format("%Y-%m-%d"))), meta)
+        write_json(
+            &self
+                .paths()
+                .journal_dir()
+                .join(format!("{}.meta.json", day.format("%Y-%m-%d"))),
+            meta,
+        )
     }
 }
 
@@ -432,11 +513,17 @@ impl Library {
 /// `meetings/YYYY/MM/<folder>/meta.json` paths.
 fn meeting_meta_files(meetings_dir: &Path) -> Vec<PathBuf> {
     let mut out = Vec::new();
-    let Ok(years) = fs::read_dir(meetings_dir) else { return out };
+    let Ok(years) = fs::read_dir(meetings_dir) else {
+        return out;
+    };
     for year in years.flatten().filter(|e| e.path().is_dir()) {
-        let Ok(months) = fs::read_dir(year.path()) else { continue };
+        let Ok(months) = fs::read_dir(year.path()) else {
+            continue;
+        };
         for month in months.flatten().filter(|e| e.path().is_dir()) {
-            let Ok(folders) = fs::read_dir(month.path()) else { continue };
+            let Ok(folders) = fs::read_dir(month.path()) else {
+                continue;
+            };
             for folder in folders.flatten().filter(|e| e.path().is_dir()) {
                 let meta = folder.path().join(META_FILE);
                 if meta.is_file() {
@@ -481,7 +568,9 @@ fn sort_keys(value: serde_json::Value) -> serde_json::Value {
                 map.into_iter().map(|(k, v)| (k, sort_keys(v))).collect();
             serde_json::Value::Object(sorted.into_iter().collect())
         }
-        serde_json::Value::Array(items) => serde_json::Value::Array(items.into_iter().map(sort_keys).collect()),
+        serde_json::Value::Array(items) => {
+            serde_json::Value::Array(items.into_iter().map(sort_keys).collect())
+        }
         other => other,
     }
 }
@@ -511,7 +600,8 @@ mod tests {
     use super::*;
 
     fn fixture_root() -> PathBuf {
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../LokalBotTests/Fixtures/upgrade/0.10.9/library")
+        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../../LokalBotTests/Fixtures/upgrade/0.10.9/library")
     }
 
     #[test]
@@ -524,12 +614,21 @@ mod tests {
         let library = Library::open_read_only(LibraryPaths::new(root)).unwrap();
         let meetings = library.list_meetings().unwrap();
         assert!(meetings.len() >= 10, "found {} meetings", meetings.len());
-        let northwind = meetings.iter().find(|m| m.title == "Customer call - Northwind").unwrap();
+        let northwind = meetings
+            .iter()
+            .find(|m| m.title == "Customer call - Northwind")
+            .unwrap();
         let transcript = library.transcript(northwind).unwrap().unwrap();
         assert_eq!(transcript.segments.len(), 3);
         let outcomes = library.outcomes(northwind).unwrap().unwrap();
         assert_eq!(outcomes.action_items.len(), 2);
-        assert!(library.summary(northwind).unwrap().unwrap().contains("## TL;DR"));
+        assert!(
+            library
+                .summary(northwind)
+                .unwrap()
+                .unwrap()
+                .contains("## TL;DR")
+        );
         let chats = library.conversations().unwrap();
         assert_eq!(chats.len(), 2);
     }
@@ -539,11 +638,20 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let library = Library::open(LibraryPaths::new(dir.path())).unwrap();
         let started = crate::time::now_seconds();
-        let meeting = library.create_meeting("Design review", "Zoom", started).unwrap();
-        let second = library.create_meeting("Design review", "Zoom", started).unwrap();
+        let meeting = library
+            .create_meeting("Design review", "Zoom", started)
+            .unwrap();
+        let second = library
+            .create_meeting("Design review", "Zoom", started)
+            .unwrap();
         assert!(second.relative_path.ends_with("-2"));
-        library.save_notes(&meeting, "Remember the caching layer").unwrap();
-        assert_eq!(library.notes(&meeting).unwrap(), "Remember the caching layer");
+        library
+            .save_notes(&meeting, "Remember the caching layer")
+            .unwrap();
+        assert_eq!(
+            library.notes(&meeting).unwrap(),
+            "Remember the caching layer"
+        );
         library.save_notes(&meeting, "   ").unwrap();
         assert_eq!(library.notes(&meeting).unwrap(), "");
         let meta = fs::read_to_string(library.meeting_dir(&meeting).join(META_FILE)).unwrap();
@@ -551,6 +659,8 @@ mod tests {
         assert_eq!(library.list_meetings().unwrap().len(), 2);
         library.delete_meeting(&meeting).unwrap();
         assert_eq!(library.list_meetings().unwrap().len(), 1);
-        assert!(matches!(library.find_meeting("latest").unwrap(), MeetingLookup::Found(m) if m.id == second.id));
+        assert!(
+            matches!(library.find_meeting("latest").unwrap(), MeetingLookup::Found(m) if m.id == second.id)
+        );
     }
 }

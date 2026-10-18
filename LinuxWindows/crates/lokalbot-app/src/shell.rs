@@ -4,14 +4,15 @@
 use gpui_kit::component::{TitleBar, h_flex, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
-    AnyElement, App, AppContext as _, Context, Entity, FontWeight, Hsla, InteractiveElement as _, IntoElement,
-    MouseButton, ParentElement as _, Render, SharedString, StatefulInteractiveElement as _, Styled as _,
-    Subscription, Window, WindowControlArea, div, img, px,
+    AnyElement, App, AppContext as _, Context, Entity, FontWeight, Hsla, InteractiveElement as _,
+    IntoElement, MouseButton, ParentElement as _, Render, SharedString,
+    StatefulInteractiveElement as _, Styled as _, Subscription, Window, WindowControlArea, div,
+    img, px,
 };
 
 use crate::pages::{
-    Page, agent::AgentPage, ask::AskPage, meetings::MeetingsPage, people::PeoplePage, projects::ProjectsPage,
-    settings::SettingsPage, timeline::TimelinePage, today::TodayPage,
+    Page, agent::AgentPage, ask::AskPage, meetings::MeetingsPage, people::PeoplePage,
+    projects::ProjectsPage, settings::SettingsPage, timeline::TimelinePage, today::TodayPage,
 };
 use crate::state::{AppData, BackgroundKind, RecordingState, Section};
 use crate::theme::{LbThemeExt as _, metric, ty};
@@ -48,9 +49,19 @@ impl Workspace {
         }
     }
 
-    fn page_parts(&mut self, section: Section, window: &mut Window, cx: &mut Context<Self>) -> (SharedString, Option<AnyElement>, AnyElement) {
-        fn parts<P: Page>(page: &Entity<P>, window: &mut Window, cx: &mut App) -> (SharedString, Option<AnyElement>, AnyElement) {
-            let (title, toolbar) = page.update(cx, |page, cx| (page.title(cx), page.toolbar(window, cx)));
+    fn page_parts(
+        &mut self,
+        section: Section,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> (SharedString, Option<AnyElement>, AnyElement) {
+        fn parts<P: Page>(
+            page: &Entity<P>,
+            window: &mut Window,
+            cx: &mut App,
+        ) -> (SharedString, Option<AnyElement>, AnyElement) {
+            let (title, toolbar) =
+                page.update(cx, |page, cx| (page.title(cx), page.toolbar(window, cx)));
             (title, toolbar, page.clone().into_any_element())
         }
         match section {
@@ -121,14 +132,29 @@ impl Workspace {
                     .gap(px(2.))
                     .child(item("sidebar-today", Ico::Sun, Section::Today, cx))
                     .child(header("Remember", 10.))
-                    .child(item("sidebar-meetings", Ico::AudioLines, Section::Meetings, cx))
-                    .child(item("sidebar-timeline", Ico::ChartGantt, Section::Timeline, cx))
+                    .child(item(
+                        "sidebar-meetings",
+                        Ico::AudioLines,
+                        Section::Meetings,
+                        cx,
+                    ))
+                    .child(item(
+                        "sidebar-timeline",
+                        Ico::ChartGantt,
+                        Section::Timeline,
+                        cx,
+                    ))
                     .child(item("sidebar-people", Ico::Users, Section::People, cx))
                     .child(item("sidebar-projects", Ico::Folder, Section::Projects, cx))
                     .child(item("sidebar-ask", Ico::TextSearch, Section::Ask, cx))
                     .child(header("Tools", 14.))
                     .child(item("sidebar-agent", Ico::WandSparkles, Section::Agent, cx))
-                    .child(item("sidebar-settings", Ico::Settings, Section::Settings, cx)),
+                    .child(item(
+                        "sidebar-settings",
+                        Ico::Settings,
+                        Section::Settings,
+                        cx,
+                    )),
             )
             .child(div().flex_1())
             .child(self.render_sidebar_footer(cx))
@@ -148,8 +174,19 @@ impl Workspace {
                 .child(img("brand/lokalbot.svg").size(px(26.)).flex_none())
                 .child(
                     v_flex()
-                        .child(div().text_size(ty::BODY).font_weight(FontWeight::SEMIBOLD).text_color(lb.text).child("LokalBot"))
-                        .child(div().text_size(ty::SMALL).text_color(lb.text_secondary).child("Private work memory")),
+                        .child(
+                            div()
+                                .text_size(ty::BODY)
+                                .font_weight(FontWeight::SEMIBOLD)
+                                .text_color(lb.text)
+                                .child("LokalBot"),
+                        )
+                        .child(
+                            div()
+                                .text_size(ty::SMALL)
+                                .text_color(lb.text_secondary)
+                                .child("Private work memory"),
+                        ),
                 ),
         )
     }
@@ -158,7 +195,9 @@ impl Workspace {
         let data = self.data.read(cx);
         let lb = cx.lb().clone();
         let recording = match &data.recording {
-            RecordingState::Recording { meeting, started, .. } => Some((meeting.display_title(), started.elapsed().as_secs_f64())),
+            RecordingState::Recording {
+                meeting, started, ..
+            } => Some((meeting.display_title(), started.elapsed().as_secs_f64())),
             _ => None,
         };
         let background = data.background.clone();
@@ -179,9 +218,20 @@ impl Workspace {
                                 .gap(px(6.))
                                 .items_center()
                                 .child(ui::status_dot(lb.recording, px(8.)))
-                                .child(div().text_size(ty::SECONDARY).font_weight(FontWeight::SEMIBOLD).text_color(lb.recording_text).child("Recording"))
+                                .child(
+                                    div()
+                                        .text_size(ty::SECONDARY)
+                                        .font_weight(FontWeight::SEMIBOLD)
+                                        .text_color(lb.recording_text)
+                                        .child("Recording"),
+                                )
                                 .child(div().flex_1())
-                                .child(div().text_size(ty::SECONDARY).text_color(lb.recording_text).child(lokalbot_core::time::timer(elapsed))),
+                                .child(
+                                    div()
+                                        .text_size(ty::SECONDARY)
+                                        .text_color(lb.recording_text)
+                                        .child(lokalbot_core::time::timer(elapsed)),
+                                ),
                         )
                         .child(
                             div()
@@ -195,7 +245,12 @@ impl Workspace {
                                 .on_click(move |_, _, cx| {
                                     data_entity.update(cx, |data, cx| {
                                         if let Some(meeting) = data.recording.meeting().cloned() {
-                                            data.open_meeting(meeting.id, Default::default(), None, cx);
+                                            data.open_meeting(
+                                                meeting.id,
+                                                Default::default(),
+                                                None,
+                                                cx,
+                                            );
                                         }
                                     })
                                 }),
@@ -211,12 +266,41 @@ impl Workspace {
                             h_flex()
                                 .gap(px(8.))
                                 .items_center()
-                                .child(ui::icon(background_icon(first.kind), px(14.), lb.accent_text))
-                                .child(div().flex_1().min_w_0().truncate().text_size(ty::SECONDARY).font_weight(FontWeight::SEMIBOLD).text_color(lb.text).child(first.title.clone())),
+                                .child(ui::icon(
+                                    background_icon(first.kind),
+                                    px(14.),
+                                    lb.accent_text,
+                                ))
+                                .child(
+                                    div()
+                                        .flex_1()
+                                        .min_w_0()
+                                        .truncate()
+                                        .text_size(ty::SECONDARY)
+                                        .font_weight(FontWeight::SEMIBOLD)
+                                        .text_color(lb.text)
+                                        .child(first.title.clone()),
+                                ),
                         )
-                        .child(div().mt(px(2.)).text_size(ty::CAPTION).text_color(lb.text_secondary).child(first.detail.clone()))
-                        .when_some(first.progress, |this, progress| this.child(progress_line(progress, lb.accent_fill, lb.chip_fill)))
-                        .when(more > 0, |this| this.child(div().mt(px(4.)).text_size(ty::CAPTION).text_color(lb.text_secondary).child(format!("+{more} more")))),
+                        .child(
+                            div()
+                                .mt(px(2.))
+                                .text_size(ty::CAPTION)
+                                .text_color(lb.text_secondary)
+                                .child(first.detail.clone()),
+                        )
+                        .when_some(first.progress, |this, progress| {
+                            this.child(progress_line(progress, lb.accent_fill, lb.chip_fill))
+                        })
+                        .when(more > 0, |this| {
+                            this.child(
+                                div()
+                                    .mt(px(4.))
+                                    .text_size(ty::CAPTION)
+                                    .text_color(lb.text_secondary)
+                                    .child(format!("+{more} more")),
+                            )
+                        }),
                 )
             })
             .child(
@@ -228,21 +312,44 @@ impl Workspace {
                         .child(
                             v_flex()
                                 .gap(px(2.))
-                                .child(div().text_size(ty::SECONDARY).font_weight(FontWeight::SEMIBOLD).text_color(lb.text).child("Storage: this PC"))
+                                .child(
+                                    div()
+                                        .text_size(ty::SECONDARY)
+                                        .font_weight(FontWeight::SEMIBOLD)
+                                        .text_color(lb.text)
+                                        .child("Storage: this PC"),
+                                )
                                 .child(
                                     h_flex()
                                         .gap(px(4.))
                                         .items_center()
-                                        .child(div().text_size(ty::CAPTION).text_color(lb.supporting).child(inference_label))
-                                        .when(!remote_hosts.is_empty(), |this| this.child(ui::status_dot(lb.attention, px(5.)))),
+                                        .child(
+                                            div()
+                                                .text_size(ty::CAPTION)
+                                                .text_color(lb.supporting)
+                                                .child(inference_label),
+                                        )
+                                        .when(!remote_hosts.is_empty(), |this| {
+                                            this.child(ui::status_dot(lb.attention, px(5.)))
+                                        }),
                                 )
-                                .children(remote_hosts.into_iter().map(|host| div().text_size(ty::CAPTION).text_color(lb.supporting).child(host))),
+                                .children(remote_hosts.into_iter().map(|host| {
+                                    div()
+                                        .text_size(ty::CAPTION)
+                                        .text_color(lb.supporting)
+                                        .child(host)
+                                })),
                         ),
                 ),
             )
     }
 
-    fn render_toolbar(&self, title: SharedString, toolbar: Option<AnyElement>, cx: &mut Context<Self>) -> impl IntoElement + use<> {
+    fn render_toolbar(
+        &self,
+        title: SharedString,
+        toolbar: Option<AnyElement>,
+        cx: &mut Context<Self>,
+    ) -> impl IntoElement + use<> {
         let lb = cx.lb().clone();
         TitleBar::new()
             .h(metric::TOOLBAR_HEIGHT)
@@ -270,7 +377,11 @@ impl Workspace {
     fn render_toast(&self, cx: &mut Context<Self>) -> Option<impl IntoElement + use<>> {
         let toast = self.data.read(cx).toast.clone()?;
         let lb = cx.lb().clone();
-        let tint = if toast.is_error { lb.attention_text } else { lb.accent_text };
+        let tint = if toast.is_error {
+            lb.attention_text
+        } else {
+            lb.accent_text
+        };
         let data = self.data.clone();
         Some(
             div().p(px(12.)).child(
@@ -284,14 +395,30 @@ impl Workspace {
                     .border_1()
                     .border_color(tint.opacity(0.4))
                     .shadow_md()
-                    .child(ui::icon(if toast.is_error { Ico::TriangleAlert } else { Ico::CircleCheck }, px(16.), tint))
-                    .child(div().flex_1().text_size(ty::SECONDARY).text_color(lb.text).child(toast.message))
+                    .child(ui::icon(
+                        if toast.is_error {
+                            Ico::TriangleAlert
+                        } else {
+                            Ico::CircleCheck
+                        },
+                        px(16.),
+                        tint,
+                    ))
+                    .child(
+                        div()
+                            .flex_1()
+                            .text_size(ty::SECONDARY)
+                            .text_color(lb.text)
+                            .child(toast.message),
+                    )
                     .child(
                         div()
                             .id("toast-dismiss")
                             .cursor_pointer()
                             .child(ui::icon(Ico::X, px(14.), lb.text_secondary))
-                            .on_click(move |_, _, cx| data.update(cx, |data, cx| data.dismiss_toast(cx))),
+                            .on_click(move |_, _, cx| {
+                                data.update(cx, |data, cx| data.dismiss_toast(cx))
+                            }),
                     ),
             ),
         )
@@ -339,11 +466,21 @@ fn progress_line(progress: f32, fill: Hsla, track: Hsla) -> impl IntoElement {
         .w_full()
         .rounded_full()
         .bg(track)
-        .child(div().h_full().rounded_full().bg(fill).w(gpui_kit::relative(progress.clamp(0.0, 1.0))))
+        .child(
+            div()
+                .h_full()
+                .rounded_full()
+                .bg(fill)
+                .w(gpui_kit::relative(progress.clamp(0.0, 1.0))),
+        )
 }
 
 /// Lets an element move the window, like the title bar does.
-pub fn drag_region<E: gpui_kit::StatefulInteractiveElement + gpui_kit::InteractiveElement + IntoElement>(element: E) -> E {
+pub fn drag_region<
+    E: gpui_kit::StatefulInteractiveElement + gpui_kit::InteractiveElement + IntoElement,
+>(
+    element: E,
+) -> E {
     let element = element.window_control_area(WindowControlArea::Drag);
     if cfg!(target_os = "linux") {
         element.on_mouse_down(MouseButton::Left, |_, window, _| window.start_window_move())

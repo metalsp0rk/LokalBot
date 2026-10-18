@@ -12,13 +12,12 @@ pub use gpui_kit::assets::IconName as Ico;
 use gpui_kit::component::{Icon, h_flex, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
-    AnyElement, App, Div, ElementId, FontWeight, Hsla, InteractiveElement as _, IntoElement, ParentElement as _,
-    Pixels, SharedString, Stateful, StatefulInteractiveElement as _, Styled as _, Window, div, px, relative,
+    AnyElement, App, Div, ElementId, FontWeight, Hsla, InteractiveElement as _, IntoElement,
+    ParentElement as _, Pixels, SharedString, Stateful, StatefulInteractiveElement as _,
+    Styled as _, Window, div, px, relative,
 };
 
 use crate::theme::{LbThemeExt as _, metric, ty};
-
-
 
 /// A Lucide icon at `size`, tinted `color`.
 pub fn icon(name: Ico, size: Pixels, color: Hsla) -> Icon {
@@ -89,7 +88,12 @@ pub fn page_title(title: impl Into<SharedString>, subtitle: Option<SharedString>
                 .child(title.into()),
         )
         .when_some(subtitle, |this, subtitle| {
-            this.child(div().text_size(ty::BODY).text_color(lb.text_secondary).child(subtitle))
+            this.child(
+                div()
+                    .text_size(ty::BODY)
+                    .text_color(lb.text_secondary)
+                    .child(subtitle),
+            )
         })
 }
 
@@ -105,12 +109,19 @@ pub fn chip(icon_name: Option<Ico>, label: impl Into<SharedString>, cx: &App) ->
         .bg(lb.chip_fill)
         .text_size(ty::SECONDARY)
         .text_color(lb.supporting)
-        .when_some(icon_name, |this, name| this.child(icon(name, px(13.), lb.text_secondary)))
+        .when_some(icon_name, |this, name| {
+            this.child(icon(name, px(13.), lb.text_secondary))
+        })
         .child(label.into())
 }
 
 /// `StatTile`: icon + bold value + label, in a chip ("3h 50m tracked").
-pub fn stat_chip(icon_name: Ico, value: impl Into<SharedString>, label: impl Into<SharedString>, cx: &App) -> Div {
+pub fn stat_chip(
+    icon_name: Ico,
+    value: impl Into<SharedString>,
+    label: impl Into<SharedString>,
+    cx: &App,
+) -> Div {
     let lb = cx.lb();
     h_flex()
         .gap_1p5()
@@ -121,7 +132,12 @@ pub fn stat_chip(icon_name: Ico, value: impl Into<SharedString>, label: impl Int
         .bg(lb.chip_fill)
         .text_size(ty::SECONDARY)
         .child(icon(icon_name, px(13.), lb.text_secondary))
-        .child(div().font_weight(FontWeight::SEMIBOLD).text_color(lb.text).child(value.into()))
+        .child(
+            div()
+                .font_weight(FontWeight::SEMIBOLD)
+                .text_color(lb.text)
+                .child(value.into()),
+        )
         .child(div().text_color(lb.text_secondary).child(label.into()))
 }
 
@@ -214,14 +230,28 @@ pub fn proportion_bar(segments: &[(Hsla, f32)], cx: &App) -> Div {
         .rounded_full()
         .overflow_hidden()
         .bg(track)
-        .children(segments.iter().filter(|(_, share)| *share > 0.0).map(|(color, share)| {
-            let fraction = if total > 0.0 { share / total } else { 0.0 };
-            div().h_full().min_w(px(1.)).w(relative(fraction)).bg(*color)
-        }))
+        .children(
+            segments
+                .iter()
+                .filter(|(_, share)| *share > 0.0)
+                .map(|(color, share)| {
+                    let fraction = if total > 0.0 { share / total } else { 0.0 };
+                    div()
+                        .h_full()
+                        .min_w(px(1.))
+                        .w(relative(fraction))
+                        .bg(*color)
+                }),
+        )
 }
 
 /// A clickable text link in the accent color.
-pub fn link(id: impl Into<ElementId>, label: impl Into<SharedString>, on_click: impl Fn(&mut Window, &mut App) + 'static, cx: &App) -> Stateful<Div> {
+pub fn link(
+    id: impl Into<ElementId>,
+    label: impl Into<SharedString>,
+    on_click: impl Fn(&mut Window, &mut App) + 'static,
+    cx: &App,
+) -> Stateful<Div> {
     let color = cx.lb().accent_text;
     div()
         .id(id)

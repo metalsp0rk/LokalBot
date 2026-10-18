@@ -17,7 +17,11 @@ pub struct Meeting {
     #[serde(with = "iso_seconds")]
     pub started_at: DateTime<Utc>,
     /// `None` while the recording is in progress.
-    #[serde(default, with = "iso_seconds::option", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        with = "iso_seconds::option",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub ended_at: Option<DateTime<Utc>>,
     /// Path relative to the library root, e.g. `meetings/2026/10/15-customer-call`.
     pub relative_path: String,
@@ -26,15 +30,31 @@ pub struct Meeting {
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub calendar_provider: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none", rename = "calendarEventID")]
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "calendarEventID"
+    )]
     pub calendar_event_id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub calendar_title: Option<String>,
-    #[serde(default, with = "iso_seconds::option", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        with = "iso_seconds::option",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub scheduled_start_at: Option<DateTime<Utc>>,
-    #[serde(default, with = "iso_seconds::option", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        with = "iso_seconds::option",
+        skip_serializing_if = "Option::is_none"
+    )]
     pub scheduled_end_at: Option<DateTime<Utc>>,
-    #[serde(default, skip_serializing_if = "Option::is_none", rename = "meetingURL")]
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "meetingURL"
+    )]
     pub meeting_url: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub participant_name_hints: Option<Vec<String>>,
@@ -95,13 +115,26 @@ pub enum ContentRangeSource {
 #[serde(rename_all = "camelCase")]
 pub struct CaptureIntent {
     pub system_audio_requested: bool,
-    #[serde(default, skip_serializing_if = "Option::is_none", rename = "appBundleID")]
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "appBundleID"
+    )]
     pub app_bundle_id: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none", rename = "meetingURL")]
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "meetingURL"
+    )]
     pub meeting_url: Option<String>,
 }
 
-const GENERIC_TITLES: &[&str] = &["meeting", "manual recording", "recording", "untitled meeting"];
+const GENERIC_TITLES: &[&str] = &[
+    "meeting",
+    "manual recording",
+    "recording",
+    "untitled meeting",
+];
 
 impl Meeting {
     pub fn is_live(&self) -> bool {
@@ -113,7 +146,9 @@ impl Meeting {
     }
 
     pub fn is_merged_meeting(&self) -> bool {
-        self.merged_source_meeting_ids.as_ref().is_some_and(|ids| !ids.is_empty())
+        self.merged_source_meeting_ids
+            .as_ref()
+            .is_some_and(|ids| !ids.is_empty())
     }
 
     /// Wall-clock span, or the recorded duration when known.
@@ -135,10 +170,19 @@ impl Meeting {
         if !generic {
             return trimmed.to_string();
         }
-        if let Some(calendar) = self.calendar_title.as_deref().map(str::trim).filter(|t| !t.is_empty()) {
+        if let Some(calendar) = self
+            .calendar_title
+            .as_deref()
+            .map(str::trim)
+            .filter(|t| !t.is_empty())
+        {
             return calendar.to_string();
         }
-        format!("{} at {}", self.app_name, crate::time::clock_time(self.started_at))
+        format!(
+            "{} at {}",
+            self.app_name,
+            crate::time::clock_time(self.started_at)
+        )
     }
 
     pub fn short_id(&self) -> String {

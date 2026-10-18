@@ -13,33 +13,46 @@ pub mod iso_seconds {
     use super::*;
     use serde::{Deserialize, Deserializer, Serializer};
 
-    pub fn serialize<S: Serializer>(value: &DateTime<Utc>, serializer: S) -> Result<S::Ok, S::Error> {
+    pub fn serialize<S: Serializer>(
+        value: &DateTime<Utc>,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error> {
         serializer.serialize_str(&value.to_rfc3339_opts(SecondsFormat::Secs, true))
     }
 
-    pub fn deserialize<'de, D: Deserializer<'de>>(deserializer: D) -> Result<DateTime<Utc>, D::Error> {
+    pub fn deserialize<'de, D: Deserializer<'de>>(
+        deserializer: D,
+    ) -> Result<DateTime<Utc>, D::Error> {
         let raw = String::deserialize(deserializer)?;
-        super::parse_iso(&raw).ok_or_else(|| serde::de::Error::custom(format!("invalid ISO-8601 date {raw:?}")))
+        super::parse_iso(&raw)
+            .ok_or_else(|| serde::de::Error::custom(format!("invalid ISO-8601 date {raw:?}")))
     }
 
     pub mod option {
         use super::*;
         use serde::{Deserialize, Deserializer, Serializer};
 
-        pub fn serialize<S: Serializer>(value: &Option<DateTime<Utc>>, serializer: S) -> Result<S::Ok, S::Error> {
+        pub fn serialize<S: Serializer>(
+            value: &Option<DateTime<Utc>>,
+            serializer: S,
+        ) -> Result<S::Ok, S::Error> {
             match value {
-                Some(value) => serializer.serialize_str(&value.to_rfc3339_opts(SecondsFormat::Secs, true)),
+                Some(value) => {
+                    serializer.serialize_str(&value.to_rfc3339_opts(SecondsFormat::Secs, true))
+                }
                 None => serializer.serialize_none(),
             }
         }
 
-        pub fn deserialize<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Option<DateTime<Utc>>, D::Error> {
+        pub fn deserialize<'de, D: Deserializer<'de>>(
+            deserializer: D,
+        ) -> Result<Option<DateTime<Utc>>, D::Error> {
             let raw = Option::<String>::deserialize(deserializer)?;
             match raw {
                 None => Ok(None),
-                Some(raw) => super::super::parse_iso(&raw)
-                    .map(Some)
-                    .ok_or_else(|| serde::de::Error::custom(format!("invalid ISO-8601 date {raw:?}"))),
+                Some(raw) => super::super::parse_iso(&raw).map(Some).ok_or_else(|| {
+                    serde::de::Error::custom(format!("invalid ISO-8601 date {raw:?}"))
+                }),
             }
         }
     }
@@ -50,33 +63,46 @@ pub mod iso_millis {
     use super::*;
     use serde::{Deserialize, Deserializer, Serializer};
 
-    pub fn serialize<S: Serializer>(value: &DateTime<Utc>, serializer: S) -> Result<S::Ok, S::Error> {
+    pub fn serialize<S: Serializer>(
+        value: &DateTime<Utc>,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error> {
         serializer.serialize_str(&value.to_rfc3339_opts(SecondsFormat::Millis, true))
     }
 
-    pub fn deserialize<'de, D: Deserializer<'de>>(deserializer: D) -> Result<DateTime<Utc>, D::Error> {
+    pub fn deserialize<'de, D: Deserializer<'de>>(
+        deserializer: D,
+    ) -> Result<DateTime<Utc>, D::Error> {
         let raw = String::deserialize(deserializer)?;
-        super::parse_iso(&raw).ok_or_else(|| serde::de::Error::custom(format!("invalid ISO-8601 date {raw:?}")))
+        super::parse_iso(&raw)
+            .ok_or_else(|| serde::de::Error::custom(format!("invalid ISO-8601 date {raw:?}")))
     }
 
     pub mod option {
         use super::*;
         use serde::{Deserialize, Deserializer, Serializer};
 
-        pub fn serialize<S: Serializer>(value: &Option<DateTime<Utc>>, serializer: S) -> Result<S::Ok, S::Error> {
+        pub fn serialize<S: Serializer>(
+            value: &Option<DateTime<Utc>>,
+            serializer: S,
+        ) -> Result<S::Ok, S::Error> {
             match value {
-                Some(value) => serializer.serialize_str(&value.to_rfc3339_opts(SecondsFormat::Millis, true)),
+                Some(value) => {
+                    serializer.serialize_str(&value.to_rfc3339_opts(SecondsFormat::Millis, true))
+                }
                 None => serializer.serialize_none(),
             }
         }
 
-        pub fn deserialize<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Option<DateTime<Utc>>, D::Error> {
+        pub fn deserialize<'de, D: Deserializer<'de>>(
+            deserializer: D,
+        ) -> Result<Option<DateTime<Utc>>, D::Error> {
             let raw = Option::<String>::deserialize(deserializer)?;
             match raw {
                 None => Ok(None),
-                Some(raw) => super::super::parse_iso(&raw)
-                    .map(Some)
-                    .ok_or_else(|| serde::de::Error::custom(format!("invalid ISO-8601 date {raw:?}"))),
+                Some(raw) => super::super::parse_iso(&raw).map(Some).ok_or_else(|| {
+                    serde::de::Error::custom(format!("invalid ISO-8601 date {raw:?}"))
+                }),
             }
         }
     }
@@ -84,14 +110,18 @@ pub mod iso_millis {
 
 /// Parses ISO-8601/RFC 3339 with or without fractional seconds.
 pub fn parse_iso(raw: &str) -> Option<DateTime<Utc>> {
-    DateTime::parse_from_rfc3339(raw.trim()).ok().map(|d| d.with_timezone(&Utc))
+    DateTime::parse_from_rfc3339(raw.trim())
+        .ok()
+        .map(|d| d.with_timezone(&Utc))
 }
 
 /// SQLite timestamp columns hold REAL Unix epoch seconds.
 pub fn from_epoch(seconds: f64) -> DateTime<Utc> {
     let whole = seconds.floor();
     let nanos = ((seconds - whole) * 1e9).round().clamp(0.0, 999_999_999.0) as u32;
-    Utc.timestamp_opt(whole as i64, nanos).single().unwrap_or_else(Utc::now)
+    Utc.timestamp_opt(whole as i64, nanos)
+        .single()
+        .unwrap_or_else(Utc::now)
 }
 
 pub fn to_epoch(value: DateTime<Utc>) -> f64 {
@@ -101,7 +131,9 @@ pub fn to_epoch(value: DateTime<Utc>) -> f64 {
 /// Current time truncated to whole seconds, for values written to `meta.json`.
 pub fn now_seconds() -> DateTime<Utc> {
     let now = Utc::now();
-    Utc.timestamp_opt(now.timestamp(), 0).single().unwrap_or(now)
+    Utc.timestamp_opt(now.timestamp(), 0)
+        .single()
+        .unwrap_or(now)
 }
 
 /// The local calendar day of a UTC instant.
@@ -112,7 +144,9 @@ pub fn local_day(value: DateTime<Utc>) -> NaiveDate {
 /// `[start, end)` of a local calendar day in UTC.
 pub fn local_day_bounds(day: NaiveDate) -> (DateTime<Utc>, DateTime<Utc>) {
     let start = day.and_hms_opt(0, 0, 0).expect("midnight exists");
-    let next = (day + chrono::Days::new(1)).and_hms_opt(0, 0, 0).expect("midnight exists");
+    let next = (day + chrono::Days::new(1))
+        .and_hms_opt(0, 0, 0)
+        .expect("midnight exists");
     let to_utc = |naive: chrono::NaiveDateTime| {
         Local
             .from_local_datetime(&naive)
@@ -126,7 +160,12 @@ pub fn local_day_bounds(day: NaiveDate) -> (DateTime<Utc>, DateTime<Utc>) {
 /// `HH:MM:SS`, the stamp used by transcripts, citations and evidence pills.
 pub fn stamp(seconds: f64) -> String {
     let total = seconds.max(0.0).floor() as u64;
-    format!("{:02}:{:02}:{:02}", total / 3600, (total % 3600) / 60, total % 60)
+    format!(
+        "{:02}:{:02}:{:02}",
+        total / 3600,
+        (total % 3600) / 60,
+        total % 60
+    )
 }
 
 /// Parses `HH:MM:SS`, `MM:SS` or `H:MM:SS` into seconds.
@@ -147,7 +186,12 @@ pub fn parse_stamp(raw: &str) -> Option<f64> {
 pub fn timer(seconds: f64) -> String {
     let total = seconds.max(0.0).floor() as u64;
     if total >= 3600 {
-        format!("{}:{:02}:{:02}", total / 3600, (total % 3600) / 60, total % 60)
+        format!(
+            "{}:{:02}:{:02}",
+            total / 3600,
+            (total % 3600) / 60,
+            total % 60
+        )
     } else {
         format!("{:02}:{:02}", total / 60, total % 60)
     }

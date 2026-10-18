@@ -1,0 +1,115 @@
+name: Linux & Windows
+
+on:
+  push:
+    paths:
+      - "LinuxWindows/**"
+      - ".github/workflows/linux-windows.yml"
+  pull_request:
+    branches: [master, dev]
+    paths:
+      - "LinuxWindows/**"
+      - ".github/workflows/linux-windows.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: linux-windows-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: LinuxWindows
+
+jobs:
+  linux:
+    name: Linux
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install build and display dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libxkbcommon-x11-dev libwayland-dev libvulkan1 mesa-vulkan-drivers libfontconfig-dev \
+            libasound2-dev libxcb1-dev libx11-xcb-dev libssl-dev pkg-config clang \
+            xvfb xfwm4 x11-xserver-utils xdotool ffmpeg
+
+      - name: Cache cargo
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            LinuxWindows/target
+          key: linux-cargo-${{ hashFiles('LinuxWindows/Cargo.lock', 'LinuxWindows/rust-toolchain.toml') }}
+          restore-keys: linux-cargo-
+
+      - name: Format
+        run: cargo fmt --all -- --check
+
+      - name: Test
+        run: cargo test --workspace --locked
+
+      - name: Build release
+        run: cargo build --release --locked -p lokalbot-app -p lokalbot-cli
+
+      - name: Capture the app
+        run: |
+          root="$RUNNER_TEMP/library"
+          cp -r ../LokalBotTests/Fixtures/upgrade/0.10.9/library "$root"
+          CAPTURE_WAIT=10 scripts/ci/capture-linux.sh target/release/lokalbot "$root" "$RUNNER_TEMP/screenshots" today
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: linux-screenshots
+          path: ${{ runner.temp }}/screenshots
+          retention-days: 14
+
+  windows:
+    name: Windows
+    runs-on: windows-2025
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Cache cargo
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            LinuxWindows/target
+          key: windows-cargo-${{ hashFiles('LinuxWindows/Cargo.lock', 'LinuxWindows/rust-toolchain.toml') }}
+          restore-keys: windows-cargo-
+
+      - name: Test
+        run: cargo test --workspace --locked
+
+      - name: Build release
+        run: cargo build --release --locked -p lokalbot-app -p lokalbot-cli
+
+      - name: Show display details
+        shell: pwsh
+        run: |
+          Get-CimInstance Win32_VideoController | Select-Object Name, CurrentHorizontalResolution, CurrentVerticalResolution | Format-Table | Out-String | Write-Host
+          [System.Diagnostics.Process]::GetCurrentProcess().SessionId
+
+      - name: Capture the app
+        shell: pwsh
+        run: |
+          $root = Join-Path $env:RUNNER_TEMP "library"
+          Copy-Item -Recurse ..\LokalBotTests\Fixtures\upgrade\0.10.9\library $root
+          ./scripts/ci/capture-windows.ps1 -Exe (Resolve-Path target\release\lokalbot.exe) -Root $root -OutDir (Join-Path $env:RUNNER_TEMP "screenshots") -Pages today -WaitSeconds 8
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: windows-screenshots
+          path: ${{ runner.temp }}/screenshots
+          retention-days: 14
