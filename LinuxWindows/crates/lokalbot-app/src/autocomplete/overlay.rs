@@ -185,8 +185,11 @@ fn native_window(window: &Window) -> Option<NativeWindow> {
     use raw_window_handle::{HasWindowHandle, RawWindowHandle};
     let handle = HasWindowHandle::window_handle(window).ok()?;
     match handle.as_raw() {
+        #[cfg(target_os = "linux")]
         RawWindowHandle::Xcb(handle) => Some(NativeWindow::X11(handle.window.get())),
+        #[cfg(target_os = "linux")]
         RawWindowHandle::Xlib(handle) => u32::try_from(handle.window).ok().map(NativeWindow::X11),
+        #[cfg(windows)]
         RawWindowHandle::Win32(handle) => Some(NativeWindow::Win32(handle.hwnd.get())),
         _ => None,
     }
