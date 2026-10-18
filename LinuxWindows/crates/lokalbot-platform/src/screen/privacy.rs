@@ -22,6 +22,33 @@ pub struct Observation {
     pub has_unattributed_web_content: bool,
 }
 
+/// `CotypingSecureFieldDetector.sensitiveMarkers`.
+const SENSITIVE_MARKERS: [&str; 13] = [
+    "secure",
+    "password",
+    "passcode",
+    "passphrase",
+    "cvv",
+    "cvc",
+    "security code",
+    "verification code",
+    "one-time code",
+    "one time code",
+    "social security",
+    "card number",
+    "credit card",
+];
+
+/// Whether an element's name, description or help text names a secret
+/// (`CotypingSecureFieldDetector.isSecure`): such an element is treated as
+/// a secure field and its text is never read.
+pub(crate) fn names_a_secret(label: &str) -> bool {
+    let label = label.to_lowercase();
+    SENSITIVE_MARKERS
+        .iter()
+        .any(|marker| label.contains(marker))
+}
+
 /// Whether the focus state allows a capture. Apps that never report keyboard
 /// focus (Chrome) are captured only while no password field is visible.
 pub fn focus_permits_capture(
@@ -287,6 +314,14 @@ mod tests {
         assert!(!permits_content(&unattributed, &[], &domains, true));
         // A native app needs no address.
         assert!(permits_content(&observation(), &[], &domains, true));
+    }
+
+    #[test]
+    fn secret_labels_are_recognized() {
+        assert!(names_a_secret("Password"));
+        assert!(names_a_secret("Card Number"));
+        assert!(names_a_secret("Enter the one-time code"));
+        assert!(!names_a_secret("Search"));
     }
 
     #[test]

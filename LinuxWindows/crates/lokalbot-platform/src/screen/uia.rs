@@ -63,23 +63,6 @@ const CACHED_PROPERTIES: [UIA_PROPERTY_ID; 11] = [
     UIA_FrameworkIdPropertyId,
 ];
 
-/// `CotypingSecureFieldDetector.sensitiveMarkers`.
-const SENSITIVE_MARKERS: [&str; 13] = [
-    "secure",
-    "password",
-    "passcode",
-    "passphrase",
-    "cvv",
-    "cvc",
-    "security code",
-    "verification code",
-    "one-time code",
-    "one time code",
-    "social security",
-    "card number",
-    "credit card",
-];
-
 pub(super) struct UiaReader {
     client: Option<Client>,
 }
@@ -723,12 +706,9 @@ fn secure_status(
     labels: &[String],
 ) -> Option<bool> {
     let named_secret = control_type != UIA_DocumentControlTypeId
-        && labels.iter().any(|label| {
-            let label = label.to_lowercase();
-            SENSITIVE_MARKERS
-                .iter()
-                .any(|marker| label.contains(marker))
-        });
+        && labels
+            .iter()
+            .any(|label| super::privacy::names_a_secret(label));
     if named_secret { Some(true) } else { password }
 }
 

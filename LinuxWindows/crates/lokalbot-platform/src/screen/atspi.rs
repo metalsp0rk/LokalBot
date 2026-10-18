@@ -210,35 +210,16 @@ fn clips_children(role: u32) -> bool {
         )
 }
 
-/// `CotypingSecureFieldDetector.sensitiveMarkers`.
-const SENSITIVE_MARKERS: &[&str] = &[
-    "secure",
-    "password",
-    "passcode",
-    "passphrase",
-    "cvv",
-    "cvc",
-    "security code",
-    "verification code",
-    "one-time code",
-    "one time code",
-    "social security",
-    "card number",
-    "credit card",
-];
-
 /// `CotypingSecureFieldDetector.isSecure`: a password field, or an element
 /// whose name or description names a secret. Labels such as "Password" match
 /// too, which keeps their text out; only text entries make the window count
 /// as showing a secure field.
 fn is_secure(role: u32, labels: &[Option<&str>]) -> bool {
     role == role::PASSWORD_TEXT
-        || labels.iter().flatten().any(|label| {
-            let label = label.to_lowercase();
-            SENSITIVE_MARKERS
-                .iter()
-                .any(|marker| label.contains(marker))
-        })
+        || labels
+            .iter()
+            .flatten()
+            .any(|label| super::privacy::names_a_secret(label))
 }
 
 /// How an app's toolkit answers.
@@ -579,7 +560,9 @@ impl Walk {
         } else {
             Some(false)
         };
-        if secure == Some(true) && entry {
+        // An entry that may be hiding a password counts as one: with the
+        // focus unknown, such a window is not captured (`focusPermitsCapture`).
+        if secure != Some(false) && entry {
             self.contains_secure_field = true;
         }
         if focused {

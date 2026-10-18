@@ -792,14 +792,24 @@ impl Worker {
             .capture(&window)
             .map_err(CaptureError::Failed)?;
         // The window, its address or its password-field state can change
-        // while the pixels are read; any change discards them.
+        // while the pixels are read; any change discards them. The activity
+        // sample is read again too: some backends (the portal) cannot name
+        // the window they captured.
         let recheck = read_accessibility(devices.reader.as_mut(), &window, false)?;
-        if !focus_still_matches(
-            &window,
-            accessible.as_ref(),
-            recheck.as_ref(),
-            devices.capture.as_mut(),
-        ) {
+        let same_app = devices
+            .activity
+            .sample()
+            .ok()
+            .flatten()
+            .is_some_and(|after| after.app_id == sample.app_id && after.title == sample.title);
+        if !same_app
+            || !focus_still_matches(
+                &window,
+                accessible.as_ref(),
+                recheck.as_ref(),
+                devices.capture.as_mut(),
+            )
+        {
             return Err(Skipped(Skip::Note(
                 "the window or its privacy state changed during the capture".into(),
             )));

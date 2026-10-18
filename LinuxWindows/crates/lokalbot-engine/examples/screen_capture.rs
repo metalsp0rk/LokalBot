@@ -46,12 +46,12 @@ fn main() -> Result<()> {
     std::fs::create_dir_all(paths.root())?;
     if download {
         let started = Instant::now();
-        lokalbot_ai::ocr::download(&paths, &AtomicBool::new(false), &mut |done, total| {
-            if done == total {
-                println!("OCR models ready ({total} bytes)");
-            }
-        })?;
-        println!("download took {:.1}s", started.elapsed().as_secs_f64());
+        lokalbot_ai::ocr::download(&paths, &AtomicBool::new(false), &mut |_, _| {})?;
+        println!(
+            "OCR models ready ({} bytes) in {:.1}s",
+            lokalbot_ai::ocr::total_size(),
+            started.elapsed().as_secs_f64()
+        );
     }
     let _notepad = match notepad {
         Some(text) => Some(open_notepad(&paths, &text)?),
