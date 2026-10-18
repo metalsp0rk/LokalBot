@@ -4,6 +4,8 @@
 
 mod composer;
 mod history;
+
+pub use composer::inference as composer_inference;
 mod results;
 pub mod scope;
 pub mod search;
@@ -26,7 +28,7 @@ use lokalbot_core::{ChatRole, Conversation};
 use uuid::Uuid;
 
 use self::scope::{DateScope, Sources};
-use self::search::{Facet, MeetingGroup};
+use self::search::{Facet, MeetingGroup, ScreenResult};
 use crate::pages::Page;
 use crate::state::{AppData, AppEvent, AskRequest, MeetingTab, Section};
 use crate::theme::LbThemeExt as _;
@@ -50,12 +52,30 @@ struct Results {
     /// The query these results belong to.
     query: String,
     running: bool,
-    groups: Vec<MeetingGroup>,
+    meetings: Vec<MeetingGroup>,
+    screens: Vec<ScreenResult>,
     truncated: bool,
     selected: usize,
     /// Arrow keys picked a row, so Return opens it even for a question.
     picked_with_keyboard: bool,
     expanded: HashSet<Uuid>,
+}
+
+impl Results {
+    /// Meeting groups and screen moments, in list order.
+    fn count(&self) -> usize {
+        self.meetings.len() + self.screens.len()
+    }
+}
+
+/// Opens a screen moment from Ask or Quick Recall on its day of Timeline.
+pub fn open_screen_moment(
+    data: &Entity<AppData>,
+    moment: &lokalbot_core::ScreenMoment,
+    cx: &mut App,
+) {
+    let _ = moment;
+    data.update(cx, |data, cx| data.navigate(Section::Timeline, cx));
 }
 
 /// Per-message disclosure and feedback state in the conversation.
@@ -277,7 +297,7 @@ impl AskPage {
                 .background_spawn(async move { library.delete_conversation(id) })
                 .await;
             if let Err(err) = result {
-                let _ = data.update(cx, |data, cx| {
+                data.update(cx, |data, cx| {
                     data.show_error(format!("Could not delete the question: {err:#}"), cx)
                 });
                 let _ = this.update(cx, |this, cx| this.reload_conversations(cx));
@@ -411,8 +431,8 @@ impl AskPage {
 
     fn ask(&mut self, question: String, window: &mut Window, cx: &mut Context<Self>) {
         self.pending_question = None;
-        if !self.results.groups.is_empty() {
-            self.meeting_scope = Some(self.results.groups.iter().map(|g| g.meeting.id).collect());
+        if !self.results.meetings.is_empty() {
+            self.meeting_scope = Some(self.results.meetings.iter().map(|g| g.meeting.id).collect());
         }
         let conversation_id = *self.selected.get_or_insert_with(Uuid::new_v4);
         let scope = scope::ask_scope(self.sources, self.date_scope, self.meeting_scope.as_deref());
@@ -516,10 +536,11 @@ impl AskPage {
     fn run_search(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         let text = self.query.trim().to_string();
         self.results.query = self.query.clone();
-        self.results.groups.clear();
+        self.results.meetings.clear();
+        self.results.screens.clear();
         self.results.truncated = false;
         self.results.expanded.clear();
-        if text.is_empty() || !self.sources.meetings {
+        if text.is_empty() || !(self.sources.meetings || self.sources.screen) {
             self.results.running = false;
             self.search_task = None;
             return;
@@ -533,6 +554,8 @@ impl AskPage {
         let query = search::Query {
             text,
             facet: self.facet,
+            meetings: self.sources.meetings,
+            screen: self.sources.screen,
             meeting_ids: self.meeting_scope.clone(),
             since: bounds.map(|(since, _)| since),
             until: bounds.map(|(_, until)| until),
@@ -543,20 +566,21 @@ impl AskPage {
             cx.background_executor()
                 .timer(Duration::from_millis(160))
                 .await;
-            let (groups, truncated) = cx
+            let found = cx
                 .background_spawn(async move { search::run(&library, &meetings, &query) })
                 .await;
             let _ = this.update_in(cx, |this, window, cx| {
                 if this.query != for_query {
                     return;
                 }
-                this.results.groups = groups;
-                this.results.truncated = truncated;
+                this.results.meetings = found.meetings;
+                this.results.screens = found.screens;
+                this.results.truncated = found.truncated;
                 this.results.running = false;
                 this.results.selected = this
                     .results
                     .selected
-                    .min(this.results.groups.len().saturating_sub(1));
+                    .min(this.results.count().saturating_sub(1));
                 cx.notify();
                 if this.pending_question.as_deref() == Some(for_query.as_str()) {
                     this.ask(for_query.trim().to_string(), window, cx);
@@ -566,17 +590,23 @@ impl AskPage {
     }
 
     fn open_selected_result(&mut self, cx: &mut Context<Self>) {
-        let Some(group) = self.results.groups.get(self.results.selected) else {
-            return;
-        };
-        let hit = &group.hits[0];
-        let at = (hit.kind == search::HitKind::Segment).then_some(hit.start);
-        let id = group.meeting.id;
-        self.open_meeting(id, at, cx);
+        let selected = self.results.selected;
+        if let Some(group) = self.results.meetings.get(selected) {
+            let at = group.hits[0].moment();
+            let id = group.meeting.id;
+            self.open_meeting(id, at, cx);
+        } else if let Some(screen) = self
+            .results
+            .screens
+            .get(selected - self.results.meetings.len())
+        {
+            let moment = screen.moment.clone();
+            open_screen_moment(&self.data, &moment, cx);
+        }
     }
 
     fn move_selection(&mut self, delta: isize, cx: &mut Context<Self>) {
-        let count = self.results.groups.len();
+        let count = self.results.count();
         if count == 0 {
             return;
         }
@@ -618,13 +648,23 @@ impl Render for AskPage {
             Phase::Searching => self.render_results(cx).into_any_element(),
             Phase::Conversation => self.render_transcript(window, cx).into_any_element(),
         };
-        let searching = phase == Phase::Searching && !self.results.groups.is_empty();
+        let searching = phase == Phase::Searching && self.results.count() > 0;
         h_flex()
             .size_full()
             .key_context(KEY_CONTEXT)
             .on_action(cx.listener(|this, _: &NewConversation, window, cx| {
                 this.new_conversation(window, cx)
             }))
+            .on_action(
+                cx.listener(|this, _: &gpui_kit::component::input::Escape, _, cx| {
+                    // Escape stops an answer in progress, like the macOS cancel action.
+                    if this.is_responding(cx) {
+                        this.stop_answer(cx);
+                    } else {
+                        cx.propagate();
+                    }
+                }),
+            )
             .when(searching, |this| {
                 this.capture_action(cx.listener(
                     |this, _: &gpui_kit::component::input::MoveUp, _, cx| {

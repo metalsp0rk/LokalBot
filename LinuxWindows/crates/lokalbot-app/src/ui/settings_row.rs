@@ -82,13 +82,16 @@ pub fn row(
     highlighted: bool,
     cx: &App,
 ) -> Stateful<Div> {
+    // A wide control drops under its label instead of squeezing it.
     row_frame(id, highlighted, cx).child(
         h_flex()
             .w_full()
-            .gap(px(16.))
+            .flex_wrap()
+            .gap_x(px(16.))
+            .gap_y(px(8.))
             .items_center()
-            .child(label(title, help, cx).flex_1())
-            .child(div().flex_none().child(control)),
+            .child(label(title, help, cx).flex_1().min_w(px(220.)))
+            .child(div().flex_none().max_w_full().child(control)),
     )
 }
 

@@ -182,6 +182,10 @@ pub struct AppData {
     pub timeline_focus: Option<TimelineFocus>,
     /// Today should open its Actions workspace ("Review Actions…").
     pub actions_requested: bool,
+    /// A person (`PersonProfile::id`) for People to select.
+    pub person_focus: Option<String>,
+    /// A project (`ProjectProfile::id`) for Projects to select.
+    pub project_focus: Option<String>,
     pub recording: RecordingState,
     pub processing: HashMap<Uuid, ProcessingStage>,
     pub background: Vec<BackgroundItem>,
@@ -204,6 +208,9 @@ pub struct AppData {
     pub last_dictation: Option<SharedString>,
     /// Microphone names for the device pickers in Settings, filled by the engine.
     pub audio_inputs: Vec<SharedString>,
+    /// Settings is recording a new shortcut: global shortcuts should pause
+    /// so the keystroke reaches the recorder.
+    pub shortcut_recording: bool,
 }
 
 /// Progress of an answer in Ask.
@@ -285,6 +292,8 @@ impl AppData {
             ask_request: None,
             timeline_focus: None,
             actions_requested: false,
+            person_focus: None,
+            project_focus: None,
             recording: RecordingState::Idle,
             processing: HashMap::new(),
             background: Vec::new(),
@@ -299,6 +308,7 @@ impl AppData {
             project_notes_running: Vec::new(),
             last_dictation: None,
             audio_inputs: Vec::new(),
+            shortcut_recording: false,
         }
     }
 
@@ -346,6 +356,18 @@ impl AppData {
     pub fn open_actions(&mut self, cx: &mut Context<Self>) {
         self.actions_requested = true;
         self.section = Section::Today;
+        cx.notify();
+    }
+
+    pub fn open_person(&mut self, id: String, cx: &mut Context<Self>) {
+        self.person_focus = Some(id);
+        self.section = Section::People;
+        cx.notify();
+    }
+
+    pub fn open_project(&mut self, id: String, cx: &mut Context<Self>) {
+        self.project_focus = Some(id);
+        self.section = Section::Projects;
         cx.notify();
     }
 

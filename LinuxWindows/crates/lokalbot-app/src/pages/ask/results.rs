@@ -9,7 +9,7 @@ use gpui_kit::{
 };
 
 use super::scope::DateScope;
-use super::search::{Facet, HitKind, MeetingGroup};
+use super::search::{Facet, MeetingGroup, ScreenResult};
 use super::{AskPage, history};
 use crate::theme::{LbThemeExt as _, metric, ty};
 use crate::ui::{self, Ico, result_row};
@@ -20,7 +20,7 @@ pub const HEADER_ROWS: usize = 2;
 impl AskPage {
     pub(super) fn render_results(&mut self, cx: &mut Context<Self>) -> impl IntoElement + use<> {
         let lb = cx.lb().clone();
-        let count = self.results.groups.len();
+        let count = self.results.count();
         let asks = !self.results.picked_with_keyboard && super::search::is_question(&self.query);
         let count_text = {
             let base = history::count_label(count, "result");
@@ -74,7 +74,7 @@ impl AskPage {
         ));
 
         if count == 0 && !self.results.running {
-            let message = if !self.sources.meetings {
+            let message = if !self.sources.meetings && !self.sources.screen {
                 "Activity totals are available in Ask. Enable Meetings or Screen to search source text.".to_string()
             } else {
                 format!(
@@ -110,10 +110,17 @@ impl AskPage {
             ));
         }
 
-        let groups = self.results.groups.clone();
+        let groups = self.results.meetings.clone();
         for (index, group) in groups.iter().enumerate() {
             rows.push(column(
                 self.render_group(index, group, cx).into_any_element(),
+            ));
+        }
+        let screens = self.results.screens.clone();
+        for (offset, screen) in screens.iter().enumerate() {
+            let index = groups.len() + offset;
+            rows.push(column(
+                self.render_screen(index, screen, cx).into_any_element(),
             ));
         }
         rows.push(div().h(px(12.)).into_any_element());
@@ -152,7 +159,7 @@ impl AskPage {
         let hit_row = |id: (&'static str, u64),
                        hit: &super::search::Hit,
                        cx: &mut Context<Self>| {
-            let at = (hit.kind == HitKind::Segment).then_some(hit.start);
+            let at = hit.moment();
             div()
                 .id(id)
                 .w_full()
@@ -225,4 +232,104 @@ impl AskPage {
                 )
             })
     }
+
+    /// A screen moment: thumbnail, title, "App · date" and the matched text.
+    fn render_screen(
+        &self,
+        index: usize,
+        screen: &ScreenResult,
+        cx: &mut Context<Self>,
+    ) -> impl IntoElement + use<> {
+        let lb = cx.lb().clone();
+        let selected = index == self.results.selected;
+        let moment = screen.moment.clone();
+        let title = if moment.window_title.trim().is_empty() {
+            moment.app.clone()
+        } else {
+            moment.window_title.clone()
+        };
+        let snippet = result_row::without_title_echo(&screen.snippet, &title).unwrap_or_default();
+        let when = moment
+            .ts
+            .with_timezone(&chrono::Local)
+            .format("%b %-d, %Y at %-I:%M %p")
+            .to_string();
+        let mut meta = format!("{} · {when}", moment.app);
+        if screen.captures > 1 {
+            meta.push_str(&format!(" · {} captures", screen.captures));
+        }
+        let data = self.data.clone();
+        h_flex()
+            .id(("ask-screen", moment.id as u64))
+            .w_full()
+            .gap(px(12.))
+            .items_start()
+            .px(px(10.))
+            .py(px(8.))
+            .rounded(metric::ROW_RADIUS)
+            .cursor_pointer()
+            .when(selected, |this| this.bg(lb.accent_wash))
+            .when(!selected, |this| this.hover(|s| s.bg(lb.hover)))
+            .child(screen_tile(&moment.app, px(116.), px(72.), cx))
+            .child(
+                v_flex()
+                    .flex_1()
+                    .min_w_0()
+                    .gap(px(3.))
+                    .child(
+                        h_flex()
+                            .gap(px(6.))
+                            .items_center()
+                            .child(
+                                div()
+                                    .flex_1()
+                                    .min_w_0()
+                                    .truncate()
+                                    .text_size(ty::BODY)
+                                    .font_weight(FontWeight::SEMIBOLD)
+                                    .text_color(lb.text)
+                                    .child(title),
+                            )
+                            .child(result_row::kind_chip("Screen", cx)),
+                    )
+                    .child(
+                        div()
+                            .text_size(ty::SECONDARY)
+                            .text_color(lb.supporting)
+                            .child(meta),
+                    )
+                    .child(
+                        div()
+                            .text_size(ty::SECONDARY)
+                            .line_height(px(19.))
+                            .text_color(lb.supporting)
+                            .line_clamp(2)
+                            .child(result_row::highlighted(&snippet, lb.text)),
+                    ),
+            )
+            .on_click(move |_, _, cx| super::open_screen_moment(&data, &moment, cx))
+    }
+}
+
+/// A screen moment's thumbnail stand-in: the app's color with a display glyph.
+pub fn screen_tile(
+    app: &str,
+    width: gpui_kit::Pixels,
+    height: gpui_kit::Pixels,
+    cx: &gpui_kit::App,
+) -> gpui_kit::Div {
+    let lb = cx.lb();
+    let tint = lb.app_color(app);
+    div()
+        .w(width)
+        .h(height)
+        .flex_none()
+        .rounded(metric::ROW_RADIUS)
+        .bg(tint.opacity(0.16))
+        .border_1()
+        .border_color(tint.opacity(0.28))
+        .flex()
+        .items_center()
+        .justify_center()
+        .child(ui::icon(Ico::Monitor, height * 0.4, tint))
 }

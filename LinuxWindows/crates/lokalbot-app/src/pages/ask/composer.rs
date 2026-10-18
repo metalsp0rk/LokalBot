@@ -160,13 +160,15 @@ impl AskPage {
     /// "Answer sources: 3 meetings · 0 screen moments" with the list on demand.
     fn render_answer_sources(&self, cx: &mut Context<Self>) -> Div {
         let lb = cx.lb().clone();
-        let count = self.results.groups.len();
+        let count = self.results.meetings.len();
+        let screens = self.results.screens.len();
         let label = if self.results.running {
             "Finding sources…".to_string()
-        } else if count > 0 {
+        } else if count + screens > 0 {
             format!(
-                "Answer sources: {} · 0 screen moments",
-                super::history::count_label(count, "meeting")
+                "Answer sources: {} · {}",
+                super::history::count_label(count, "meeting"),
+                super::history::count_label(screens, "screen moment")
             )
         } else {
             format!(
@@ -178,14 +180,14 @@ impl AskPage {
         let expanded = self.sources_expanded;
         let mut details: Vec<AnyElement> = Vec::new();
         if expanded {
-            if count > 0 {
+            if count + screens > 0 {
                 details.push(
                     div()
                         .text_color(lb.supporting)
                         .child("The answer can retrieve passages from these meetings and screen moments, including collapsed matches. It may use only the passages relevant to your question.")
                         .into_any_element(),
                 );
-                for group in &self.results.groups {
+                for group in &self.results.meetings {
                     let date = group
                         .meeting
                         .started_at
@@ -198,6 +200,24 @@ impl AskPage {
                             .child(format!(
                                 "Meeting · {} · {date}",
                                 group.meeting.display_title()
+                            ))
+                            .into_any_element(),
+                    );
+                }
+                for screen in &self.results.screens {
+                    let when = screen
+                        .moment
+                        .ts
+                        .with_timezone(&chrono::Local)
+                        .format("%b %-d, %Y at %-I:%M %p");
+                    details.push(
+                        div()
+                            .truncate()
+                            .text_color(lb.text_secondary)
+                            .child(format!(
+                                "Screen · {} · {when} · {}",
+                                screen.moment.app,
+                                super::history::count_label(screen.captures, "moment")
                             ))
                             .into_any_element(),
                     );
@@ -270,7 +290,7 @@ impl AskPage {
         let waiting = self.pending_question.is_some();
         let label = if waiting {
             "Waiting for sources…"
-        } else if !self.results.groups.is_empty() && !self.query.trim().is_empty() {
+        } else if self.results.count() > 0 && !self.query.trim().is_empty() {
             "Ask about results"
         } else {
             "Ask"
@@ -305,10 +325,9 @@ impl AskPage {
                     .px(px(4.))
                     .child(self.render_sources_menu(cx))
                     .child(self.render_date_scope(cx))
-                    .child(div().flex_1())
+                    .child(div().flex_1().min_w_0())
                     .child(
                         h_flex()
-                            .w(px(196.))
                             .flex_none()
                             .gap(px(8.))
                             .justify_end()
@@ -429,7 +448,7 @@ impl AskPage {
                             Button::new(SharedString::from(format!("ask-date-{label}")))
                                 .outline()
                                 .small()
-                                .flex_1()
+                                .flex_1().min_w_0()
                                 .icon(Icon::new(if selected { Ico::Check } else { Ico::Calendar }))
                                 .label(label)
                                 .on_click(move |_, window, cx| {

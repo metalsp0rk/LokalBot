@@ -11,6 +11,7 @@ mod shell;
 mod state;
 mod theme;
 mod ui;
+mod windows;
 
 use gpui_kit::component::TitleBar;
 use gpui_kit::{
@@ -29,6 +30,8 @@ actions!(lokalbot, [Quit, ToggleRecording]);
 struct Options {
     storage_root: Option<std::path::PathBuf>,
     section: Option<Section>,
+    /// `--window quick-recall|onboarding` opens that window at startup.
+    window: Option<String>,
 }
 
 fn parse_options() -> Options {
@@ -41,6 +44,8 @@ fn parse_options() -> Options {
     while let Some(arg) = iter.next() {
         if arg == "--page" {
             options.section = iter.next().and_then(|name| section_named(name));
+        } else if arg == "--window" {
+            options.window = iter.next().cloned();
         }
     }
     options
@@ -105,6 +110,11 @@ fn main() {
             bind_actions(cx);
             open_main_window(data.clone(), cx);
             data.update(cx, |data, cx| data.reload(cx));
+            match options.window.as_deref() {
+                Some("quick-recall") => windows::quick_recall::open(cx),
+                Some("onboarding") => windows::onboarding::open(cx),
+                _ => {}
+            }
         });
 }
 
@@ -173,6 +183,8 @@ fn handle_event(data: &Entity<AppData>, event: &AppEvent, window: &mut Window, c
     match event {
         AppEvent::AppearanceChanged => apply_appearance(data, window, cx),
         AppEvent::SettingsChanged => {}
+        AppEvent::OpenQuickRecall => windows::quick_recall::open(cx),
+        AppEvent::OpenOnboarding => windows::onboarding::open(cx),
         other => {
             log::info!("engine request not wired yet: {other:?}");
             data.update(cx, |data, cx| {

@@ -16,6 +16,7 @@ winresource = "0.1"
 
 [dependencies]
 lokalbot-core.workspace = true
+lokalbot-ai.workspace = true
 gpui-kit.workspace = true
 anyhow.workspace = true
 log.workspace = true
