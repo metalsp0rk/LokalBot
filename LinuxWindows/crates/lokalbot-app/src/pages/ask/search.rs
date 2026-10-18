@@ -334,6 +334,8 @@ mod tests {
             ..Default::default()
         };
         let results = run(&library, &meetings, &query);
+        // Windows can't delete the database while the library holds it open.
+        drop(library);
         let _ = std::fs::remove_dir_all(&dir);
         assert!(!results.meetings.is_empty(), "meeting hits for captions");
         assert!(results.meetings[0].hits[0].snippet.contains('«'));
