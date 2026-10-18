@@ -11,6 +11,8 @@ pub mod models;
 mod privacy;
 pub mod writing;
 
+pub use day_memory::mode_detail as day_memory_mode_detail;
+
 use std::collections::HashSet;
 
 use gpui_kit::component::input::{Input, InputEvent, InputState, TextareaState};
@@ -60,7 +62,7 @@ fn category_subtitle(category: SettingsCategory) -> &'static str {
     match category {
         SettingsCategory::General => "Startup, appearance, the Ask shortcut, and the version.",
         SettingsCategory::Meetings => "Meeting capture, detection, processing, and summaries.",
-        SettingsCategory::DayMemory => "App and window activity, and the daily digest.",
+        SettingsCategory::DayMemory => "Activity, captured screen context, and daily digests.",
         SettingsCategory::Writing => "Autocomplete and your writing profile.",
         SettingsCategory::Dictation => {
             "The dictation shortcut, Transcribe or Compose, and where the text goes."
@@ -119,6 +121,7 @@ pub struct SettingsPage {
     cotyping_excluded_apps: Entity<RuleList>,
     cotyping_excluded_sites: Entity<RuleList>,
     debounce_slider: Entity<SliderState>,
+    interval_slider: Entity<SliderState>,
     /// External-agent markers, read from disk off the main thread.
     meetings_access: Option<bool>,
     screen_access: Option<Option<ScreenScope>>,
@@ -231,6 +234,13 @@ impl SettingsPage {
                 .max(1000.)
                 .step(20.)
                 .default_value(settings.cotyping_debounce_ms as f32)
+        });
+        let interval_slider = cx.new(|_| {
+            SliderState::new()
+                .min(1.)
+                .max(15.)
+                .step(1.)
+                .default_value(settings.screenshot_interval_minutes.clamp(1.0, 15.0) as f32)
         });
 
         let mut subscriptions = vec![
@@ -354,6 +364,15 @@ impl SettingsPage {
         if let Some(autocomplete) = crate::autocomplete::global(cx) {
             subscriptions.push(cx.observe(&autocomplete, |_, _, cx| cx.notify()));
         }
+        subscriptions.push(cx.subscribe_in(
+            &interval_slider,
+            window,
+            |this, _, event: &SliderEvent, _, cx| {
+                let (SliderEvent::Change(value) | SliderEvent::Release(value)) = event;
+                let minutes = f64::from(value.start().round());
+                this.update_settings(move |s| s.screenshot_interval_minutes = minutes, cx);
+            },
+        ));
 
         let models = models::ModelsState::new(&settings, window, cx);
         subscriptions.extend(models::ModelsState::subscribe(&models, window, cx));
@@ -379,6 +398,7 @@ impl SettingsPage {
             cotyping_excluded_apps,
             cotyping_excluded_sites,
             debounce_slider,
+            interval_slider,
             meetings_access: None,
             screen_access: None,
             cli_installed: None,
@@ -464,6 +484,12 @@ impl SettingsPage {
             self.practice_text = Default::default();
             self.practice_sync(cx);
         }
+        sync_slider(
+            &self.interval_slider,
+            settings.screenshot_interval_minutes.clamp(1.0, 15.0) as f32,
+            window,
+            cx,
+        );
         self.models.sync(&old, &settings, window, cx);
         cx.notify();
     }

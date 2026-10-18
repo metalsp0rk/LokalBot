@@ -37,6 +37,8 @@ struct Options {
     section: Option<Section>,
     /// `--window quick-recall|onboarding` opens that window at startup.
     window: Option<String>,
+    /// `--moment <id>` opens Timeline on that screen moment.
+    moment: Option<i64>,
     /// Started at login: stay in the tray without opening the main window.
     autostart: bool,
     /// `lokalbot quick-recall`, `toggle-recording`, `dictate --toggle|--start|--stop`,
@@ -86,6 +88,8 @@ fn parse_options() -> Options {
             options.section = iter.next().and_then(|name| section_named(name));
         } else if arg == "--window" {
             options.window = iter.next().cloned();
+        } else if arg == "--moment" {
+            options.moment = iter.next().and_then(|id| id.parse().ok());
         }
     }
     options
@@ -202,6 +206,12 @@ fn main() {
             let data = cx.new(|_| AppData::new(library, settings));
             if let Some(section) = options.section {
                 data.update(cx, |data, _| data.section = section);
+            }
+            if let Some(id) = options.moment {
+                let moment = data.read(cx).library.screen_moment(id).ok().flatten();
+                if let Some(moment) = moment {
+                    data.update(cx, |data, cx| data.open_screen_moment(id, moment.ts, cx));
+                }
             }
             cx.set_global(AppHandle(data.clone()));
             bind_actions(cx);

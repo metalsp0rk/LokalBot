@@ -8,15 +8,19 @@ use gpui_kit::{App, AssetSource, Result, SharedString};
 // using `Icon::new(LbIcon::…)` with it; unknown names render as nothing.
 gpui_kit::assets::icon_assets!(pub ExtraIcons, [
     Activity, AppWindow, ArrowDownLeft, ArrowRightLeft, ArrowUpDown, ArrowUpRight, AudioLines,
-    AudioWaveform, BadgeCheck, Bookmark, Brain, Briefcase, CalendarClock, CalendarRange, ChartGantt,
-    Circle, CircleArrowDown, CircleArrowUp, CircleCheckBig, CircleDot, CircleEllipsis, CircleMinus,
-    CirclePause, CirclePlay, CircleQuestionMark, CircleStop, Clock, Contrast, CornerDownLeft,
-    CornerDownRight, Crosshair, Disc, FileSearch, Hourglass, Key, Keyboard, Layers, LayoutGrid,
-    Link, ListChecks, Lock, LockKeyhole, MessageSquareQuote, MessageSquareText,
-    MessagesSquare, MicOff, Monitor, MoonStar, Package, Pencil, Pin, Quote, Radio, RotateCcw,
-    ScanText, SearchCheck, Share, Share2, ShieldCheck, SlidersHorizontal, Sparkle, Sparkles,
-    SquareArrowOutUpRight, SquarePen, SquareStop, Terminal, TextCursorInput, TextSearch,
-    Trash, UserRoundCheck, Users, Video, Volume2, WandSparkles, X,
+    AudioWaveform, BadgeCheck, Bookmark, BookmarkCheck, Brain, Briefcase, CalendarClock,
+    CalendarRange, Camera, ChartGantt, Circle, CircleArrowDown, CircleArrowUp, CircleCheckBig,
+    CircleDot, CircleEllipsis, CircleMinus, CirclePause, CirclePlay, CircleQuestionMark,
+    CircleStop, Clock, Contrast, CornerDownLeft, CornerDownRight, Crosshair, Disc, Expand,
+    FileSearch, Hourglass, ImageOff, Key, Keyboard, Layers, LayoutGrid, Link, ListChecks, Lock,
+    LockKeyhole, MessageSquareQuote, MessageSquareText, MessagesSquare, MicOff, Monitor,
+    MoonStar, Package, Pencil, Pin, Quote, Radio, RotateCcw, ScanText, SearchCheck, Share,
+    Share2, ShieldCheck, SlidersHorizontal, Sparkle, Sparkles, SquareArrowOutUpRight, SquarePen,
+    SquareStop, Terminal, TextCursorInput, TextQuote, TextSearch, Trash, UserRoundCheck, Users,
+    Video, Volume2, WandSparkles, X, ZoomIn, ZoomOut,
+    // Agent Mode
+    Archive, ArchiveRestore, CirclePlus, Download, GitBranch, Hand, ListPlus, LockOpen, Paperclip,
+    PinOff,
 ]);
 
 /// Serves LokalBot's own files first, then the extra icons, then GPUI Kit's defaults.

@@ -22,12 +22,13 @@ More screenshots of both apps are in [docs/screenshots](docs/screenshots).
 | Notes, actions, decisions, day digest, project notes, follow-up drafts | ✓ | ✓ | The macOS prompts, run by the built-in llama.cpp server (Vulkan or CPU), Ollama, or an OpenAI-compatible server you approve. Follow-ups are written only by a model on your computer, and LokalBot never sends them. |
 | Ask with citations | ✓ | ✓ | Finds the relevant meetings first (keyword and meaning search), then answers in one model turn. Every citation is checked against the sources it was given. |
 | Keyword and meaning search, Quick Recall | ✓ | ✓ | SQLite FTS5 plus EmbeddingGemma vectors, kept up to date in the background. |
-| Day memory (app and window activity) | X11, Hyprland, Sway, KDE; GNOME with the Window Calls extension | ✓ | Window titles are cleared after the retention window in Privacy settings. Screen text and images are not captured in this version. |
+| Day memory (app and window activity) | X11, Hyprland, Sway, KDE; GNOME with the Window Calls extension | ✓ | Window titles are cleared after the retention window in Privacy settings. |
+| Screen context (visible text, optional encrypted screenshots) | X11; Sway and Hyprland with `grim`; other Wayland desktops through the screenshot portal when it can capture just the active window | ✓ | Off until you choose it in Settings → Day Memory. Text comes from accessibility (AT-SPI, UI Automation) and on-device OCR (ocrs, downloaded on request); screenshots are AES-GCM encrypted with a key in the system credential store. |
 | Dictation (hold a shortcut, speak, release) | X11; Wayland through your compositor's shortcut + `lokalbot dictate` | ✓ | Transcribe inserts what you said; Compose rewrites it with the Think model. Pastes at the cursor, or copies to the clipboard when it cannot. |
 | Meeting detection | ✓ (PulseAudio source outputs) | ✓ (WASAPI capture sessions) | Asks with a notification by default. |
 | System tray, launch at login | ✓ (StatusNotifierItem; GNOME needs the AppIndicator extension) | ✓ | |
 | `lokalbot-cli` + MCP for coding agents | ✓ | ✓ | Read-only, off until you allow it in Settings → Privacy & Data. |
-| Agent Mode, autocomplete, screen text capture, live transcript | — | — | macOS only for now. |
+| Agent Mode, autocomplete, live transcript | — | — | macOS only for now. |
 
 ## Install
 

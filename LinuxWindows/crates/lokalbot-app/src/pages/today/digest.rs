@@ -119,19 +119,14 @@ pub(crate) fn day_overview(
             cx,
         )
         .into_any_element(),
+        ui::stat_chip(
+            Ico::ScanText,
+            activity.moment_count.to_string(),
+            "moments",
+            cx,
+        )
+        .into_any_element(),
     ];
-    // Linux and Windows record no screen moments; count them only if a library has some.
-    if activity.moment_count > 0 {
-        chips.push(
-            ui::stat_chip(
-                Ico::ScanText,
-                activity.moment_count.to_string(),
-                "moments",
-                cx,
-            )
-            .into_any_element(),
-        );
-    }
     if activity.meeting_count > 0 || narrow {
         chips.push(
             ui::stat_chip(

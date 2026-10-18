@@ -170,6 +170,9 @@ fn tray_state(data: &AppData) -> TrayMenuState {
         timer,
         subtitle,
         day_memory_paused: data.day_memory_paused,
+        screen_capture: data.settings.tracking_enabled
+            && data.settings.screen_context_capture_mode
+                != lokalbot_core::ScreenContextMode::ActivityOnly,
     }
 }
 
@@ -197,6 +200,7 @@ fn refresh_tray(data: &Entity<AppData>, cx: &mut App) {
         l.recording != state.recording
             || l.subtitle != state.subtitle
             || l.day_memory_paused != state.day_memory_paused
+            || l.screen_capture != state.screen_capture
     });
     if menu_changed {
         let _ = tray.set_items(tray::standard_items(&state));
@@ -272,6 +276,7 @@ fn handle(data: &Entity<AppData>, event: DesktopEvent, cx: &mut App) {
                 });
                 crate::bridge::send(Command::SetDayMemoryPaused(paused), cx);
             }
+            item_ids::CAPTURE_SCREEN => crate::bridge::send(Command::CaptureScreenNow, cx),
             item_ids::QUIT => cx.quit(),
             other => log::debug!("unknown tray item {other}"),
         },

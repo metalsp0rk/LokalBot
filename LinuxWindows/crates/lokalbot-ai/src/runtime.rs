@@ -651,17 +651,19 @@ fn write_marker(paths: &LibraryPaths, marker: &ServerMarker) {
     let Ok(bytes) = serde_json::to_vec_pretty(marker) else {
         return;
     };
-    if lokalbot_core::library::write_atomic(&path, &bytes).is_err() {
+    let written = lokalbot_core::library::write_atomic(&path, &bytes);
+    if written.is_err() {
         log::warn!(
             "llama-server: could not record the helper marker for port {}",
             marker.port
         );
-        return;
     }
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt as _;
-        let _ = std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600));
+        if written.is_ok() {
+            let _ = std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600));
+        }
     }
 }
 

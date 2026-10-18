@@ -199,12 +199,13 @@ pub fn personal_context_enabled(paths: &LibraryPaths) -> bool {
     paths.control_dir().join(PERSONAL_MARKER).is_file()
 }
 
-/// `None` when screen access is off. An empty (legacy) marker means all
-/// retained history; an unreadable one means the last 7 days.
+/// `None` when screen access is off or the marker cannot be read. An empty
+/// (legacy) marker means all retained history; one that does not parse,
+/// including whitespace, means the last 7 days (`ScreenMemoryAccessGate.profile`).
 pub fn screen_access_scope(paths: &LibraryPaths) -> Option<ScreenScope> {
     let marker = paths.control_dir().join(SCREEN_MARKER);
     let bytes = std::fs::read(marker).ok()?;
-    if bytes.iter().all(u8::is_ascii_whitespace) {
+    if bytes.is_empty() {
         return Some(ScreenScope::RetainedHistory);
     }
     Some(
@@ -397,6 +398,25 @@ mod tests {
         assert_eq!(screen_access_scope(&paths), Some(ScreenScope::Today));
         set_screen_access(&paths, None).unwrap();
         assert_eq!(screen_access_scope(&paths), None);
+    }
+
+    #[test]
+    fn screen_markers_parse_like_the_mac() {
+        let dir = tempfile::tempdir().unwrap();
+        let paths = LibraryPaths::new(dir.path());
+        let marker = paths.control_dir().join(SCREEN_MARKER);
+        std::fs::create_dir_all(paths.control_dir()).unwrap();
+        // The earlier binary gate wrote an empty marker: all retained history.
+        std::fs::write(&marker, b"").unwrap();
+        assert_eq!(
+            screen_access_scope(&paths),
+            Some(ScreenScope::RetainedHistory)
+        );
+        // Anything that does not decode falls back to the safe default.
+        for content in [&b"\n"[..], &b"{"[..], &br#"{"scope":"forever"}"#[..]] {
+            std::fs::write(&marker, content).unwrap();
+            assert_eq!(screen_access_scope(&paths), Some(ScreenScope::RecentWeek));
+        }
     }
 
     #[test]

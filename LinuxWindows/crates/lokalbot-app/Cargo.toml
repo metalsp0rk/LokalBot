@@ -17,6 +17,7 @@ winresource = "0.1"
 [dependencies]
 lokalbot-core.workspace = true
 lokalbot-ai.workspace = true
+lokalbot-agent.workspace = true
 lokalbot-audio.workspace = true
 lokalbot-engine.workspace = true
 lokalbot-platform.workspace = true
@@ -33,8 +34,10 @@ directories.workspace = true
 parking_lot.workspace = true
 crossbeam-channel.workspace = true
 raw-window-handle = "0.6"
+async-channel = "2"
 smol = "2"
-image = { version = "0.25", default-features = false, features = ["png"] }
+# PNG for the tray icon; JPEG for screen images decrypted for display.
+image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
 
 # The autocomplete probe example presses keys, raises Notepad and grabs the
 # screen through Win32.

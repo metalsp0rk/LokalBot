@@ -184,6 +184,32 @@ pub const ENTRIES: &[Entry] = &[
         value: |s| on_off(s.tracking_enabled),
     },
     Entry {
+        id: "settings.screenContextCaptureMode",
+        title: "Screen context",
+        category: DayMemory,
+        aliases: "screenshots ocr text capture visual images",
+        value: |s| s.screen_context_capture_mode.label().into(),
+    },
+    Entry {
+        id: "settings.screenTextRecognition",
+        title: "Screen text recognition",
+        category: DayMemory,
+        aliases: "ocr model download screenshots text",
+        value: details,
+    },
+    Entry {
+        id: "settings.screenshotIntervalMinutes",
+        title: "Idle fallback",
+        category: DayMemory,
+        aliases: "screen capture interval minutes screenshots",
+        value: |s| {
+            format!(
+                "at least every {} min",
+                s.screenshot_interval_minutes.round()
+            )
+        },
+    },
+    Entry {
         id: "settings.dayDigestAutoEnabled",
         title: "Generate the day digest automatically",
         category: DayMemory,
@@ -370,10 +396,17 @@ pub const ENTRIES: &[Entry] = &[
     },
     Entry {
         id: "settings.retentionDays",
-        title: "Keep activity details",
+        title: "Keep screen context",
         category: Privacy,
-        aliases: "retention delete days cleanup window titles history",
+        aliases: "retention delete days cleanup window titles history activity screenshots",
         value: |s| format!("{} days", s.retention_days),
+    },
+    Entry {
+        id: "settings.keepOCRTextForever",
+        title: "Keep screen text forever",
+        category: Privacy,
+        aliases: "retention ocr text",
+        value: |s| on_off(s.keep_ocr_text_forever),
     },
     Entry {
         id: "settings.agentAccess",
@@ -487,7 +520,7 @@ mod tests {
 
     #[test]
     fn features_missing_on_this_platform_are_not_offered() {
-        for word in ["ocr", "screenshot", "obsidian", "chime", "sessions"] {
+        for word in ["obsidian", "chime", "sessions"] {
             assert!(search(word).is_empty(), "{word}");
         }
         let autocomplete: Vec<&str> = search("autocomplete").iter().map(|e| e.id).collect();
@@ -496,5 +529,14 @@ mod tests {
         assert!(!autocomplete.contains(&"settings.autocompleteAvailability"));
         let updates: Vec<&str> = search("updates").iter().map(|e| e.id).collect();
         assert_eq!(updates, ["settings.currentVersion"]);
+    }
+
+    #[test]
+    fn screen_context_settings_are_searchable() {
+        let ocr: Vec<&str> = search("ocr").iter().map(|e| e.id).collect();
+        assert!(ocr.contains(&"settings.screenContextCaptureMode"));
+        assert!(ocr.contains(&"settings.screenTextRecognition"));
+        assert!(ocr.contains(&"settings.keepOCRTextForever"));
+        assert!(!search("screenshot").is_empty());
     }
 }

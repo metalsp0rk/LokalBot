@@ -4,6 +4,7 @@
 //! - [`download`]: verified, resumable HTTPS downloads and archive extraction.
 //! - [`runtime`]: prebuilt llama.cpp `llama-server` subprocesses, one per role.
 //! - [`think`]: chat, embedding and raw-completion clients with the consent gate.
+//! - [`ocr`]: on-device screen text recognition (ocrs).
 //!
 //! Errors are `anyhow::Error`; the ones callers act on are [`AiError`] values
 //! inside it (`err.downcast_ref::<AiError>()`).
@@ -21,6 +22,7 @@ mod http;
 pub mod json;
 pub mod language;
 pub mod notes;
+pub mod ocr;
 mod process;
 pub mod project_status;
 pub mod prompts;

@@ -1,7 +1,8 @@
 //! Operating-system integration for LokalBot on Linux and Windows: activity
 //! sampling, privacy rules, single instance and IPC, global shortcuts, text
 //! insertion, autocomplete's field reading and key handling, the tray,
-//! notifications, launch at login, meeting detection and opening files.
+//! notifications, launch at login, meeting detection, screen context capture
+//! and opening files.
 //!
 //! Everything compiles on both systems and degrades with an explanation where
 //! a desktop cannot provide something (for example GNOME on Wayland without a
@@ -16,6 +17,7 @@ pub mod meeting;
 pub mod notify;
 pub mod opener;
 pub mod privacy;
+pub mod screen;
 pub mod session;
 pub mod shortcuts;
 pub mod tray;
