@@ -110,6 +110,9 @@ pub struct Settings {
     #[serde(rename = "cotypingBuiltInModelID")]
     pub cotyping_built_in_model_id: String,
     pub cotyping_excluded_apps: String,
+    /// Let suggestions use relevant facts from saved meetings. A grant of
+    /// its own, off by default, as on macOS.
+    pub cotyping_use_meeting_memory: bool,
 }
 
 impl Default for Settings {
@@ -193,6 +196,7 @@ impl Default for Settings {
             cotyping_accept_granularity: AcceptGranularity::Word,
             cotyping_built_in_model_id: "lfm2.5-1.2b-instruct".into(),
             cotyping_excluded_apps: "1Password, Bitwarden, KeePassXC, KeePass".into(),
+            cotyping_use_meeting_memory: false,
         }
     }
 }

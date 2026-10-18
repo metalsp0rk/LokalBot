@@ -4,6 +4,7 @@
 //! reports back through [`EngineEvent`]s. Nothing here touches the UI.
 
 mod ask;
+mod autocomplete;
 mod daymemory;
 mod detector;
 mod dictation;
@@ -28,6 +29,7 @@ use parking_lot::{Mutex, RwLock};
 
 use lokalbot_core::{Library, Settings};
 
+pub use autocomplete::saved_facts as autocomplete_saved_facts;
 pub use events::*;
 
 /// State every subsystem shares.
@@ -184,6 +186,7 @@ fn dispatch(shared: Arc<Shared>, commands: Sender<Command>, receiver: Receiver<C
     let detector = detector::Detector::start(shared.clone(), commands.clone(), meeting_detector);
     let dictation = dictation::Dictation::new(shared.clone(), models.clone());
     let live = live::LiveTranscriber::new(shared.clone(), models.clone());
+    let mut autocomplete = autocomplete::Autocomplete::start(shared.clone(), models.clone());
     models.publish_status();
     indexing::start(shared.clone(), models.clone());
     retention::start(shared.clone());
@@ -223,9 +226,10 @@ fn dispatch(shared: Arc<Shared>, commands: Sender<Command>, receiver: Receiver<C
             Command::UpdateSettings(settings) => {
                 *shared.settings.write() = *settings;
                 models.publish_status();
+                autocomplete.settings_changed();
             }
             Command::Dictation(command) => dictation.handle(command),
-            Command::Autocomplete(_) => {}
+            Command::Autocomplete(command) => autocomplete.handle(command),
             Command::LivePreview(command) => match command {
                 LivePreviewCommand::Start { from_beginning } => live.start(from_beginning),
                 LivePreviewCommand::Pause => live.pause(),
@@ -236,6 +240,7 @@ fn dispatch(shared: Arc<Shared>, commands: Sender<Command>, receiver: Receiver<C
 
     shared.shutting_down.store(true, Ordering::Relaxed);
     live.stop();
+    autocomplete.stop();
     recording.stop_for_shutdown();
     detector.stop();
     day_memory.stop();

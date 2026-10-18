@@ -170,6 +170,13 @@ impl Role {
         }
     }
 
+    /// Whether starting this role's server may download the llama.cpp
+    /// build. Autocomplete starts as you type, so it only ever uses a build
+    /// that is already installed.
+    fn downloads_runtime(self) -> bool {
+        self != Role::Autocomplete
+    }
+
     /// Role arguments, keeping only flags this build understands.
     fn extra_args(self, flags: &[String]) -> Vec<String> {
         let has = |flag: &str| flags.iter().any(|f| f == flag);
@@ -1046,7 +1053,9 @@ impl ServerInner {
     fn start(&self, model_id: &str, model_path: &Path) -> Result<Running> {
         let installer = &self.installer;
         let never = AtomicBool::new(false);
-        let (backend, record, binary) = installer.resolve(true, &never, &mut |_, _| {})?;
+        let allow_download = self.role.downloads_runtime();
+        let (backend, record, binary) =
+            installer.resolve(allow_download, &never, &mut |_, _| {})?;
         match self.launch(model_id, model_path, backend, &record, &binary) {
             Ok(running) => Ok(running),
             Err(err) if backend == LlamaBackend::Vulkan && installer.preference() == "auto" => {
@@ -1055,7 +1064,8 @@ impl ServerInner {
                     self.role.label()
                 );
                 installer.fall_back_to_cpu();
-                let (backend, record, binary) = installer.resolve(true, &never, &mut |_, _| {})?;
+                let (backend, record, binary) =
+                    installer.resolve(allow_download, &never, &mut |_, _| {})?;
                 self.launch(model_id, model_path, backend, &record, &binary)
             }
             Err(err) => Err(err),
@@ -1580,6 +1590,13 @@ mod tests {
             Role::Autocomplete.extra_args(&all),
             ["--parallel", "1", "--cache-ram", "512"]
         );
+    }
+
+    #[test]
+    fn only_autocomplete_never_downloads_the_runtime() {
+        assert!(Role::Main.downloads_runtime());
+        assert!(Role::Embedder.downloads_runtime());
+        assert!(!Role::Autocomplete.downloads_runtime());
     }
 
     #[test]
