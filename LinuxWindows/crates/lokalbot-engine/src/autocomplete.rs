@@ -107,7 +107,7 @@ impl Host for EngineHost {
                     Some(lokalbot_ai::AiError::ModelMissing(_))
                     | Some(lokalbot_ai::AiError::Unavailable(_))
                     | Some(lokalbot_ai::AiError::NoModel) => Outcome::NotReady,
-                    _ => self.failed(format!("{err:#}")),
+                    _ => self.failed(&err),
                 };
             }
         };
@@ -118,7 +118,7 @@ impl Host for EngineHost {
         let outcome = match job {
             JobKind::Prefill { request, .. } => match completer.prefill(request) {
                 Ok(()) => Outcome::Prefilled,
-                Err(err) => self.failed(format!("{err:#}")),
+                Err(err) => self.failed(&err),
             },
             JobKind::Fresh { request, .. } | JobKind::TopUp { request, .. } => {
                 match completer.complete(request, &|| cancel.load(Ordering::Relaxed)) {
@@ -126,7 +126,7 @@ impl Host for EngineHost {
                     Err(err) if err.downcast_ref::<ac::Cancelled>().is_some() => Outcome::Cancelled,
                     Err(err) => {
                         lease.mark_unreachable();
-                        self.failed(format!("{err:#}"))
+                        self.failed(&err)
                     }
                 }
             }
@@ -190,10 +190,19 @@ pub fn saved_facts(
 }
 
 impl EngineHost {
-    fn failed(&self, message: String) -> Outcome {
+    /// Logs a failure once per episode, without the server's own message:
+    /// a request error can quote the prompt, and typed text is never logged.
+    fn failed(&self, err: &anyhow::Error) -> Outcome {
         let mut failing = self.failing.lock();
         if !*failing {
-            log::warn!("autocomplete: request failed: {message}");
+            let reason = match err.downcast_ref::<lokalbot_ai::AiError>() {
+                Some(lokalbot_ai::AiError::HttpStatus { code, .. }) => format!("HTTP {code}"),
+                Some(lokalbot_ai::AiError::ServerUnreachable(_)) => "server unreachable".into(),
+                Some(lokalbot_ai::AiError::BadResponse(_)) => "unreadable response".into(),
+                Some(lokalbot_ai::AiError::ServerStart(_)) => "server did not start".into(),
+                _ => "error".into(),
+            };
+            log::warn!("autocomplete: request failed ({reason})");
             *failing = true;
         }
         Outcome::Failed
