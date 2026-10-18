@@ -18,6 +18,7 @@ lokalbot-audio = { path = "crates/lokalbot-audio" }
 lokalbot-speech = { path = "crates/lokalbot-speech" }
 lokalbot-platform = { path = "crates/lokalbot-platform" }
 lokalbot-engine = { path = "crates/lokalbot-engine" }
+lokalbot-agent = { path = "crates/lokalbot-agent" }
 
 # UI. GPUI Kit pins the exact GPUI snapshot it was released against; see
 # docs/dependency-provenance.md before changing either version.

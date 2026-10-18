@@ -4185,6 +4185,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "lokalbot-agent"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-channel",
+ "chrono",
+ "dunce",
+ "env_logger",
+ "hex",
+ "libc",
+ "log",
+ "lokalbot-ai",
+ "lokalbot-core",
+ "parking_lot",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "tempfile",
+ "thiserror 2.0.21",
+ "uuid",
+ "windows-sys 0.61.2",
+ "zip 9.0.5",
+]
+
+[[package]]
 name = "lokalbot-ai"
 version = "0.1.0"
 dependencies = [
