@@ -83,3 +83,119 @@ fn x11_shortcuts_report_press_and_release() {
         .unwrap();
     assert!(rx.recv_timeout(Duration::from_millis(700)).is_err());
 }
+
+fn xdotool(args: &[&str]) -> String {
+    let output = Command::new("xdotool").args(args).output().unwrap();
+    String::from_utf8_lossy(&output.stdout).trim().to_string()
+}
+
+/// Waits for a window titled `title` and gives it the focus.
+fn focus_window(title: &str) {
+    let window = xdotool(&["search", "--sync", "--name", title]);
+    let window = window
+        .lines()
+        .next()
+        .expect("the window appeared")
+        .to_string();
+    xdotool(&["windowactivate", "--sync", &window]);
+    std::thread::sleep(Duration::from_millis(400));
+}
+
+fn wait_with_timeout(child: &mut std::process::Child, timeout: Duration) {
+    let deadline = std::time::Instant::now() + timeout;
+    while child.try_wait().unwrap().is_none() {
+        if std::time::Instant::now() > deadline {
+            let _ = child.kill();
+            panic!("the target app did not exit");
+        }
+        std::thread::sleep(Duration::from_millis(50));
+    }
+}
+
+/// Opens a GTK text entry, runs `insert`, confirms the entry and returns
+/// what it contained.
+fn into_gtk_entry(insert: impl FnOnce() -> lokalbot_platform::InsertOutcome) -> String {
+    let mut zenity = Command::new("zenity")
+        .args([
+            "--entry",
+            "--title",
+            "LokalBot target",
+            "--text",
+            "Dictation target",
+        ])
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::null())
+        .spawn()
+        .unwrap();
+    focus_window("LokalBot target");
+    assert_eq!(insert(), lokalbot_platform::InsertOutcome::Inserted);
+    std::thread::sleep(Duration::from_millis(500));
+    xdotool(&["key", "Return"]);
+    wait_with_timeout(&mut zenity, Duration::from_secs(10));
+    let mut out = String::new();
+    std::io::Read::read_to_string(&mut zenity.stdout.take().unwrap(), &mut out).unwrap();
+    out.trim_end_matches('\n').to_string()
+}
+
+fn clipboard_via_xsel() -> String {
+    let output = Command::new("xsel")
+        .args(["--clipboard", "--output"])
+        .output()
+        .unwrap();
+    String::from_utf8_lossy(&output.stdout).into_owned()
+}
+
+#[test]
+#[ignore]
+fn x11_paste_and_type_into_a_gtk_entry() {
+    use lokalbot_platform::{InsertMethod, copy_to_clipboard, insert_text};
+
+    copy_to_clipboard("previous clipboard").unwrap();
+    assert_eq!(clipboard_via_xsel(), "previous clipboard");
+
+    let dictated = "Dictated — with ünïcödé ✓ and 42";
+    let pasted = into_gtk_entry(|| insert_text(dictated, InsertMethod::Paste).unwrap());
+    println!("pasted: {pasted:?}");
+    assert_eq!(pasted, dictated);
+    // The clipboard is put back once the app has read it.
+    assert_eq!(clipboard_via_xsel(), "previous clipboard");
+
+    let typed = "Typed ünï — 7";
+    let echoed = into_gtk_entry(|| insert_text(typed, InsertMethod::Type).unwrap());
+    println!("typed: {echoed:?}");
+    assert_eq!(echoed, typed);
+}
+
+#[test]
+#[ignore]
+fn x11_terminals_get_shift_insert() {
+    use lokalbot_platform::{InsertMethod, InsertOutcome, insert_text};
+
+    let out = std::env::temp_dir().join(format!("lokalbot-terminal-{}", std::process::id()));
+    let _ = std::fs::remove_file(&out);
+    let script = format!("cat > '{}'", out.display());
+    let mut terminal = Command::new("xfce4-terminal")
+        .args([
+            "--disable-server",
+            "--title",
+            "LokalBot terminal",
+            "-x",
+            "sh",
+            "-c",
+            &script,
+        ])
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .spawn()
+        .unwrap();
+    focus_window("LokalBot terminal");
+    let outcome = insert_text("pasted into a terminal", InsertMethod::Paste).unwrap();
+    assert_eq!(outcome, InsertOutcome::Inserted);
+    std::thread::sleep(Duration::from_millis(500));
+    xdotool(&["key", "Return", "ctrl+d"]);
+    wait_with_timeout(&mut terminal, Duration::from_secs(10));
+    let written = std::fs::read_to_string(&out).unwrap();
+    let _ = std::fs::remove_file(&out);
+    println!("terminal received: {written:?}");
+    assert_eq!(written.trim_end(), "pasted into a terminal");
+}

@@ -734,7 +734,7 @@ mod hotkey {
 
         #[cfg(windows)]
         fn wake(&self) {
-            win::wake(self.thread_id);
+            crate::win32_loop::wake(self.thread_id);
         }
 
         #[cfg(not(windows))]
@@ -844,63 +844,19 @@ mod hotkey {
                 return;
             }
         };
-        win::message_loop(&ready, || {
-            while let Ok(command) = commands.try_recv() {
-                if !handle(&manager, command) {
-                    return false;
-                }
-            }
-            true
-        });
-    }
-
-    #[cfg(windows)]
-    mod win {
-        use crossbeam_channel::Sender;
-        use windows::Win32::Foundation::{LPARAM, WPARAM};
-        use windows::Win32::System::Threading::GetCurrentThreadId;
-        use windows::Win32::UI::WindowsAndMessaging::{
-            DispatchMessageW, GetMessageW, MSG, PM_NOREMOVE, PeekMessageW, PostThreadMessageW,
-            TranslateMessage, WM_APP, WM_USER,
-        };
-
-        const WM_WAKE: u32 = WM_APP + 0x4C42;
-
-        pub(super) fn wake(thread_id: u32) {
-            // SAFETY: posting a message with no pointers to a thread id is
-            // always memory-safe; a dead thread only makes the call fail.
-            let _ = unsafe { PostThreadMessageW(thread_id, WM_WAKE, WPARAM(0), LPARAM(0)) };
-        }
-
-        /// Runs a message loop on this thread. `on_wake` drains commands and
-        /// returns false to stop.
-        pub(super) fn message_loop(
-            ready: &Sender<Result<u32, String>>,
-            mut on_wake: impl FnMut() -> bool,
-        ) {
-            let mut msg = MSG::default();
-            // SAFETY: `msg` is a valid, writable MSG for the duration of each
-            // call; these functions only touch this thread's message queue.
-            unsafe {
-                // Creates the thread's message queue before anyone posts to it.
-                let _ = PeekMessageW(&mut msg, None, WM_USER, WM_USER, PM_NOREMOVE);
-                let _ = ready.send(Ok(GetCurrentThreadId()));
-                loop {
-                    let result = GetMessageW(&mut msg, None, 0, 0);
-                    if result.0 == 0 || result.0 == -1 {
-                        break;
+        crate::win32_loop::run(
+            |thread_id| {
+                let _ = ready.send(Ok(thread_id));
+            },
+            || {
+                while let Ok(command) = commands.try_recv() {
+                    if !handle(&manager, command) {
+                        return false;
                     }
-                    if msg.message == WM_WAKE && msg.hwnd.0.is_null() {
-                        if !on_wake() {
-                            break;
-                        }
-                        continue;
-                    }
-                    let _ = TranslateMessage(&msg);
-                    DispatchMessageW(&msg);
                 }
-            }
-        }
+                true
+            },
+        );
     }
 
     pub(super) fn to_hotkey(shortcut: &Shortcut) -> Result<HotKey, ShortcutError> {

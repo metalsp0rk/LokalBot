@@ -22,6 +22,9 @@ mod win32;
 #[cfg(target_os = "linux")]
 mod x11;
 
+#[cfg(target_os = "linux")]
+pub(crate) use linux::WindowLister;
+
 /// One way of reading the focused window. Implementations must not block for
 /// long: each call is bounded by short timeouts.
 pub trait ActivitySource: Send {
@@ -54,6 +57,24 @@ pub fn activity_source() -> Box<dyn ActivitySource> {
         Box::new(Unavailable::new(
             "Activity tracking is not available on this system.".into(),
         ))
+    }
+}
+
+/// A quick, lowercase identifier for the focused app (executable, `WM_CLASS`
+/// or app id), for choosing how to paste. `None` where the desktop cannot
+/// tell cheaply (GNOME and KDE on Wayland).
+pub(crate) fn focused_app_hint() -> Option<String> {
+    #[cfg(windows)]
+    {
+        win32::foreground_app_id()
+    }
+    #[cfg(target_os = "linux")]
+    {
+        linux::focused_app_hint()
+    }
+    #[cfg(not(any(windows, target_os = "linux")))]
+    {
+        None
     }
 }
 

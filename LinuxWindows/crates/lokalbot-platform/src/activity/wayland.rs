@@ -48,40 +48,64 @@ pub(super) struct Hyprland {
     socket: PathBuf,
 }
 
-impl Hyprland {
-    pub(super) fn new() -> anyhow::Result<Self> {
-        let signature = std::env::var("HYPRLAND_INSTANCE_SIGNATURE")
-            .context("HYPRLAND_INSTANCE_SIGNATURE is not set")?;
-        let mut candidates = Vec::new();
-        if let Some(runtime) = std::env::var_os("XDG_RUNTIME_DIR") {
-            candidates.push(
-                PathBuf::from(runtime)
-                    .join("hypr")
-                    .join(&signature)
-                    .join(".socket.sock"),
-            );
-        }
+fn hyprland_socket() -> anyhow::Result<PathBuf> {
+    let signature = std::env::var("HYPRLAND_INSTANCE_SIGNATURE")
+        .context("HYPRLAND_INSTANCE_SIGNATURE is not set")?;
+    let mut candidates = Vec::new();
+    if let Some(runtime) = std::env::var_os("XDG_RUNTIME_DIR") {
         candidates.push(
-            PathBuf::from("/tmp/hypr")
+            PathBuf::from(runtime)
+                .join("hypr")
                 .join(&signature)
                 .join(".socket.sock"),
         );
-        let socket = candidates
-            .into_iter()
-            .find(|path| path.exists())
-            .context("Hyprland's IPC socket was not found")?;
-        let mut probe = Self { socket };
+    }
+    candidates.push(
+        PathBuf::from("/tmp/hypr")
+            .join(&signature)
+            .join(".socket.sock"),
+    );
+    candidates
+        .into_iter()
+        .find(|path| path.exists())
+        .context("Hyprland's IPC socket was not found")
+}
+
+fn hyprland_request(socket: &PathBuf, request: &[u8]) -> anyhow::Result<String> {
+    let mut stream = unix_request(socket, request)?;
+    let mut reply = String::new();
+    stream.read_to_string(&mut reply)?;
+    Ok(reply)
+}
+
+impl Hyprland {
+    pub(super) fn new() -> anyhow::Result<Self> {
+        let mut probe = Self {
+            socket: hyprland_socket()?,
+        };
         probe.focused()?;
         Ok(probe)
     }
 }
 
+/// Class and title of every Hyprland window (`j/clients`).
+pub(super) fn hyprland_windows() -> anyhow::Result<Vec<(String, String)>> {
+    let reply = hyprland_request(&hyprland_socket()?, b"j/clients")?;
+    let value: Value = serde_json::from_str(&reply).context("unexpected Hyprland reply")?;
+    Ok(value
+        .as_array()
+        .map(|clients| {
+            clients
+                .iter()
+                .filter_map(|client| Some((text(client, "class")?, text(client, "title")?)))
+                .collect()
+        })
+        .unwrap_or_default())
+}
+
 impl WindowProbe for Hyprland {
     fn focused(&mut self) -> anyhow::Result<Option<FocusedWindow>> {
-        let mut stream = unix_request(&self.socket, b"j/activewindow")?;
-        let mut reply = String::new();
-        stream.read_to_string(&mut reply)?;
-        parse_hyprland(&reply)
+        parse_hyprland(&hyprland_request(&self.socket, b"j/activewindow")?)
     }
 
     fn name(&self) -> &'static str {
@@ -117,35 +141,73 @@ const I3_GET_TREE: u32 = 4;
 
 impl Sway {
     pub(super) fn new() -> anyhow::Result<Self> {
-        let socket = std::env::var_os("SWAYSOCK")
-            .filter(|v| !v.is_empty())
-            .map(PathBuf::from)
-            .context("SWAYSOCK is not set")?;
-        let mut probe = Self { socket };
+        let mut probe = Self {
+            socket: sway_socket()?,
+        };
         probe.focused()?;
         Ok(probe)
     }
 }
 
+fn sway_tree(socket: &PathBuf) -> anyhow::Result<Value> {
+    let mut request = I3_MAGIC.to_vec();
+    request.extend(0u32.to_ne_bytes());
+    request.extend(I3_GET_TREE.to_ne_bytes());
+    let mut stream = unix_request(socket, &request)?;
+    let mut header = [0u8; 14];
+    stream.read_exact(&mut header)?;
+    if &header[..6] != I3_MAGIC {
+        bail!("unexpected reply from Sway");
+    }
+    let length = u32::from_ne_bytes([header[6], header[7], header[8], header[9]]) as usize;
+    if length > 64 * 1024 * 1024 {
+        bail!("Sway's window tree is implausibly large");
+    }
+    let mut payload = vec![0u8; length];
+    stream.read_exact(&mut payload)?;
+    serde_json::from_slice(&payload).context("unexpected Sway tree")
+}
+
+fn sway_socket() -> anyhow::Result<PathBuf> {
+    std::env::var_os("SWAYSOCK")
+        .filter(|v| !v.is_empty())
+        .map(PathBuf::from)
+        .context("SWAYSOCK is not set")
+}
+
+/// Class (app id) and title of every Sway window.
+pub(super) fn sway_windows() -> anyhow::Result<Vec<(String, String)>> {
+    fn collect(node: &Value, out: &mut Vec<(String, String)>) {
+        let kind = node.get("type").and_then(Value::as_str).unwrap_or("");
+        if kind == "con" || kind == "floating_con" {
+            let class = text(node, "app_id").or_else(|| {
+                node.get("window_properties")
+                    .and_then(|properties| text(properties, "class"))
+            });
+            if let (Some(class), Some(title)) = (class, text(node, "name")) {
+                out.push((class, title));
+            }
+        }
+        for key in ["nodes", "floating_nodes"] {
+            for child in node
+                .get(key)
+                .and_then(Value::as_array)
+                .into_iter()
+                .flatten()
+            {
+                collect(child, out);
+            }
+        }
+    }
+    let tree = sway_tree(&sway_socket()?)?;
+    let mut out = Vec::new();
+    collect(&tree, &mut out);
+    Ok(out)
+}
+
 impl WindowProbe for Sway {
     fn focused(&mut self) -> anyhow::Result<Option<FocusedWindow>> {
-        let mut request = I3_MAGIC.to_vec();
-        request.extend(0u32.to_ne_bytes());
-        request.extend(I3_GET_TREE.to_ne_bytes());
-        let mut stream = unix_request(&self.socket, &request)?;
-        let mut header = [0u8; 14];
-        stream.read_exact(&mut header)?;
-        if &header[..6] != I3_MAGIC {
-            bail!("unexpected reply from Sway");
-        }
-        let length = u32::from_ne_bytes([header[6], header[7], header[8], header[9]]) as usize;
-        if length > 64 * 1024 * 1024 {
-            bail!("Sway's window tree is implausibly large");
-        }
-        let mut payload = vec![0u8; length];
-        stream.read_exact(&mut payload)?;
-        let tree: Value = serde_json::from_slice(&payload).context("unexpected Sway tree")?;
-        Ok(parse_sway_tree(&tree))
+        Ok(parse_sway_tree(&sway_tree(&self.socket)?))
     }
 
     fn name(&self) -> &'static str {
