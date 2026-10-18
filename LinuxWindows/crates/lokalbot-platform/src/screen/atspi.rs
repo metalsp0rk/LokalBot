@@ -52,6 +52,7 @@ mod role {
     pub const INTERNAL_FRAME: u32 = 28;
     pub const LABEL: u32 = 29;
     pub const LIST_ITEM: u32 = 32;
+    pub const MENU: u32 = 33;
     pub const MENU_ITEM: u32 = 35;
     pub const PAGE_TAB: u32 = 37;
     pub const PASSWORD_TEXT: u32 = 40;
@@ -98,7 +99,9 @@ mod role {
 mod state {
     pub const ACTIVE: u32 = 1;
     pub const DEFUNCT: u32 = 6;
+    pub const EDITABLE: u32 = 7;
     pub const FOCUSED: u32 = 12;
+    pub const MULTI_LINE: u32 = 17;
     pub const SHOWING: u32 = 25;
     pub const MANAGES_DESCENDANTS: u32 = 31;
 }
@@ -238,17 +241,22 @@ fn is_secure(role: u32, labels: &[Option<&str>]) -> bool {
         })
 }
 
-/// How an app's toolkit answers geometry questions.
+/// How an app's toolkit answers.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct Toolkit {
     /// Coordinate type for extents and points.
     coords: u32,
     /// Whether `Text.GetOffsetAtPoint` is worth asking.
     offsets: bool,
+    /// Entries that hide their text (a `GtkEntry` without visibility) still
+    /// report it in full and as plain text, so no entry is known not to be a
+    /// password field.
+    reveals_hidden_entries: bool,
 }
 
-/// GTK 4 places every element at the origin in screen coordinates and, before
-/// 4.16, never answers `GetOffsetAtPoint`; Chromium answers it only in screen
+/// GTK 4 places every element at the origin in screen coordinates, never
+/// answers `GetOffsetAtPoint` before 4.16 and returns hidden entry text
+/// before 4.20; Chromium answers `GetOffsetAtPoint` only in screen
 /// coordinates. So GTK 4 is read in window coordinates, the rest in screen
 /// coordinates.
 fn toolkit_for(name: &str, version: &str) -> Toolkit {
@@ -258,16 +266,35 @@ fn toolkit_for(name: &str, version: &str) -> Toolkit {
     let major = numbers.next().unwrap_or(0);
     let minor = numbers.next().unwrap_or(0);
     if name.eq_ignore_ascii_case("gtk") && major >= 4 {
+        let at_least = |wanted: u32| major > 4 || minor >= wanted;
         Toolkit {
             coords: COORD_WINDOW,
-            offsets: major > 4 || minor >= 16,
+            offsets: at_least(16),
+            reveals_hidden_entries: !at_least(20),
         }
     } else {
         Toolkit {
             coords: COORD_SCREEN,
             offsets: true,
+            reveals_hidden_entries: false,
         }
     }
+}
+
+/// The focus state of the focused elements: any secure one makes it secure,
+/// any unknown one unknown.
+fn combined_focus(elements: impl IntoIterator<Item = Option<bool>>) -> Option<bool> {
+    let mut focus = None;
+    for secure in elements {
+        match secure {
+            Some(true) => return Some(true),
+            None => focus = Some(None),
+            Some(false) => {
+                focus.get_or_insert(Some(false));
+            }
+        }
+    }
+    focus.flatten()
 }
 
 /// Extents as a rectangle, when they describe one: GTK reports `G_MININT`
@@ -505,8 +532,9 @@ struct Walk {
     document_name: Option<String>,
     has_web_content: bool,
     contains_secure_field: bool,
-    /// Elements with keyboard focus, and whether each is secure.
-    focused: Vec<(Node, bool)>,
+    /// Elements with keyboard focus, and whether each is secure (`None` when
+    /// that cannot be known).
+    focused: Vec<(Node, Option<bool>)>,
 }
 
 impl Walk {
@@ -522,8 +550,10 @@ impl Walk {
         let showing = has_state(&states, state::SHOWING);
         let focused = has_state(&states, state::FOCUSED);
         let entry = is_text_entry(role);
-        let reads_text = self.include_text
-            && showing
+        // Nothing below an element outside the visible part of the window
+        // can show text.
+        let in_view = self.include_text && showing && pending.viewport.is_some();
+        let reads_text = in_view
             && (is_text_view(role) || is_label(role))
             && !(role == role::STATIC && pending.parent_text);
         let name = if entry || focused || reads_text {
@@ -536,8 +566,20 @@ impl Walk {
         } else {
             None
         };
-        let secure = is_secure(role, &[name.as_deref(), description.as_deref()]);
-        if secure && entry {
+        let hides_text = self.toolkit.reveals_hidden_entries
+            && matches!(role, role::TEXT | role::ENTRY)
+            && has_state(&states, state::EDITABLE)
+            && !has_state(&states, state::MULTI_LINE);
+        // `secureFieldStatus`: text is read only from elements known not to
+        // be secure.
+        let secure = if is_secure(role, &[name.as_deref(), description.as_deref()]) {
+            Some(true)
+        } else if hides_text {
+            None
+        } else {
+            Some(false)
+        };
+        if secure == Some(true) && entry {
             self.contains_secure_field = true;
         }
         if focused {
@@ -548,14 +590,14 @@ impl Walk {
         }
         let frame = if root {
             pending.viewport
-        } else if self.include_text && showing && (reads_text || clips_children(role)) {
+        } else if reads_text || (in_view && clips_children(role)) {
             optional(node.extents(&self.bus, self.toolkit.coords))?.flatten()
         } else {
             None
         };
         let mut text_read = false;
         if reads_text
-            && !secure
+            && secure == Some(false)
             && let (Some(frame), Some(viewport)) = (frame, pending.viewport)
             && frame.intersection(&viewport).is_some()
         {
@@ -582,7 +624,9 @@ impl Walk {
                 );
             }
         }
-        if !showing && !root {
+        // A menu's items open in a popup of their own; walking them would
+        // spend the node budget on hidden entries (LibreOffice has hundreds).
+        if (!showing || role == role::MENU) && !root {
             return Ok(Vec::new());
         }
         let viewport = child_viewport(role, frame, pending.viewport);
@@ -689,7 +733,7 @@ impl Walk {
 
     /// The focus state the walk saw.
     fn focus(&self) -> Option<bool> {
-        (!self.focused.is_empty()).then(|| self.focused.iter().any(|(_, secure)| *secure))
+        combined_focus(self.focused.iter().map(|(_, secure)| *secure))
     }
 
     /// The focus state now: unknown once an element the walk saw focused has
@@ -713,7 +757,6 @@ struct Found {
 }
 
 pub(super) struct AtspiReader {
-    session: Option<Connection>,
     bus: Option<Connection>,
     /// The process of each app on the accessibility bus. Unique bus names
     /// are never reused, so an entry stays right until its app leaves.
@@ -724,7 +767,6 @@ pub(super) struct AtspiReader {
 impl AtspiReader {
     pub(super) fn new() -> Self {
         Self {
-            session: None,
             bus: None,
             pids: HashMap::new(),
             toolkits: HashMap::new(),
@@ -736,17 +778,10 @@ impl AtspiReader {
         if let Some(bus) = &self.bus {
             return Ok(bus.clone());
         }
-        let session = match &self.session {
-            Some(session) => session.clone(),
-            None => {
-                let session = zbus::blocking::connection::Builder::session()
-                    .and_then(|builder| builder.method_timeout(CALL_TIMEOUT).build())
-                    .map_err(|err| format!("no session bus: {err}"))?;
-                self.session = Some(session.clone());
-                session
-            }
-        };
-        let address = accessibility_bus_address(&session).inspect_err(|_| self.session = None)?;
+        let session = zbus::blocking::connection::Builder::session()
+            .and_then(|builder| builder.method_timeout(CALL_TIMEOUT).build())
+            .map_err(|err| format!("no session bus: {err}"))?;
+        let address = accessibility_bus_address(&session)?;
         let bus = zbus::blocking::connection::Builder::address(address.as_str())
             .and_then(|builder| builder.method_timeout(CALL_TIMEOUT).build())
             .map_err(|err| format!("could not connect to the accessibility bus: {err}"))?;
@@ -756,10 +791,9 @@ impl AtspiReader {
 
     fn disconnect(&mut self) {
         self.bus = None;
-        self.session = None;
     }
 
-    /// The registered apps that belong to `pid`, as (bus name, root path).
+    /// The root objects of the registered apps that belong to `pid`.
     fn apps(&mut self, bus: &Connection, pid: u32) -> Result<Vec<Node>, CallError> {
         let registered: Vec<(String, OwnedObjectPath)> =
             call(bus, REGISTRY, ROOT, ACCESSIBLE, "GetChildren", &())?;
@@ -952,7 +986,7 @@ impl AtspiReader {
         }
         if found.active && !has_state(&states, state::ACTIVE) {
             return Ok(TextRead::Changed(
-                "window stopped being active during read".into(),
+                "focused window changed during read".into(),
             ));
         }
         if optional(found.window.name(&bus))? != title {
@@ -1129,20 +1163,34 @@ mod tests {
             toolkit_for("gtk", "3.24.41"),
             Toolkit {
                 coords: COORD_SCREEN,
-                offsets: true
+                offsets: true,
+                reveals_hidden_entries: false,
             }
         );
         assert_eq!(
             toolkit_for("GTK", "4.14.5"),
             Toolkit {
                 coords: COORD_WINDOW,
-                offsets: false
+                offsets: false,
+                reveals_hidden_entries: true,
             }
         );
-        assert!(toolkit_for("GTK", "4.16.2").offsets);
+        let gtk_4_16 = toolkit_for("GTK", "4.16.2");
+        assert!(gtk_4_16.offsets && gtk_4_16.reveals_hidden_entries);
+        assert!(!toolkit_for("GTK", "4.20.0").reveals_hidden_entries);
         assert_eq!(toolkit_for("GTK", "5.0").coords, COORD_WINDOW);
         assert_eq!(toolkit_for("Chromium", "153.0").coords, COORD_SCREEN);
         assert_eq!(toolkit_for("", "").coords, COORD_SCREEN);
+    }
+
+    #[test]
+    fn focus_is_secure_or_unknown_when_any_element_is() {
+        assert_eq!(combined_focus([]), None, "nothing focused");
+        assert_eq!(combined_focus([Some(false)]), Some(false));
+        assert_eq!(combined_focus([Some(false), Some(true)]), Some(true));
+        assert_eq!(combined_focus([Some(false), None]), None);
+        assert_eq!(combined_focus([None, Some(false)]), None);
+        assert_eq!(combined_focus([None, Some(true)]), Some(true));
     }
 
     #[test]
@@ -1214,6 +1262,26 @@ mod tests {
     }
 
     #[test]
+    fn own_and_unknown_processes_are_not_read() {
+        let mut reader = AtspiReader::new();
+        let unknown = FocusedWindow::default();
+        assert!(matches!(
+            reader.read(&unknown, true, Duration::from_millis(50)),
+            TextRead::Unavailable(_)
+        ));
+        let own = FocusedWindow {
+            pid: Some(std::process::id()),
+            title: "LokalBot".into(),
+            ..Default::default()
+        };
+        assert!(matches!(
+            reader.read(&own, true, Duration::from_millis(50)),
+            TextRead::Unavailable(_)
+        ));
+        assert!(reader.bus.is_none(), "neither read touches the bus");
+    }
+
+    #[test]
     fn embedded_objects_are_removed() {
         assert_eq!(
             without_objects("First paragraph with a \u{FFFC} inside it.".into()),
@@ -1222,11 +1290,13 @@ mod tests {
         assert_eq!(without_objects("plain".into()), "plain");
     }
 
-    /// Reads the window in front of a desktop session, for example a GTK 3
-    /// window started with known text:
+    /// Reads the window in front of a desktop session, for example a GTK
+    /// window with known text, or a password dialog with a typed password:
     ///
     /// ```text
     /// LOKALBOT_ATSPI_EXPECT="Visible label alpha" \
+    ///   cargo test -p lokalbot-platform atspi -- --ignored --nocapture
+    /// LOKALBOT_ATSPI_SECRET="hunter2" \
     ///   cargo test -p lokalbot-platform atspi -- --ignored --nocapture
     /// ```
     #[test]
@@ -1247,9 +1317,11 @@ mod tests {
         if let Ok(expected) = std::env::var("LOKALBOT_ATSPI_EXPECT") {
             assert!(snapshot.text.contains(&expected), "missing {expected:?}");
         }
+        // A password typed into the window: never in the text, and the window
+        // shows a secure field or its focus is not known to be plain.
         if let Ok(secret) = std::env::var("LOKALBOT_ATSPI_SECRET") {
             assert!(!snapshot.text.contains(&secret), "read a password");
-            assert!(snapshot.contains_secure_field);
+            assert!(snapshot.contains_secure_field || snapshot.focused_secure_field != Some(false));
         }
         let metadata = reader.read(&window, false, Duration::from_millis(400));
         let TextRead::Read(metadata) = metadata else {
