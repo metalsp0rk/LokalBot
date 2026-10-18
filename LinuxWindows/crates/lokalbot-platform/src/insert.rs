@@ -540,12 +540,16 @@ mod keys {
             }
         }
         if let Some(ydotool) = find_program("ydotool") {
-            // Linux input event codes: Ctrl 29, V 47, Shift 42, Insert 110.
-            let args: &[&str] = match combo {
-                PasteCombo::CtrlV => &["key", "29:1", "47:1", "47:0", "29:0"],
-                PasteCombo::ShiftInsert => &["key", "42:1", "110:1", "110:0", "42:0"],
+            // ydotool 1.x takes Linux input event codes (Ctrl 29, V 47,
+            // Shift 42, Insert 110); 0.1.x, as in Ubuntu 24.04, key names.
+            let (codes, names): (&[&str], &[&str]) = match combo {
+                PasteCombo::CtrlV => (&["key", "29:1", "47:1", "47:0", "29:0"], &["key", "ctrl+v"]),
+                PasteCombo::ShiftInsert => (
+                    &["key", "42:1", "110:1", "110:0", "42:0"],
+                    &["key", "shift+Insert"],
+                ),
             };
-            if run(&ydotool, args, timeout) {
+            if run(&ydotool, codes, timeout) || run(&ydotool, names, timeout) {
                 return true;
             }
         }
@@ -561,7 +565,8 @@ mod keys {
             return true;
         }
         if let Some(ydotool) = find_program("ydotool")
-            && run(&ydotool, &["type", "--", text], timeout)
+            && (run(&ydotool, &["type", "--", text], timeout)
+                || (!text.starts_with('-') && run(&ydotool, &["type", text], timeout)))
         {
             return true;
         }
