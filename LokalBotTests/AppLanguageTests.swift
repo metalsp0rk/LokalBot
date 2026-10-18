@@ -1,3 +1,4 @@
+import SwiftUI
 import XCTest
 @testable import LokalBot
 
@@ -29,6 +30,19 @@ final class AppLanguageTests: XCTestCase {
         for language in AppLanguage.allCases where language != .system {
             XCTAssertEqual(language.isRightToLeft, language == .arabic || language == .egyptianArabic || language == .urdu)
         }
+        // Direction comes from Foundation, so future catalogs need no list edit.
+        XCTAssertTrue(AppLanguage.isRightToLeft(Locale(identifier: "fa")))
+        XCTAssertTrue(AppLanguage.isRightToLeft(Locale(identifier: "he")))
+    }
+
+    func testUserContentKeepsItsOwnDirection() {
+        XCTAssertEqual(ContentTextDirection.layoutDirection(of: "## Budget review"), .leftToRight)
+        XCTAssertEqual(ContentTextDirection.layoutDirection(of: "- مراجعة الميزانية"), .rightToLeft)
+        XCTAssertEqual(ContentTextDirection.layoutDirection(of: "اردو notes"), .rightToLeft)
+        XCTAssertEqual(ContentTextDirection.layoutDirection(of: "**日本語** と English"), .leftToRight)
+        XCTAssertEqual(ContentTextDirection.layoutDirection(of: "\u{200F}Zoom"), .rightToLeft)
+        XCTAssertNil(ContentTextDirection.layoutDirection(of: "12:30 — 14:00"))
+        XCTAssertNil(ContentTextDirection.layoutDirection(of: ""))
     }
 
     func testEgyptianArabicAndStandardArabicRemainDistinct() {
@@ -123,7 +137,8 @@ final class AppLanguageTests: XCTestCase {
 
     @MainActor
     func testSettingsSearchFindsTranslatedLabelsAndLanguageAliases() {
-        for query in ["语言", "中文", "English", "界面语言", "Korean"] + AppLanguage.allCases.map(\.displayName) {
+        let englishNames = ["Chinese", "Spanish", "Egyptian Arabic", "Nigerian Pidgin", "Indonesian", "Korean"]
+        for query in ["语言", "中文", "English", "界面语言"] + englishNames + AppLanguage.allCases.map(\.displayName) {
             XCTAssertTrue(SettingDescriptor.search(query, language: .simplifiedChinese).contains { $0.id == "settings.appLanguage" })
         }
         XCTAssertTrue(SettingDescriptor.search("文字大小", language: .simplifiedChinese).contains { $0.id == "settings.textSize" })

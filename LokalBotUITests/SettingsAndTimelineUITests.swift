@@ -50,8 +50,7 @@ final class SettingsUITests: XCTestCase {
     }
 
     func testEveryNewInterfaceLanguageRendersAndUrduPersists() throws {
-        UITestHarness.clickSidebar("sidebar.settings", in: app)
-        let languages = [
+        try assertInterfaceLanguagesRenderAndPersist([
             ("hi", "हिन्दी", "थीम", "ऐप की भाषा"),
             ("es", "Español", "Tema", "Idioma de la app"),
             ("ar", "العربية", "السمة", "لغة التطبيق"),
@@ -60,28 +59,7 @@ final class SettingsUITests: XCTestCase {
             ("pt", "Português", "Tema", "Idioma do app"),
             ("id", "Bahasa Indonesia", "Tema", "Bahasa aplikasi"),
             ("ur", "اردو", "تھیم", "ایپ کی زبان")
-        ]
-        for (identifier, nativeName, theme, languageLabel) in languages {
-            UITestHarness.scrollTo(app.popUpButtons["settings.appLanguage"], in: app)
-            UITestHarness.selectSegment(nativeName, pickerIdentifier: "settings.appLanguage", in: app)
-            XCTAssertTrue(UITestHarness.staticText(containing: theme, in: app).waitForExistence(timeout: 6),
-                          "The existing settings host must render \(identifier)")
-            XCTAssertTrue(UITestHarness.staticText(containing: languageLabel, in: app).waitForExistence(timeout: 6))
-            let screenshot = XCTAttachment(screenshot: app.windows.firstMatch.screenshot())
-            screenshot.name = "settings-interface-\(identifier)"
-            screenshot.lifetime = .keepAlways
-            add(screenshot)
-        }
-
-        app.terminate()
-        app = try UITestHarness.relaunch(
-            storageRoot: fixture.root, defaultsSuiteName: XCTUnwrap(defaultsSuiteName))
-        UITestHarness.clickSidebar("sidebar.settings", in: app)
-        XCTAssertTrue(UITestHarness.staticText(containing: "تھیم", in: app).waitForExistence(timeout: 6),
-                      "The Urdu interface must survive relaunch")
-        UITestHarness.scrollTo(app.popUpButtons["settings.appLanguage"], in: app)
-        UITestHarness.selectSegment("English", pickerIdentifier: "settings.appLanguage", in: app)
-        XCTAssertTrue(UITestHarness.staticText(containing: "Theme", in: app).waitForExistence(timeout: 6))
+        ])
     }
 
     func testRussianGermanJapanesePidginAndEgyptianArabicRender() throws {

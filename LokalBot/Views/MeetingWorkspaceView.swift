@@ -2056,6 +2056,7 @@ private struct TranscriptEvidenceList: View {
                                 .font(LBTokens.Typography.reading)
                                 .lineSpacing(3)
                                 .frame(maxWidth: .infinity, alignment: .leading)
+                                .contentLayoutDirection(of: row.text)
                                 .textSelection(.enabled)
                                 .help("Select text and press Command-C to copy")
                                 .accessibilityIdentifier("transcript.segment.\(index).text")

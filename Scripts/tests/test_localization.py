@@ -55,8 +55,9 @@ class LocalizationTests(unittest.TestCase):
 
     def test_line_breaks_and_direction_controls(self):
         english = read_strings("en")
-        # Direction belongs to the view environment, never hidden overrides in copy.
-        overrides = re.compile("[\u202a-\u202e\u2066-\u2069]")
+        # Direction belongs to the view environment, never hidden overrides or
+        # marks in copy. Machine translation most often inserts LRM, RLM and ALM.
+        overrides = re.compile("[\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]")
         for language in LANGUAGES:
             for key, value in read_strings(language).items():
                 with self.subTest(language=language, key=key):

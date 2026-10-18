@@ -56,6 +56,35 @@ enum AppLanguage: String, Codable, CaseIterable, Identifiable, Sendable {
         }
     }
 
+    /// English names for settings search. The exhaustive switch keeps a new
+    /// language from being unsearchable by its English name.
+    var englishName: String {
+        switch self {
+        case .system: "Follow System"
+        case .english: "English"
+        case .simplifiedChinese: "Simplified Chinese"
+        case .hindi: "Hindi"
+        case .spanish: "Spanish"
+        case .arabic: "Arabic"
+        case .french: "French"
+        case .bengali: "Bengali"
+        case .portuguese: "Portuguese"
+        case .indonesian: "Indonesian"
+        case .urdu: "Urdu"
+        case .russian: "Russian"
+        case .german: "German"
+        case .japanese: "Japanese"
+        case .nigerianPidgin: "Nigerian Pidgin"
+        case .egyptianArabic: "Egyptian Arabic"
+        case .marathi: "Marathi"
+        case .vietnamese: "Vietnamese"
+        case .telugu: "Telugu"
+        case .swahili: "Swahili"
+        case .hausa: "Hausa"
+        case .korean: "Korean"
+        }
+    }
+
     func localizationIdentifier(preferredLanguages: [String] = Locale.preferredLanguages) -> String {
         guard self == .system else { return rawValue }
         for language in preferredLanguages {
@@ -74,8 +103,12 @@ enum AppLanguage: String, Codable, CaseIterable, Identifiable, Sendable {
 
     var locale: Locale { Locale(identifier: localizationIdentifier()) }
 
-    var isRightToLeft: Bool {
-        ["ar", "ar-EG", "ur"].contains(localizationIdentifier())
+    var isRightToLeft: Bool { Self.isRightToLeft(locale) }
+
+    /// Foundation knows each script's direction, so a future Persian, Hebrew,
+    /// or Pashto catalog lays out right to left without a hand-kept list.
+    static func isRightToLeft(_ locale: Locale) -> Bool {
+        locale.language.characterDirection == .rightToLeft
     }
 
     /// Translate only the system option; language names remain native so a

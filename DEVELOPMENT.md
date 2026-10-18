@@ -214,7 +214,7 @@ Models auto-download on first use (Hugging Face; the ONNX specialists fetch sher
 
 ### Interface languages
 
-Settings → General → App language and the setup wizard offer English, Simplified
+Settings → General → Appearance → App language and the setup wizard offer English, Simplified
 Chinese, Hindi, Spanish, Modern Standard Arabic, French, Bengali, Portuguese,
 Indonesian, Urdu, Russian, German, Japanese, Nigerian Pidgin, Egyptian Arabic,
 Marathi, Vietnamese, Telugu, Swahili, and Hausa. These are the first twenty entries
@@ -238,12 +238,29 @@ own languages. Existing Follow System preferences adopt newly supported language
 explicit language choices remain unchanged. Native macOS menus and panels follow
 macOS language preferences independently of the app-owned interface.
 
+In a right-to-left interface, transcripts and Markdown content take their
+direction from their own first strong letter (`contentLayoutDirection(of:)`), so
+English content stays left-aligned. The playback waveform stays left to right,
+like platform media controls, and the native text-field bridges mirror the
+window's direction.
+
+SwiftUI and AppKit hosting roots use `appLanguageRoot(settingsStore)` to observe
+the selected locale, including already-open dictation overlays and the UI test
+host. App-owned dynamic labels use `LocalizedStringKey`; native menus and
+settings search use `AppLanguage.localized`. Keep user content verbatim.
+
 `LokalBot/Resources/en.lproj/Localizable.strings` is the source catalog. Keep every
 language's keys, printf arguments, and embedded line breaks aligned when changing
 interface copy. Run `uv run --no-project python -m unittest discover -s Scripts/tests -p test_localization.py`
-and `xcodegen generate` after adding a language. AppLanguageTests also checks that
-every supported catalog ships in binary form in the built app. New translations
-are machine-assisted and have not had a native-speaker editorial review.
+to check key parity, format arguments, and hidden direction marks without building
+the app, and run `xcodegen generate` after adding a language. `AppLanguageTests`
+covers preference migration, persistence, language resolution, bundled lookup,
+binary catalogs in the built app, and translated settings search.
+`AppLanguageRootTests` verifies live locale propagation and preserved content
+identity in offscreen hosting views. Hosted Settings and Onboarding UI tests cover
+switching and relaunch; the UI test host is pinned to English with
+`-AppleLanguages (en)`. New translations are machine-assisted and have not had a
+native-speaker editorial review.
 
 
 ### Fun-ASR-Nano local transcription
@@ -287,29 +304,6 @@ undo, readiness invalidation, file ownership, and preparation cancellation.
 model check using `LOKALBOT_FUNASR_TEST_MODEL_DIR` and `LOKALBOT_FUNASR_TEST_WAV`
 (public or synthetic audio only). Prefix these variables with `TEST_RUNNER_`
 when running through `xcodebuild`.
-
-### Interface language
-
-Choose **Settings → General → Appearance → App language** (or the picker in
-first-run setup) to follow the system or choose any of the 21 supported
-[interface languages](#interface-languages).
-The choice is saved with app settings and updates open windows without a restart.
-It does not change transcription or notes languages, model prompts, or saved content.
-System mode uses the first supported language in the macOS preference list,
-maps Chinese variants to Simplified Chinese, and falls back to English.
-
-Interface translations live in `LokalBot/Resources/<locale>.lproj/Localizable.strings`.
-SwiftUI and AppKit hosting roots use `appLanguageRoot(settingsStore)` to observe
-the selected locale, including already-open dictation overlays and the UI test
-host; app-owned dynamic labels explicitly
-use `LocalizedStringKey`, while native menus use `AppLanguage.localized`.
-Keep user content verbatim and add matching entries to every table.
-`AppLanguageTests` covers preference migration, persistence, language resolution,
-bundled lookup, and translated settings search. `AppLanguageRootTests` verifies
-live locale propagation and preserved content identity in offscreen hosting
-views. Hosted Settings and Onboarding UI tests cover switching and relaunch. Run
-`uv run --no-project python -m unittest discover -s Scripts/tests -p test_localization.py` to check
-translation key parity and format arguments without building the app.
 
 ### Settings categories
 
