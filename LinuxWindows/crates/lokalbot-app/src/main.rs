@@ -53,17 +53,32 @@ fn parse_options() -> Options {
     options.autostart = args
         .iter()
         .any(|a| a == lokalbot_platform::autostart::AUTOSTART_ARG);
-    options.command = match args.get(1).map(String::as_str) {
-        Some("quick-recall") => Some(IpcCommand::QuickRecall),
-        Some("toggle-recording") => Some(IpcCommand::ToggleRecording),
-        Some("show") => Some(IpcCommand::Show),
-        Some("dictate") => Some(match args.get(2).map(String::as_str) {
+    // The subcommand is the first argument that is neither an option nor an
+    // option's value, so `lokalbot --lokalbot-storage-root <dir> show` works too.
+    let mut positional = None;
+    let mut rest = args.iter().enumerate().skip(1);
+    while let Some((index, arg)) = rest.next() {
+        if matches!(
+            arg.as_str(),
+            "--page" | "--window" | lokalbot_core::paths::STORAGE_ROOT_FLAG
+        ) {
+            rest.next();
+        } else if !arg.starts_with("--") {
+            positional = Some(index);
+            break;
+        }
+    }
+    options.command = positional.and_then(|index| match args[index].as_str() {
+        "quick-recall" => Some(IpcCommand::QuickRecall),
+        "toggle-recording" => Some(IpcCommand::ToggleRecording),
+        "show" => Some(IpcCommand::Show),
+        "dictate" => Some(match args.get(index + 1).map(String::as_str) {
             Some("--start") => IpcCommand::StartDictation,
             Some("--stop") => IpcCommand::StopDictation,
             _ => IpcCommand::ToggleDictation,
         }),
         _ => None,
-    };
+    });
     let mut iter = args.iter();
     while let Some(arg) = iter.next() {
         if arg == "--page" {

@@ -119,6 +119,10 @@ pub struct MeetingsPage {
     find: FindBar,
     notes: NotesEditor,
     live_notes: NotesEditor,
+    /// The live transcript list: follows new lines until the user scrolls up.
+    live_scroll: gpui_kit::ScrollHandle,
+    live_follow: bool,
+    live_seen_lines: usize,
     hover: Option<f32>,
     playhead: f32,
     speed: f32,
@@ -240,6 +244,9 @@ impl MeetingsPage {
                 save_task: None,
                 loading: false,
             },
+            live_scroll: gpui_kit::ScrollHandle::new(),
+            live_follow: true,
+            live_seen_lines: 0,
             hover: None,
             playhead: 0.,
             speed: 1.,
@@ -354,6 +361,11 @@ impl MeetingsPage {
                     return;
                 }
                 let switched = this.doc.as_ref().map(|d| d.meeting.id) != Some(doc.meeting.id);
+                // A recording that just ended has new audio: a player opened
+                // while it was still being written knows only its first part.
+                let audio_changed = this.doc.as_ref().is_some_and(|d| {
+                    d.meeting.ended_at != doc.meeting.ended_at || d.has_audio != doc.has_audio
+                });
                 let doc = Rc::new(doc);
                 if switched || this.transcript_state.item_count() != doc.rows.len() + 1 {
                     this.transcript_state.reset(doc.rows.len() + 1);
@@ -362,6 +374,8 @@ impl MeetingsPage {
                 this.doc_loading = false;
                 if switched {
                     this.load_notes_editor(window, cx);
+                }
+                if switched || audio_changed {
                     this.open_player(cx);
                 }
                 this.update_find_matches(false, cx);
