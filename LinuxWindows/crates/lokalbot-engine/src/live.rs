@@ -27,6 +27,7 @@ const GATE_ABSOLUTE_FLOOR: f32 = 0.003;
 const MAX_LINES: usize = 400;
 const MAX_CONSECUTIVE_FAILURES: u32 = 3;
 const IDLE_POLL: Duration = Duration::from_secs(1);
+const LIVE_EDGE_PAUSE_SECONDS: f64 = 0.4;
 const RETRY_BASE_SECONDS: f64 = 1.0;
 
 /// Starts, pauses and stops the preview; the worker thread does the audio work.
@@ -400,6 +401,12 @@ fn next_chunk(path: &Path, processed_frames: u64) -> Result<Chunk> {
     reader.seek_frame(start)?;
     let mut samples = Vec::with_capacity(count as usize);
     reader.read_mono(count as usize, &mut samples)?;
+    // At the live edge someone may still be mid-sentence: wait for a pause
+    // rather than cut a sentence in two, unless 12 s have built up.
+    let capped = (count as f64) >= TARGET_CHUNK_SECONDS * rate;
+    if start + count == total && !capped && !ends_quietly(&samples, rate) {
+        return Ok(Chunk::NoWork);
+    }
     let search = samples.len().min((CUT_SEARCH_SECONDS * rate) as usize);
     if search > 0 {
         let cut = refined_cut_offset(&samples[samples.len() - search..], rate);
@@ -433,6 +440,23 @@ fn chunk_range(processed: u64, total: u64, rate: f64) -> Option<(u64, u64)> {
     }
     let count = available.min((TARGET_CHUNK_SECONDS * rate) as u64);
     Some((processed, count))
+}
+
+/// Whether the last 400 ms are a pause relative to the chunk.
+fn ends_quietly(samples: &[f32], rate: f64) -> bool {
+    let tail = samples.len().min((LIVE_EDGE_PAUSE_SECONDS * rate) as usize);
+    if tail == 0 {
+        return true;
+    }
+    let tail_rms = rms(&samples[samples.len() - tail..]);
+    tail_rms < (0.2 * rms(samples)).max(GATE_ABSOLUTE_FLOOR)
+}
+
+fn rms(samples: &[f32]) -> f32 {
+    if samples.is_empty() {
+        return 0.0;
+    }
+    (energy(samples) / samples.len() as f32).sqrt()
 }
 
 /// `LiveTranscriptChunker.refinedCutOffset`: the middle of the quietest
@@ -554,18 +578,41 @@ mod tests {
     }
 
     #[test]
+    fn waits_for_a_pause_at_the_live_edge() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join(SYSTEM_FILE);
+        let speech = |seconds: f64| -> Vec<f32> {
+            (0..(seconds * RATE) as usize)
+                .map(|i| 0.2 * (i as f32 * 2.0 * std::f32::consts::PI * 220.0 / 16_000.0).sin())
+                .collect()
+        };
+        // Still talking at the end of what has been recorded: wait.
+        lokalbot_audio::write_wav_16k(&path, &speech(6.0)).unwrap();
+        assert!(matches!(next_chunk(&path, 0).unwrap(), Chunk::NoWork));
+        // A pause at the end: transcribe up to it.
+        let mut paused = speech(6.0);
+        paused.extend(std::iter::repeat_n(0.0, (0.6 * RATE) as usize));
+        lokalbot_audio::write_wav_16k(&path, &paused).unwrap();
+        assert!(matches!(next_chunk(&path, 0).unwrap(), Chunk::Ready { .. }));
+        // Twelve seconds of uninterrupted speech are transcribed anyway.
+        lokalbot_audio::write_wav_16k(&path, &speech(13.0)).unwrap();
+        assert!(matches!(next_chunk(&path, 0).unwrap(), Chunk::Ready { .. }));
+    }
+
+    #[test]
     fn reads_a_growing_track_in_chunks() {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join(MIC_FILE);
-        let tone: Vec<f32> = (0..(6 * 16_000))
+        let mut tone: Vec<f32> = (0..(6 * 16_000))
             .map(|i| 0.2 * (i as f32 * 2.0 * std::f32::consts::PI * 220.0 / 16_000.0).sin())
             .collect();
+        tone.extend(std::iter::repeat_n(0.0, 8_000));
         lokalbot_audio::write_wav_16k(&path, &tone).unwrap();
         match next_chunk(&path, 0).unwrap() {
             Chunk::Ready {
                 samples, end_frame, ..
             } => {
-                assert!(end_frame <= 6 * 16_000 && end_frame > 4 * 16_000);
+                assert!(end_frame <= 6 * 16_000 + 8_000 && end_frame > 4 * 16_000);
                 assert_eq!(samples.len() as u64, end_frame);
             }
             _ => panic!("expected a chunk"),
