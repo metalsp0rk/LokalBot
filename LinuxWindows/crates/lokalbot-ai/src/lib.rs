@@ -20,6 +20,7 @@ pub mod json;
 pub mod language;
 pub mod notes;
 mod process;
+pub mod project_status;
 pub mod prompts;
 pub mod runtime;
 pub mod sanitize;
