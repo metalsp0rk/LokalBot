@@ -3,6 +3,8 @@
 # when installed, an xfce4-panel with a task list, system tray and clock), one
 # PNG per page. Usage: capture-linux.sh <lokalbot> <library> <out-dir> [pages...]
 set -euo pipefail
+# Under set -e a failing command would end the script without saying which.
+trap 'echo "capture-linux.sh: line $LINENO failed: $BASH_COMMAND" >&2' ERR
 
 # The tray needs a session bus that the panel and LokalBot share.
 if [ -z "${LB_CAPTURE_SESSION:-}" ] && command -v dbus-run-session >/dev/null; then
@@ -61,15 +63,42 @@ trap 'kill "${PIDS[@]}" 2>/dev/null || true; kill $XVFB 2>/dev/null || true' EXI
 sleep 1
 DISPLAY="$DISPLAY_NUM" xfwm4 --compositor=on >/tmp/lokalbot-xfwm4.log 2>&1 &
 PIDS+=($!)
-sleep 1
+# Runs a check every half second, for up to 30 s: on a busy machine the
+# desktop can take seconds to come up.
+wait_for() {
+  local what="$1"; shift
+  for _ in $(seq 60); do
+    "$@" && return 0
+    sleep 0.5
+  done
+  echo "capture-linux.sh: no $what after 30 s, capturing anyway" >&2
+}
+# GPUI draws its own frame and shadow only if, as it starts, the window
+# manager lists _GTK_FRAME_EXTENTS as supported on the root window. Otherwise
+# xfwm4 frames the window.
+wm_ready() {
+  local supported
+  supported=$(DISPLAY="$DISPLAY_NUM" xprop -root _NET_SUPPORTED 2>/dev/null) || return 1
+  [[ $supported == *_GTK_FRAME_EXTENTS* ]]
+}
+# The tray icon registers with the panel's StatusNotifier watcher.
+tray_ready() {
+  local reply
+  reply=$(dbus-send --session --print-reply --dest=org.freedesktop.DBus /org/freedesktop/DBus \
+    org.freedesktop.DBus.NameHasOwner string:org.kde.StatusNotifierWatcher 2>/dev/null) || return 1
+  [[ $reply == *"boolean true"* ]]
+}
+wait_for "window manager" wm_ready
 # A quiet wallpaper so the window and its shadow read as a desktop app.
 DISPLAY="$DISPLAY_NUM" hsetroot -add "#1d4e57" -add "#2b3446" -gradient 160 >/dev/null 2>&1 \
   || DISPLAY="$DISPLAY_NUM" xsetroot -solid '#2b3446' 2>/dev/null || true
 if [ -n "${LB_CAPTURE_SESSION:-}" ] && command -v xfce4-panel >/dev/null; then
   DISPLAY="$DISPLAY_NUM" xfce4-panel >/tmp/lokalbot-panel.log 2>&1 &
   PIDS+=($!)
-  sleep 3
+  wait_for "system tray" tray_ready
 fi
+# Time for the compositor and the panel to draw.
+sleep 2
 for page in "${PAGES[@]}"; do
   # Keep the pointer off the window from the start: moving the window later
   # leaves GPUI with a stale hover under the old pointer position.
@@ -96,9 +125,10 @@ for page in "${PAGES[@]}"; do
   # resize border GPUI reports in _GTK_FRAME_EXTENTS (left, right, top, bottom).
   if [ -n "$WID" ]; then
     eval "$(DISPLAY="$DISPLAY_NUM" xdotool getwindowgeometry --shell "$WID")"
-    read -r L R T B < <(DISPLAY="$DISPLAY_NUM" xprop -id "$WID" _GTK_FRAME_EXTENTS 2>/dev/null \
-      | sed -n 's/.*= *//p' | tr -d ',' ; true)
-    L=${L:-0}; R=${R:-0}; T=${T:-0}; B=${B:-0}
+    # Missing when xfwm4 framed the window: then the X geometry is the app.
+    extents=$(DISPLAY="$DISPLAY_NUM" xprop -id "$WID" _GTK_FRAME_EXTENTS 2>/dev/null \
+      | sed -n 's/.*= *//p' | tr -d ',') || true
+    read -r L R T B <<<"${extents:-0 0 0 0}"
     ffmpeg -loglevel error -y -i "$OUT/linux-desktop-$page$SUFFIX.png" \
       -vf "crop=$((WIDTH - L - R)):$((HEIGHT - T - B)):$((X + L)):$((Y + T))" "$OUT/linux-$page$SUFFIX.png"
   fi
