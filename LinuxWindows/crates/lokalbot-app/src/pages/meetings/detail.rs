@@ -200,8 +200,33 @@ impl MeetingsPage {
                 )
                 .into_any_element();
         }
-        let duration = doc.meeting.duration_seconds();
-        let current = f64::from(self.playhead) * duration;
+        if self.player.is_none() {
+            let label = if self.player_loading {
+                "Loading recording…"
+            } else {
+                "No recording available"
+            };
+            return ui::grouped_surface(cx)
+                .h(px(64.))
+                .px(px(12.))
+                .flex()
+                .items_center()
+                .gap(px(12.))
+                .text_color(lb.text_secondary)
+                .child(
+                    div()
+                        .size(px(30.))
+                        .rounded_full()
+                        .bg(lb.text_tertiary.opacity(0.7))
+                        .flex()
+                        .items_center()
+                        .justify_center()
+                        .child(crate::ui::waveform::play_glyph(px(12.), white())),
+                )
+                .child(div().text_size(ty::SECONDARY).child(label))
+                .into_any_element();
+        }
+        let (current, duration) = self.playback_times(doc.meeting.duration_seconds());
         let page = cx.entity().downgrade();
         let hover_page = page.clone();
         let speed_target = page.clone();
@@ -224,7 +249,15 @@ impl MeetingsPage {
                     .flex()
                     .items_center()
                     .justify_center()
-                    .child(crate::ui::waveform::play_glyph(px(12.), white()))
+                    .child(if self.playing {
+                        h_flex()
+                            .gap(px(3.))
+                            .child(div().w(px(3.)).h(px(11.)).rounded(px(1.)).bg(white()))
+                            .child(div().w(px(3.)).h(px(11.)).rounded(px(1.)).bg(white()))
+                            .into_any_element()
+                    } else {
+                        crate::ui::waveform::play_glyph(px(12.), white()).into_any_element()
+                    })
                     .tooltip(|window, cx| {
                         gpui_kit::component::tooltip::Tooltip::new("Play / pause (Space)")
                             .build(window, cx)
@@ -275,20 +308,15 @@ impl MeetingsPage {
                                 PopupMenuItem::new(speed_label(value))
                                     .checked((speed - value).abs() < 0.01)
                                     .on_click(move |_, _, cx| {
-                                        let _ = target.update(cx, |this, cx| {
-                                            this.speed = value;
-                                            cx.notify();
-                                        });
+                                        let _ =
+                                            target.update(cx, |this, cx| this.set_speed(value, cx));
                                     }),
                             );
                         }
                         let target = speed_target.clone();
                         menu.separator()
                             .item(PopupMenuItem::new("Reset to 1x").on_click(move |_, _, cx| {
-                                let _ = target.update(cx, |this, cx| {
-                                    this.speed = 1.;
-                                    cx.notify();
-                                });
+                                let _ = target.update(cx, |this, cx| this.set_speed(1., cx));
                             }))
                     }),
             )
@@ -915,8 +943,11 @@ impl MeetingsPage {
                                             .small()
                                             .icon(Icon::new(Ico::Play))
                                             .label("Listen")
-                                            .disabled(!doc.has_audio)
-                                            .on_click(cx.listener(|this, _, _, cx| this.toggle_playback(cx))),
+                                            .disabled(self.player.is_none())
+                                            .on_click({
+                                                let sample = speaker.sample.as_ref().map(|(start, _)| *start).unwrap_or(0.);
+                                                cx.listener(move |this, _, _, cx| this.play_excerpt(sample, sample + 12., cx))
+                                            }),
                                     )
                                 })
                                 .child(
@@ -1072,21 +1103,6 @@ impl MeetingsPage {
             window,
             cx,
         );
-    }
-
-    // ------------------------------------------------------------- playback
-
-    /// Playback arrives with `lokalbot-audio`; until then the bar only moves
-    /// its playhead.
-    pub(super) fn toggle_playback(&mut self, cx: &mut Context<Self>) {
-        self.data.update(cx, |data, cx| {
-            data.show_message("Playback is not connected yet in this build.", cx)
-        });
-    }
-
-    fn seek(&mut self, at: f32, cx: &mut Context<Self>) {
-        self.playhead = at.clamp(0., 1.);
-        cx.notify();
     }
 }
 

@@ -22,6 +22,8 @@ pub struct MeetingDoc {
     pub notes: String,
     pub outcomes: Option<MeetingOutcomes>,
     pub has_audio: bool,
+    pub mic: Option<PathBuf>,
+    pub system: Option<PathBuf>,
     /// Waveform overview, when the audio could be read.
     pub peaks: Option<Arc<[f32]>>,
     pub actions: Vec<MeetingAction>,
@@ -261,18 +263,23 @@ pub fn load(library: &Library, meeting: Meeting) -> MeetingDoc {
     let notes = library.notes(&meeting).unwrap_or_default();
     let outcomes = library.outcomes(&meeting).ok().flatten();
     let audio = library.audio(&meeting);
-    let has_audio = audio.mic.is_some() || audio.system.is_some();
-    let peaks = [audio.mic.as_deref(), audio.system.as_deref()]
+    // The player reads the 16 kHz WAV tracks this app records; macOS
+    // libraries keep `.m4a`, which plays only on macOS.
+    let is_wav = |p: &&Path| p.extension().is_some_and(|e| e.eq_ignore_ascii_case("wav"));
+    let mic = audio.mic.clone().filter(|p| is_wav(&p.as_path()));
+    let system = audio.system.clone().filter(|p| is_wav(&p.as_path()));
+    let has_audio = mic.is_some() || system.is_some();
+    let tracks: Vec<&Path> = [mic.as_deref(), system.as_deref()]
         .into_iter()
         .flatten()
-        .filter_map(|path| wav_peaks(path, 720))
-        .reduce(|a, b| {
-            a.iter()
-                .zip(b.iter().chain(std::iter::repeat(&0.)))
-                .map(|(x, y)| x.max(*y))
-                .collect()
+        .collect();
+    let peaks = (!tracks.is_empty())
+        .then(|| lokalbot_audio::waveform_peaks(&tracks, 720))
+        .and_then(|result| {
+            result
+                .map_err(|err| log::warn!("waveform for {}: {err:#}", meeting.id))
+                .ok()
         })
-        .map(normalize)
         .map(Arc::from);
 
     let speakers = Speakers::new(transcript.as_ref());
@@ -324,6 +331,8 @@ pub fn load(library: &Library, meeting: Meeting) -> MeetingDoc {
         notes,
         outcomes,
         has_audio,
+        mic,
+        system,
         peaks,
         actions,
         decisions,
@@ -680,78 +689,6 @@ pub fn transcript_text(doc: &MeetingDoc) -> String {
         })
         .collect::<Vec<_>>()
         .join("\n")
-}
-
-// ------------------------------------------------------------------- audio
-
-/// Peak overview of a PCM WAV track, max-pooled into `buckets`.
-///
-/// Stand-in until `lokalbot_audio::waveform_peaks` is wired; other formats
-/// (`.m4a` from macOS libraries) return `None`.
-pub fn wav_peaks(path: &Path, buckets: usize) -> Option<Vec<f32>> {
-    if path
-        .extension()
-        .is_none_or(|e| !e.eq_ignore_ascii_case("wav"))
-    {
-        return None;
-    }
-    let bytes = std::fs::read(path).ok()?;
-    if bytes.len() < 12 || &bytes[0..4] != b"RIFF" || &bytes[8..12] != b"WAVE" {
-        return None;
-    }
-    let mut pos = 12;
-    let (mut format, mut channels, mut bits) = (0u16, 1u16, 16u16);
-    let mut data: Option<&[u8]> = None;
-    while pos + 8 <= bytes.len() {
-        let id = &bytes[pos..pos + 4];
-        let len = u32::from_le_bytes(bytes[pos + 4..pos + 8].try_into().ok()?) as usize;
-        let body = &bytes[pos + 8..(pos + 8 + len).min(bytes.len())];
-        if id == b"fmt " && body.len() >= 16 {
-            format = u16::from_le_bytes([body[0], body[1]]);
-            channels = u16::from_le_bytes([body[2], body[3]]).max(1);
-            bits = u16::from_le_bytes([body[14], body[15]]);
-        } else if id == b"data" {
-            data = Some(body);
-        }
-        pos += 8 + len + (len & 1);
-    }
-    let data = data?;
-    let frame_bytes = usize::from(bits / 8) * usize::from(channels);
-    if frame_bytes == 0 || buckets == 0 {
-        return None;
-    }
-    let frames = data.len() / frame_bytes;
-    if frames == 0 {
-        return None;
-    }
-    let sample = |frame: usize| -> f32 {
-        let offset = frame * frame_bytes;
-        match (format, bits) {
-            (1, 16) => i16::from_le_bytes([data[offset], data[offset + 1]]) as f32 / 32768.,
-            (3, 32) | (0xFFFE, 32) => {
-                f32::from_le_bytes(data[offset..offset + 4].try_into().unwrap_or([0; 4]))
-            }
-            _ => 0.,
-        }
-    };
-    let mut peaks = vec![0f32; buckets];
-    // Sample sparsely: a few thousand reads per bucket is plenty for an overview.
-    let stride = (frames / (buckets * 2000)).max(1);
-    let mut frame = 0;
-    while frame < frames {
-        let bucket = frame * buckets / frames;
-        peaks[bucket] = peaks[bucket].max(sample(frame).abs());
-        frame += stride;
-    }
-    Some(peaks)
-}
-
-fn normalize(peaks: Vec<f32>) -> Vec<f32> {
-    let max = peaks.iter().copied().fold(0., f32::max);
-    if max <= f32::EPSILON {
-        return peaks;
-    }
-    peaks.into_iter().map(|p| (p / max).sqrt()).collect()
 }
 
 #[cfg(test)]

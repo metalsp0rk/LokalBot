@@ -7,6 +7,7 @@ pub(crate) mod dialogs;
 mod list;
 mod live;
 pub mod model;
+mod playback;
 mod transcript;
 
 use std::cell::Cell;
@@ -120,6 +121,10 @@ pub struct MeetingsPage {
     hover: Option<f32>,
     playhead: f32,
     speed: f32,
+    player: Option<std::sync::Arc<lokalbot_audio::Player>>,
+    player_loading: bool,
+    playing: bool,
+    poll: Option<Task<()>>,
     page_bounds: Rc<Cell<Option<Bounds<Pixels>>>>,
     tick: Option<Task<()>>,
     _subscriptions: Vec<Subscription>,
@@ -237,6 +242,10 @@ impl MeetingsPage {
             hover: None,
             playhead: 0.,
             speed: 1.,
+            player: None,
+            player_loading: false,
+            playing: false,
+            poll: None,
             page_bounds: Rc::new(Cell::new(None)),
             tick: None,
             _subscriptions: subscriptions,
@@ -263,6 +272,9 @@ impl MeetingsPage {
                 self.find.open = false;
             }
             cx.notify();
+        }
+        if self.playing && self.data.read(cx).section != crate::state::Section::Meetings {
+            self.pause_playback();
         }
         let revision = self.data.read(cx).revision;
         if revision != self.loaded_revision {
@@ -310,6 +322,7 @@ impl MeetingsPage {
             return;
         }
         self.flush_notes(cx);
+        self.stop_playback();
         self.selected = Some(id);
         self.focus_at = None;
         self.recap_expanded = false;
@@ -348,6 +361,7 @@ impl MeetingsPage {
                 this.doc_loading = false;
                 if switched {
                     this.load_notes_editor(window, cx);
+                    this.open_player(cx);
                 }
                 this.update_find_matches(false, cx);
                 this.reveal_focus();

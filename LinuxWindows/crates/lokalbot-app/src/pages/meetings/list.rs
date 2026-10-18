@@ -115,6 +115,9 @@ impl MeetingsPage {
             return;
         }
         match event.keystroke.key.as_str() {
+            "space" => self.toggle_playback(cx),
+            "left" => self.seek_by(-5., cx),
+            "right" => self.seek_by(5., cx),
             "up" => self.move_selection(-1, window, cx),
             "down" => self.move_selection(1, window, cx),
             "delete" => {

@@ -238,11 +238,8 @@ impl MeetingsPage {
             })
             .on_click(cx.listener(move |this, _, _, cx| {
                 this.focus_at = Some(start);
-                if let Some(doc) = this.doc.as_ref() {
-                    let duration = doc.meeting.duration_seconds();
-                    if duration > 0. {
-                        this.playhead = (start / duration).clamp(0., 1.) as f32;
-                    }
+                if this.player.is_some() {
+                    this.play_from(start, cx);
                 }
                 cx.notify();
             }));
