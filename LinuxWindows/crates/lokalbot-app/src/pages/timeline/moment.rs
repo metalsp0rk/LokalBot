@@ -148,6 +148,7 @@ impl TimelinePage {
                 }
                 Some(ScreenImage::Unavailable(reason)) => frame.child(
                     v_flex()
+                        .w_full()
                         .items_center()
                         .gap(px(6.))
                         .px(px(24.))
@@ -158,6 +159,7 @@ impl TimelinePage {
                         ))
                         .child(
                             div()
+                                .w_full()
                                 .text_center()
                                 .text_size(ty::SECONDARY)
                                 .text_color(gpui_kit::white().opacity(0.8))
