@@ -8,15 +8,20 @@
 //! Errors are `anyhow::Error`; the ones callers act on are [`AiError`] values
 //! inside it (`err.downcast_ref::<AiError>()`).
 
+pub mod ask;
 pub mod catalog;
+pub mod dictation;
 pub mod digest;
 pub mod download;
+pub mod embeddings;
 mod error;
+pub mod follow_up;
 mod http;
 pub mod json;
 pub mod language;
 pub mod notes;
 mod process;
+pub mod project_status;
 pub mod prompts;
 pub mod runtime;
 pub mod sanitize;

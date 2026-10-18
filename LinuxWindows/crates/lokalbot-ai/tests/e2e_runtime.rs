@@ -271,3 +271,104 @@ fn generates_a_digest_for_a_fixture_day() {
     assert!(!parsed.tasks.is_empty());
     runtime.shutdown();
 }
+
+#[test]
+#[ignore = "needs the runtime and models from installs_runtime_downloads_models_and_answers"]
+fn asks_dictates_and_drafts_with_the_real_model() {
+    let _ = env_logger::builder()
+        .is_test(true)
+        .filter_level(log::LevelFilter::Info)
+        .try_init();
+    let root = e2e_root();
+    let model =
+        std::env::var("LOKALBOT_E2E_MODEL").unwrap_or_else(|_| catalog::COMPACT_FALLBACK_ID.into());
+    let mut settings = Settings {
+        built_in_model_id: model,
+        llama_backend: "auto".into(),
+        ..Settings::default()
+    };
+    let runtime = RuntimeManager::new(LibraryPaths::new(&root), &settings);
+    let think = ThinkClient::new(&runtime, &settings).unwrap();
+    let (_dir, library) = fixture_library();
+    let cancel = AtomicBool::new(false);
+
+    let started = Instant::now();
+    let indexed =
+        lokalbot_ai::embeddings::index_pending(&runtime, &library, &cancel, &mut |_, _| {})
+            .expect("index meetings");
+    eprintln!(
+        "indexed {indexed} meetings in {:.1}s",
+        started.elapsed().as_secs_f64()
+    );
+
+    let started = Instant::now();
+    let mut events = Vec::new();
+    let message = lokalbot_ai::ask::answer(
+        &think,
+        &library,
+        "What does Northwind need before a company-wide rollout?",
+        &[],
+        &lokalbot_ai::ask::AskScope::default(),
+        &cancel,
+        &mut |event| events.push(event),
+    )
+    .expect("ask answers");
+    eprintln!(
+        "ask in {:.1}s ({} events):\n{}",
+        started.elapsed().as_secs_f64(),
+        events.len(),
+        message.text
+    );
+    assert!(!message.text.trim().is_empty());
+
+    settings.dictation_intent = lokalbot_core::settings::DictationIntent::Compose;
+    for speech in [
+        "um so lets meet on friday at 3 pm and uh bring the slides",
+        "draft a short reply saying friday works for me",
+    ] {
+        let started = Instant::now();
+        let text = lokalbot_ai::dictation::prepare(&think, speech, &settings).expect("dictation");
+        eprintln!(
+            "dictation {speech:?} -> {text:?} in {:.1}s",
+            started.elapsed().as_secs_f64()
+        );
+        assert!(!text.is_empty());
+    }
+
+    let meeting = library
+        .list_meetings()
+        .unwrap()
+        .into_iter()
+        .find(|m| m.title == "Customer call - Northwind")
+        .expect("fixture meeting");
+    let started = Instant::now();
+    match lokalbot_ai::follow_up::generate(&think, &library, &meeting) {
+        Ok(draft) => eprintln!(
+            "follow-up in {:.1}s:\nSubject: {}\n{}",
+            started.elapsed().as_secs_f64(),
+            draft.subject,
+            draft.body
+        ),
+        Err(err) => eprintln!("follow-up failed: {err:#}"),
+    }
+
+    if let Some(project) = library
+        .projects()
+        .unwrap()
+        .into_iter()
+        .find(|p| !p.meetings.is_empty())
+    {
+        let started = Instant::now();
+        match lokalbot_ai::project_status::generate(&think, &library, &project) {
+            Ok(summary) => eprintln!(
+                "project {:?} in {:.1}s: {}\n{:#?}",
+                project.name,
+                started.elapsed().as_secs_f64(),
+                summary.overview,
+                summary.points
+            ),
+            Err(err) => eprintln!("project status failed: {err:#}"),
+        }
+    }
+    runtime.shutdown();
+}
