@@ -9,7 +9,9 @@
 //! readable through the read tool, which the extension gates.
 //!
 //! Additions on Linux and Windows: Bun runs with `--no-install` so a missing
-//! import can never be fetched from npm at run time; `LOKALBOT_STORAGE_ROOT`
+//! import can never be fetched from npm at run time, and without its
+//! transpiler cache, which would keep compiled copies of pi in the user's
+//! `~/.bun`, outside the audited runtime; `LOKALBOT_STORAGE_ROOT`
 //! points the bundled `lokalbot-cli` at this library; on Windows without Bash
 //! the model gets pi's PowerShell tool instead (see [`crate::shell`]).
 
@@ -157,6 +159,7 @@ pub fn plan(inputs: PlanInputs<'_>) -> LaunchPlan {
     );
     set(&mut env, "PI_SKIP_VERSION_CHECK", Some("1".into()));
     set(&mut env, "PI_TELEMETRY", Some("0".into()));
+    set(&mut env, "BUN_RUNTIME_TRANSPILER_CACHE_PATH", Some("0".into()));
     set(
         &mut env,
         "PI_CODING_AGENT_DIR",
@@ -317,6 +320,7 @@ mod tests {
         assert!(!env.contains_key(ENV_API_KEY));
         assert_eq!(env["PI_SKIP_VERSION_CHECK"], "1");
         assert_eq!(env["PI_TELEMETRY"], "0");
+        assert_eq!(env["BUN_RUNTIME_TRANSPILER_CACHE_PATH"], "0");
         assert_eq!(env["PI_CODING_AGENT_DIR"], "/store/agent/pi-config");
         assert_eq!(env[lokalbot_core::paths::STORAGE_ROOT_ENV], "/store");
         let separator = if cfg!(windows) { ";" } else { ":" };
