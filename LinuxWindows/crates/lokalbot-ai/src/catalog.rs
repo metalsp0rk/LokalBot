@@ -327,7 +327,7 @@ static CATALOG: [ModelEntry; 15] = [
             "Q8_0",
             309_855_456,
             "2188ac1deca4b77dffefd603c2776a9d76d9d74ec01841392982ebb840b09135",
-            "Search by meaning across meetings and screen text.",
+            "Search by meaning across your meetings.",
             false,
             false,
         )

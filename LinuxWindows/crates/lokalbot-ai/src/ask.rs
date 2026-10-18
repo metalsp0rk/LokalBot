@@ -395,13 +395,16 @@ fn record(
 /// catalogue: sources are retrieved up front and supplied in the user
 /// message, so one model turn answers.
 fn system_prompt(think: &ThinkClient, include_screen: bool) -> String {
-    let screen = if include_screen {
-        "\n• When part of your final answer comes from a screen source, append the exact [screen:ID] marker that source shows. The app renders it as a private, local thumbnail linking to that captured moment. Never invent a screen id."
+    let (context, screen) = if include_screen {
+        (
+            ", and about their workday context — text seen on screen and time spent in apps",
+            "\n• When part of your final answer comes from a screen source, append the exact [screen:ID] marker that source shows. The app renders it as a private, local thumbnail linking to that captured moment. Never invent a screen id.",
+        )
     } else {
-        ""
+        ("", "")
     };
     format!(
-        "You are LokalBot's assistant. You answer questions about the user's on-device meeting recordings, transcripts and summaries, and about their workday context — text seen on screen and time spent in apps. The source library is stored on this PC. {} Be concise and specific, and cite meetings by their title and date. Never invent content — answer only from the sources in the user message, and if they hold nothing relevant, reply exactly: {NOT_FOUND}
+        "You are LokalBot's assistant. You answer questions about the user's on-device meeting recordings, transcripts and summaries{context}. The source library is stored on this PC. {} Be concise and specific, and cite meetings by their title and date. Never invent content — answer only from the sources in the user message, and if they hold nothing relevant, reply exactly: {NOT_FOUND}
 
 Citing sources:
 • When part of your final answer comes from a specific meeting, append a citation marker right after that sentence: [meeting:ID], or [meeting:ID@HH:MM:SS] to point at a moment in the transcript. Use the exact meeting id a source shows — never invent one. Use only a timestamp explicitly shown in a source. The app renders markers as links; don't explain them.{screen}",
