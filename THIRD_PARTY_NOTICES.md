@@ -29,6 +29,7 @@ the vendor fetch scripts, and `AgentRuntimeManifest`.
 | Bun (optional Agent Mode runtime) | MIT | https://github.com/oven-sh/bun |
 | pi agent packages (optional, installed on request) | MIT | https://github.com/earendil-works/pi |
 | LFM models (downloaded on request) | LFM Open License v1.0 | https://docs.liquid.ai/lfm/help/model-license |
+| ocrs text detection and recognition models (Linux and Windows screen text; downloaded on request) | CC-BY-SA-4.0 | https://github.com/robertknight/ocrs-models |
 | Parakeet Ultra (downloaded on request; moondream post-training of NVIDIA Parakeet v3, Core ML conversion by FluidInference) | CC-BY-4.0 | https://huggingface.co/moondream/parakeet-ultra / https://huggingface.co/FluidInference/parakeet-ultra-coreml |
 
 Downloaded AI models are not bundled with LokalBot. Each model remains subject
@@ -74,6 +75,26 @@ and the date LokalBot's modifications began:
 - `LokalBot/Cotyping/CotypingSurfaceContext.swift`
 - `LokalBot/Cotyping/CotypingTextNormalizer.swift`
 - `LokalBot/Cotyping/CotypingTypo.swift`
+
+The Linux and Windows app (`LinuxWindows/`) ports the same code to Rust, with
+the same header, in:
+
+- `LinuxWindows/crates/lokalbot-ai/src/autocomplete/emoji.rs`
+- `LinuxWindows/crates/lokalbot-ai/src/autocomplete/normalize.rs`
+- `LinuxWindows/crates/lokalbot-ai/src/autocomplete/prompt.rs`
+- `LinuxWindows/crates/lokalbot-ai/src/autocomplete/seam.rs`
+- `LinuxWindows/crates/lokalbot-ai/src/autocomplete/surface.rs`
+- `LinuxWindows/crates/lokalbot-ai/src/autocomplete/window.rs`
+- `LinuxWindows/crates/lokalbot-app/src/autocomplete/layout.rs`
+- `LinuxWindows/crates/lokalbot-app/src/autocomplete/mod.rs`
+- `LinuxWindows/crates/lokalbot-engine/src/autocomplete.rs`
+- `LinuxWindows/crates/lokalbot-platform/src/autocomplete/atspi.rs`
+- `LinuxWindows/crates/lokalbot-platform/src/autocomplete/geometry.rs`
+- `LinuxWindows/crates/lokalbot-platform/src/autocomplete/mod.rs`
+- `LinuxWindows/crates/lokalbot-platform/src/autocomplete/policy.rs`
+- `LinuxWindows/crates/lokalbot-platform/src/autocomplete/uia.rs`
+- `LinuxWindows/crates/lokalbot-platform/src/autocomplete/win32.rs`
+- `LinuxWindows/crates/lokalbot-platform/src/autocomplete/x11.rs`
 
 ## MIT License
 

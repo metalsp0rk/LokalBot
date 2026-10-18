@@ -28,7 +28,10 @@ More screenshots of both apps are in [docs/screenshots](docs/screenshots).
 | Meeting detection | ✓ (PulseAudio source outputs) | ✓ (WASAPI capture sessions) | Asks with a notification by default. |
 | System tray, launch at login | ✓ (StatusNotifierItem; GNOME needs the AppIndicator extension) | ✓ | |
 | `lokalbot-cli` + MCP for coding agents | ✓ | ✓ | Read-only, off until you allow it in Settings → Privacy & Data. |
-| Agent Mode, autocomplete, live transcript | — | — | macOS only for now. |
+| Live transcript preview while recording | ✓ | ✓ | Opt-in from the live meeting view. Each track is transcribed in 4–12 s chunks cut at a pause, as Me and Remote speaker; the full transcript replaces it after the meeting. |
+| Autocomplete in other apps | X11 (GTK; Qt, Chromium/Electron and Firefox once system accessibility is on); Wayland: the practice editor in Settings only | ✓ (apps whose fields support UI Automation) | Off until you turn it on in Settings → Writing. LFM2.5 1.2B on this computer by default, about 250 ms to a suggestion on CPU. Tab accepts a word, Esc dismisses. Password fields, terminals and excluded apps are never read, and nothing is stored. |
+| Agent Mode | ✓ | ✓ (Git Bash, or PowerShell without it) | Runs the pi coding agent with your Think model. Setup downloads Bun and pi (pinned and checksum-verified, about 65 MB). File changes and commands need your approval. |
+| Calendar, meeting merge and boundaries, spoken summaries, coding-agent sessions in day memory | — | — | macOS only for now. |
 
 ## Install
 
@@ -82,12 +85,14 @@ library used for the screenshots.
 
 ```text
 crates/
-├── lokalbot-core      Library format (macOS-compatible), SQLite search, actions, timeline, settings
-├── lokalbot-ai        Model catalog, downloads, llama.cpp runtime, Think/embedding clients, prompts
+├── lokalbot-core      Library format (macOS-compatible), SQLite search, actions, timeline, settings, screen moments
+├── lokalbot-ai        Model catalog, downloads, llama.cpp runtime, Think/embedding clients, prompts, autocomplete, OCR
 ├── lokalbot-audio     Microphone + system audio capture, playback, waveforms
 ├── lokalbot-speech    sherpa-onnx transcription, voice activity detection, speaker separation
-├── lokalbot-platform  Activity sampling, global shortcuts, text insertion, tray, notifications
-├── lokalbot-engine    Background work: recording, processing queue, Ask, digests, day memory, dictation
+├── lokalbot-platform  Activity, screen capture, text fields and keys for autocomplete, shortcuts, tray, notifications
+├── lokalbot-engine    Background work: recording, live transcript, processing queue, Ask, digests, day memory,
+│                      screen context, dictation, autocomplete
+├── lokalbot-agent     Agent Mode: the pinned Bun + pi runtime, sessions, approvals
 ├── lokalbot-cli       Read-only CLI and stdio MCP server
 └── lokalbot-app       The GPUI app
 ```

@@ -1,6 +1,6 @@
 # LokalBot Privacy Policy
 
-Effective: October 15, 2026
+Effective: October 18, 2026
 
 LokalBot is a local-first macOS application. It has no LokalBot account,
 analytics service, advertising SDK, or telemetry backend. The project does not
@@ -721,6 +721,44 @@ decryption flag and produce owner-only ordinary image/text files. Private model
 runs require a pinned cached revision, safe tensor weights, disabled remote model
 code, and a network-denied macOS sandbox. Delete exported fixtures and results
 after review; application retention does not manage benchmark copies.
+
+## LokalBot for Linux and Windows
+
+The Linux and Windows app (`LinuxWindows/`) follows this policy with these
+platform differences:
+
+- **Storage.** The library is in `~/.local/share/LokalBot` on Linux and
+  `%LOCALAPPDATA%\LokalBot` on Windows, with logs in its `logs` folder. API
+  keys and the screen-image key are kept in the system credential store
+  (Secret Service on Linux, Windows Credential Manager).
+- **Screen context** is off until you turn it on.
+  - Visible text is read through accessibility first (AT-SPI on Linux, UI
+    Automation on Windows). Otherwise on-device OCR is used; its model
+    downloads only when you ask for it in Settings.
+  - Secrets are redacted before anything is stored, and an image is dropped
+    when anything was redacted.
+  - Excluded apps and sites, private and incognito windows, focused password
+    fields, the lock screen and LokalBot's own windows are not captured.
+  - Images are kept only in the text-and-images mode, encrypted with AES-GCM
+    under a key in the credential store; without one, only text is kept.
+    Retention works as described above.
+- **Autocomplete** is off until you turn it on.
+  - It reads the focused field's text around the caret, and nearby visible
+    text, through accessibility.
+  - It never reads password fields, terminals, excluded apps or LokalBot's own
+    windows.
+  - Nothing it reads is stored. Suggestions come from the local Autocomplete
+    model, and accepted text is typed into the field without the clipboard.
+- **Agent Mode** is off until you set it up.
+  - Setup downloads Bun from GitHub and the pi agent packages from npm, both
+    pinned and checksum-verified.
+  - File changes and commands need your approval. Session history stays in
+    the library.
+- **The live transcript preview** runs only when you start it during a
+  recording. It uses the local transcription model and is not saved; the
+  full transcript replaces it after the meeting.
+- **Network access** is limited to model and runtime downloads you request,
+  Agent Mode setup, and AI servers you approve.
 
 ## Security and changes
 
