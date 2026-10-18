@@ -81,7 +81,25 @@ pub enum ProjectKind {
     Suggested,
 }
 
-/// A project joined with its meetings, actions and decisions.
+/// A line that names a project, cut to fit around the name.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ProjectMention {
+    pub meeting_id: Uuid,
+    pub text: String,
+    /// Transcript time to open the meeting at, for transcript lines.
+    pub seek: Option<f64>,
+}
+
+/// Tracked window time for a project in the last 7 days.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ProjectWindowTime {
+    pub app: String,
+    pub title: String,
+    pub seconds: f64,
+}
+
+/// A project joined with its meetings, actions and decisions
+/// (`ProjectLinks.swift`).
 #[derive(Clone, Debug, PartialEq)]
 pub struct ProjectProfile {
     /// `tracked:<UUID>` or `topic:<normalized name>`.
@@ -89,11 +107,42 @@ pub struct ProjectProfile {
     pub kind: ProjectKind,
     pub name: String,
     pub other_names: Vec<String>,
+    /// Newest first.
     pub meetings: Vec<MeetingRef>,
+    /// Up to three lines per meeting naming the project.
+    pub mentions: Vec<ProjectMention>,
+    /// The user's open work on the project, attention order.
     pub my_actions: Vec<ActionThread>,
+    /// Other people's open work mentioned in the last 14 days or due ahead.
     pub others_actions: Vec<ActionThread>,
+    /// Other people's open work last mentioned long ago.
+    pub older_others_actions: Vec<ActionThread>,
+    /// Newest first, at most 8.
     pub decisions: Vec<(MeetingRef, Decision)>,
+    /// Up to eight people from the project's meetings.
     pub people: Vec<String>,
+    /// Tracked window time naming the project in the last 7 days.
     pub week_seconds: f64,
+    /// `(YYYY-MM-DD, seconds)`, newest day first.
+    pub days: Vec<(String, f64)>,
+    pub windows: Vec<ProjectWindowTime>,
+    pub last_active: Option<DateTime<Utc>>,
+    /// The saved "Where it stands" note.
     pub summary: Option<ProjectSummary>,
+}
+
+impl ProjectProfile {
+    pub fn is_tracked(&self) -> bool {
+        self.kind == ProjectKind::Tracked
+    }
+
+    pub fn tracked_id(&self) -> Option<Uuid> {
+        self.id
+            .strip_prefix("tracked:")
+            .and_then(|id| Uuid::parse_str(id).ok())
+    }
+
+    pub fn open_action_count(&self) -> usize {
+        self.my_actions.len() + self.others_actions.len()
+    }
 }

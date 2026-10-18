@@ -980,7 +980,7 @@ const TODAY_BLOCKS: &[(&str, &str, i64, i64)] = &[
     ),
     (
         "LibreOffice Calc",
-        "Studio budget 2026.ods - LibreOffice Calc",
+        "Laptop refresh budget.ods - LibreOffice Calc",
         128,
         102,
     ),
@@ -1132,7 +1132,7 @@ fn shots() -> Vec<Shot> {
         },
         Shot {
             app: "LibreOffice Calc",
-            title: "Studio budget 2026.ods - LibreOffice Calc",
+            title: "Laptop refresh budget.ods - LibreOffice Calc",
             when: When::Ago(118),
             text: "Two workstation laptops for editors, three light laptops for sales, extended warranty on all.",
             note: Some("Laptop refresh budget"),
