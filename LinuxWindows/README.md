@@ -12,7 +12,7 @@ summaries, search and the read-only CLI/MCP server all run on your computer by d
 | --- | --- | --- | --- |
 | Meetings: record mic + system audio | ✓ (PulseAudio/PipeWire monitor) | ✓ (WASAPI loopback) | No bot joins the call. Tracks are 16 kHz WAV files. |
 | On-device transcription | ✓ | ✓ | sherpa-onnx: Qwen3-ASR 0.6B by default; Parakeet v3, SenseVoice and Whisper turbo optional. Speakers are separated with pyannote segmentation and TitaNet embeddings. |
-| Notes, actions, decisions, day digest, project notes | ✓ | ✓ | The macOS prompts, run by the built-in llama.cpp server (Vulkan or CPU), Ollama, or an OpenAI-compatible server you approve. |
+| Notes, actions, decisions, day digest, project notes, follow-up drafts | ✓ | ✓ | The macOS prompts, run by the built-in llama.cpp server (Vulkan or CPU), Ollama, or an OpenAI-compatible server you approve. Follow-ups are written only by a model on your computer, and LokalBot never sends them. |
 | Ask with citations | ✓ | ✓ | Finds the relevant meetings first (keyword and meaning search), then answers in one model turn. Every citation is checked against the sources it was given. |
 | Keyword and meaning search, Quick Recall | ✓ | ✓ | SQLite FTS5 plus EmbeddingGemma vectors, kept up to date in the background. |
 | Day memory (app and window activity) | X11, Hyprland, Sway, KDE; GNOME with the Window Calls extension | ✓ | Window titles are cleared after the retention window in Privacy settings. Screen text and images are not captured in this version. |
