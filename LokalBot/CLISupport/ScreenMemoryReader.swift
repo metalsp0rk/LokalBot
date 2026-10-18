@@ -231,6 +231,71 @@ struct SQLiteScreenMemoryReader: ScreenMemoryReading {
     }
 
     func search(_ request: ScreenMemorySearchRequest) throws -> [ScreenMemorySearchHit] {
+        // FTS5 cannot see words inside a run of CJK text; see `CJKSearch`.
+        if CJKSearch.containsCJK(request.query) {
+            return try substringSearch(request, cjkRowsOnly: false)
+        }
+        let hits = try ftsSearch(request)
+        guard hits.isEmpty else { return hits }
+        // A Latin word glued to CJK text ("比如logo再大") is part of that run's token.
+        return try substringSearch(request, cjkRowsOnly: true)
+    }
+
+    /// Substring counterpart of `ftsSearch`: any term in the text or window
+    /// title, ranked by how many terms matched and then by recency, with
+    /// snippets built from the stored text.
+    private func substringSearch(_ request: ScreenMemorySearchRequest,
+                                 cjkRowsOnly: Bool) throws -> [ScreenMemorySearchHit] {
+        let terms = CJKSearch.terms(from: request.query)
+        guard !terms.isEmpty else { return [] }
+        return try withConnection { connection in
+            var bindings: [SQLiteReadValue] = []
+            let termMatches = terms.map { term -> String in
+                bindings.append(.text(CJKSearch.likePattern(for: term)))
+                let pattern = "?\(bindings.count)"
+                return "(text LIKE \(pattern) \(CJKSearch.likeEscapeClause)"
+                    + " OR window_title LIKE \(pattern) \(CJKSearch.likeEscapeClause))"
+            }
+            var sql = """
+                SELECT CAST(snapshot_id AS INTEGER), CAST(ts AS REAL), app,
+                       window_title, text_source, text
+                FROM ocr_fts WHERE (\(termMatches.joined(separator: " OR ")))
+                  AND CAST(snapshot_id AS INTEGER) > 0
+                """
+            if cjkRowsOnly {
+                bindings.append(.text(CJKSearch.rowGlobPattern))
+                sql += " AND (text GLOB ?\(bindings.count) OR window_title GLOB ?\(bindings.count))"
+            }
+            if let start = request.start {
+                bindings.append(.double(start.timeIntervalSince1970))
+                sql += " AND CAST(ts AS REAL) >= ?\(bindings.count)"
+            }
+            if let end = request.end {
+                bindings.append(.double(end.timeIntervalSince1970))
+                sql += " AND CAST(ts AS REAL) < ?\(bindings.count)"
+            }
+            if let app = request.app, !app.isEmpty {
+                bindings.append(.text(app))
+                sql += " AND instr(lower(app), lower(?\(bindings.count))) > 0"
+            }
+            bindings.append(.int64(Int64(request.limit)))
+            let matchedTerms = termMatches.map { "IFNULL(\($0), 0)" }.joined(separator: " + ")
+            sql += " ORDER BY (\(matchedTerms)) DESC, CAST(ts AS REAL) DESC LIMIT ?\(bindings.count)"
+
+            return try connection.query(sql, bindings: bindings) { row in
+                let text = Self.text(row, 5)
+                return ScreenMemorySearchHit(
+                    snapshotID: sqlite3_column_int64(row, 0),
+                    capturedAt: Date(timeIntervalSince1970: sqlite3_column_double(row, 1)),
+                    app: Self.text(row, 2),
+                    windowTitle: Self.text(row, 3),
+                    textSource: Self.text(row, 4),
+                    snippet: CJKSearch.snippet(in: text, terms: terms) ?? String(text.prefix(72)))
+            }
+        }
+    }
+
+    private func ftsSearch(_ request: ScreenMemorySearchRequest) throws -> [ScreenMemorySearchHit] {
         let terms = request.query
             .components(separatedBy: CharacterSet.alphanumerics.inverted)
             .filter { !$0.isEmpty }
