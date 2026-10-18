@@ -627,7 +627,19 @@ impl MeetingsPage {
                 .into_any_element(),
         );
         if let Some(due) = action.due.clone() {
-            meta.push(action_row::due_chip(due, false, cx).into_any_element());
+            let label: gpui_kit::SharedString = action
+                .due_label
+                .clone()
+                .unwrap_or_else(|| due.clone())
+                .into();
+            meta.push(
+                action_row::due_chip(due, false, cx)
+                    .id(("action-due", ix))
+                    .tooltip(move |window, cx| {
+                        gpui_kit::component::tooltip::Tooltip::new(label.clone()).build(window, cx)
+                    })
+                    .into_any_element(),
+            );
         }
         if let Some(citation) = action.citation.clone() {
             let start = citation.start;

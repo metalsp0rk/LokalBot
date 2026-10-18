@@ -9,8 +9,8 @@ use std::sync::Arc;
 use chrono::{DateTime, Local, Utc};
 use gpui_kit::SharedString;
 use lokalbot_core::{
-    ActionItem, ActionState, ActionStatus, Decision, Library, Meeting, MeetingOutcomes,
-    OutcomeSourceCitation, OutcomeState, Transcript,
+    ActionReference, ActionStatus, Decision, Library, Meeting, MeetingOutcomes,
+    OutcomeSourceCitation, Transcript,
 };
 
 /// A meeting's files and their display projection.
@@ -75,6 +75,8 @@ pub struct MeetingAction {
     pub owner: Option<String>,
     pub owner_label: Option<String>,
     pub due: Option<String>,
+    /// "Due Fri, Oct 2 · said “Friday”".
+    pub due_label: Option<String>,
     pub is_for_user: bool,
     pub status: ActionStatus,
     pub citation: Option<OutcomeSourceCitation>,
@@ -241,48 +243,29 @@ fn is_placeholder_name(name: &str) -> bool {
             .is_some_and(|n| n.chars().all(|c| c.is_ascii_digit()))
 }
 
-/// Applies `outcome-state.json` corrections to one extracted action.
-pub fn merge_action(
-    item: &ActionItem,
-    state: Option<&ActionState>,
-    speakers: &Speakers,
-) -> MeetingAction {
-    let status = state.map(|s| s.status).unwrap_or_default();
-    let text = state
-        .and_then(|s| s.text_correction.clone())
-        .filter(|t| !t.trim().is_empty())
-        .unwrap_or_else(|| item.text.clone());
-    let (owner, owner_corrected) = match state {
-        Some(s) if s.owner_was_cleared => (None, true),
-        Some(s) if s.owner_override.is_some() => (s.owner_override.clone(), true),
-        _ => (item.owner.clone(), false),
-    };
-    let due = match state {
-        Some(s) if s.due_was_cleared => None,
-        Some(s) if s.due_override.is_some() => s.due_override.clone(),
-        _ => item.due.clone(),
-    };
-    let is_for_user = if owner_corrected {
-        owner
-            .as_deref()
-            .is_some_and(|o| o.trim().eq_ignore_ascii_case("me"))
-    } else {
-        item.is_for_user
-    };
-    let owner_label = owner
+/// An action with corrections applied (`Library::meeting_actions`), labelled
+/// for display.
+pub fn meeting_action(reference: ActionReference, speakers: &Speakers) -> MeetingAction {
+    let owner_label = reference
+        .owner
         .as_deref()
         .filter(|o| !o.trim().is_empty())
-        .map(|o| speakers.owner(o, is_for_user));
+        .map(|o| speakers.owner(o, reference.is_for_user));
+    let due_label = reference
+        .due
+        .as_deref()
+        .map(|due| lokalbot_core::due::label(due, reference.due_reference_date()));
     MeetingAction {
-        id: item.id.clone(),
-        text,
-        original_text: item.text.clone(),
-        owner,
+        citation: reference.citations.first().cloned(),
+        id: reference.action_id,
+        text: reference.text,
+        original_text: reference.original_text,
+        owner: reference.owner,
         owner_label,
-        due,
-        is_for_user,
-        status,
-        citation: item.citations.first().cloned(),
+        due: reference.due,
+        due_label,
+        is_for_user: reference.is_for_user,
+        status: reference.status,
     }
 }
 
@@ -296,7 +279,6 @@ pub fn load(library: &Library, meeting: Meeting) -> MeetingDoc {
     let summary = library.summary(&meeting).ok().flatten();
     let notes = library.notes(&meeting).unwrap_or_default();
     let outcomes = library.outcomes(&meeting).ok().flatten();
-    let state: OutcomeState = library.outcome_state(&meeting).unwrap_or_default();
     let audio = library.audio(&meeting);
     let has_audio = audio.mic.is_some() || audio.system.is_some();
     let peaks = [audio.mic.as_deref(), audio.system.as_deref()]
@@ -313,15 +295,15 @@ pub fn load(library: &Library, meeting: Meeting) -> MeetingDoc {
         .map(Arc::from);
 
     let speakers = Speakers::new(transcript.as_ref());
-    let actions: Vec<MeetingAction> = outcomes
-        .as_ref()
-        .map(|o| {
-            o.action_items
-                .iter()
-                .map(|item| merge_action(item, state.actions.get(&item.id), &speakers))
-                .collect()
+    let actions: Vec<MeetingAction> = library
+        .meeting_actions(&meeting)
+        .unwrap_or_else(|err| {
+            log::warn!("actions for {}: {err:#}", meeting.id);
+            Vec::new()
         })
-        .unwrap_or_default();
+        .into_iter()
+        .map(|reference| meeting_action(reference, &speakers))
+        .collect();
     let decisions = outcomes
         .as_ref()
         .map(|o| o.decision_records.clone())

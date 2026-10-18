@@ -10,7 +10,7 @@ use gpui_kit::{
     App, AppContext as _, Context, Entity, FontWeight, IntoElement, ParentElement as _, Render,
     SharedString, Styled as _, Window, div, px,
 };
-use lokalbot_core::{ActionState, ActionStatus, Library, Meeting, Transcript};
+use lokalbot_core::{ActionCorrection, Meeting, Transcript};
 use uuid::Uuid;
 
 use super::model::{MeetingAction, ReviewSpeaker};
@@ -82,47 +82,6 @@ pub(crate) fn confirm_delete(
 }
 
 // ------------------------------------------------------------ correction
-
-/// Saves a correction beside the extracted action (`outcome-state.json`);
-/// the original text, owner, due phrase and citations stay untouched.
-///
-/// `owner`/`due`: `None` keeps the current value, `Some(None)` clears it.
-pub(crate) fn save_correction(
-    library: &Library,
-    meeting: &Meeting,
-    action_id: &str,
-    text: Option<String>,
-    owner: Option<Option<String>>,
-    due: Option<Option<String>>,
-) -> anyhow::Result<()> {
-    let mut state = library.outcome_state(meeting)?;
-    let now = chrono::Utc::now();
-    let entry = state
-        .actions
-        .entry(action_id.to_string())
-        .or_insert_with(|| {
-            let mut fresh = ActionState::new(ActionStatus::Open);
-            fresh.user_edited = false;
-            fresh
-        });
-    if let Some(text) = text {
-        entry.text_correction = Some(text);
-        entry.text_corrected_at = Some(now);
-    }
-    if let Some(owner) = owner {
-        entry.owner_was_cleared = owner.is_none();
-        entry.owner_override = owner;
-        entry.owner_corrected_at = Some(now);
-    }
-    if let Some(due) = due {
-        entry.due_was_cleared = due.is_none();
-        entry.due_override = due;
-        entry.due_corrected_at = Some(now);
-    }
-    entry.updated_at = now;
-    entry.user_edited = true;
-    library.save_outcome_state(meeting, &state)
-}
 
 pub(crate) struct CorrectionSheet {
     data: Entity<AppData>,
@@ -209,13 +168,14 @@ impl CorrectionSheet {
         cx.spawn_in(window, async move |this, cx| {
             let result = cx
                 .background_spawn(async move {
-                    save_correction(
-                        &library,
+                    library.correct_action(
                         &meeting,
                         &action_id,
-                        text_change,
-                        owner_change,
-                        due_change,
+                        ActionCorrection {
+                            text: text_change,
+                            owner: owner_change,
+                            due: due_change,
+                        },
                     )
                 })
                 .await;
