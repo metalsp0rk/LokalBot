@@ -31,7 +31,12 @@ impl Hit {
             DocKind::Outcome => "Outcome".into(),
             DocKind::Segment => {
                 let stamp = lokalbot_core::time::stamp(self.start.unwrap_or(0.0));
-                match self.speaker.as_deref().map(speaker_label).filter(|s| !s.is_empty()) {
+                match self
+                    .speaker
+                    .as_deref()
+                    .map(speaker_label)
+                    .filter(|s| !s.is_empty())
+                {
                     Some(speaker) => format!("▶ {stamp} · {speaker}"),
                     None => format!("▶ {stamp}"),
                 }
@@ -84,8 +89,14 @@ pub enum Facet {
 }
 
 impl Facet {
-    pub const ALL: [Facet; 6] =
-        [Facet::All, Facet::Transcripts, Facet::Summaries, Facet::Notes, Facet::Outcomes, Facet::Screen];
+    pub const ALL: [Facet; 6] = [
+        Facet::All,
+        Facet::Transcripts,
+        Facet::Summaries,
+        Facet::Notes,
+        Facet::Outcomes,
+        Facet::Screen,
+    ];
 
     pub fn label(self) -> &'static str {
         match self {
@@ -137,7 +148,9 @@ static INDEXED: Mutex<Vec<PathBuf>> = Mutex::new(Vec::new());
 /// per library and run, so a fresh or imported library is searchable.
 fn ensure_indexed(library: &Library) {
     let root = library.paths().root().to_path_buf();
-    let Ok(mut indexed) = INDEXED.lock() else { return };
+    let Ok(mut indexed) = INDEXED.lock() else {
+        return;
+    };
     if indexed.contains(&root) || library.is_read_only() {
         return;
     }
@@ -182,9 +195,14 @@ pub fn run(library: &Library, meetings: &[Meeting], query: &Query) -> Results {
                     });
                 }
                 for id in order {
-                    let Some(meeting) = meetings.iter().find(|m| m.id == id) else { continue };
+                    let Some(meeting) = meetings.iter().find(|m| m.id == id) else {
+                        continue;
+                    };
                     let hits = grouped.remove(&id).unwrap_or_default();
-                    results.meetings.push(MeetingGroup { meeting: meeting.clone(), hits });
+                    results.meetings.push(MeetingGroup {
+                        meeting: meeting.clone(),
+                        hits,
+                    });
                 }
             }
             Err(err) => log::warn!("search failed: {err:#}"),
@@ -202,7 +220,11 @@ pub fn run(library: &Library, meetings: &[Meeting], query: &Query) -> Results {
                     .into_iter()
                     .filter(|hit| query.since.is_none_or(|since| hit.moment.ts >= since))
                     .filter(|hit| query.until.is_none_or(|until| hit.moment.ts < until))
-                    .map(|hit| ScreenResult { moment: hit.moment, snippet: hit.snippet, captures: hit.capture_count })
+                    .map(|hit| ScreenResult {
+                        moment: hit.moment,
+                        snippet: hit.snippet,
+                        captures: hit.capture_count,
+                    })
                     .collect();
             }
             Err(err) => log::warn!("screen search failed: {err:#}"),
@@ -230,16 +252,49 @@ pub fn speaker_label(name: &str) -> String {
 /// Questions go to the assistant on Return (`AskIntent.isQuestion`).
 pub fn is_question(query: &str) -> bool {
     const STARTS: &[&str] = &[
-        "what", "why", "how", "when", "where", "who", "whom", "whose", "which", "did", "do", "does", "is", "are",
-        "was", "were", "can", "could", "should", "would", "will", "has", "have", "had", "summarize", "summarise",
-        "explain", "list", "tell", "compare", "remind", "draft",
+        "what",
+        "why",
+        "how",
+        "when",
+        "where",
+        "who",
+        "whom",
+        "whose",
+        "which",
+        "did",
+        "do",
+        "does",
+        "is",
+        "are",
+        "was",
+        "were",
+        "can",
+        "could",
+        "should",
+        "would",
+        "will",
+        "has",
+        "have",
+        "had",
+        "summarize",
+        "summarise",
+        "explain",
+        "list",
+        "tell",
+        "compare",
+        "remind",
+        "draft",
     ];
     let words: Vec<&str> = query.split_whitespace().collect();
-    let Some(first) = words.first() else { return false };
+    let Some(first) = words.first() else {
+        return false;
+    };
     if query.trim().ends_with('?') {
         return words.len() >= 2;
     }
-    let lead = first.trim_matches(|c: char| c.is_ascii_punctuation()).to_lowercase();
+    let lead = first
+        .trim_matches(|c: char| c.is_ascii_punctuation())
+        .to_lowercase();
     words.len() >= 3 && STARTS.contains(&lead.as_str())
 }
 
@@ -265,12 +320,19 @@ mod tests {
 
     #[test]
     fn searches_the_demo_library() {
-        let dir = std::env::temp_dir().join(format!("lokalbot-ui-b-search-{}", Uuid::new_v4().simple()));
+        let dir =
+            std::env::temp_dir().join(format!("lokalbot-ui-b-search-{}", Uuid::new_v4().simple()));
         let paths = lokalbot_core::LibraryPaths::new(&dir);
         lokalbot_core::demo::seed(&paths, Utc::now()).unwrap();
         let library = Library::open(paths).unwrap();
         let meetings = library.list_meetings().unwrap();
-        let query = Query { text: "captions".into(), meetings: true, screen: true, limit: 50, ..Default::default() };
+        let query = Query {
+            text: "captions".into(),
+            meetings: true,
+            screen: true,
+            limit: 50,
+            ..Default::default()
+        };
         let results = run(&library, &meetings, &query);
         let _ = std::fs::remove_dir_all(&dir);
         assert!(!results.meetings.is_empty(), "meeting hits for captions");

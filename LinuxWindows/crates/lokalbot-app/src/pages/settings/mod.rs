@@ -7,7 +7,7 @@ mod day_memory;
 mod dictation;
 mod general;
 pub mod meetings;
-mod models;
+pub mod models;
 mod privacy;
 pub mod writing;
 

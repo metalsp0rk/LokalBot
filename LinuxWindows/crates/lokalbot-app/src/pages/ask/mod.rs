@@ -4,6 +4,8 @@
 
 mod composer;
 mod history;
+
+pub use composer::inference as composer_inference;
 mod results;
 pub mod scope;
 pub mod search;
@@ -67,7 +69,11 @@ impl Results {
 }
 
 /// Opens a screen moment from Ask or Quick Recall on its day of Timeline.
-pub fn open_screen_moment(data: &Entity<AppData>, moment: &lokalbot_core::ScreenMoment, cx: &mut App) {
+pub fn open_screen_moment(
+    data: &Entity<AppData>,
+    moment: &lokalbot_core::ScreenMoment,
+    cx: &mut App,
+) {
     let _ = moment;
     data.update(cx, |data, cx| data.navigate(Section::Timeline, cx));
 }
@@ -589,7 +595,11 @@ impl AskPage {
             let at = group.hits[0].moment();
             let id = group.meeting.id;
             self.open_meeting(id, at, cx);
-        } else if let Some(screen) = self.results.screens.get(selected - self.results.meetings.len()) {
+        } else if let Some(screen) = self
+            .results
+            .screens
+            .get(selected - self.results.meetings.len())
+        {
             let moment = screen.moment.clone();
             open_screen_moment(&self.data, &moment, cx);
         }
