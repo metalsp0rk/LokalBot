@@ -47,6 +47,8 @@ pub struct TodayPage {
     sessions_expanded: bool,
     expanded_tasks: HashSet<usize>,
     showing_actions: bool,
+    /// "Review Actions…" from another page; opened on the next render.
+    pending_actions: bool,
     actions: Entity<ActionsWorkspace>,
     bounds: Rc<Cell<Option<Bounds<Pixels>>>>,
     tick: Option<Task<()>>,
@@ -59,7 +61,10 @@ impl TodayPage {
         let data = AppData::global(cx);
         let actions = cx.new(|cx| ActionsWorkspace::new(window, cx));
         let subscriptions = vec![
-            cx.observe(&data, |this, _, cx| this.on_data_changed(cx)),
+            cx.observe(&data, |this, _, cx| {
+                this.on_data_changed(cx);
+                cx.notify();
+            }),
             cx.observe(&actions, |_, _, cx| cx.notify()),
             cx.subscribe(&actions, |this, _, _: &actions::BackToToday, cx| {
                 this.showing_actions = false;
@@ -86,6 +91,7 @@ impl TodayPage {
             sessions_expanded: false,
             expanded_tasks: HashSet::new(),
             showing_actions: false,
+            pending_actions: false,
             actions,
             bounds: Rc::new(Cell::new(None)),
             tick: None,
@@ -97,6 +103,13 @@ impl TodayPage {
     }
 
     fn on_data_changed(&mut self, cx: &mut Context<Self>) {
+        if self
+            .data
+            .update(cx, |data, _| std::mem::take(&mut data.actions_requested))
+        {
+            self.pending_actions = true;
+            cx.notify();
+        }
         let data = self.data.read(cx);
         if data.section != Section::Today && self.showing_actions {
             // Leaving Today closes the Actions workspace, as on macOS.
@@ -236,19 +249,16 @@ impl TodayPage {
                         ),
                 )
                 .child(
-                    Button::new("now-live")
-                        .outline()
-                        .label("Live Transcript & Notes")
-                        .on_click(move |_, _, cx| {
+                    ui::controls::bordered("now-live", "Live Transcript & Notes").on_click(
+                        move |_, _, cx| {
                             open.update(cx, |data, cx| {
                                 data.open_meeting(id, Default::default(), None, cx)
                             })
-                        }),
+                        },
+                    ),
                 )
                 .child(
-                    Button::new("now-stop")
-                        .outline()
-                        .label("Stop Recording")
+                    ui::controls::bordered("now-stop", "Stop Recording")
                         .text_color(lb.recording_text)
                         .on_click(move |_, _, cx| {
                             stop.update(cx, |data, cx| data.stop_recording(cx))
@@ -270,12 +280,9 @@ impl TodayPage {
                     .child("Nothing recording right now"),
             )
             .child(
-                Button::new("now-record")
-                    .outline()
-                    .label("Record Now")
-                    .on_click(move |_, _, cx| {
-                        start.update(cx, |data, cx| data.start_recording(cx))
-                    }),
+                ui::controls::bordered("now-record", "Record Now").on_click(move |_, _, cx| {
+                    start.update(cx, |data, cx| data.start_recording(cx))
+                }),
             )
             .into_any_element()
     }
@@ -299,16 +306,14 @@ impl TodayPage {
                     this.child(div().h(px(1.)).bg(lb.separator))
                 })
         });
-        let content = v_flex().children(rows).child(
-            h_flex().pt(px(8.)).gap(px(8.)).child(
-                Button::new("review-actions")
-                    .outline()
-                    .label("Review Actions…")
-                    .on_click(
+        let content =
+            v_flex()
+                .children(rows)
+                .child(h_flex().pt(px(8.)).gap(px(8.)).child(
+                    ui::controls::bordered("review-actions", "Review Actions…").on_click(
                         cx.listener(|this, _, window, cx| this.show_actions(true, window, cx)),
                     ),
-            ),
-        );
+                ));
         Some(ui::section("Needs Attention", content, cx).into_any_element())
     }
 
@@ -454,9 +459,7 @@ impl TodayPage {
                             .text_size(ty::SECONDARY)
                             .text_color(lb.text_secondary)
                             .child(lokalbot_core::time::clock_time(session.start))
-                            .child(lokalbot_core::time::compact_duration(
-                                session.active_seconds,
-                            )),
+                            .child(crate::pages::today::digest::hm(session.active_seconds)),
                     )
                     .on_click(move |_, _, cx| {
                         let session_id = session_id.clone();
@@ -728,7 +731,10 @@ impl Page for TodayPage {
 }
 
 impl Render for TodayPage {
-    fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        if std::mem::take(&mut self.pending_actions) {
+            self.show_actions(true, window, cx);
+        }
         let recording = self.data.read(cx).recording.is_active();
         self.sync_tick(recording, cx);
         if self.showing_actions {

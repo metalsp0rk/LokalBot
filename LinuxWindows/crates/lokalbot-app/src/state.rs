@@ -180,6 +180,8 @@ pub struct AppData {
     pub meeting_focus: Option<MeetingFocus>,
     pub ask_request: Option<AskRequest>,
     pub timeline_focus: Option<TimelineFocus>,
+    /// Today should open its Actions workspace ("Review Actions…").
+    pub actions_requested: bool,
     pub recording: RecordingState,
     pub processing: HashMap<Uuid, ProcessingStage>,
     pub background: Vec<BackgroundItem>,
@@ -282,6 +284,7 @@ impl AppData {
             meeting_focus: None,
             ask_request: None,
             timeline_focus: None,
+            actions_requested: false,
             recording: RecordingState::Idle,
             processing: HashMap::new(),
             background: Vec::new(),
@@ -336,6 +339,13 @@ impl AppData {
     ) {
         self.timeline_focus = Some(TimelineFocus { day, session_id });
         self.section = Section::Timeline;
+        cx.notify();
+    }
+
+    /// Today's Actions workspace (`openActions`).
+    pub fn open_actions(&mut self, cx: &mut Context<Self>) {
+        self.actions_requested = true;
+        self.section = Section::Today;
         cx.notify();
     }
 
@@ -548,11 +558,6 @@ pub enum AppEvent {
     InstallCli,
     /// Start or stop dictation from the UI ("Try here").
     ToggleDictation,
-    /// Start the live transcript preview of the current recording, from the
-    /// latest 12 seconds or from the beginning.
-    LivePreview {
-        from_beginning: bool,
-    },
     /// Store the API key for the OpenAI-compatible server in the system
     /// credential store (never in settings.json).
     SaveApiKey(String),

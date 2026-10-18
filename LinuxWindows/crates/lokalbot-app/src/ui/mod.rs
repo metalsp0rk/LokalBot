@@ -11,6 +11,7 @@ pub mod answer_text;
 pub mod citations;
 pub mod controls;
 pub mod glyphs;
+pub mod markdown_view;
 pub mod result_row;
 pub mod rule_list;
 pub mod segmented_tabs;

@@ -17,6 +17,7 @@ use gpui_kit::component::button::{Button, ButtonVariants as _};
 use gpui_kit::component::input::{InputEvent, InputState, TextareaState};
 use gpui_kit::component::menu::{DropdownMenu as _, PopupMenuItem};
 use gpui_kit::component::{Icon, h_flex};
+use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
     AnyElement, App, AppContext as _, Bounds, ClipboardItem, Context, Entity, FocusHandle,
     IntoElement, ListAlignment, ListState, ParentElement as _, Pixels, Render, SharedString,
@@ -55,7 +56,7 @@ fn tab_at(index: usize) -> MeetingTab {
 #[derive(Clone)]
 pub(crate) enum Entry {
     Header(SharedString),
-    Meeting { meeting: Meeting, live: bool },
+    Meeting { meeting: Box<Meeting>, live: bool },
 }
 
 /// Notes save state shown beside "Your notes".
@@ -92,7 +93,11 @@ pub struct MeetingsPage {
     search: Entity<InputState>,
     query: String,
     entries: Vec<Entry>,
-    entries_key: Option<(u64, String, Option<Uuid>, bool, usize)>,
+    entries_key: Option<(u64, String, Option<Uuid>, bool, usize, u64)>,
+    /// Meetings whose transcript or notes match the query (full-text, debounced).
+    content_matches: std::collections::HashSet<Uuid>,
+    content_generation: u64,
+    content_task: Option<Task<()>>,
     list_state: ListState,
     selected: Option<Uuid>,
     doc: Option<Rc<MeetingDoc>>,
@@ -102,6 +107,8 @@ pub struct MeetingsPage {
     tab: MeetingTab,
     /// Transcript moment to highlight and reveal (evidence, find).
     focus_at: Option<f64>,
+    /// Transcript row of `focus_at`, computed once per render.
+    focused_row: Option<usize>,
     pending_reveal: bool,
     recap_expanded: bool,
     full_notes_expanded: bool,
@@ -136,11 +143,13 @@ impl MeetingsPage {
 
         let mut subscriptions = vec![
             cx.observe_in(&data, window, |this, _, window, cx| {
-                this.on_data_changed(window, cx)
+                this.on_data_changed(window, cx);
+                cx.notify();
             }),
             cx.subscribe_in(&search, window, |this, input, event: &InputEvent, _, cx| {
                 if let InputEvent::Change = event {
                     this.query = input.read(cx).value().trim().to_string();
+                    this.search_content(cx);
                     cx.notify();
                 }
             }),
@@ -185,6 +194,9 @@ impl MeetingsPage {
             query: String::new(),
             entries: Vec::new(),
             entries_key: None,
+            content_matches: Default::default(),
+            content_generation: 0,
+            content_task: None,
             list_state: ListState::new(0, ListAlignment::Top, px(400.)),
             selected: None,
             doc: None,
@@ -193,6 +205,7 @@ impl MeetingsPage {
             loaded_revision: 0,
             tab: MeetingTab::Summary,
             focus_at: None,
+            focused_row: None,
             pending_reveal: false,
             recap_expanded: false,
             full_notes_expanded: false,
@@ -381,6 +394,33 @@ impl MeetingsPage {
         }
         self.reveal_focus();
         cx.notify();
+    }
+
+    /// Full-text matches for the list filter, 160 ms after typing stops.
+    fn search_content(&mut self, cx: &mut Context<Self>) {
+        let query = self.query.clone();
+        if query.is_empty() {
+            self.content_matches.clear();
+            self.content_generation += 1;
+            self.content_task = None;
+            return;
+        }
+        let library = self.data.read(cx).library.clone();
+        self.content_task = Some(cx.spawn(async move |this, cx| {
+            cx.background_executor()
+                .timer(Duration::from_millis(160))
+                .await;
+            let ids = cx
+                .background_spawn(async move {
+                    library.matching_meeting_ids(&query).unwrap_or_default()
+                })
+                .await;
+            let _ = this.update(cx, |this, cx| {
+                this.content_matches = ids.into_iter().collect();
+                this.content_generation += 1;
+                cx.notify();
+            });
+        }));
     }
 
     // ---------------------------------------------------------------- notes
@@ -632,7 +672,7 @@ impl MeetingsPage {
             let result = cx
                 .background_spawn(async move { std::fs::write(&path, markdown) })
                 .await;
-            let _ = data.update(cx, |data, cx| match result {
+            data.update(cx, |data, cx| match result {
                 Ok(()) => data.show_message("Meeting exported as Markdown.", cx),
                 Err(err) => data.show_error(format!("Meeting export failed: {err}"), cx),
             });
@@ -662,12 +702,30 @@ impl MeetingsPage {
 
     // --------------------------------------------------------------- render
 
+    /// Where the tab switcher sits: centered over the page, but clear of the
+    /// toolbar items and window controls on the right. Returns x, segment width.
+    fn tabs_geometry(&self) -> Option<(Pixels, Pixels)> {
+        let page = self.page_bounds.get()?;
+        let width = page.size.width;
+        let segment = if width < px(760.) {
+            px(70.)
+        } else if width < px(900.) {
+            px(74.)
+        } else {
+            px(86.)
+        };
+        let tabs = segmented_tabs::width(TABS.len(), segment);
+        let reserved = if width < px(900.) { px(270.) } else { px(390.) };
+        let centered = page.origin.x + width / 2. - tabs / 2.;
+        let x = centered
+            .min(page.origin.x + width - reserved - tabs)
+            .max(page.origin.x + px(120.));
+        Some((x, segment))
+    }
+
     fn toolbar_tabs(&self, cx: &mut Context<Self>) -> Option<AnyElement> {
         let page = self.page_bounds.get()?;
-        let compact = page.size.width < px(900.);
-        let segment = if compact { px(72.) } else { px(86.) };
-        let width = segmented_tabs::width(TABS.len(), segment);
-        let x = page.origin.x + page.size.width / 2. - width / 2.;
+        let (x, segment) = self.tabs_geometry()?;
         let y = page.origin.y - metric::TOOLBAR_HEIGHT
             + (metric::TOOLBAR_HEIGHT - segmented_tabs::HEIGHT) / 2.;
         let on_select = cx.listener(|this, ix: &usize, _, cx| this.set_tab(tab_at(*ix), cx));
@@ -683,6 +741,19 @@ impl MeetingsPage {
     }
 }
 
+/// A toolbar menu symbol with a small chevron, like macOS menu buttons.
+fn menu_glyph(icon: Ico, chevron: bool, cx: &App) -> impl IntoElement {
+    use crate::theme::LbThemeExt as _;
+    let color = cx.lb().text;
+    h_flex()
+        .gap(px(3.))
+        .items_center()
+        .child(ui::icon(icon, px(16.), color))
+        .when(chevron, |this| {
+            this.child(ui::icon(Ico::ChevronDown, px(11.), color.opacity(0.7)))
+        })
+}
+
 fn directories_home() -> std::path::PathBuf {
     std::env::var_os("HOME")
         .or_else(|| std::env::var_os("USERPROFILE"))
@@ -696,12 +767,13 @@ impl Page for MeetingsPage {
             return "Meetings".into();
         };
         let title = meeting.display_title();
-        // Keep the title clear of the centered tabs.
-        let budget = self
-            .page_bounds
-            .get()
-            .map(|b| ((f32::from(b.size.width) / 2. - 200.) / 9.).max(12.) as usize)
-            .unwrap_or(40);
+        // Keep the title clear of the tabs.
+        let budget = match (self.page_bounds.get(), self.tabs_geometry()) {
+            (Some(page), Some((x, _))) => {
+                (f32::from(x - page.origin.x - px(36.)) / 9.2).max(8.) as usize
+            }
+            _ => 40,
+        };
         if title.chars().count() > budget {
             let cut: String = title.chars().take(budget.saturating_sub(1)).collect();
             format!("{}…", cut.trim_end()).into()
@@ -711,17 +783,12 @@ impl Page for MeetingsPage {
     }
 
     fn toolbar(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> Option<AnyElement> {
-        if self.selected.is_none() {
-            return None;
-        }
+        self.selected?;
         if self.is_live_selected(cx) {
             let data = self.data.clone();
             let red = crate::theme::LbThemeExt::lb(&**cx).recording_text;
             return Some(
-                Button::new("live-stop")
-                    .outline()
-                    .icon(Icon::new(Ico::CircleStop))
-                    .label("Stop Recording")
+                ui::controls::bordered_icon("live-stop", Ico::CircleStop, "Stop Recording")
                     .text_color(red)
                     .on_click(move |_, _, cx| data.update(cx, |data, cx| data.stop_recording(cx)))
                     .into_any_element(),
@@ -747,16 +814,13 @@ impl Page for MeetingsPage {
                     .tooltip("Ask This Meeting")
                     .on_click(cx.listener(|this, _, _, cx| this.ask_meeting(cx)))
             } else {
-                Button::new("meeting-ask")
-                    .outline()
-                    .label("Ask This Meeting")
+                ui::controls::bordered("meeting-ask", "Ask This Meeting")
                     .on_click(cx.listener(|this, _, _, cx| this.ask_meeting(cx)))
             })
             .child(
                 Button::new("meeting-export")
                     .ghost()
-                    .icon(Icon::new(Ico::Share))
-                    .dropdown_caret(true)
+                    .child(menu_glyph(Ico::Share, !compact, cx))
                     .tooltip("Export meeting")
                     .dropdown_menu(move |menu, _, _| {
                         let p1 = export_page.clone();
@@ -821,8 +885,7 @@ impl Page for MeetingsPage {
             .child(
                 Button::new("meeting-more")
                     .ghost()
-                    .icon(Icon::new(Ico::Ellipsis))
-                    .dropdown_caret(true)
+                    .child(menu_glyph(Ico::Ellipsis, !compact, cx))
                     .tooltip("More meeting actions")
                     .dropdown_menu(move |menu, _, _| {
                         let p = more_page.clone();
@@ -875,7 +938,8 @@ impl Render for MeetingsPage {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         self.rebuild_entries(cx);
         let live = self.is_live_selected(cx);
-        self.sync_tick(live, cx);
+        let recording = self.data.read(cx).recording.is_active();
+        self.sync_tick(recording, cx);
         if live {
             self.load_notes_editor(window, cx);
         }

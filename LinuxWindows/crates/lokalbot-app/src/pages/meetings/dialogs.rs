@@ -56,12 +56,11 @@ pub(crate) fn confirm_delete(
                     .gap_2()
                     .justify_end()
                     .child(
-                        Button::new("delete-cancel")
-                            .outline()
-                            .label("Cancel")
-                            .on_click(|_, window, cx| {
+                        crate::ui::controls::bordered("delete-cancel", "Cancel").on_click(
+                            |_, window, cx| {
                                 window.close_dialog(cx);
-                            }),
+                            },
+                        ),
                     )
                     .child(
                         Button::new("delete-confirm")
@@ -293,12 +292,11 @@ impl Render for CorrectionSheet {
                     .gap_2()
                     .justify_end()
                     .child(
-                        Button::new("correction-cancel")
-                            .outline()
-                            .label("Cancel")
-                            .on_click(|_, window, cx| {
+                        crate::ui::controls::bordered("correction-cancel", "Cancel").on_click(
+                            |_, window, cx| {
                                 window.close_dialog(cx);
-                            }),
+                            },
+                        ),
                     )
                     .child(
                         Button::new("correction-save")
@@ -449,7 +447,7 @@ impl Render for NameSpeakerSheet {
                             .on_click(cx.listener(|this, _, window, cx| this.save(None, window, cx))),
                     )
                     .child(div().flex_1())
-                    .child(Button::new("speaker-cancel").outline().label("Cancel").on_click(|_, window, cx| {
+                    .child(crate::ui::controls::bordered("speaker-cancel", "Cancel").on_click(|_, window, cx| {
                         window.close_dialog(cx);
                     }))
                     .child(

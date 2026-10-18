@@ -29,22 +29,25 @@ impl MeetingsPage {
             live.as_ref().map(|m| m.id),
             data.meetings_loaded,
             data.meetings.len(),
+            self.content_generation,
         );
         if self.entries_key.as_ref() == Some(&key) {
             return;
         }
         let needle = self.query.to_lowercase();
+        let content = &self.content_matches;
         let matches = |m: &Meeting| {
             needle.is_empty()
                 || m.display_title().to_lowercase().contains(&needle)
                 || m.app_name.to_lowercase().contains(&needle)
+                || content.contains(&m.id)
         };
         let mut entries = Vec::new();
         let live_id = live.as_ref().map(|m| m.id);
         if let Some(live) = live.filter(|m| matches(m)) {
             entries.push(Entry::Header("Recording Now".into()));
             entries.push(Entry::Meeting {
-                meeting: live,
+                meeting: Box::new(live),
                 live: true,
             });
         }
@@ -60,7 +63,7 @@ impl MeetingsPage {
                 current = Some(label);
             }
             entries.push(Entry::Meeting {
-                meeting: meeting.clone(),
+                meeting: Box::new(meeting.clone()),
                 live: false,
             });
         }
@@ -104,6 +107,13 @@ impl MeetingsPage {
     }
 
     fn on_list_key(&mut self, event: &KeyDownEvent, window: &mut Window, cx: &mut Context<Self>) {
+        if event.keystroke.key == "f"
+            && (event.keystroke.modifiers.control || event.keystroke.modifiers.platform)
+        {
+            self.open_find(window, cx);
+            cx.stop_propagation();
+            return;
+        }
         match event.keystroke.key.as_str() {
             "up" => self.move_selection(-1, window, cx),
             "down" => self.move_selection(1, window, cx),
@@ -294,12 +304,10 @@ impl MeetingsPage {
                     "Try different words, a meeting title, or app.",
                 )
             };
-            div()
+            v_flex()
                 .flex_1()
-                .flex()
-                .items_center()
                 .justify_center()
-                .child(ui::empty_state(Ico::AudioLines, title, message, cx))
+                .child(ui::empty_state(Ico::AudioLines, title, message, cx).w_full())
                 .into_any_element()
         } else {
             div()
@@ -359,6 +367,18 @@ impl MeetingsPage {
                 let next_is_meeting =
                     matches!(self.entries.get(ix + 1), Some(Entry::Meeting { .. }));
                 let stage = self.data.read(cx).processing.get(&meeting.id).cloned();
+                let live_level = match &self.data.read(cx).recording {
+                    crate::state::RecordingState::Recording {
+                        started,
+                        mic_level,
+                        system_level,
+                        ..
+                    } if live => Some((
+                        mic_level.max(*system_level),
+                        started.elapsed().as_secs_f64(),
+                    )),
+                    _ => None,
+                };
                 let id = meeting.id;
                 let detail = model::row_detail(&meeting, live);
                 let hover = lb.hover;
@@ -395,7 +415,14 @@ impl MeetingsPage {
                                             .font_weight(FontWeight::SEMIBOLD)
                                             .text_color(lb.text)
                                             .child(meeting.display_title()),
-                                    ),
+                                    )
+                                    .when_some(live_level, |this, (level, elapsed)| {
+                                        this.child(super::live::live_bars(
+                                            level,
+                                            elapsed,
+                                            lb.recording,
+                                        ))
+                                    }),
                             )
                             .child(
                                 div()

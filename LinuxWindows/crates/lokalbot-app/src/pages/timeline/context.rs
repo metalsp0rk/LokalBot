@@ -188,7 +188,7 @@ impl TimelinePage {
             "{}–{} · {} active",
             lokalbot_core::time::clock_time(session.start),
             lokalbot_core::time::clock_time(session.end),
-            lokalbot_core::time::compact_duration(session.active_seconds)
+            crate::pages::today::digest::hm(session.active_seconds)
         );
         let moments: Vec<_> = model
             .moments
@@ -301,7 +301,7 @@ impl TimelinePage {
                                     )
                                     .child(div().text_size(ty::SECONDARY).text_color(lb.text_secondary).child(format!(
                                         "{} observed · {} activity {}",
-                                        lokalbot_core::time::compact_duration(observed),
+                                        crate::pages::today::digest::hm(observed),
                                         matching.len(),
                                         if matching.len() == 1 { "block" } else { "blocks" }
                                     ))),
@@ -381,7 +381,7 @@ impl TimelinePage {
                                 .gap(px(8.))
                                 .child(ui::stat_chip(
                                     Ico::Clock,
-                                    lokalbot_core::time::compact_duration(session.active_seconds),
+                                    crate::pages::today::digest::hm(session.active_seconds),
                                     "active",
                                     cx,
                                 ))
@@ -436,17 +436,18 @@ impl TimelinePage {
             .child(details)
             .child(
                 h_flex().justify_end().child(
-                    Button::new("ask-session")
-                        .outline()
-                        .icon(Icon::new(Ico::Sparkles))
-                        .label("Ask about this session")
-                        .on_click(cx.listener(move |this, _, _, cx| {
-                            this.ask_day(
-                                format!("What matters from my work session on {title}?"),
-                                Vec::new(),
-                                cx,
-                            )
-                        })),
+                    ui::controls::bordered_icon(
+                        "ask-session",
+                        Ico::Sparkles,
+                        "Ask about this session",
+                    )
+                    .on_click(cx.listener(move |this, _, _, cx| {
+                        this.ask_day(
+                            format!("What matters from my work session on {title}?"),
+                            Vec::new(),
+                            cx,
+                        )
+                    })),
                 ),
             )
             .into_any_element()
@@ -606,17 +607,18 @@ impl TimelinePage {
                     .gap(px(8.))
                     .justify_end()
                     .child(
-                        Button::new("ask-meeting")
-                            .outline()
-                            .icon(Icon::new(Ico::Sparkles))
-                            .label("Ask about this meeting")
-                            .on_click(cx.listener(move |this, _, _, cx| {
-                                this.ask_day(
-                                    format!("What matters from {title}?"),
-                                    vec![meeting_id],
-                                    cx,
-                                )
-                            })),
+                        ui::controls::bordered_icon(
+                            "ask-meeting",
+                            Ico::Sparkles,
+                            "Ask about this meeting",
+                        )
+                        .on_click(cx.listener(move |this, _, _, cx| {
+                            this.ask_day(
+                                format!("What matters from {title}?"),
+                                vec![meeting_id],
+                                cx,
+                            )
+                        })),
                     )
                     .child(
                         Button::new("open-meeting")

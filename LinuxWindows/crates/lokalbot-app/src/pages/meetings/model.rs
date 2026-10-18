@@ -24,7 +24,6 @@ pub struct MeetingDoc {
     pub has_audio: bool,
     /// Waveform overview, when the audio could be read.
     pub peaks: Option<Arc<[f32]>>,
-    pub speakers: Speakers,
     pub actions: Vec<MeetingAction>,
     pub decisions: Vec<Decision>,
     pub questions: Vec<String>,
@@ -34,6 +33,8 @@ pub struct MeetingDoc {
     pub summary_body: String,
     pub rows: Vec<TranscriptRow>,
     pub review: Vec<ReviewSpeaker>,
+    /// Remote speakers without a name (`unnamedRemoteSpeakers`).
+    pub unnamed_remote: usize,
 }
 
 impl MeetingDoc {
@@ -56,14 +57,6 @@ impl MeetingDoc {
             .position(|row| seconds >= row.start && seconds < row.end.max(row.start + 0.5))
             .or_else(|| self.rows.iter().rposition(|row| row.start <= seconds))
     }
-
-    /// Remote speakers that still carry a placeholder name.
-    pub fn unnamed_remote_speakers(&self) -> usize {
-        self.review
-            .iter()
-            .filter(|s| !s.is_user && !s.is_named && s.can_confirm)
-            .count()
-    }
 }
 
 /// An extracted action with the user's saved corrections applied.
@@ -77,14 +70,12 @@ pub struct MeetingAction {
     pub due: Option<String>,
     /// "Due Fri, Oct 2 · said “Friday”".
     pub due_label: Option<String>,
-    pub is_for_user: bool,
     pub status: ActionStatus,
     pub citation: Option<OutcomeSourceCitation>,
 }
 
 #[derive(Clone, Debug)]
 pub struct TranscriptRow {
-    pub index: usize,
     pub start: f64,
     pub end: f64,
     pub speaker: String,
@@ -140,36 +131,27 @@ impl Speakers {
         };
         for segment in &transcript.segments {
             let key = Transcript::canonical_speaker_key(&segment.speaker);
-            let confirmed_user = segment
-                .attribution
-                .is_some_and(|a| a.identity == lokalbot_core::SpeakerIdentity::User);
-            if key == "me" || confirmed_user {
-                this.users.insert(key.clone());
-            }
             if !this.order.contains(&key) {
                 this.order.push(key);
             }
         }
         let mut next = 1;
         for key in &this.order {
-            let color = if this.users.contains(key) {
+            let is_user = transcript.speaker_identity(key) == lokalbot_core::SpeakerIdentity::User;
+            let color = if is_user {
+                this.users.insert(key.clone());
                 0
             } else {
                 next += 1;
                 next - 1
             };
             this.colors.insert(key.clone(), color);
-            let name = transcript
-                .speaker_aliases
-                .get(key)
-                .filter(|alias| !alias.trim().is_empty())
-                .cloned()
-                .unwrap_or_else(|| Transcript::default_speaker_name(key));
-            if this.users.contains(key) {
+            let name = transcript.speaker_name(key);
+            if is_user {
                 this.owner_users.insert(name.to_lowercase());
             }
             this.names
-                .insert(key.clone(), display_label(&name, this.users.contains(key)));
+                .insert(key.clone(), display_label(&name, is_user));
         }
         this
     }
@@ -264,7 +246,6 @@ pub fn meeting_action(reference: ActionReference, speakers: &Speakers) -> Meetin
         owner_label,
         due: reference.due,
         due_label,
-        is_for_user: reference.is_for_user,
         status: reference.status,
     }
 }
@@ -330,7 +311,12 @@ pub fn load(library: &Library, meeting: Meeting) -> MeetingDoc {
         .map(|t| review_speakers(t, &speakers, &actions))
         .unwrap_or_default();
 
+    let unnamed_remote = transcript
+        .as_ref()
+        .map(unnamed_remote_speakers)
+        .unwrap_or(0);
     MeetingDoc {
+        unnamed_remote,
         meeting,
         folder,
         transcript,
@@ -339,7 +325,6 @@ pub fn load(library: &Library, meeting: Meeting) -> MeetingDoc {
         outcomes,
         has_audio,
         peaks,
-        speakers,
         actions,
         decisions,
         questions,
@@ -351,9 +336,24 @@ pub fn load(library: &Library, meeting: Meeting) -> MeetingDoc {
     }
 }
 
+/// Remote voices (system track or `them…`) the user has not named yet.
+fn unnamed_remote_speakers(transcript: &Transcript) -> usize {
+    let mut seen = Vec::<String>::new();
+    for segment in &transcript.segments {
+        let key = Transcript::canonical_speaker_key(&segment.speaker);
+        let remote = key.starts_with("them")
+            || Transcript::resolved_attribution(segment).source
+                == lokalbot_core::AttributionSource::System;
+        if remote && !transcript.speaker_aliases.contains_key(&key) && !seen.contains(&key) {
+            seen.push(key);
+        }
+    }
+    seen.len()
+}
+
 fn transcript_rows(transcript: &Transcript, speakers: &Speakers) -> Vec<TranscriptRow> {
     let mut rows: Vec<TranscriptRow> = Vec::with_capacity(transcript.segments.len());
-    for (index, segment) in transcript.segments.iter().enumerate() {
+    for segment in &transcript.segments {
         let text = Transcript::display_text(&segment.text);
         if text.is_empty() {
             continue;
@@ -361,7 +361,6 @@ fn transcript_rows(transcript: &Transcript, speakers: &Speakers) -> Vec<Transcri
         let key = Transcript::canonical_speaker_key(&segment.speaker);
         let begins_turn = rows.last().is_none_or(|last| last.speaker != key);
         rows.push(TranscriptRow {
-            index,
             start: segment.start,
             end: segment.end,
             name: speakers.name(&key).into(),

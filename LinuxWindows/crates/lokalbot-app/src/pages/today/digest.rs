@@ -8,7 +8,6 @@ use std::rc::Rc;
 use chrono::NaiveDate;
 use gpui_kit::component::button::{Button, ButtonVariants as _};
 use gpui_kit::component::menu::{DropdownMenu as _, PopupMenuItem};
-use gpui_kit::component::text::TextView;
 use gpui_kit::component::{Disableable as _, Icon, h_flex, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
@@ -32,6 +31,15 @@ pub(crate) enum DigestMode {
 pub(crate) type TaskToggle = Rc<dyn Fn(usize, &mut Window, &mut App)>;
 
 // --------------------------------------------------------------- overview
+
+/// `CaptureStyle.hm`: "3h 50m", "48m", "<1m" (and "0m" for nothing).
+pub(crate) fn hm(seconds: f64) -> String {
+    if seconds <= 0. {
+        "0m".into()
+    } else {
+        lokalbot_core::time::compact_duration(seconds)
+    }
+}
 
 /// One proportion-bar segment: label, seconds, whether it is "Other".
 pub(crate) struct AppShare {
@@ -99,7 +107,7 @@ pub(crate) fn day_overview(
     let mut chips = vec![
         ui::stat_chip(
             Ico::Clock,
-            lokalbot_core::time::compact_duration(activity.tracked_seconds),
+            crate::pages::today::digest::hm(activity.tracked_seconds),
             "tracked",
             cx,
         )
@@ -171,9 +179,12 @@ pub(crate) fn day_overview(
                                             .text_color(lb.text)
                                             .child(share.label.clone()),
                                     )
-                                    .child(div().flex_none().text_color(lb.text_secondary).child(
-                                        lokalbot_core::time::compact_duration(share.seconds),
-                                    ))
+                                    .child(
+                                        div()
+                                            .flex_none()
+                                            .text_color(lb.text_secondary)
+                                            .child(crate::pages::today::digest::hm(share.seconds)),
+                                    )
                             })),
                     )
                 })
@@ -249,11 +260,8 @@ pub(crate) fn digest_controls(
     });
     let ask = show_ask.then(|| {
         let data = data.clone();
-        Button::new("digest-ask")
-            .outline()
-            .icon(Icon::new(Ico::TextSearch))
-            .label("Ask About This Day")
-            .on_click(move |_, _, cx| {
+        ui::controls::bordered_icon("digest-ask", Ico::TextSearch, "Ask About This Day").on_click(
+            move |_, _, cx| {
                 let question = format!("What happened on {}?", day.format("%A, %B %-d"));
                 data.update(cx, |data, cx| {
                     data.ask(
@@ -265,7 +273,8 @@ pub(crate) fn digest_controls(
                         cx,
                     )
                 })
-            })
+            },
+        )
     });
     h_flex()
         .gap(px(8.))
@@ -425,8 +434,11 @@ fn digest_view(
                 .text_size(ty::BODY)
                 .text_color(lb.text)
                 .child(
-                    TextView::markdown("digest-highlights", digest.at_a_glance_markdown.clone())
-                        .selectable(true),
+                    crate::ui::markdown_view::markdown(
+                        "digest-highlights",
+                        digest.at_a_glance_markdown.clone(),
+                    )
+                    .selectable(true),
                 ),
             cx,
         ));

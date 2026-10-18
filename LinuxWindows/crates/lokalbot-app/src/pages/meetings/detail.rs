@@ -6,7 +6,6 @@ use gpui_kit::component::input::Textarea;
 use gpui_kit::component::menu::{DropdownMenu as _, PopupMenuItem};
 use gpui_kit::component::scroll::ScrollableElement as _;
 use gpui_kit::component::spinner::Spinner;
-use gpui_kit::component::text::TextView;
 use gpui_kit::component::{Disableable as _, Icon, Sizable as _, h_flex, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
@@ -355,24 +354,7 @@ impl MeetingsPage {
                     .into_any_element(),
             );
         }
-        let unnamed = doc
-            .transcript
-            .as_ref()
-            .map(|t| {
-                let mut seen = Vec::<String>::new();
-                for segment in &t.segments {
-                    let key = lokalbot_core::Transcript::canonical_speaker_key(&segment.speaker);
-                    let remote = key.starts_with("them")
-                        || segment
-                            .attribution
-                            .is_some_and(|a| a.source == lokalbot_core::AttributionSource::System);
-                    if remote && !t.speaker_aliases.contains_key(&key) && !seen.contains(&key) {
-                        seen.push(key);
-                    }
-                }
-                seen.len()
-            })
-            .unwrap_or(0);
+        let unnamed = doc.unnamed_remote;
         if self.tab == MeetingTab::Summary && unnamed > 0 {
             let text = if unnamed == 1 {
                 "1 speaker needs a name. Review action-linked voices first.".to_string()
@@ -782,7 +764,7 @@ impl MeetingsPage {
                 .when(doc.has_summary(), |this| {
                     this.child(
                         div().text_size(ty::BODY).child(
-                            TextView::markdown(
+                            crate::ui::markdown_view::markdown(
                                 SharedString::from(format!("summary-{}", doc.meeting.id)),
                                 doc.summary_body.clone(),
                             )
@@ -827,6 +809,7 @@ impl MeetingsPage {
             .child(
                 ui::grouped_surface(cx).p(px(6.)).child(
                     Textarea::new(&self.notes.input)
+                        .large()
                         .appearance(false)
                         .h(px(460.)),
                 ),
@@ -844,11 +827,13 @@ impl MeetingsPage {
                             .child(message),
                     )
                     .child(
-                        Button::new("notes-retry")
-                            .outline()
-                            .small()
-                            .label("Retry saving")
-                            .on_click(cx.listener(|this, _, _, cx| this.save_notes(false, cx))),
+                        h_flex().child(
+                            Button::new("notes-retry")
+                                .outline()
+                                .small()
+                                .label("Retry saving")
+                                .on_click(cx.listener(|this, _, _, cx| this.save_notes(false, cx))),
+                        ),
                     )
                 },
             )
@@ -1035,7 +1020,7 @@ impl MeetingsPage {
                     }),
             )
             .child(
-                div().pt(px(4.)).child(
+                h_flex().pt(px(4.)).child(
                     Button::new("refresh-notes")
                         .primary()
                         .label(if processing { "Processing…" } else { "Refresh Notes and Owners" })

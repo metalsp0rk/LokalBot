@@ -82,12 +82,11 @@ pub(crate) fn set_thread_status(
                     .gap_2()
                     .justify_end()
                     .child(
-                        Button::new("thread-cancel")
-                            .outline()
-                            .label("Cancel")
-                            .on_click(|_, window, cx| {
+                        crate::ui::controls::bordered("thread-cancel", "Cancel").on_click(
+                            |_, window, cx| {
                                 window.close_dialog(cx);
-                            }),
+                            },
+                        ),
                     )
                     .child(
                         Button::new("thread-confirm")
