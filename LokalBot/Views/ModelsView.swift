@@ -103,7 +103,7 @@ struct ModelsView: View {
         case "settings.dictationCompositionBuiltInModelID": sheet = .dictation
         case "settings.openAIBaseURL", "settings.openAIModel", "settings.ollamaBaseURL", "settings.openAIAPIKey":
             page.wrappedValue = .connections
-        case "settings.generationBudgetPreset", "settings.thinkReasoningLevel":
+        case "settings.generationBudgetPreset", "settings.thinkReasoningLevel", "settings.modelDownloadSource":
             page.wrappedValue = .active
         default: sheet = .assistant
         }
@@ -191,6 +191,16 @@ struct ModelStorageSection: View {
                     .buttonStyle(.workspaceLink)
                     .accessibilityIdentifier("models.manageDownloads")
             }
+            Divider()
+            Picker(selection: $app.settings.modelDownloadSource) {
+                ForEach(ModelDownloadSource.allCases) { source in
+                    Text(LocalizedStringKey(source.displayName)).tag(source)
+                }
+            } label: {
+                SettingsLabel("Download models from", help: app.settings.modelDownloadSource.detail)
+            }
+            .accessibilityIdentifier("models.downloadSource")
+            .settingTarget("settings.modelDownloadSource", selected: app.focusedSettingID)
         }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("models.storage")

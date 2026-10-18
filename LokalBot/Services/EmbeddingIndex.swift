@@ -1282,8 +1282,9 @@ final class EmbeddingIndex {
             return path
         }
         DownloadIntegrity.removeFileAndMarker(at: path)
-        let stashed = try await ParallelRangeDownloader.download(
-            from: URL(string: modelURL)!, session: .shared) { _ in }
+        let stashed = try await ModelDownloadRouting.download(
+            from: URL(string: modelURL)!, session: .shared,
+            expectedSHA256: modelSHA256, expectedBytes: modelBytes) { _ in }
         do {
             guard ModelFileValidator.looksLikeGGUF(stashed) else {
                 throw TextEngineError.badResponse("embedding model download was not a GGUF model")

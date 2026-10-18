@@ -205,12 +205,33 @@ struct OnboardingView: View {
                 Text("Autocomplete also reads the window you are typing in, such as the conversation you are answering, to fit its suggestions: the text just above the field, and, once Screen Recording is allowed, the whole window with on-device text recognition. It stays on this Mac and is never saved; turn either off in Settings → Writing.")
                     .workspaceTextRole(.supporting)
             }
+            if showsDownloadSource {
+                Picker(selection: $app.settings.modelDownloadSource) {
+                    ForEach(ModelDownloadSource.allCases) { source in
+                        Text(LocalizedStringKey(source.displayName)).tag(source)
+                    }
+                } label: {
+                    SettingsLabel("Download models from", help: app.settings.modelDownloadSource.detail)
+                }
+                .accessibilityIdentifier("onboarding.downloadSource")
+            }
             Button("Prepare Selected Models") {
                 app.modelRoles.startCoreModelDownloads(includeAutocomplete: includeAutocomplete)
             }.buttonStyle(.bordered).accessibilityIdentifier("onboarding.downloadModels")
             Text("Downloads use the model provider. They do not send your meeting content. Existing downloaded models are kept.")
                 .workspaceTextRole(.supporting)
         }
+    }
+
+    /// huggingface.co is blocked in mainland China, so the first download
+    /// offers HF-Mirror and ModelScope there: on a Mac set to that region or to
+    /// Simplified Chinese, or once a mirror is already chosen. Settings → Models
+    /// always has the same picker.
+    private var showsDownloadSource: Bool {
+        Locale.current.region?.identifier == "CN"
+            || Locale.preferredLanguages.first?.hasPrefix("zh-Hans") == true
+            || app.settings.appLanguage == .simplifiedChinese
+            || app.settings.modelDownloadSource != .huggingFace
     }
 
     private func modelRow(_ title: String, model: String, role: ModelRole) -> some View {

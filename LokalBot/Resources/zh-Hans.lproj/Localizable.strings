@@ -1228,3 +1228,9 @@
 "The model repeated text it was given, so its answer is hidden." = "模型重复了给它的文字，因此隐藏了它的回答。";
 "The answer did not fit at the cursor, so it is hidden." = "回答与光标处的文字不衔接，因此已隐藏。";
 "The model was unsure of the next word, so it suggested nothing." = "模型不确定下一个词，因此没有给出建议。";
+"Download models from" = "模型下载来源";
+"HF-Mirror (hf-mirror.com)" = "HF-Mirror 镜像 (hf-mirror.com)";
+"ModelScope (modelscope.cn)" = "魔搭 ModelScope (modelscope.cn)";
+"Downloads from huggingface.co, where the models are published." = "从发布这些模型的 huggingface.co 下载。";
+"A community mirror of Hugging Face that works in mainland China. If it fails, LokalBot tries Hugging Face." = "Hugging Face 的社区镜像，在中国大陆可用。下载失败时，LokalBot 会改用 Hugging Face。";
+"Alibaba's model hub in mainland China, for files it carries unchanged. Other files come from HF-Mirror, then Hugging Face." = "阿里巴巴的魔搭模型社区，只用于与原版完全一致的文件；其他文件依次从 HF-Mirror 和 Hugging Face 下载。";

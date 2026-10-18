@@ -15,6 +15,7 @@ struct SettingDescriptor: Identifiable {
         if id == "settings.appLanguage" { return language.localized(settings.appLanguage.displayName) }
         if id == "settings.textSize" { return language.localized(settings.textSize.displayName) }
         if id == "settings.cotypingBackend" { return language.localized(settings.cotypingBackend.title) }
+        if id == "settings.modelDownloadSource" { return language.localized(settings.modelDownloadSource.displayName) }
         guard let data = try? JSONEncoder().encode(settings),
               let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let value = object[String(id.dropFirst("settings.".count))] else { return language.localized("Open details") }
@@ -81,6 +82,8 @@ struct SettingDescriptor: Identifiable {
         .init(id: "settings.thinkReasoningLevel", title: "Think reasoning level", category: .models,
               aliases: "reasoning effort thinking budget think off low medium high"),
         .init(id: "settings.transcriptionModel", title: "Transcribe model", category: .models, aliases: "ASR speech whisper qwen"),
+        .init(id: "settings.modelDownloadSource", title: "Download models from", category: .models,
+              aliases: "model download source mirror hf-mirror modelscope hugging face china mainland blocked 下载 模型下载 下载源 镜像 魔搭 中国 大陆"),
         .init(id: "settings.transcriptionLanguage", title: "Transcription language", category: .models, aliases: "ASR spoken language"),
         .init(id: "settings.transcriptionPrompt", title: "Transcription vocabulary", category: .models, aliases: "names acronyms spelling"),
         .init(id: "settings.autoTranscriptionVocabulary", title: "Add known names to transcription", category: .models, aliases: "names attendees calendar vocabulary spelling"),

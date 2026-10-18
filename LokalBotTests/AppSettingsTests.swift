@@ -205,6 +205,27 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertTrue(decoded.corruptedSettingsKeys.contains("openRouterDataPolicy"))
     }
 
+    func testModelDownloadSourceDefaultsToHuggingFaceAndRoundTrips() throws {
+        XCTAssertEqual(AppSettings().modelDownloadSource, .huggingFace)
+
+        let legacy = try JSONDecoder().decode(
+            AppSettings.self, from: #"{"openAIModel":""}"#.data(using: .utf8)!)
+        XCTAssertEqual(legacy.modelDownloadSource, .huggingFace)
+        XCTAssertTrue(legacy.corruptedSettingsKeys.isEmpty)
+
+        var settings = AppSettings()
+        settings.modelDownloadSource = .modelScope
+        let decoded = try JSONDecoder().decode(AppSettings.self, from: JSONEncoder().encode(settings))
+        XCTAssertEqual(decoded.modelDownloadSource, .modelScope)
+    }
+
+    func testUnknownModelDownloadSourceFallsBackAndIsReported() throws {
+        let decoded = try JSONDecoder().decode(
+            AppSettings.self, from: #"{"modelDownloadSource":"carrier-pigeon"}"#.data(using: .utf8)!)
+        XCTAssertEqual(decoded.modelDownloadSource, .huggingFace)
+        XCTAssertTrue(decoded.corruptedSettingsKeys.contains("modelDownloadSource"))
+    }
+
     func testMultiSpeakerDiarizationDefaultsTrue() {
         XCTAssertTrue(AppSettings().multiSpeakerDiarization)
     }
