@@ -44,6 +44,7 @@ final class SettingRegistryTests: XCTestCase {
             "speechVoice": try stored(KokoroVoice.allCases),
             "summarizerBackend": try stored(AppSettings.SummarizerBackend.allCases),
             "openRouterDataPolicy": try stored(OpenRouterDataPolicy.allCases),
+            "modelDownloadSource": try stored(ModelDownloadSource.allCases),
             "generationBudgetPreset": try stored(GenerationBudgetPreset.allCases),
             "thinkReasoningLevel": try stored(ThinkReasoningLevel.allCases),
             "agentReasoningLevel": try stored(ThinkReasoningLevel.allCases),
