@@ -12,10 +12,12 @@ Xvfb "$DISPLAY_NUM" -screen 0 "${SIZE}x24" -nolisten tcp >/tmp/lokalbot-xvfb.log
 XVFB=$!
 trap 'kill $XVFB 2>/dev/null || true' EXIT
 sleep 1
-DISPLAY="$DISPLAY_NUM" xsetroot -solid '#3b4a5a' 2>/dev/null || true
 DISPLAY="$DISPLAY_NUM" xfwm4 --compositor=on >/tmp/lokalbot-xfwm4.log 2>&1 &
 WM=$!
 sleep 1
+# A quiet wallpaper so the window and its shadow read as a desktop app.
+DISPLAY="$DISPLAY_NUM" hsetroot -add "#1d4e57" -add "#2b3446" -gradient 160 >/dev/null 2>&1 \
+  || DISPLAY="$DISPLAY_NUM" xsetroot -solid '#2b3446' 2>/dev/null || true
 for page in "${PAGES[@]}"; do
   DISPLAY="$DISPLAY_NUM" LOKALBOT_STORAGE_ROOT="$ROOT" "$BIN" --page "$page" >/tmp/lokalbot-$page.log 2>&1 &
   APP=$!

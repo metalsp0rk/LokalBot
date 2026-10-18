@@ -60,9 +60,13 @@ jobs:
 
       - name: Capture the app
         run: |
+          sudo apt-get install -y --no-install-recommends hsetroot
           root="$RUNNER_TEMP/library"
-          cp -r ../LokalBotTests/Fixtures/upgrade/0.10.9/library "$root"
-          CAPTURE_WAIT=10 scripts/ci/capture-linux.sh target/release/lokalbot "$root" "$RUNNER_TEMP/screenshots" today
+          LOKALBOT_STORAGE_ROOT="$root" target/release/lokalbot --seed-demo
+          pages="today meetings timeline people projects ask agent settings"
+          CAPTURE_WAIT=10 scripts/ci/capture-linux.sh target/release/lokalbot "$root" "$RUNNER_TEMP/screenshots" $pages
+          python3 -c "import json,sys; p=sys.argv[1]; s=json.load(open(p)) if __import__('os').path.exists(p) else {}; s['appTheme']='dark'; json.dump(s, open(p,'w'))" "$root/settings.json"
+          CAPTURE_WAIT=10 CAPTURE_SUFFIX=-dark scripts/ci/capture-linux.sh target/release/lokalbot "$root" "$RUNNER_TEMP/screenshots" today meetings ask
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         if: always()
@@ -131,9 +135,20 @@ jobs:
       - name: Capture the app
         shell: pwsh
         run: |
+          ./scripts/ci/set-resolution.ps1 -Width 1920 -Height 1080
+          (New-Object -ComObject Shell.Application).MinimizeAll()
           $root = Join-Path $env:RUNNER_TEMP "library"
-          New-Item -ItemType Directory -Force -Path $root | Out-Null
-          ./scripts/ci/capture-windows.ps1 -Exe (Resolve-Path target\release\lokalbot.exe) -Root $root -OutDir (Join-Path $env:RUNNER_TEMP "screenshots") -Pages today -WaitSeconds 8
+          $exe = (Resolve-Path target\release\lokalbot.exe).Path
+          $env:LOKALBOT_STORAGE_ROOT = $root
+          # A release build is a GUI-subsystem program; wait for it explicitly.
+          Start-Process -FilePath $exe -ArgumentList "--seed-demo" -Wait -NoNewWindow
+          $out = Join-Path $env:RUNNER_TEMP "screenshots"
+          ./scripts/ci/capture-windows.ps1 -Exe $exe -Root $root -OutDir $out -Pages today,meetings,timeline,people,projects,ask,agent,settings -WaitSeconds 8
+          $settingsPath = Join-Path $root "settings.json"
+          $settings = if (Test-Path $settingsPath) { Get-Content $settingsPath -Raw | ConvertFrom-Json } else { [pscustomobject]@{} }
+          $settings | Add-Member -NotePropertyName appTheme -NotePropertyValue "dark" -Force
+          $settings | ConvertTo-Json -Depth 10 | Set-Content -Encoding utf8 $settingsPath
+          ./scripts/ci/capture-windows.ps1 -Exe $exe -Root $root -OutDir $out -Pages today,meetings,ask -Suffix "-dark" -WaitSeconds 8
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         if: always()

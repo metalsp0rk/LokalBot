@@ -202,6 +202,8 @@ pub struct AppData {
     pub project_notes_running: Vec<String>,
     /// Text of the last dictation shown in LokalBot (output mode "Show in LokalBot").
     pub last_dictation: Option<SharedString>,
+    /// Microphone names for the device pickers in Settings, filled by the engine.
+    pub audio_inputs: Vec<SharedString>,
 }
 
 /// Progress of an answer in Ask.
@@ -296,6 +298,7 @@ impl AppData {
             digest_running: None,
             project_notes_running: Vec::new(),
             last_dictation: None,
+            audio_inputs: Vec::new(),
         }
     }
 
@@ -555,6 +558,9 @@ pub enum AppEvent {
     InstallCli,
     /// Start or stop dictation from the UI ("Try here").
     ToggleDictation,
+    /// Store the API key for the OpenAI-compatible server in the system
+    /// credential store (never in settings.json).
+    SaveApiKey(String),
 }
 
 impl gpui_kit::EventEmitter<AppEvent> for AppData {}
