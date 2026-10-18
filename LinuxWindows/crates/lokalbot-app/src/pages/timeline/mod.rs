@@ -589,7 +589,7 @@ impl TimelinePage {
                                     .flex_none()
                                     .font_weight(FontWeight::SEMIBOLD)
                                     .text_color(lb.text)
-                                    .child(lokalbot_core::time::compact_duration(duration)),
+                                    .child(crate::pages::today::digest::hm(duration)),
                             ),
                     ),
             )

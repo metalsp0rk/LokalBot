@@ -454,9 +454,7 @@ impl TodayPage {
                             .text_size(ty::SECONDARY)
                             .text_color(lb.text_secondary)
                             .child(lokalbot_core::time::clock_time(session.start))
-                            .child(lokalbot_core::time::compact_duration(
-                                session.active_seconds,
-                            )),
+                            .child(crate::pages::today::digest::hm(session.active_seconds)),
                     )
                     .on_click(move |_, _, cx| {
                         let session_id = session_id.clone();

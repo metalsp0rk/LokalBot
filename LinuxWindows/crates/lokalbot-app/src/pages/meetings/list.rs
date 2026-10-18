@@ -297,12 +297,10 @@ impl MeetingsPage {
                     "Try different words, a meeting title, or app.",
                 )
             };
-            div()
+            v_flex()
                 .flex_1()
-                .flex()
-                .items_center()
                 .justify_center()
-                .child(ui::empty_state(Ico::AudioLines, title, message, cx))
+                .child(ui::empty_state(Ico::AudioLines, title, message, cx).w_full())
                 .into_any_element()
         } else {
             div()

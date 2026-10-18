@@ -697,12 +697,30 @@ impl MeetingsPage {
 
     // --------------------------------------------------------------- render
 
+    /// Where the tab switcher sits: centered over the page, but clear of the
+    /// toolbar items and window controls on the right. Returns x, segment width.
+    fn tabs_geometry(&self) -> Option<(Pixels, Pixels)> {
+        let page = self.page_bounds.get()?;
+        let width = page.size.width;
+        let segment = if width < px(760.) {
+            px(64.)
+        } else if width < px(900.) {
+            px(72.)
+        } else {
+            px(86.)
+        };
+        let tabs = segmented_tabs::width(TABS.len(), segment);
+        let reserved = if width < px(900.) { px(270.) } else { px(390.) };
+        let centered = page.origin.x + width / 2. - tabs / 2.;
+        let x = centered
+            .min(page.origin.x + width - reserved - tabs)
+            .max(page.origin.x + px(120.));
+        Some((x, segment))
+    }
+
     fn toolbar_tabs(&self, cx: &mut Context<Self>) -> Option<AnyElement> {
         let page = self.page_bounds.get()?;
-        let compact = page.size.width < px(900.);
-        let segment = if compact { px(72.) } else { px(86.) };
-        let width = segmented_tabs::width(TABS.len(), segment);
-        let x = page.origin.x + page.size.width / 2. - width / 2.;
+        let (x, segment) = self.tabs_geometry()?;
         let y = page.origin.y - metric::TOOLBAR_HEIGHT
             + (metric::TOOLBAR_HEIGHT - segmented_tabs::HEIGHT) / 2.;
         let on_select = cx.listener(|this, ix: &usize, _, cx| this.set_tab(tab_at(*ix), cx));
@@ -731,12 +749,13 @@ impl Page for MeetingsPage {
             return "Meetings".into();
         };
         let title = meeting.display_title();
-        // Keep the title clear of the centered tabs.
-        let budget = self
-            .page_bounds
-            .get()
-            .map(|b| ((f32::from(b.size.width) / 2. - 200.) / 9.).max(12.) as usize)
-            .unwrap_or(40);
+        // Keep the title clear of the tabs.
+        let budget = match (self.page_bounds.get(), self.tabs_geometry()) {
+            (Some(page), Some((x, _))) => {
+                (f32::from(x - page.origin.x - px(36.)) / 9.2).max(8.) as usize
+            }
+            _ => 40,
+        };
         if title.chars().count() > budget {
             let cut: String = title.chars().take(budget.saturating_sub(1)).collect();
             format!("{}…", cut.trim_end()).into()
@@ -791,7 +810,7 @@ impl Page for MeetingsPage {
                 Button::new("meeting-export")
                     .ghost()
                     .icon(Icon::new(Ico::Share))
-                    .dropdown_caret(true)
+                    .dropdown_caret(!compact)
                     .tooltip("Export meeting")
                     .dropdown_menu(move |menu, _, _| {
                         let p1 = export_page.clone();
@@ -857,7 +876,7 @@ impl Page for MeetingsPage {
                 Button::new("meeting-more")
                     .ghost()
                     .icon(Icon::new(Ico::Ellipsis))
-                    .dropdown_caret(true)
+                    .dropdown_caret(!compact)
                     .tooltip("More meeting actions")
                     .dropdown_menu(move |menu, _, _| {
                         let p = more_page.clone();

@@ -188,7 +188,7 @@ impl TimelinePage {
             "{}–{} · {} active",
             lokalbot_core::time::clock_time(session.start),
             lokalbot_core::time::clock_time(session.end),
-            lokalbot_core::time::compact_duration(session.active_seconds)
+            crate::pages::today::digest::hm(session.active_seconds)
         );
         let moments: Vec<_> = model
             .moments
@@ -301,7 +301,7 @@ impl TimelinePage {
                                     )
                                     .child(div().text_size(ty::SECONDARY).text_color(lb.text_secondary).child(format!(
                                         "{} observed · {} activity {}",
-                                        lokalbot_core::time::compact_duration(observed),
+                                        crate::pages::today::digest::hm(observed),
                                         matching.len(),
                                         if matching.len() == 1 { "block" } else { "blocks" }
                                     ))),
@@ -381,7 +381,7 @@ impl TimelinePage {
                                 .gap(px(8.))
                                 .child(ui::stat_chip(
                                     Ico::Clock,
-                                    lokalbot_core::time::compact_duration(session.active_seconds),
+                                    crate::pages::today::digest::hm(session.active_seconds),
                                     "active",
                                     cx,
                                 ))

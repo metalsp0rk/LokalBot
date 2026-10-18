@@ -33,6 +33,15 @@ pub(crate) type TaskToggle = Rc<dyn Fn(usize, &mut Window, &mut App)>;
 
 // --------------------------------------------------------------- overview
 
+/// `CaptureStyle.hm`: "3h 50m", "48m", "<1m" (and "0m" for nothing).
+pub(crate) fn hm(seconds: f64) -> String {
+    if seconds <= 0. {
+        "0m".into()
+    } else {
+        lokalbot_core::time::compact_duration(seconds)
+    }
+}
+
 /// One proportion-bar segment: label, seconds, whether it is "Other".
 pub(crate) struct AppShare {
     pub label: String,
@@ -99,7 +108,7 @@ pub(crate) fn day_overview(
     let mut chips = vec![
         ui::stat_chip(
             Ico::Clock,
-            lokalbot_core::time::compact_duration(activity.tracked_seconds),
+            crate::pages::today::digest::hm(activity.tracked_seconds),
             "tracked",
             cx,
         )
@@ -171,9 +180,12 @@ pub(crate) fn day_overview(
                                             .text_color(lb.text)
                                             .child(share.label.clone()),
                                     )
-                                    .child(div().flex_none().text_color(lb.text_secondary).child(
-                                        lokalbot_core::time::compact_duration(share.seconds),
-                                    ))
+                                    .child(
+                                        div()
+                                            .flex_none()
+                                            .text_color(lb.text_secondary)
+                                            .child(crate::pages::today::digest::hm(share.seconds)),
+                                    )
                             })),
                     )
                 })
