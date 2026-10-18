@@ -22,9 +22,8 @@ pub mod waveform;
 
 pub use gpui_kit::assets::IconName as Ico;
 use gpui_kit::component::{Icon, h_flex, v_flex};
-use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
-    AnyElement, App, Div, ElementId, FontWeight, Hsla, InteractiveElement as _, IntoElement,
+    App, Div, ElementId, FontWeight, Hsla, InteractiveElement as _, IntoElement,
     ParentElement as _, Pixels, SharedString, Stateful, StatefulInteractiveElement as _,
     Styled as _, Window, div, px, relative,
 };
@@ -76,55 +75,6 @@ pub fn section_title(title: impl Into<SharedString>, cx: &App) -> Div {
         .font_weight(FontWeight::BOLD)
         .text_color(cx.lb().text)
         .child(title.into())
-}
-
-/// Small grey group header ("Today", "Remember", "Screens").
-pub fn group_header(title: impl Into<SharedString>, cx: &App) -> Div {
-    div()
-        .text_size(ty::CAPTION)
-        .font_weight(FontWeight::SEMIBOLD)
-        .text_color(cx.lb().text_secondary)
-        .child(title.into())
-}
-
-/// Page title with an optional subtitle line.
-pub fn page_title(title: impl Into<SharedString>, subtitle: Option<SharedString>, cx: &App) -> Div {
-    let lb = cx.lb();
-    v_flex()
-        .gap_1()
-        .child(
-            div()
-                .text_size(ty::PAGE_TITLE)
-                .font_weight(FontWeight::BOLD)
-                .text_color(lb.text)
-                .child(title.into()),
-        )
-        .when_some(subtitle, |this, subtitle| {
-            this.child(
-                div()
-                    .text_size(ty::BODY)
-                    .text_color(lb.text_secondary)
-                    .child(subtitle),
-            )
-        })
-}
-
-/// A capsule chip with an optional icon ("2 min", "Mic + system").
-pub fn chip(icon_name: Option<Ico>, label: impl Into<SharedString>, cx: &App) -> Div {
-    let lb = cx.lb();
-    h_flex()
-        .gap_1p5()
-        .items_center()
-        .px(px(10.))
-        .py(px(4.))
-        .rounded_full()
-        .bg(lb.chip_fill)
-        .text_size(ty::SECONDARY)
-        .text_color(lb.supporting)
-        .when_some(icon_name, |this, name| {
-            this.child(icon(name, px(13.), lb.text_secondary))
-        })
-        .child(label.into())
 }
 
 /// `StatTile`: icon + bold value + label, in a chip ("3h 50m tracked").
@@ -207,31 +157,6 @@ pub fn divider(cx: &App) -> Div {
     div().h(px(1.)).w_full().bg(cx.lb().separator)
 }
 
-/// `EvidencePill`: quote bubble + "00:00:26" in teal. The tooltip is the excerpt.
-pub fn evidence_pill(
-    id: impl Into<ElementId>,
-    seconds: f64,
-    on_click: impl Fn(&mut Window, &mut App) + 'static,
-    cx: &App,
-) -> Stateful<Div> {
-    let lb = cx.lb();
-    let hover = lb.accent_wash;
-    h_flex()
-        .id(id)
-        .gap_1()
-        .items_center()
-        .px(px(4.))
-        .py(px(2.))
-        .rounded(px(5.))
-        .cursor_pointer()
-        .hover(move |style| style.bg(hover))
-        .text_size(ty::SECONDARY)
-        .text_color(lb.accent_text)
-        .child(icon(Ico::MessageSquareQuote, px(14.), lb.accent_text))
-        .child(lokalbot_core::time::stamp(seconds))
-        .on_click(move |_, window, cx| on_click(window, cx))
-}
-
 /// `ProportionBar`: a 10px capsule split by share (at least 1px per segment).
 pub fn proportion_bar(segments: &[(Hsla, f32)], cx: &App) -> Div {
     let total: f32 = segments.iter().map(|(_, share)| share.max(0.0)).sum();
@@ -290,9 +215,4 @@ pub fn avatar(initials: impl Into<SharedString>, tint: Hsla, size: Pixels) -> Di
         .font_weight(FontWeight::SEMIBOLD)
         .text_color(tint)
         .child(initials.into())
-}
-
-/// Erases the concrete element type, for `match` arms that build different elements.
-pub fn any(element: impl IntoElement) -> AnyElement {
-    element.into_any_element()
 }

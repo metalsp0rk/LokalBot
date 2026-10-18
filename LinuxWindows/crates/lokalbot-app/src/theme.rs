@@ -6,7 +6,7 @@
 //! same palette in [`apply`], so both layers agree.
 
 use gpui_kit::component::{Theme, ThemeMode};
-use gpui_kit::{App, Global, Hsla, Pixels, Window, WindowAppearance, hsla, px, rgb, rgba};
+use gpui_kit::{App, Global, Hsla, Window, WindowAppearance, hsla, px, rgb, rgba};
 
 use lokalbot_core::settings::AppTheme;
 
@@ -44,8 +44,6 @@ pub struct Palette {
     pub success_text: Hsla,
     pub recording: Hsla,
     pub recording_text: Hsla,
-    /// The "Them" track color.
-    pub them: Hsla,
     pub speakers: [Hsla; 8],
 }
 
@@ -77,7 +75,6 @@ impl Palette {
             success_text: rgb(0x176F2C).into(),
             recording: rgb(0xFF3B30).into(),
             recording_text: rgb(0xB60012).into(),
-            them: rgb(0x7D9EC2).into(),
             speakers: [
                 rgb(0x075F55).into(),
                 rgb(0x007AFF).into(),
@@ -118,7 +115,6 @@ impl Palette {
             success_text: rgb(0x4BDC71).into(),
             recording: rgb(0xFF453A).into(),
             recording_text: rgb(0xFF9C95).into(),
-            them: rgb(0x8FAED0).into(),
             speakers: [
                 rgb(0x6EF2DC).into(),
                 rgb(0x0A84FF).into(),
@@ -188,7 +184,6 @@ pub mod ty {
 
     pub const PAGE_TITLE: Pixels = px(28.);
     pub const QUESTION: Pixels = px(18.);
-    pub const DIGEST_LEAD: Pixels = px(16.);
     pub const COLUMN_TITLE: Pixels = px(16.);
     pub const SECTION: Pixels = px(14.);
     pub const BODY: Pixels = px(14.);
@@ -325,9 +320,4 @@ pub fn apply(dark: bool, text_scale: f32, window: Option<&mut Window>, cx: &mut 
     });
     cx.set_global(LbTheme(palette));
     cx.refresh_windows();
-}
-
-/// Helper for components that need a pixel value scaled by the text size.
-pub fn scaled(size: Pixels, scale: f32) -> Pixels {
-    px(f32::from(size) * scale)
 }

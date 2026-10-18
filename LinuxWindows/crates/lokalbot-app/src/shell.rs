@@ -241,7 +241,7 @@ impl Workspace {
                                 .text_size(ty::SECONDARY)
                                 .text_color(lb.recording_text)
                                 .hover(|s| s.underline())
-                                .child("Live Transcript & Notes")
+                                .child("Live Meeting Notes")
                                 .on_click(move |_, _, cx| {
                                     data_entity.update(cx, |data, cx| {
                                         if let Some(meeting) = data.recording.meeting().cloned() {

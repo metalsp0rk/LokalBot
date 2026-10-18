@@ -331,7 +331,7 @@ fn schedule_hud_dismiss(cx: &mut Context<AppData>, after: Duration) {
                 cx.notify();
             }
         });
-        let _ = cx.update(crate::hud::sync);
+        cx.update(crate::hud::sync);
     })
     .detach();
 }

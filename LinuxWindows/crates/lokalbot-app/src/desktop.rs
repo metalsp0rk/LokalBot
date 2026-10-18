@@ -232,13 +232,13 @@ pub fn sync_shortcuts_later(cx: &mut App) {
         };
         for (id, shortcut) in [(DICTATION_ID, dictation), (QUICK_RECALL_ID, quick_recall)] {
             let _ = manager.unregister(id);
-            if let Some(shortcut) = shortcut {
-                if let Err(err) = manager.register(id, &shortcut) {
-                    log::warn!(
-                        "could not register the {id} shortcut {}: {err}",
-                        shortcut.label()
-                    );
-                }
+            if let Some(shortcut) = shortcut
+                && let Err(err) = manager.register(id, &shortcut)
+            {
+                log::warn!(
+                    "could not register the {id} shortcut {}: {err}",
+                    shortcut.label()
+                );
             }
         }
     });
@@ -344,13 +344,12 @@ fn dictation_shortcut(data: &Entity<AppData>, pressed: bool, cx: &mut App) {
 /// Activates the main window, reopening it if it was closed to the tray.
 pub fn show_main_window(cx: &mut App) {
     let existing = desktop(cx).and_then(|d| *d.main_window.lock());
-    if let Some(handle) = existing {
-        if handle
+    if let Some(handle) = existing
+        && handle
             .update(cx, |_, window, _| window.activate_window())
             .is_ok()
-        {
-            return;
-        }
+    {
+        return;
     }
     crate::open_main_window(AppData::global(cx), cx);
 }

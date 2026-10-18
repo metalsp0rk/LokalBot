@@ -249,7 +249,7 @@ impl TodayPage {
                         ),
                 )
                 .child(
-                    ui::controls::bordered("now-live", "Live Transcript & Notes").on_click(
+                    ui::controls::bordered("now-live", "Live Meeting Notes").on_click(
                         move |_, _, cx| {
                             open.update(cx, |data, cx| {
                                 data.open_meeting(id, Default::default(), None, cx)

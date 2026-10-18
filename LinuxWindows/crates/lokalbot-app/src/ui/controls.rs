@@ -3,15 +3,10 @@
 
 use gpui_kit::ElementId;
 use gpui_kit::SharedString;
+use gpui_kit::component::Icon;
 use gpui_kit::component::button::{Button, ButtonVariants as _};
-use gpui_kit::component::{Icon, Sizable as _};
 
 use super::Ico;
-
-/// Filled teal button with white text ("Record Now", "Ask").
-pub fn primary(id: impl Into<ElementId>, label: impl Into<SharedString>) -> Button {
-    Button::new(id).primary().label(label)
-}
 
 /// macOS `.bordered` button for secondary actions ("Review Actions…"): a soft
 /// grey fill with accent text (colors come from the theme's secondary button).
@@ -41,9 +36,4 @@ pub fn toolbar_icon(
         .ghost()
         .icon(Icon::new(icon))
         .tooltip(tooltip)
-}
-
-/// Small quiet button, used inside rows and cards.
-pub fn ghost(id: impl Into<ElementId>, label: impl Into<SharedString>) -> Button {
-    Button::new(id).ghost().small().label(label)
 }

@@ -268,7 +268,6 @@ fn handle_event(data: &Entity<AppData>, event: &AppEvent, window: &mut Window, c
             desktop::sync_shortcuts_later(cx);
             apply_launch_at_login(data, cx);
         }
-        AppEvent::OpenQuickRecall => windows::quick_recall::open(cx),
         AppEvent::OpenOnboarding => windows::onboarding::open(cx),
         AppEvent::MeetingDetected { app_name, title } => {
             desktop::notify_meeting_detected(app_name.clone(), title.clone(), cx)
@@ -283,7 +282,7 @@ fn handle_event(data: &Entity<AppData>, event: &AppEvent, window: &mut Window, c
                         async move { lokalbot_engine::secrets::save_openai_api_key(&key) },
                     )
                     .await;
-                let _ = data.update(cx, |data, cx| match result {
+                data.update(cx, |data, cx| match result {
                     Ok(()) => {
                         data.show_message("Saved the API key in the system credential store.", cx)
                     }
@@ -349,7 +348,7 @@ fn install_cli(data: &Entity<AppData>, cx: &mut App) {
                 }
             })
             .await;
-        let _ = data.update(cx, |data, cx| match result {
+        data.update(cx, |data, cx| match result {
             Ok(_) => data.show_message("Installed lokalbot-cli for your coding agents.", cx),
             Err(err) => data.show_error(format!("Installing lokalbot-cli failed: {err:#}"), cx),
         });

@@ -11,8 +11,9 @@ use gpui_kit::component::menu::{DropdownMenu as _, PopupMenuItem};
 use gpui_kit::component::{Disableable as _, Icon, Sizable as _, WindowExt as _, h_flex, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
-    AnyElement, App, AppContext as _, Context, Div, Entity, FontWeight, IntoElement as _,
-    ParentElement as _, SharedString, Styled as _, Subscription, Window, div, px,
+    AnyElement, App, AppContext as _, Context, Div, Entity, FontWeight, InteractiveElement as _,
+    IntoElement as _, ParentElement as _, SharedString, StatefulInteractiveElement as _,
+    Styled as _, Subscription, Window, div, px,
 };
 use lokalbot_core::Settings;
 use lokalbot_core::settings::{GenerationBudget, ReasoningLevel, SummarizerBackend};
@@ -116,40 +117,40 @@ impl Preset {
         }
     }
 
-    /// Transcribe, Think and Autocomplete model ids (`lokalbot_ai::catalog::PRESETS`).
-    fn models(self) -> (&'static str, &'static str, &'static str) {
+    /// Transcribe and Think model ids (`lokalbot_ai::catalog::PRESETS`). The
+    /// presets' Autocomplete model is left alone: autocomplete is macOS-only.
+    fn models(self) -> (&'static str, &'static str) {
         let index = match self {
             Preset::Balanced => 0,
             Preset::Lightweight => 1,
         };
-        let preset = &lokalbot_ai::catalog::PRESETS[index];
-        (DEFAULT_SPEECH_MODEL, preset.think, preset.autocomplete)
+        (
+            DEFAULT_SPEECH_MODEL,
+            lokalbot_ai::catalog::PRESETS[index].think,
+        )
     }
 
     fn summary(self) -> String {
-        let (speech, think, autocomplete) = self.models();
+        let (speech, think) = self.models();
         format!(
-            "Transcribe: {}, Think: {}, Autocomplete: {}",
+            "Transcribe: {}, Think: {}",
             model_name(speech),
-            model_name(think),
-            model_name(autocomplete)
+            model_name(think)
         )
     }
 
     pub fn matches(self, settings: &Settings) -> bool {
-        let (speech, think, autocomplete) = self.models();
+        let (speech, think) = self.models();
         settings.summarizer_backend == SummarizerBackend::BuiltIn
             && settings.transcription_model == speech
             && settings.built_in_model_id == think
-            && settings.cotyping_built_in_model_id == autocomplete
     }
 
     fn apply(self, settings: &mut Settings) {
-        let (speech, think, autocomplete) = self.models();
+        let (speech, think) = self.models();
         settings.summarizer_backend = SummarizerBackend::BuiltIn;
         settings.transcription_model = speech.into();
         settings.built_in_model_id = think.into();
-        settings.cotyping_built_in_model_id = autocomplete.into();
     }
 }
 
@@ -433,6 +434,7 @@ impl SettingsPage {
                     downloading: downloads
                         .get(&settings.transcription_model)
                         .map(|d| d.fraction()),
+                    model_id: settings.transcription_model.clone(),
                 },
                 RoleChoices::Speech,
                 cx,
@@ -454,27 +456,9 @@ impl SettingsPage {
                     downloading: downloads
                         .get(&settings.built_in_model_id)
                         .map(|d| d.fraction()),
+                    model_id: settings.built_in_model_id.clone(),
                 },
                 RoleChoices::Think,
-                cx,
-            ),
-        );
-        roles = roles.row(
-            "settings.cotypingBuiltInModelID",
-            self.role_row(
-                RoleRow {
-                    id: "settings.cotypingBuiltInModelID",
-                    icon: Ico::TextCursorInput,
-                    title: "Autocomplete",
-                    detail: "Suggestions as you type",
-                    model: model_name(&settings.cotyping_built_in_model_id),
-                    remote: None,
-                    ready: status.autocomplete_ready,
-                    downloading: downloads
-                        .get(&settings.cotyping_built_in_model_id)
-                        .map(|d| d.fraction()),
-                },
-                RoleChoices::Autocomplete,
                 cx,
             ),
         );
@@ -513,8 +497,8 @@ impl SettingsPage {
         let mut presets = Section::new("Presets");
         for preset in Preset::ALL {
             let current = preset.matches(&settings);
-            let (speech, think, autocomplete) = preset.models();
-            let download: u64 = [speech, think, autocomplete]
+            let (speech, think) = preset.models();
+            let download: u64 = [speech, think]
                 .iter()
                 .filter(|id| !status.installed.iter().any(|installed| installed == *id))
                 .map(|id| model_bytes(id))
@@ -884,23 +868,6 @@ impl SettingsPage {
                 ));
                 items
             }
-            RoleChoices::Autocomplete => lokalbot_ai::catalog::autocomplete_entries(Some(
-                &settings.cotyping_built_in_model_id,
-            ))
-            .map(|m| {
-                let id = m.id;
-                (
-                    SharedString::from(format!(
-                        "{} · {}",
-                        m.display_name,
-                        size_label(m.size_bytes)
-                    )),
-                    settings.cotyping_built_in_model_id == id,
-                    Box::new(move |s: &mut Settings| s.cotyping_built_in_model_id = id.into())
-                        as Box<dyn Fn(&mut Settings)>,
-                )
-            })
-            .collect(),
         };
         let options = std::rc::Rc::new(options);
         let change = Button::new(SharedString::from(format!("{}-change", row.id)))
@@ -1017,6 +984,22 @@ impl SettingsPage {
                         )
                         .child(location_label(location, remote.is_some(), cx))
                         .when_some(status, |this, (text, color)| {
+                            let cancel = row.downloading.is_some().then(|| {
+                                let data = self.data.clone();
+                                let id = row.model_id.clone();
+                                div()
+                                    .id(SharedString::from(format!("{}-cancel", row.id)))
+                                    .cursor_pointer()
+                                    .text_color(lb.accent_text)
+                                    .hover(|s| s.underline())
+                                    .child("Cancel")
+                                    .on_click(move |_, _, cx| {
+                                        let id = id.clone();
+                                        data.update(cx, |data, cx| {
+                                            data.request(AppEvent::CancelDownload(id), cx)
+                                        })
+                                    })
+                            });
                             this.child(
                                 h_flex()
                                     .gap(px(5.))
@@ -1024,7 +1007,8 @@ impl SettingsPage {
                                     .text_size(ty::SECONDARY)
                                     .text_color(color)
                                     .child(ui::icon(Ico::CircleAlert, px(13.), color))
-                                    .child(text),
+                                    .child(text)
+                                    .children(cancel),
                             )
                         })
                         .children(reasoning),
@@ -1312,13 +1296,13 @@ struct RoleRow {
     remote: Option<String>,
     ready: bool,
     downloading: Option<f32>,
+    model_id: String,
 }
 
 #[derive(Clone, Copy)]
 enum RoleChoices {
     Speech,
     Think,
-    Autocomplete,
 }
 
 /// "On this PC · Downloaded", or a remote origin in an amber capsule.

@@ -64,9 +64,9 @@ pub enum SettingsCategory {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+#[allow(clippy::large_enum_variant)]
 pub enum RecordingState {
     Idle,
-    Starting,
     Recording {
         meeting: Meeting,
         started: Instant,
@@ -75,7 +75,6 @@ pub enum RecordingState {
         mic_level: f32,
         system_level: f32,
     },
-    Stopping,
 }
 
 impl RecordingState {
@@ -101,20 +100,6 @@ pub enum ProcessingStage {
     IdentifyingSpeakers,
     Summarizing,
     Failed(SharedString),
-}
-
-impl ProcessingStage {
-    pub fn label(&self) -> SharedString {
-        match self {
-            ProcessingStage::Queued => "Queued".into(),
-            ProcessingStage::WaitingForModels => "Waiting for models".into(),
-            ProcessingStage::PreparingModel(name) => format!("Preparing {name}").into(),
-            ProcessingStage::Transcribing => "Transcribing".into(),
-            ProcessingStage::IdentifyingSpeakers => "Identifying speakers".into(),
-            ProcessingStage::Summarizing => "Summarizing".into(),
-            ProcessingStage::Failed(_) => "Failed".into(),
-        }
-    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -597,7 +582,6 @@ pub enum AppEvent {
     SetDayMemoryPaused(bool),
     /// Write the "Where it stands" note for a project id.
     WriteProjectNote(String),
-    OpenQuickRecall,
     OpenOnboarding,
     /// Install `lokalbot-cli` for coding agents (PATH + skill folders).
     InstallCli,
