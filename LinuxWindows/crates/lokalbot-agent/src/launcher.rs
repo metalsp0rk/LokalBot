@@ -35,6 +35,8 @@ pub struct PiLauncher {
     pub api_key: ApiKeySource,
     /// The folder holding `lokalbot-cli`, put first on the agent's PATH.
     pub helpers_dir: Option<PathBuf>,
+    /// The command shell; `None` detects it ([`ShellChoice::detect`]).
+    pub shell: Option<ShellChoice>,
 }
 
 impl PiLauncher {
@@ -74,7 +76,7 @@ impl PiLauncher {
         let spawned = (|| -> Result<Launched, LaunchError> {
             let (extension, skill) = crate::resources::materialize(&self.layout)
                 .map_err(|err| LaunchError::Other(format!("{err:#}")))?;
-            let shell = ShellChoice::detect();
+            let shell = self.shell.clone().unwrap_or_else(ShellChoice::detect);
             shell
                 .apply(&self.dirs.pi_config())
                 .map_err(|err| LaunchError::Other(format!("{err:#}")))?;

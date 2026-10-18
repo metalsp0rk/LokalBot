@@ -69,7 +69,7 @@ mod platform {
         "15277c59ccd6c6c20f8dc9716c2b59c1776320d606b6a8658f70be8799519ca4";
     /// win32-x64 install of the bundled lockfile.
     pub const PI_TREE_SHA256: &str =
-        "0000000000000000000000000000000000000000000000000000000000000000";
+        "01fdc41590c6a834143eacbec092bc25c4fb115fbe42425003716e3778886a4c";
     pub const DOWNLOAD_BYTES: u64 = 70_000_000;
     pub const INSTALLED_BYTES: u64 = 210_000_000;
 }

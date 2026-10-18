@@ -6,12 +6,14 @@
 //! ```text
 //! agent_turn <library> --workspace <dir> [--install] [--download-model]
 //!            [--approve | --deny] [--expect-file <path> [--expect-text <text>]]
-//!            [--expect-missing <path>] [--cli <dir>] [--timeout <seconds>] <prompt>
+//!            [--expect-missing <path>] [--cli <dir>] [--powershell]
+//!            [--timeout <seconds>] <prompt>
 //! ```
 //!
 //! `--install` sets up Bun and pi in `<library>/runtimes/agent-runtime`;
 //! `--download-model` fetches the built-in Think model and llama.cpp runtime
-//! named by `<library>/settings.json` when they are missing.
+//! named by `<library>/settings.json` when they are missing. `--powershell`
+//! gives the agent pi's PowerShell tool, as on Windows without Bash.
 
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -40,6 +42,7 @@ struct Options {
     expect_text: Option<String>,
     expect_missing: Option<PathBuf>,
     cli: Option<PathBuf>,
+    powershell: bool,
     timeout: u64,
     prompt: String,
 }
@@ -63,6 +66,7 @@ fn parse() -> Result<Options> {
             "--expect-text" => options.expect_text = Some(value()?),
             "--expect-missing" => options.expect_missing = Some(value()?.into()),
             "--cli" => options.cli = Some(value()?.into()),
+            "--powershell" => options.powershell = true,
             "--timeout" => options.timeout = value()?.parse()?,
             _ => positional.push(arg),
         }
@@ -142,6 +146,9 @@ fn main() -> Result<()> {
         runtime: Some(runtime.clone()),
         api_key: Arc::new(|| None),
         helpers_dir: options.cli.clone().or_else(PiLauncher::bundled_helpers_dir),
+        shell: options
+            .powershell
+            .then_some(lokalbot_agent::shell::ShellChoice::PowerShell),
     };
     lokalbot_agent::process::stop_leftovers(&dirs.process_markers());
     let env = Arc::new(AgentEnvironment {

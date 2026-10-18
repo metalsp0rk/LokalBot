@@ -56,7 +56,7 @@ impl ShellChoice {
         match self {
             ShellChoice::Default => "Commands run in Bash.".into(),
             ShellChoice::Bash(path) => format!("Commands run in Bash ({}).", path.display()),
-            ShellChoice::PowerShell => "Git for Windows isn't installed, so commands run in Windows PowerShell. Install Git for Windows to give the agent Bash, then start a new task.".into(),
+            ShellChoice::PowerShell => "Git for Windows isn't installed, so commands run in PowerShell. Install Git for Windows to give the agent Bash, then start a new task.".into(),
         }
     }
 
