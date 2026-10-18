@@ -16,6 +16,10 @@ case "$(uname -s)" in
     cp packaging/linux/com.lokalbot.LokalBot.desktop packaging/linux/install.sh "$STAGE/"
     cp packaging/icons/lokalbot-*.png "$STAGE/icons/"
     cp ../LICENSE "$STAGE/LICENSE" 2>/dev/null || true
+    # Autocomplete contains AGPL-3.0 code ported from Cotabby; its notice and
+    # license text ship with the binaries.
+    cp ../THIRD_PARTY_NOTICES.md "$STAGE/"
+    mkdir -p "$STAGE/LICENSES" && cp ../LICENSES/AGPL-3.0.txt "$STAGE/LICENSES/"
     tar -C dist -czf "dist/$NAME.tar.gz" "$NAME"
     (cd dist && sha256sum "$NAME.tar.gz" > "$NAME.tar.gz.sha256")
     echo "dist/$NAME.tar.gz"
@@ -26,6 +30,8 @@ case "$(uname -s)" in
     rm -rf "$STAGE" && mkdir -p "$STAGE"
     cp target/release/lokalbot.exe target/release/lokalbot-cli.exe "$STAGE/"
     cp ../LICENSE "$STAGE/LICENSE.txt" 2>/dev/null || true
+    cp ../THIRD_PARTY_NOTICES.md "$STAGE/"
+    mkdir -p "$STAGE/LICENSES" && cp ../LICENSES/AGPL-3.0.txt "$STAGE/LICENSES/"
     (cd dist && 7z a -tzip "$NAME.zip" "$NAME" >/dev/null)
     (cd dist && sha256sum "$NAME.zip" > "$NAME.zip.sha256")
     echo "dist/$NAME.zip"
