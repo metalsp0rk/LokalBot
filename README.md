@@ -4,7 +4,7 @@
 
 # LokalBot
 
-**Find what you said or saw on your Mac.**
+**Your personal context engine for macOS.**
 
 Private meeting notes, workday recall, dictation, and autocomplete—with AI that runs on your Mac.<br />
 Your AI agents can search it too, from Claude Code, Codex, or any MCP client.<br />
