@@ -285,7 +285,7 @@ impl ActionsWorkspace {
         &self,
         ix: usize,
         reference: &ActionReference,
-        compact: bool,
+        columns: Columns,
         cx: &mut Context<Self>,
     ) -> AnyElement {
         let lb = cx.lb().clone();
@@ -400,7 +400,7 @@ impl ActionsWorkspace {
                     .when(done, |this| this.line_through())
                     .child(reference.text.clone()),
             )
-            .when(!compact, |this| {
+            .when(columns.owner, |this| {
                 this.child(
                     div()
                         .w(px(90.))
@@ -417,7 +417,7 @@ impl ActionsWorkspace {
             })
             .child(
                 div()
-                    .w(px(if compact { 130. } else { 150. }))
+                    .w(px(if columns.wide { 150. } else { 130. }))
                     .flex_none()
                     .truncate()
                     .text_size(ty::SECONDARY)
@@ -428,20 +428,22 @@ impl ActionsWorkspace {
                     })
                     .child(due),
             )
-            .child(
-                div()
-                    .w(px(if compact { 140. } else { 170. }))
-                    .flex_none()
-                    .min_w_0()
-                    .child(action_row::meta_link(
-                        ("actions-meeting", ix),
-                        reference.meeting_title.clone(),
-                        None,
-                        move |_, cx| open_meeting(&data, meeting_id, None, cx),
-                        cx,
-                    )),
-            )
-            .when(!compact, |this| {
+            .when(columns.meeting, |this| {
+                this.child(
+                    div()
+                        .w(px(if columns.wide { 170. } else { 140. }))
+                        .flex_none()
+                        .min_w_0()
+                        .child(action_row::meta_link(
+                            ("actions-meeting", ix),
+                            reference.meeting_title.clone(),
+                            None,
+                            move |_, cx| open_meeting(&data, meeting_id, None, cx),
+                            cx,
+                        )),
+                )
+            })
+            .when(columns.passage, |this| {
                 this.child(div().w(px(92.)).flex_none().children(
                     reference.first_citation().cloned().map(|citation| {
                         let data = self.data.clone();
@@ -534,11 +536,15 @@ impl ActionsWorkspace {
                         )
                     })
                     .child(
-                        Button::new("inspector-correct")
-                            .outline()
-                            .small()
-                            .label("Correct Action or Resolve Date…")
-                            .on_click(cx.listener(move |this, _, window, cx| this.open_correction(&correct_ref, window, cx))),
+                        h_flex().child(
+                            Button::new("inspector-correct")
+                                .outline()
+                                .small()
+                                .label("Correct Action or Resolve Date…")
+                                .on_click(cx.listener(move |this, _, window, cx| {
+                                    this.open_correction(&correct_ref, window, cx)
+                                })),
+                        ),
                     )
                     .child(ui::divider(cx))
                     .child(label("Original Wording"))
@@ -578,13 +584,22 @@ impl ActionsWorkspace {
     }
 }
 
+/// Which table columns fit the list width.
+#[derive(Clone, Copy)]
+struct Columns {
+    owner: bool,
+    passage: bool,
+    meeting: bool,
+    wide: bool,
+}
+
 /// Asks Today to close the workspace.
 pub(crate) struct BackToToday;
 
 impl gpui_kit::EventEmitter<BackToToday> for ActionsWorkspace {}
 
 impl Render for ActionsWorkspace {
-    fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let lb = cx.lb().clone();
         let visible: Vec<ActionReference> = self.visible().into_iter().cloned().collect();
         let inspected = self
@@ -608,11 +623,19 @@ impl Render for ActionsWorkspace {
                 ))
                 .into_any_element()
         } else {
-            let compact = inspected.is_some();
+            let list_width = f32::from(window.viewport_size().width)
+                - f32::from(crate::theme::metric::SIDEBAR_WIDTH)
+                - if inspected.is_some() { 320. } else { 0. };
+            let columns = Columns {
+                owner: list_width >= 900.,
+                passage: list_width >= 820.,
+                meeting: list_width >= 520.,
+                wide: list_width >= 900.,
+            };
             let rows: Vec<AnyElement> = visible
                 .iter()
                 .enumerate()
-                .map(|(ix, r)| self.render_row(ix, r, compact, cx))
+                .map(|(ix, r)| self.render_row(ix, r, columns, cx))
                 .collect();
             div()
                 .id("actions-list")
