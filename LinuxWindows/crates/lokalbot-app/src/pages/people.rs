@@ -12,9 +12,9 @@ use gpui_kit::component::popover::Popover;
 use gpui_kit::component::{Disableable as _, Icon, Sizable as _, WindowExt as _, h_flex, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
-    AnyElement, App, AppContext as _, Context, Entity, FontWeight, InteractiveElement as _, IntoElement,
-    ParentElement as _, Render, ScrollHandle, SharedString, StatefulInteractiveElement as _, Styled as _,
-    Subscription, Window, div, px,
+    AnyElement, App, AppContext as _, Context, Entity, FontWeight, InteractiveElement as _,
+    IntoElement, ParentElement as _, Render, ScrollHandle, SharedString,
+    StatefulInteractiveElement as _, Styled as _, Subscription, Window, div, px,
 };
 use lokalbot_core::{HiddenPerson, MeetingRef, PeopleCuration, PersonProfile};
 use uuid::Uuid;
@@ -110,9 +110,13 @@ impl PeoplePage {
         let library = self.data.read(cx).library.clone();
         let data = self.data.clone();
         cx.spawn(async move |this, cx| {
-            let result = cx.background_spawn(async move { library.save_people_curation(&curation) }).await;
+            let result = cx
+                .background_spawn(async move { library.save_people_curation(&curation) })
+                .await;
             if let Err(err) = result {
-                let _ = data.update(cx, |data, cx| data.show_error(format!("Could not save People changes: {err:#}"), cx));
+                let _ = data.update(cx, |data, cx| {
+                    data.show_error(format!("Could not save People changes: {err:#}"), cx)
+                });
             }
             let _ = this.update(cx, |this, cx| this.reload(cx));
         })
@@ -121,7 +125,13 @@ impl PeoplePage {
     }
 
     /// `PeopleStore.rename`: an empty name goes back to the name from meetings.
-    fn rename(&mut self, person_id: &str, member_ids: &[String], name: &str, cx: &mut Context<Self>) {
+    fn rename(
+        &mut self,
+        person_id: &str,
+        member_ids: &[String],
+        name: &str,
+        cx: &mut Context<Self>,
+    ) {
         let cleaned = name.split_whitespace().collect::<Vec<_>>().join(" ");
         let mut curation = self.curation.clone();
         for id in member_ids.iter().map(String::as_str).chain([person_id]) {
@@ -138,7 +148,10 @@ impl PeoplePage {
             return;
         }
         let mut curation = self.curation.clone();
-        curation.hidden.push(HiddenPerson { id: person.id.clone(), name: person.name.clone() });
+        curation.hidden.push(HiddenPerson {
+            id: person.id.clone(),
+            name: person.name.clone(),
+        });
         if self.selected.as_deref() == Some(person.id.as_str()) {
             self.selected = None;
         }
@@ -153,7 +166,8 @@ impl PeoplePage {
 
     fn open_rename(&mut self, person: &PersonProfile, window: &mut Window, cx: &mut Context<Self>) {
         let name = person.name.clone();
-        self.rename_input.update(cx, |input, cx| input.set_value(name.clone(), window, cx));
+        self.rename_input
+            .update(cx, |input, cx| input.set_value(name.clone(), window, cx));
         let page = cx.entity();
         let input = self.rename_input.clone();
         let person_id = person.id.clone();
@@ -208,7 +222,9 @@ impl PeoplePage {
             .filter(|p| {
                 query.is_empty()
                     || p.name.to_lowercase().contains(&query)
-                    || p.other_names.iter().any(|n| n.to_lowercase().contains(&query))
+                    || p.other_names
+                        .iter()
+                        .any(|n| n.to_lowercase().contains(&query))
             })
             .collect()
     }
@@ -219,7 +235,11 @@ impl PeoplePage {
         let cutoff = now - Duration::days(14);
         let frequency_start = now - Duration::days(30);
         let people = self.filtered();
-        let mut open: Vec<&PersonProfile> = people.iter().copied().filter(|p| p.open_count() > 0).collect();
+        let mut open: Vec<&PersonProfile> = people
+            .iter()
+            .copied()
+            .filter(|p| p.open_count() > 0)
+            .collect();
         open.sort_by(|a, b| {
             b.my_actions
                 .is_empty()
@@ -228,45 +248,88 @@ impl PeoplePage {
                 .then(b.open_count().cmp(&a.open_count()))
                 .then(b.last_met().cmp(&a.last_met()))
         });
-        let rest: Vec<&PersonProfile> = people.iter().copied().filter(|p| p.open_count() == 0).collect();
-        let frequency = |p: &PersonProfile| p.meetings.iter().filter(|m| m.started_at >= frequency_start).count();
-        let mut recent: Vec<&PersonProfile> =
-            rest.iter().copied().filter(|p| p.last_met().is_some_and(|d| d >= cutoff)).collect();
-        recent.sort_by(|a, b| frequency(b).cmp(&frequency(a)).then(b.last_met().cmp(&a.last_met())).then(a.name.cmp(&b.name)));
-        let mut earlier: Vec<&PersonProfile> =
-            rest.iter().copied().filter(|p| !p.last_met().is_some_and(|d| d >= cutoff)).collect();
+        let rest: Vec<&PersonProfile> = people
+            .iter()
+            .copied()
+            .filter(|p| p.open_count() == 0)
+            .collect();
+        let frequency = |p: &PersonProfile| {
+            p.meetings
+                .iter()
+                .filter(|m| m.started_at >= frequency_start)
+                .count()
+        };
+        let mut recent: Vec<&PersonProfile> = rest
+            .iter()
+            .copied()
+            .filter(|p| p.last_met().is_some_and(|d| d >= cutoff))
+            .collect();
+        recent.sort_by(|a, b| {
+            frequency(b)
+                .cmp(&frequency(a))
+                .then(b.last_met().cmp(&a.last_met()))
+                .then(a.name.cmp(&b.name))
+        });
+        let mut earlier: Vec<&PersonProfile> = rest
+            .iter()
+            .copied()
+            .filter(|p| !p.last_met().is_some_and(|d| d >= cutoff))
+            .collect();
         earlier.sort_by(|a, b| b.last_met().cmp(&a.last_met()));
-        [("Open Work", open), ("Last 2 Weeks", recent), ("Earlier", earlier)]
-            .into_iter()
-            .filter(|(_, items)| !items.is_empty())
-            .collect()
+        [
+            ("Open Work", open),
+            ("Last 2 Weeks", recent),
+            ("Earlier", earlier),
+        ]
+        .into_iter()
+        .filter(|(_, items)| !items.is_empty())
+        .collect()
     }
 
     /// Selects a person another page asked to show.
     fn take_focus(&mut self, cx: &mut Context<Self>) {
         if let Some(id) = self.data.update(cx, |data, _| data.person_focus.take()) {
             self.selected = Some(id);
-            self.detail_scroll.set_offset(gpui_kit::point(px(0.), px(0.)));
+            self.detail_scroll
+                .set_offset(gpui_kit::point(px(0.), px(0.)));
         }
     }
 
     fn selected_person(&self) -> Option<&PersonProfile> {
         match &self.selected {
-            Some(id) => self.people.iter().find(|p| &p.id == id || p.member_ids.contains(id)),
-            None => self.grouped().first().and_then(|(_, people)| people.first().copied()),
+            Some(id) => self
+                .people
+                .iter()
+                .find(|p| &p.id == id || p.member_ids.contains(id)),
+            None => self
+                .grouped()
+                .first()
+                .and_then(|(_, people)| people.first().copied()),
         }
     }
 
     fn open_meeting(&self, id: Uuid, at: Option<f64>, cx: &mut App) {
-        let tab = if at.is_some() { MeetingTab::Transcript } else { MeetingTab::Summary };
-        self.data.update(cx, |data, cx| data.open_meeting(id, tab, at, cx));
+        let tab = if at.is_some() {
+            MeetingTab::Transcript
+        } else {
+            MeetingTab::Summary
+        };
+        self.data
+            .update(cx, |data, cx| data.open_meeting(id, tab, at, cx));
     }
 
     fn render_list(&self, cx: &mut Context<Self>) -> impl IntoElement + use<> {
         let lb = cx.lb().clone();
         let count = self.filtered().len();
         let summary = if self.loaded {
-            format!("{} from your meetings", if count == 1 { "1 person".to_string() } else { format!("{count} people") })
+            format!(
+                "{} from your meetings",
+                if count == 1 {
+                    "1 person".to_string()
+                } else {
+                    format!("{count} people")
+                }
+            )
         } else {
             "Loading…".into()
         };
@@ -285,12 +348,19 @@ impl PeoplePage {
                     .into_any_element(),
             );
             for person in people {
-                rows.push(self.render_row(person, selected_id.as_deref() == Some(person.id.as_str()), cx));
+                rows.push(self.render_row(
+                    person,
+                    selected_id.as_deref() == Some(person.id.as_str()),
+                    cx,
+                ));
             }
         }
         if !self.curation.hidden.is_empty() {
             let hidden = self.curation.hidden.len();
-            let label = format!("Show {hidden} hidden {} again", if hidden == 1 { "entry" } else { "entries" });
+            let label = format!(
+                "Show {hidden} hidden {} again",
+                if hidden == 1 { "entry" } else { "entries" }
+            );
             let page = cx.entity();
             rows.push(
                 div()
@@ -330,16 +400,35 @@ impl PeoplePage {
                         h_flex()
                             .gap(px(4.))
                             .items_center()
-                            .child(div().text_size(ty::SECONDARY).text_color(lb.text_secondary).child(summary))
+                            .child(
+                                div()
+                                    .text_size(ty::SECONDARY)
+                                    .text_color(lb.text_secondary)
+                                    .child(summary),
+                            )
                             .child(
                                 Popover::new("people-provenance")
-                                    .trigger(Button::new("people-info").ghost().xsmall().icon(Icon::new(Ico::Info)).tooltip("Where People comes from"))
+                                    .trigger(
+                                        Button::new("people-info")
+                                            .ghost()
+                                            .xsmall()
+                                            .icon(Icon::new(Ico::Info))
+                                            .tooltip("Where People comes from"),
+                                    )
                                     .content(|_, _, cx| {
-                                        div().w(px(300.)).text_size(ty::SECONDARY).text_color(cx.lb().text).child(PROVENANCE)
+                                        div()
+                                            .w(px(300.))
+                                            .text_size(ty::SECONDARY)
+                                            .text_color(cx.lb().text)
+                                            .child(PROVENANCE)
                                     }),
                             ),
                     )
-                    .child(Input::new(&self.search).cleanable(true).prefix(ui::icon(Ico::Search, px(14.), lb.text_secondary))),
+                    .child(Input::new(&self.search).cleanable(true).prefix(ui::icon(
+                        Ico::Search,
+                        px(14.),
+                        lb.text_secondary,
+                    ))),
             )
             .child(
                 div()
@@ -353,7 +442,12 @@ impl PeoplePage {
             )
     }
 
-    fn render_row(&self, person: &PersonProfile, selected: bool, cx: &mut Context<Self>) -> AnyElement {
+    fn render_row(
+        &self,
+        person: &PersonProfile,
+        selected: bool,
+        cx: &mut Context<Self>,
+    ) -> AnyElement {
         let lb = cx.lb().clone();
         let id = person.id.clone();
         let tint = profile::name_tint(&person.name, cx);
@@ -406,14 +500,25 @@ impl PeoplePage {
                             .gap(px(6.))
                             .items_center()
                             .child(
-                                div().flex_1().min_w_0().truncate().text_size(ty::SECONDARY).text_color(lb.text_secondary).child(context),
+                                div()
+                                    .flex_1()
+                                    .min_w_0()
+                                    .truncate()
+                                    .text_size(ty::SECONDARY)
+                                    .text_color(lb.text_secondary)
+                                    .child(context),
                             )
-                            .children(profile::open_work_pills(person.my_actions.len(), person.their_actions.len(), cx)),
+                            .children(profile::open_work_pills(
+                                person.my_actions.len(),
+                                person.their_actions.len(),
+                                cx,
+                            )),
                     ),
             )
             .on_click(cx.listener(move |this, _, _, cx| {
                 this.selected = Some(id.clone());
-                this.detail_scroll.set_offset(gpui_kit::point(px(0.), px(0.)));
+                this.detail_scroll
+                    .set_offset(gpui_kit::point(px(0.), px(0.)));
                 cx.notify();
             }))
             .context_menu(move |menu, _, _| {
@@ -421,15 +526,19 @@ impl PeoplePage {
                 let hide_page = page.clone();
                 let rename_person = menu_person.clone();
                 let hide_person = menu_person.clone();
-                menu.item(PopupMenuItem::new("Rename…").on_click(move |_, window, cx| {
-                    let person = rename_person.clone();
-                    rename_page.update(cx, |page, cx| page.open_rename(&person, window, cx));
-                }))
+                menu.item(
+                    PopupMenuItem::new("Rename…").on_click(move |_, window, cx| {
+                        let person = rename_person.clone();
+                        rename_page.update(cx, |page, cx| page.open_rename(&person, window, cx));
+                    }),
+                )
                 .separator()
-                .item(PopupMenuItem::new("Not a Person").on_click(move |_, _, cx| {
-                    let person = hide_person.clone();
-                    hide_page.update(cx, |page, cx| page.hide(&person, cx));
-                }))
+                .item(
+                    PopupMenuItem::new("Not a Person").on_click(move |_, _, cx| {
+                        let person = hide_person.clone();
+                        hide_page.update(cx, |page, cx| page.hide(&person, cx));
+                    }),
+                )
             })
             .into_any_element()
     }
@@ -442,7 +551,10 @@ impl PeoplePage {
 
         // Header.
         let ask_data = self.data.clone();
-        let question = format!("What has {} been working on lately, and what is open between us?", person.name);
+        let question = format!(
+            "What has {} been working on lately, and what is open between us?",
+            person.name
+        );
         let meeting_ids: Vec<Uuid> = person.meetings.iter().map(|m| m.id).collect();
         let page = cx.entity();
         let menu_person = person.clone();
@@ -457,14 +569,28 @@ impl PeoplePage {
                         .child(
                             v_flex()
                                 .gap(px(4.))
-                                .child(div().text_size(ty::PAGE_TITLE).font_weight(FontWeight::BOLD).text_color(lb.text).child(person.name.clone()))
-                                .child(div().text_size(ty::SECONDARY).text_color(lb.text_secondary).child(stats(person)))
+                                .child(
+                                    div()
+                                        .text_size(ty::PAGE_TITLE)
+                                        .font_weight(FontWeight::BOLD)
+                                        .text_color(lb.text)
+                                        .child(person.name.clone()),
+                                )
+                                .child(
+                                    div()
+                                        .text_size(ty::SECONDARY)
+                                        .text_color(lb.text_secondary)
+                                        .child(stats(person)),
+                                )
                                 .when(!person.other_names.is_empty(), |this| {
                                     this.child(
                                         div()
                                             .text_size(ty::SECONDARY)
                                             .text_color(lb.text_secondary)
-                                            .child(format!("Also appears as {}", person.other_names.join(", "))),
+                                            .child(format!(
+                                                "Also appears as {}",
+                                                person.other_names.join(", ")
+                                            )),
                                     )
                                 }),
                         ),
@@ -479,28 +605,43 @@ impl PeoplePage {
                                 .label(format!("Ask About {first}"))
                                 .disabled(person.meetings.is_empty())
                                 .on_click(move |_, _, cx| {
-                                    let request = AskRequest { question: question.clone(), meeting_ids: meeting_ids.clone(), submit: false };
+                                    let request = AskRequest {
+                                        question: question.clone(),
+                                        meeting_ids: meeting_ids.clone(),
+                                        submit: false,
+                                    };
                                     ask_data.update(cx, |data, cx| data.ask(request, cx));
                                 }),
                         )
                         .child(
-                            Button::new("person-more").ghost().icon(Icon::new(Ico::Ellipsis)).label("More").dropdown_menu(
-                                move |menu, _, _| {
+                            Button::new("person-more")
+                                .ghost()
+                                .icon(Icon::new(Ico::Ellipsis))
+                                .label("More")
+                                .dropdown_menu(move |menu, _, _| {
                                     let rename_page = page.clone();
                                     let hide_page = page.clone();
                                     let rename_person = menu_person.clone();
                                     let hide_person = menu_person.clone();
-                                    menu.item(PopupMenuItem::new("Rename…").on_click(move |_, window, cx| {
-                                        let person = rename_person.clone();
-                                        rename_page.update(cx, |page, cx| page.open_rename(&person, window, cx));
-                                    }))
+                                    menu.item(PopupMenuItem::new("Rename…").on_click(
+                                        move |_, window, cx| {
+                                            let person = rename_person.clone();
+                                            rename_page.update(cx, |page, cx| {
+                                                page.open_rename(&person, window, cx)
+                                            });
+                                        },
+                                    ))
                                     .separator()
-                                    .item(PopupMenuItem::new("Not a Person").on_click(move |_, _, cx| {
-                                        let person = hide_person.clone();
-                                        hide_page.update(cx, |page, cx| page.hide(&person, cx));
-                                    }))
-                                },
-                            ),
+                                    .item(
+                                        PopupMenuItem::new("Not a Person").on_click(
+                                            move |_, _, cx| {
+                                                let person = hide_person.clone();
+                                                hide_page
+                                                    .update(cx, |page, cx| page.hide(&person, cx));
+                                            },
+                                        ),
+                                    )
+                                }),
                         ),
                 )
                 .into_any_element(),
@@ -508,34 +649,48 @@ impl PeoplePage {
 
         // Open work.
         let page = cx.entity();
-        let thread_rows = |threads: &[lokalbot_core::ActionThread], prefix: &str, cx: &mut Context<Self>| {
-            let rows: Vec<AnyElement> = threads
-                .iter()
-                .map(|thread| {
-                    let page = page.clone();
-                    profile::action_row(
-                        SharedString::from(format!("{prefix}-{}", thread.id)),
-                        thread,
-                        move |id, at, _, cx| page.update(cx, |page, cx| page.open_meeting(id, at, cx)),
-                        cx,
-                    )
-                })
-                .collect();
-            profile::divided(rows, cx)
-        };
+        let thread_rows =
+            |threads: &[lokalbot_core::ActionThread], prefix: &str, cx: &mut Context<Self>| {
+                let rows: Vec<AnyElement> = threads
+                    .iter()
+                    .map(|thread| {
+                        let page = page.clone();
+                        profile::action_row(
+                            SharedString::from(format!("{prefix}-{}", thread.id)),
+                            thread,
+                            move |id, at, _, cx| {
+                                page.update(cx, |page, cx| page.open_meeting(id, at, cx))
+                            },
+                            cx,
+                        )
+                    })
+                    .collect();
+                profile::divided(rows, cx)
+            };
         if person.my_actions.is_empty() && person.their_actions.is_empty() {
             sections.push(
-                profile::section(Ico::ListChecks, "Open Work", profile::empty_row(format!("Nothing open between you and {first}."), cx), cx)
-                    .into_any_element(),
+                profile::section(
+                    Ico::ListChecks,
+                    "Open Work",
+                    profile::empty_row(format!("Nothing open between you and {first}."), cx),
+                    cx,
+                )
+                .into_any_element(),
             );
         } else {
             if !person.my_actions.is_empty() {
                 let rows = thread_rows(&person.my_actions, "mine", cx);
-                sections.push(profile::section(Ico::ArrowUpRight, "Waiting on You", rows, cx).into_any_element());
+                sections.push(
+                    profile::section(Ico::ArrowUpRight, "Waiting on You", rows, cx)
+                        .into_any_element(),
+                );
             }
             if !person.their_actions.is_empty() {
                 let rows = thread_rows(&person.their_actions, "theirs", cx);
-                sections.push(profile::section(Ico::ArrowDownLeft, format!("Waiting on {first}"), rows, cx).into_any_element());
+                sections.push(
+                    profile::section(Ico::ArrowDownLeft, format!("Waiting on {first}"), rows, cx)
+                        .into_any_element(),
+                );
             }
         }
 
@@ -552,8 +707,14 @@ impl PeoplePage {
                 let page = page.clone();
                 content = content.child(profile::link(
                     "person-notes-meeting",
-                    format!("{} · {}", meeting.title, profile::short_date(meeting.started_at)),
-                    move |_, cx| page.update(cx, |page, cx| page.open_meeting(meeting.id, None, cx)),
+                    format!(
+                        "{} · {}",
+                        meeting.title,
+                        profile::short_date(meeting.started_at)
+                    ),
+                    move |_, cx| {
+                        page.update(cx, |page, cx| page.open_meeting(meeting.id, None, cx))
+                    },
                     cx,
                 ));
             }
@@ -563,7 +724,14 @@ impl PeoplePage {
                         .gap(px(8.))
                         .items_start()
                         .child(div().text_color(lb.text_secondary).child("•"))
-                        .child(div().flex_1().min_w_0().text_size(ty::BODY).text_color(lb.text).child(note.clone())),
+                        .child(
+                            div()
+                                .flex_1()
+                                .min_w_0()
+                                .text_size(ty::BODY)
+                                .text_color(lb.text)
+                                .child(note.clone()),
+                        ),
                 );
             }
             sections.push(profile::section(Ico::Quote, title, content, cx).into_any_element());
@@ -571,16 +739,29 @@ impl PeoplePage {
 
         // Projects.
         if !person.project_links.is_empty() {
-            let links = h_flex().flex_wrap().gap(px(14.)).children(person.project_links.iter().map(|link| {
-                let label = if link.is_tracked { link.name.clone() } else { format!("{} (suggested)", link.name) };
-                let target = link.id.clone();
-                let data = self.data.clone();
-                profile::link(SharedString::from(format!("person-project-{}", link.id)), label, move |_, cx| {
-                    let target = target.clone();
-                    data.update(cx, |data, cx| data.open_project(target, cx));
-                }, cx)
-                .text_size(ty::BODY)
-            }));
+            let links =
+                h_flex()
+                    .flex_wrap()
+                    .gap(px(14.))
+                    .children(person.project_links.iter().map(|link| {
+                        let label = if link.is_tracked {
+                            link.name.clone()
+                        } else {
+                            format!("{} (suggested)", link.name)
+                        };
+                        let target = link.id.clone();
+                        let data = self.data.clone();
+                        profile::link(
+                            SharedString::from(format!("person-project-{}", link.id)),
+                            label,
+                            move |_, cx| {
+                                let target = target.clone();
+                                data.update(cx, |data, cx| data.open_project(target, cx));
+                            },
+                            cx,
+                        )
+                        .text_size(ty::BODY)
+                    }));
             sections.push(profile::section(Ico::Folder, "Projects", links, cx).into_any_element());
         }
 
@@ -597,23 +778,43 @@ impl PeoplePage {
                     v_flex()
                         .gap(px(3.))
                         .py(px(6.))
-                        .child(div().text_size(ty::BODY).text_color(lb.text).child(decision.display_text()))
+                        .child(
+                            div()
+                                .text_size(ty::BODY)
+                                .text_color(lb.text)
+                                .child(decision.display_text()),
+                        )
                         .child(profile::link(
                             ("person-decision", index),
-                            format!("{} · {}", meeting.title, profile::short_date(meeting.started_at)),
-                            move |_, cx| page.update(cx, |page, cx| page.open_meeting(meeting.id, at, cx)),
+                            format!(
+                                "{} · {}",
+                                meeting.title,
+                                profile::short_date(meeting.started_at)
+                            ),
+                            move |_, cx| {
+                                page.update(cx, |page, cx| page.open_meeting(meeting.id, at, cx))
+                            },
                             cx,
                         ))
                         .into_any_element()
                 })
                 .collect();
-            sections.push(profile::section(Ico::BadgeCheck, "Decisions Together", profile::divided(rows, cx), cx).into_any_element());
+            sections.push(
+                profile::section(
+                    Ico::BadgeCheck,
+                    "Decisions Together",
+                    profile::divided(rows, cx),
+                    cx,
+                )
+                .into_any_element(),
+            );
         }
 
         // Meetings together, as series by title.
         let series = series(&person.meetings);
         let meetings_content: AnyElement = if series.is_empty() {
-            profile::empty_row(format!("{first} appears only as an action owner."), cx).into_any_element()
+            profile::empty_row(format!("{first} appears only as an action owner."), cx)
+                .into_any_element()
         } else {
             let mut rows: Vec<AnyElement> = Vec::new();
             for (title, meetings) in series.iter().take(VISIBLE_SERIES) {
@@ -623,16 +824,25 @@ impl PeoplePage {
             if series.len() > VISIBLE_SERIES {
                 let rest = &series[VISIBLE_SERIES..];
                 let count: usize = rest.iter().map(|(_, m)| m.len()).sum();
-                column = column.child(div().pt(px(8.)).text_size(ty::SECONDARY).text_color(lb.text_secondary).child(format!(
-                    "And {} under {} other title{}.",
-                    profile::count(count, "more meeting"),
-                    rest.len(),
-                    if rest.len() == 1 { "" } else { "s" }
-                )));
+                column = column.child(
+                    div()
+                        .pt(px(8.))
+                        .text_size(ty::SECONDARY)
+                        .text_color(lb.text_secondary)
+                        .child(format!(
+                            "And {} under {} other title{}.",
+                            profile::count(count, "more meeting"),
+                            rest.len(),
+                            if rest.len() == 1 { "" } else { "s" }
+                        )),
+                );
             }
             column.into_any_element()
         };
-        sections.push(profile::section(Ico::AudioLines, "Meetings Together", meetings_content, cx).into_any_element());
+        sections.push(
+            profile::section(Ico::AudioLines, "Meetings Together", meetings_content, cx)
+                .into_any_element(),
+        );
 
         div()
             .id("person-detail")
@@ -650,7 +860,12 @@ impl PeoplePage {
             .into_any_element()
     }
 
-    fn render_series(&self, title: &str, meetings: &[MeetingRef], cx: &mut Context<Self>) -> AnyElement {
+    fn render_series(
+        &self,
+        title: &str,
+        meetings: &[MeetingRef],
+        cx: &mut Context<Self>,
+    ) -> AnyElement {
         let lb = cx.lb().clone();
         let latest = meetings[0].clone();
         let key = format!("{title}-{}", latest.id);
@@ -664,13 +879,35 @@ impl PeoplePage {
             .items_center()
             .py(px(8.))
             .cursor_pointer()
-            .child(div().flex_1().min_w_0().truncate().text_size(ty::BODY).text_color(lb.text).child(title.to_string()))
+            .child(
+                div()
+                    .flex_1()
+                    .min_w_0()
+                    .truncate()
+                    .text_size(ty::BODY)
+                    .text_color(lb.text)
+                    .child(title.to_string()),
+            )
             .when(recurring, |this| {
-                this.child(div().text_size(ty::SECONDARY).text_color(lb.text_secondary).child(profile::count(meetings.len(), "meeting")))
+                this.child(
+                    div()
+                        .text_size(ty::SECONDARY)
+                        .text_color(lb.text_secondary)
+                        .child(profile::count(meetings.len(), "meeting")),
+                )
             })
-            .child(div().text_size(ty::SECONDARY).text_color(lb.text_secondary).child(profile::short_date(latest.started_at)))
+            .child(
+                div()
+                    .text_size(ty::SECONDARY)
+                    .text_color(lb.text_secondary)
+                    .child(profile::short_date(latest.started_at)),
+            )
             .child(ui::icon(
-                if recurring && expanded { Ico::ChevronDown } else { Ico::ChevronRight },
+                if recurring && expanded {
+                    Ico::ChevronDown
+                } else {
+                    Ico::ChevronRight
+                },
                 px(12.),
                 lb.text_tertiary,
             ))
@@ -708,10 +945,18 @@ impl PeoplePage {
                             .flex_1()
                             .text_size(ty::SECONDARY)
                             .text_color(lb.text)
-                            .child(meeting.started_at.with_timezone(&Local).format("%A, %B %-d").to_string()),
+                            .child(
+                                meeting
+                                    .started_at
+                                    .with_timezone(&Local)
+                                    .format("%A, %B %-d")
+                                    .to_string(),
+                            ),
                     )
                     .child(ui::icon(Ico::ChevronRight, px(12.), lb.text_tertiary))
-                    .on_click(move |_, _, cx| page.update(cx, |page, cx| page.open_meeting(id, None, cx)))
+                    .on_click(move |_, _, cx| {
+                        page.update(cx, |page, cx| page.open_meeting(id, None, cx))
+                    })
             }))
             .into_any_element()
     }
@@ -720,7 +965,12 @@ impl PeoplePage {
 /// What sets this person apart: projects named around them, else the
 /// meetings you share most, else how many meetings.
 fn row_context(person: &PersonProfile) -> String {
-    let projects: Vec<&str> = person.project_links.iter().take(2).map(|p| p.name.as_str()).collect();
+    let projects: Vec<&str> = person
+        .project_links
+        .iter()
+        .take(2)
+        .map(|p| p.name.as_str())
+        .collect();
     if !projects.is_empty() {
         return projects.join(" · ");
     }
@@ -743,11 +993,17 @@ fn stats(person: &PersonProfile) -> String {
     if count > 1
         && let Some(earliest) = person.meetings.iter().map(|m| m.started_at).min()
     {
-        first.push_str(&format!(" since {}", earliest.with_timezone(&Local).format("%b %-d")));
+        first.push_str(&format!(
+            " since {}",
+            earliest.with_timezone(&Local).format("%b %-d")
+        ));
     }
     let mut parts = vec![first];
     if let Some(last) = person.last_met() {
-        parts.push(format!("last met {}", profile::relative_day(last, Local::now())));
+        parts.push(format!(
+            "last met {}",
+            profile::relative_day(last, Local::now())
+        ));
     }
     if person.open_count() > 0 {
         parts.push(format!("{} open", person.open_count()));
@@ -759,7 +1015,10 @@ fn stats(person: &PersonProfile) -> String {
 fn series(meetings: &[MeetingRef]) -> Vec<(String, Vec<MeetingRef>)> {
     let mut by_title: BTreeMap<String, Vec<MeetingRef>> = BTreeMap::new();
     for meeting in meetings {
-        by_title.entry(meeting.title.clone()).or_default().push(meeting.clone());
+        by_title
+            .entry(meeting.title.clone())
+            .or_default()
+            .push(meeting.clone());
     }
     let mut series: Vec<(String, Vec<MeetingRef>)> = by_title
         .into_iter()
@@ -790,7 +1049,11 @@ impl Render for PeoplePage {
                 .justify_center()
                 .text_size(ty::BODY)
                 .text_color(lb.text_secondary)
-                .child(if self.loaded { "Select a person." } else { "Loading people…" })
+                .child(if self.loaded {
+                    "Select a person."
+                } else {
+                    "Loading people…"
+                })
                 .into_any_element(),
         };
         h_flex()

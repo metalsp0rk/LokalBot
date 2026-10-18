@@ -5,8 +5,9 @@ use chrono::{DateTime, Local, NaiveDate, Utc};
 use gpui_kit::component::{h_flex, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
-    AnyElement, App, Div, ElementId, FontWeight, Hsla, InteractiveElement as _, IntoElement, ParentElement as _,
-    Pixels, SharedString, Stateful, StatefulInteractiveElement as _, Styled as _, Window, div, px,
+    AnyElement, App, Div, ElementId, FontWeight, Hsla, InteractiveElement as _, IntoElement,
+    ParentElement as _, Pixels, SharedString, Stateful, StatefulInteractiveElement as _,
+    Styled as _, Window, div, px,
 };
 use lokalbot_core::ActionThread;
 
@@ -14,7 +15,12 @@ use super::{Ico, icon};
 use crate::theme::{LbThemeExt as _, metric, ty};
 
 /// `WorkspaceSection` with its symbol: teal icon and bold title over a panel.
-pub fn section(icon_name: Ico, title: impl Into<SharedString>, content: impl IntoElement, cx: &App) -> Div {
+pub fn section(
+    icon_name: Ico,
+    title: impl Into<SharedString>,
+    content: impl IntoElement,
+    cx: &App,
+) -> Div {
     let lb = cx.lb();
     v_flex()
         .w_full()
@@ -24,7 +30,13 @@ pub fn section(icon_name: Ico, title: impl Into<SharedString>, content: impl Int
                 .gap(px(7.))
                 .items_center()
                 .child(icon(icon_name, px(14.), lb.accent_text))
-                .child(div().text_size(ty::SECTION).font_weight(FontWeight::BOLD).text_color(lb.text).child(title.into())),
+                .child(
+                    div()
+                        .text_size(ty::SECTION)
+                        .font_weight(FontWeight::BOLD)
+                        .text_color(lb.text)
+                        .child(title.into()),
+                ),
         )
         .child(
             div()
@@ -40,7 +52,10 @@ pub fn section(icon_name: Ico, title: impl Into<SharedString>, content: impl Int
 
 /// A quiet line inside an empty section (`EmptyWorkspaceRow`).
 pub fn empty_row(text: impl Into<SharedString>, cx: &App) -> Div {
-    div().text_size(ty::BODY).text_color(cx.lb().text_secondary).child(text.into())
+    div()
+        .text_size(ty::BODY)
+        .text_color(cx.lb().text_secondary)
+        .child(text.into())
 }
 
 /// A stable color per name, from the speaker palette.
@@ -54,7 +69,11 @@ pub fn name_tint(name: &str, cx: &App) -> Hsla {
 
 /// Up to two initials.
 pub fn initials(name: &str) -> String {
-    name.split_whitespace().filter_map(|w| w.chars().next()).take(2).collect::<String>().to_uppercase()
+    name.split_whitespace()
+        .filter_map(|w| w.chars().next())
+        .take(2)
+        .collect::<String>()
+        .to_uppercase()
 }
 
 /// A project's rounded-square monogram (`ProjectMonogram`, radius 0.26× size).
@@ -94,13 +113,21 @@ pub fn short_date(at: DateTime<Utc>) -> String {
 
 /// "1 meeting" / "3 meetings".
 pub fn count(n: usize, noun: &str) -> String {
-    if n == 1 { format!("1 {noun}") } else { format!("{n} {noun}s") }
+    if n == 1 {
+        format!("1 {noun}")
+    } else {
+        format!("{n} {noun}s")
+    }
 }
 
 /// "3h 10m" or "48m" (`ProjectDetailView.duration`).
 pub fn duration(seconds: f64) -> String {
     let minutes = (seconds / 60.0) as u64;
-    if minutes >= 60 { format!("{}h {}m", minutes / 60, minutes % 60) } else { format!("{}m", minutes.max(1)) }
+    if minutes >= 60 {
+        format!("{}h {}m", minutes / 60, minutes % 60)
+    } else {
+        format!("{}m", minutes.max(1))
+    }
 }
 
 /// A link styled like `.workspaceLink`.
@@ -153,17 +180,30 @@ pub fn action_row(
         .items_start()
         .py(px(8.))
         .cursor_pointer()
-        .child(div().pt(px(2.)).child(icon(Ico::Circle, px(15.), lb.text_tertiary)))
+        .child(
+            div()
+                .pt(px(2.))
+                .child(icon(Ico::Circle, px(15.), lb.text_tertiary)),
+        )
         .child(
             v_flex()
                 .flex_1()
                 .min_w_0()
                 .gap(px(3.))
-                .child(div().text_size(ty::BODY).text_color(lb.text).child(thread.text.clone()))
+                .child(
+                    div()
+                        .text_size(ty::BODY)
+                        .text_color(lb.text)
+                        .child(thread.text.clone()),
+                )
                 .child(
                     div()
                         .text_size(ty::SECONDARY)
-                        .text_color(if overdue { lb.attention_text } else { lb.text_secondary })
+                        .text_color(if overdue {
+                            lb.attention_text
+                        } else {
+                            lb.text_secondary
+                        })
                         .child(meta.join(" · ")),
                 ),
         )
@@ -187,7 +227,9 @@ pub fn divided(rows: Vec<AnyElement>, cx: &App) -> Div {
 
 /// The day a project or person was last active, as a key like "Mon, Oct 12".
 pub fn day_key_label(key: &str) -> String {
-    NaiveDate::parse_from_str(key, "%Y-%m-%d").map(|d| d.format("%a, %b %-d").to_string()).unwrap_or_else(|_| key.to_string())
+    NaiveDate::parse_from_str(key, "%Y-%m-%d")
+        .map(|d| d.format("%a, %b %-d").to_string())
+        .unwrap_or_else(|_| key.to_string())
 }
 
 /// A count pill for open work: ↗2 waiting on you, ↙1 waiting on them.
@@ -197,8 +239,16 @@ pub fn open_work_pills(you_owe: usize, they_owe: usize, cx: &App) -> Option<Div>
     }
     let lb = cx.lb();
     let pill = |n: usize, glyph: Ico, attention: bool| {
-        let color = if attention { lb.attention_text } else { lb.text_secondary };
-        let fill = if attention { lb.attention.opacity(0.15) } else { lb.text_secondary.opacity(0.12) };
+        let color = if attention {
+            lb.attention_text
+        } else {
+            lb.text_secondary
+        };
+        let fill = if attention {
+            lb.attention.opacity(0.15)
+        } else {
+            lb.text_secondary.opacity(0.12)
+        };
         h_flex()
             .gap(px(2.))
             .items_center()
@@ -216,8 +266,12 @@ pub fn open_work_pills(you_owe: usize, they_owe: usize, cx: &App) -> Option<Div>
         h_flex()
             .gap(px(4.))
             .flex_none()
-            .when(you_owe > 0, |this| this.child(pill(you_owe, Ico::ArrowUpRight, true)))
-            .when(they_owe > 0, |this| this.child(pill(they_owe, Ico::ArrowDownLeft, false))),
+            .when(you_owe > 0, |this| {
+                this.child(pill(you_owe, Ico::ArrowUpRight, true))
+            })
+            .when(they_owe > 0, |this| {
+                this.child(pill(they_owe, Ico::ArrowDownLeft, false))
+            }),
     )
 }
 
@@ -229,7 +283,12 @@ mod tests {
     #[test]
     fn relative_days() {
         let now = Local.with_ymd_and_hms(2026, 10, 18, 12, 0, 0).unwrap();
-        let at = |d: u32| Local.with_ymd_and_hms(2026, 10, d, 9, 0, 0).unwrap().with_timezone(&Utc);
+        let at = |d: u32| {
+            Local
+                .with_ymd_and_hms(2026, 10, d, 9, 0, 0)
+                .unwrap()
+                .with_timezone(&Utc)
+        };
         assert_eq!(relative_day(at(18), now), "today");
         assert_eq!(relative_day(at(17), now), "yesterday");
         assert_eq!(relative_day(at(15), now), "3 days ago");

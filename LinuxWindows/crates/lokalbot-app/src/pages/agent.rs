@@ -7,9 +7,9 @@ use gpui_kit::component::switch::Switch;
 use gpui_kit::component::{Icon, Sizable as _, h_flex, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
-    App, AppContext as _, ClipboardItem, Context, Div, Entity, FontWeight, InteractiveElement as _, IntoElement,
-    ParentElement as _, Render, SharedString, StatefulInteractiveElement as _, Styled as _, Subscription, Window,
-    div, px,
+    App, AppContext as _, ClipboardItem, Context, Div, Entity, FontWeight, InteractiveElement as _,
+    IntoElement, ParentElement as _, Render, SharedString, StatefulInteractiveElement as _,
+    Styled as _, Subscription, Window, div, px,
 };
 
 use crate::pages::Page;
@@ -39,8 +39,14 @@ impl AgentPage {
             this.on_page = on_page;
         })];
         let on_page = data.read(cx).section == crate::state::Section::Agent;
-        let mut page =
-            Self { data, on_page, meetings_access: None, cli_installed: None, copied: None, _subscriptions: subscriptions };
+        let mut page = Self {
+            data,
+            on_page,
+            meetings_access: None,
+            cli_installed: None,
+            copied: None,
+            _subscriptions: subscriptions,
+        };
         page.refresh(cx);
         page
     }
@@ -51,7 +57,10 @@ impl AgentPage {
         cx.spawn(async move |this, cx| {
             let (access, installed) = cx
                 .background_spawn(async move {
-                    (lokalbot_core::access::meetings_access_enabled(&paths), cli_install_path().exists())
+                    (
+                        lokalbot_core::access::meetings_access_enabled(&paths),
+                        cli_install_path().exists(),
+                    )
                 })
                 .await;
             let _ = this.update(cx, |this, cx| {
@@ -70,9 +79,15 @@ impl AgentPage {
         let paths = self.data.read(cx).library.paths().clone();
         let data = self.data.clone();
         cx.spawn(async move |this, cx| {
-            let result = cx.background_spawn(async move { lokalbot_core::access::set_meetings_access(&paths, enabled) }).await;
+            let result = cx
+                .background_spawn(async move {
+                    lokalbot_core::access::set_meetings_access(&paths, enabled)
+                })
+                .await;
             if let Err(err) = result {
-                let _ = data.update(cx, |data, cx| data.show_error(format!("Could not change agent access: {err}"), cx));
+                let _ = data.update(cx, |data, cx| {
+                    data.show_error(format!("Could not change agent access: {err}"), cx)
+                });
             }
             let _ = this.update(cx, |this, cx| this.refresh(cx));
         })
@@ -85,7 +100,9 @@ impl AgentPage {
         self.copied = Some(key);
         cx.notify();
         cx.spawn(async move |this, cx| {
-            cx.background_executor().timer(std::time::Duration::from_millis(1500)).await;
+            cx.background_executor()
+                .timer(std::time::Duration::from_millis(1500))
+                .await;
             let _ = this.update(cx, |this, cx| {
                 if this.copied == Some(key) {
                     this.copied = None;
@@ -97,13 +114,25 @@ impl AgentPage {
     }
 
     /// A command in a monospaced well with a Copy button.
-    fn command(&self, key: &'static str, label: &'static str, command: String, cx: &mut Context<Self>) -> Div {
+    fn command(
+        &self,
+        key: &'static str,
+        label: &'static str,
+        command: String,
+        cx: &mut Context<Self>,
+    ) -> Div {
         let lb = cx.lb().clone();
         let copied = self.copied == Some(key);
         let text = command.clone();
         v_flex()
             .gap(px(6.))
-            .child(div().text_size(ty::SECONDARY).font_weight(FontWeight::SEMIBOLD).text_color(lb.text_secondary).child(label))
+            .child(
+                div()
+                    .text_size(ty::SECONDARY)
+                    .font_weight(FontWeight::SEMIBOLD)
+                    .text_color(lb.text_secondary)
+                    .child(label),
+            )
             .child(
                 h_flex()
                     .gap(px(10.))
@@ -127,7 +156,9 @@ impl AgentPage {
                             .xsmall()
                             .icon(Icon::new(if copied { Ico::Check } else { Ico::Copy }))
                             .label(if copied { "Copied" } else { "Copy" })
-                            .on_click(cx.listener(move |this, _, _, cx| this.copy(key, text.clone(), cx))),
+                            .on_click(
+                                cx.listener(move |this, _, _, cx| this.copy(key, text.clone(), cx)),
+                            ),
                     ),
             )
     }
@@ -156,7 +187,14 @@ impl AgentPage {
                     .flex_1()
                     .min_w_0()
                     .gap(px(8.))
-                    .child(div().pt(px(1.)).text_size(ty::BODY).font_weight(FontWeight::SEMIBOLD).text_color(lb.text).child(title))
+                    .child(
+                        div()
+                            .pt(px(1.))
+                            .text_size(ty::BODY)
+                            .font_weight(FontWeight::SEMIBOLD)
+                            .text_color(lb.text)
+                            .child(title),
+                    )
                     .child(content),
             )
     }
@@ -237,7 +275,11 @@ impl Render for AgentPage {
                 page.update(cx, |page, cx| page.set_access(on, cx))
             }));
 
-        let command = if cfg!(target_os = "windows") { format!("\"{path_text}\"") } else { path_text.clone() };
+        let command = if cfg!(target_os = "windows") {
+            format!("\"{path_text}\"")
+        } else {
+            path_text.clone()
+        };
         let connect = v_flex()
             .gap(px(12.))
             .child(self.command("claude", "Claude Code", format!("claude mcp add lokalbot -- {command} mcp"), cx))

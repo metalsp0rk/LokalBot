@@ -9,9 +9,9 @@ use gpui_kit::component::menu::{ContextMenuExt as _, DropdownMenu as _, PopupMen
 use gpui_kit::component::{Disableable as _, Icon, Sizable as _, WindowExt as _, h_flex, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
-    AnyElement, App, AppContext as _, Context, Entity, FontWeight, InteractiveElement as _, IntoElement,
-    ParentElement as _, Render, ScrollHandle, SharedString, StatefulInteractiveElement as _, Styled as _,
-    Subscription, Window, div, px,
+    AnyElement, App, AppContext as _, Context, Entity, FontWeight, InteractiveElement as _,
+    IntoElement, ParentElement as _, Render, ScrollHandle, SharedString,
+    StatefulInteractiveElement as _, Styled as _, Subscription, Window, div, px,
 };
 use lokalbot_core::{ProjectCuration, ProjectProfile, TrackedProject};
 use uuid::Uuid;
@@ -44,15 +44,17 @@ impl ProjectsPage {
     pub fn new(window: &mut Window, cx: &mut Context<Self>) -> Self {
         let data = AppData::global(cx);
         let name_input = cx.new(|cx| InputState::new(window, cx).placeholder("Name"));
-        let other_names_input =
-            cx.new(|cx| InputState::new(window, cx).placeholder("Codenames or clients, separated by commas"));
+        let other_names_input = cx.new(|cx| {
+            InputState::new(window, cx).placeholder("Codenames or clients, separated by commas")
+        });
         let subscriptions = vec![cx.observe(&data, |this, data, cx| {
             if this.loaded_revision != Some(data.read(cx).revision) {
                 this.reload(cx);
             }
             if let Some(id) = this.data.update(cx, |data, _| data.project_focus.take()) {
                 this.selected = Some(id);
-                this.detail_scroll.set_offset(gpui_kit::point(px(0.), px(0.)));
+                this.detail_scroll
+                    .set_offset(gpui_kit::point(px(0.), px(0.)));
                 cx.notify();
             }
         })];
@@ -95,7 +97,12 @@ impl ProjectsPage {
         .detach();
     }
 
-    fn save_curation(&mut self, curation: ProjectCuration, select: Option<String>, cx: &mut Context<Self>) {
+    fn save_curation(
+        &mut self,
+        curation: ProjectCuration,
+        select: Option<String>,
+        cx: &mut Context<Self>,
+    ) {
         self.curation = curation.clone();
         if let Some(select) = select {
             self.selected = Some(select);
@@ -103,9 +110,13 @@ impl ProjectsPage {
         let library = self.data.read(cx).library.clone();
         let data = self.data.clone();
         cx.spawn(async move |this, cx| {
-            let result = cx.background_spawn(async move { library.save_project_curation(&curation) }).await;
+            let result = cx
+                .background_spawn(async move { library.save_project_curation(&curation) })
+                .await;
             if let Err(err) = result {
-                let _ = data.update(cx, |data, cx| data.show_error(format!("Could not save project changes: {err:#}"), cx));
+                let _ = data.update(cx, |data, cx| {
+                    data.show_error(format!("Could not save project changes: {err:#}"), cx)
+                });
             }
             let _ = this.update(cx, |this, cx| this.reload(cx));
         })
@@ -120,23 +131,42 @@ impl ProjectsPage {
             return;
         }
         let key = lokalbot_core::people::normalized(&cleaned);
-        if let Some(existing) = self.curation.tracked.iter().find(|p| lokalbot_core::people::normalized(&p.name) == key) {
-            self.selected = Some(format!("tracked:{}", lokalbot_core::ids::uuid_upper(&existing.id)));
+        if let Some(existing) = self
+            .curation
+            .tracked
+            .iter()
+            .find(|p| lokalbot_core::people::normalized(&p.name) == key)
+        {
+            self.selected = Some(format!(
+                "tracked:{}",
+                lokalbot_core::ids::uuid_upper(&existing.id)
+            ));
             cx.notify();
             return;
         }
         let mut curation = self.curation.clone();
         let id = Uuid::new_v4();
         let others = clean_other_names(&other_names, &cleaned);
-        curation.tracked.push(TrackedProject { id, name: cleaned, other_names: others, created_at: lokalbot_core::time::now_seconds() });
+        curation.tracked.push(TrackedProject {
+            id,
+            name: cleaned,
+            other_names: others,
+            created_at: lokalbot_core::time::now_seconds(),
+        });
         curation.hidden_names.retain(|n| n != &key);
-        self.save_curation(curation, Some(format!("tracked:{}", lokalbot_core::ids::uuid_upper(&id))), cx);
+        self.save_curation(
+            curation,
+            Some(format!("tracked:{}", lokalbot_core::ids::uuid_upper(&id))),
+            cx,
+        );
     }
 
     fn rename(&mut self, id: Uuid, name: &str, other_names: Vec<String>, cx: &mut Context<Self>) {
         let cleaned = name.split_whitespace().collect::<Vec<_>>().join(" ");
         let mut curation = self.curation.clone();
-        let Some(project) = curation.tracked.iter_mut().find(|p| p.id == id) else { return };
+        let Some(project) = curation.tracked.iter_mut().find(|p| p.id == id) else {
+            return;
+        };
         if cleaned.is_empty() {
             return;
         }
@@ -170,13 +200,27 @@ impl ProjectsPage {
     }
 
     /// The Track / Rename sheet (`ProjectNameSheet`).
-    fn open_name_sheet(&mut self, editing: Option<(Uuid, String, Vec<String>)>, window: &mut Window, cx: &mut Context<Self>) {
-        let (name, others) = editing.as_ref().map(|(_, n, o)| (n.clone(), o.join(", "))).unwrap_or_default();
-        self.name_input.update(cx, |input, cx| input.set_value(name, window, cx));
-        self.other_names_input.update(cx, |input, cx| input.set_value(others, window, cx));
+    fn open_name_sheet(
+        &mut self,
+        editing: Option<(Uuid, String, Vec<String>)>,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let (name, others) = editing
+            .as_ref()
+            .map(|(_, n, o)| (n.clone(), o.join(", ")))
+            .unwrap_or_default();
+        self.name_input
+            .update(cx, |input, cx| input.set_value(name, window, cx));
+        self.other_names_input
+            .update(cx, |input, cx| input.set_value(others, window, cx));
         let page = cx.entity();
         let (name_input, others_input) = (self.name_input.clone(), self.other_names_input.clone());
-        let (title, action) = if editing.is_some() { ("Rename Project", "Save") } else { ("Track a Project", "Track") };
+        let (title, action) = if editing.is_some() {
+            ("Rename Project", "Save")
+        } else {
+            ("Track a Project", "Track")
+        };
         let target = editing.map(|(id, _, _)| id);
         window.open_dialog(cx, move |dialog, _, cx| {
             let lb = cx.lb().clone();
@@ -226,20 +270,34 @@ impl ProjectsPage {
         self.projects
             .iter()
             .filter(|p| !p.is_tracked())
-            .filter(|p| !self.curation.hidden_names.contains(&lokalbot_core::people::normalized(&p.name)))
+            .filter(|p| {
+                !self
+                    .curation
+                    .hidden_names
+                    .contains(&lokalbot_core::people::normalized(&p.name))
+            })
             .collect()
     }
 
     fn selected_project(&self) -> Option<&ProjectProfile> {
         match &self.selected {
             Some(id) => self.projects.iter().find(|p| &p.id == id),
-            None => self.tracked().first().copied().or_else(|| self.suggested().first().copied()),
+            None => self
+                .tracked()
+                .first()
+                .copied()
+                .or_else(|| self.suggested().first().copied()),
         }
     }
 
     fn open_meeting(&self, id: Uuid, at: Option<f64>, cx: &mut App) {
-        let tab = if at.is_some() { MeetingTab::Transcript } else { MeetingTab::Summary };
-        self.data.update(cx, |data, cx| data.open_meeting(id, tab, at, cx));
+        let tab = if at.is_some() {
+            MeetingTab::Transcript
+        } else {
+            MeetingTab::Summary
+        };
+        self.data
+            .update(cx, |data, cx| data.open_meeting(id, tab, at, cx));
     }
 
     fn render_list(&self, cx: &mut Context<Self>) -> impl IntoElement + use<> {
@@ -256,7 +314,11 @@ impl ProjectsPage {
             if !suggested.is_empty() {
                 parts.push(format!("{} suggested", suggested.len()));
             }
-            if parts.is_empty() { "None yet".into() } else { parts.join(" · ") }
+            if parts.is_empty() {
+                "None yet".into()
+            } else {
+                parts.join(" · ")
+            }
         };
         let selected_id = self.selected_project().map(|p| p.id.clone());
         let mut rows: Vec<AnyElement> = Vec::new();
@@ -302,12 +364,20 @@ impl ProjectsPage {
                 );
             }
             for project in &tracked {
-                rows.push(self.render_row(project, selected_id.as_deref() == Some(project.id.as_str()), cx));
+                rows.push(self.render_row(
+                    project,
+                    selected_id.as_deref() == Some(project.id.as_str()),
+                    cx,
+                ));
             }
             if !suggested.is_empty() {
                 rows.push(header("Suggested"));
                 for project in &suggested {
-                    rows.push(self.render_row(project, selected_id.as_deref() == Some(project.id.as_str()), cx));
+                    rows.push(self.render_row(
+                        project,
+                        selected_id.as_deref() == Some(project.id.as_str()),
+                        cx,
+                    ));
                 }
             }
             if !self.curation.hidden_names.is_empty() {
@@ -319,7 +389,10 @@ impl ProjectsPage {
                         .py(px(8.))
                         .child(profile::link(
                             "projects-restore-hidden",
-                            format!("Show {count} hidden suggestion{} again", if count == 1 { "" } else { "s" }),
+                            format!(
+                                "Show {count} hidden suggestion{} again",
+                                if count == 1 { "" } else { "s" }
+                            ),
                             move |_, cx| page.update(cx, |page, cx| page.restore_hidden(cx)),
                             cx,
                         ))
@@ -345,8 +418,19 @@ impl ProjectsPage {
                         v_flex()
                             .flex_1()
                             .gap(px(2.))
-                            .child(div().text_size(ty::COLUMN_TITLE).font_weight(FontWeight::BOLD).text_color(lb.text).child("Projects"))
-                            .child(div().text_size(ty::SECONDARY).text_color(lb.supporting).child(summary)),
+                            .child(
+                                div()
+                                    .text_size(ty::COLUMN_TITLE)
+                                    .font_weight(FontWeight::BOLD)
+                                    .text_color(lb.text)
+                                    .child("Projects"),
+                            )
+                            .child(
+                                div()
+                                    .text_size(ty::SECONDARY)
+                                    .text_color(lb.supporting)
+                                    .child(summary),
+                            ),
                     )
                     .child(
                         Button::new("projects-add")
@@ -354,13 +438,28 @@ impl ProjectsPage {
                             .small()
                             .icon(Icon::new(Ico::Plus))
                             .tooltip("Track a project")
-                            .on_click(move |_, window, cx| page.update(cx, |page, cx| page.open_name_sheet(None, window, cx))),
+                            .on_click(move |_, window, cx| {
+                                page.update(cx, |page, cx| page.open_name_sheet(None, window, cx))
+                            }),
                     ),
             )
-            .child(div().id("projects-list").flex_1().min_h_0().overflow_y_scroll().pb(px(12.)).children(rows))
+            .child(
+                div()
+                    .id("projects-list")
+                    .flex_1()
+                    .min_h_0()
+                    .overflow_y_scroll()
+                    .pb(px(12.))
+                    .children(rows),
+            )
     }
 
-    fn render_row(&self, project: &ProjectProfile, selected: bool, cx: &mut Context<Self>) -> AnyElement {
+    fn render_row(
+        &self,
+        project: &ProjectProfile,
+        selected: bool,
+        cx: &mut Context<Self>,
+    ) -> AnyElement {
         let lb = cx.lb().clone();
         let id = project.id.clone();
         let page = cx.entity();
@@ -390,12 +489,19 @@ impl ProjectsPage {
                             .text_color(lb.text)
                             .child(project.name.clone()),
                     )
-                    .child(div().truncate().text_size(ty::SECONDARY).text_color(lb.text_secondary).child(summary(project, false))),
+                    .child(
+                        div()
+                            .truncate()
+                            .text_size(ty::SECONDARY)
+                            .text_color(lb.text_secondary)
+                            .child(summary(project, false)),
+                    ),
             )
             .on_click(cx.listener(move |this, _, _, cx| {
                 this.selected = Some(id.clone());
                 this.show_older = false;
-                this.detail_scroll.set_offset(gpui_kit::point(px(0.), px(0.)));
+                this.detail_scroll
+                    .set_offset(gpui_kit::point(px(0.), px(0.)));
                 cx.notify();
             }))
             .context_menu(move |menu, _, _| project_menu(menu, &page, &menu_project))
@@ -428,7 +534,13 @@ impl ProjectsPage {
                                     h_flex()
                                         .gap(px(10.))
                                         .items_center()
-                                        .child(div().text_size(ty::PAGE_TITLE).font_weight(FontWeight::BOLD).text_color(lb.text).child(project.name.clone()))
+                                        .child(
+                                            div()
+                                                .text_size(ty::PAGE_TITLE)
+                                                .font_weight(FontWeight::BOLD)
+                                                .text_color(lb.text)
+                                                .child(project.name.clone()),
+                                        )
                                         .when(!project.is_tracked(), |this| {
                                             this.child(
                                                 h_flex()
@@ -441,18 +553,30 @@ impl ProjectsPage {
                                                     .text_size(ty::CAPTION)
                                                     .font_weight(FontWeight::SEMIBOLD)
                                                     .text_color(lb.accent_text)
-                                                    .child(ui::icon(Ico::Sparkles, px(11.), lb.accent_text))
+                                                    .child(ui::icon(
+                                                        Ico::Sparkles,
+                                                        px(11.),
+                                                        lb.accent_text,
+                                                    ))
                                                     .child("Suggested"),
                                             )
                                         }),
                                 )
-                                .child(div().text_size(ty::SECONDARY).text_color(lb.text_secondary).child(summary(project, true)))
+                                .child(
+                                    div()
+                                        .text_size(ty::SECONDARY)
+                                        .text_color(lb.text_secondary)
+                                        .child(summary(project, true)),
+                                )
                                 .when(!project.other_names.is_empty(), |this| {
                                     this.child(
                                         div()
                                             .text_size(ty::SECONDARY)
                                             .text_color(lb.text_secondary)
-                                            .child(format!("Also: {}", project.other_names.join(", "))),
+                                            .child(format!(
+                                                "Also: {}",
+                                                project.other_names.join(", ")
+                                            )),
                                     )
                                 }),
                         ),
@@ -460,19 +584,29 @@ impl ProjectsPage {
                 .child(
                     h_flex()
                         .gap(px(8.))
-                        .child(Button::new("project-ask").outline().icon(Icon::new(Ico::TextSearch)).label(format!("Ask About {}", project.name)).on_click(
-                            move |_, _, cx| {
-                                let request = AskRequest { question: question.clone(), meeting_ids: meeting_ids.clone(), submit: false };
-                                ask_data.update(cx, |data, cx| data.ask(request, cx));
-                            },
-                        ))
+                        .child(
+                            Button::new("project-ask")
+                                .outline()
+                                .icon(Icon::new(Ico::TextSearch))
+                                .label(format!("Ask About {}", project.name))
+                                .on_click(move |_, _, cx| {
+                                    let request = AskRequest {
+                                        question: question.clone(),
+                                        meeting_ids: meeting_ids.clone(),
+                                        submit: false,
+                                    };
+                                    ask_data.update(cx, |data, cx| data.ask(request, cx));
+                                }),
+                        )
                         .when(project.is_tracked(), |this| {
                             this.child(
                                 Button::new("project-more")
                                     .ghost()
                                     .icon(Icon::new(Ico::Ellipsis))
                                     .label("More")
-                                    .dropdown_menu(move |menu, _, _| project_menu(menu, &menu_page, &menu_project)),
+                                    .dropdown_menu(move |menu, _, _| {
+                                        project_menu(menu, &menu_page, &menu_project)
+                                    }),
                             )
                         }),
                 )
@@ -515,35 +649,47 @@ impl ProjectsPage {
             );
         }
 
-        let action_rows = |threads: &[lokalbot_core::ActionThread], prefix: &str, cx: &mut Context<Self>| {
-            let rows: Vec<AnyElement> = threads
-                .iter()
-                .map(|thread| {
-                    let page = page.clone();
-                    profile::action_row(
-                        SharedString::from(format!("{prefix}-{}", thread.id)),
-                        thread,
-                        move |id, at, _, cx| page.update(cx, |page, cx| page.open_meeting(id, at, cx)),
-                        cx,
-                    )
-                })
-                .collect();
-            profile::divided(rows, cx)
-        };
+        let action_rows =
+            |threads: &[lokalbot_core::ActionThread], prefix: &str, cx: &mut Context<Self>| {
+                let rows: Vec<AnyElement> = threads
+                    .iter()
+                    .map(|thread| {
+                        let page = page.clone();
+                        profile::action_row(
+                            SharedString::from(format!("{prefix}-{}", thread.id)),
+                            thread,
+                            move |id, at, _, cx| {
+                                page.update(cx, |page, cx| page.open_meeting(id, at, cx))
+                            },
+                            cx,
+                        )
+                    })
+                    .collect();
+                profile::divided(rows, cx)
+            };
         if !project.my_actions.is_empty() {
             let rows = action_rows(&project.my_actions, "project-mine", cx);
-            sections.push(profile::section(Ico::ListChecks, "Your Actions", rows, cx).into_any_element());
+            sections.push(
+                profile::section(Ico::ListChecks, "Your Actions", rows, cx).into_any_element(),
+            );
         }
         if !project.others_actions.is_empty() || !project.older_others_actions.is_empty() {
             let mut content = v_flex();
             if project.others_actions.is_empty() {
-                content = content.child(profile::empty_row(format!("Nothing from others in the last {LOOKBACK_DAYS} days."), cx));
+                content = content.child(profile::empty_row(
+                    format!("Nothing from others in the last {LOOKBACK_DAYS} days."),
+                    cx,
+                ));
             } else {
                 content = content.child(action_rows(&project.others_actions, "project-others", cx));
             }
             if !project.older_others_actions.is_empty() {
                 if self.show_older {
-                    content = content.child(action_rows(&project.older_others_actions, "project-older", cx));
+                    content = content.child(action_rows(
+                        &project.older_others_actions,
+                        "project-older",
+                        cx,
+                    ));
                 }
                 let count = project.older_others_actions.len();
                 let label = if self.show_older {
@@ -555,14 +701,21 @@ impl ProjectsPage {
                     )
                 };
                 let toggle_page = page.clone();
-                content = content.child(div().pt(px(8.)).child(profile::link("project-older-toggle", label, move |_, cx| {
-                    toggle_page.update(cx, |page, cx| {
-                        page.show_older = !page.show_older;
-                        cx.notify();
-                    })
-                }, cx)));
+                content = content.child(div().pt(px(8.)).child(profile::link(
+                    "project-older-toggle",
+                    label,
+                    move |_, cx| {
+                        toggle_page.update(cx, |page, cx| {
+                            page.show_older = !page.show_older;
+                            cx.notify();
+                        })
+                    },
+                    cx,
+                )));
             }
-            sections.push(profile::section(Ico::Users, "Waiting on Others", content, cx).into_any_element());
+            sections.push(
+                profile::section(Ico::Users, "Waiting on Others", content, cx).into_any_element(),
+            );
         }
         if !project.decisions.is_empty() {
             let rows: Vec<AnyElement> = project
@@ -576,22 +729,46 @@ impl ProjectsPage {
                     v_flex()
                         .gap(px(3.))
                         .py(px(6.))
-                        .child(div().text_size(ty::BODY).text_color(lb.text).child(decision.display_text()))
+                        .child(
+                            div()
+                                .text_size(ty::BODY)
+                                .text_color(lb.text)
+                                .child(decision.display_text()),
+                        )
                         .child(profile::link(
                             ("project-decision", index),
-                            format!("{} · {}", meeting.title, profile::short_date(meeting.started_at)),
-                            move |_, cx| page.update(cx, |page, cx| page.open_meeting(meeting.id, at, cx)),
+                            format!(
+                                "{} · {}",
+                                meeting.title,
+                                profile::short_date(meeting.started_at)
+                            ),
+                            move |_, cx| {
+                                page.update(cx, |page, cx| page.open_meeting(meeting.id, at, cx))
+                            },
                             cx,
                         ))
                         .into_any_element()
                 })
                 .collect();
-            sections.push(profile::section(Ico::BadgeCheck, "Decisions", profile::divided(rows, cx), cx).into_any_element());
+            sections.push(
+                profile::section(Ico::BadgeCheck, "Decisions", profile::divided(rows, cx), cx)
+                    .into_any_element(),
+            );
         }
         if project.week_seconds >= 60. {
-            let mut content = v_flex().gap(px(6.)).child(value_row("Total", profile::duration(project.week_seconds), lb.text, cx));
+            let mut content = v_flex().gap(px(6.)).child(value_row(
+                "Total",
+                profile::duration(project.week_seconds),
+                lb.text,
+                cx,
+            ));
             for (day, seconds) in &project.days {
-                content = content.child(value_row(&profile::day_key_label(day), profile::duration(*seconds), lb.text_secondary, cx));
+                content = content.child(value_row(
+                    &profile::day_key_label(day),
+                    profile::duration(*seconds),
+                    lb.text_secondary,
+                    cx,
+                ));
             }
             if !project.windows.is_empty() {
                 content = content.child(ui::divider(cx));
@@ -605,29 +782,59 @@ impl ProjectsPage {
                                     .flex_1()
                                     .min_w_0()
                                     .gap(px(1.))
-                                    .child(div().truncate().text_size(ty::BODY).text_color(lb.text).child(window.title.clone()))
-                                    .child(div().text_size(ty::SECONDARY).text_color(lb.text_secondary).child(window.app.clone())),
+                                    .child(
+                                        div()
+                                            .truncate()
+                                            .text_size(ty::BODY)
+                                            .text_color(lb.text)
+                                            .child(window.title.clone()),
+                                    )
+                                    .child(
+                                        div()
+                                            .text_size(ty::SECONDARY)
+                                            .text_color(lb.text_secondary)
+                                            .child(window.app.clone()),
+                                    ),
                             )
-                            .child(div().text_size(ty::BODY).text_color(lb.text_secondary).child(profile::duration(window.seconds))),
+                            .child(
+                                div()
+                                    .text_size(ty::BODY)
+                                    .text_color(lb.text_secondary)
+                                    .child(profile::duration(window.seconds)),
+                            ),
                     );
                 }
             }
-            sections.push(profile::section(Ico::Clock, "Time This Week", content, cx).into_any_element());
+            sections.push(
+                profile::section(Ico::Clock, "Time This Week", content, cx).into_any_element(),
+            );
         }
         if !project.people.is_empty() {
-            let people = h_flex().flex_wrap().gap(px(14.)).children(project.people.iter().map(|name| {
-                let data = self.data.clone();
-                let target = lokalbot_core::people::person_id_for_name(name);
-                profile::link(SharedString::from(format!("project-person-{name}")), name.clone(), move |_, cx| {
-                    let target = target.clone();
-                    data.update(cx, |data, cx| data.open_person(target, cx));
-                }, cx)
-                .text_size(ty::BODY)
-            }));
+            let people = h_flex()
+                .flex_wrap()
+                .gap(px(14.))
+                .children(project.people.iter().map(|name| {
+                    let data = self.data.clone();
+                    let target = lokalbot_core::people::person_id_for_name(name);
+                    profile::link(
+                        SharedString::from(format!("project-person-{name}")),
+                        name.clone(),
+                        move |_, cx| {
+                            let target = target.clone();
+                            data.update(cx, |data, cx| data.open_person(target, cx));
+                        },
+                        cx,
+                    )
+                    .text_size(ty::BODY)
+                }));
             sections.push(profile::section(Ico::Users, "People", people, cx).into_any_element());
         }
         let meetings: AnyElement = if project.meetings.is_empty() {
-            profile::empty_row(format!("No meeting in the last {LOOKBACK_DAYS} days names this project."), cx).into_any_element()
+            profile::empty_row(
+                format!("No meeting in the last {LOOKBACK_DAYS} days names this project."),
+                cx,
+            )
+            .into_any_element()
         } else {
             let rows: Vec<AnyElement> = project
                 .meetings
@@ -636,7 +843,11 @@ impl ProjectsPage {
                 .map(|meeting| {
                     let page = page.clone();
                     let id = meeting.id;
-                    let mention = project.mentions.iter().find(|m| m.meeting_id == id).cloned();
+                    let mention = project
+                        .mentions
+                        .iter()
+                        .find(|m| m.meeting_id == id)
+                        .cloned();
                     h_flex()
                         .id(SharedString::from(format!("project-meeting-{id}")))
                         .gap(px(10.))
@@ -648,12 +859,30 @@ impl ProjectsPage {
                                 .flex_1()
                                 .min_w_0()
                                 .gap(px(2.))
-                                .child(div().truncate().text_size(ty::BODY).text_color(lb.text).child(meeting.title.clone()))
+                                .child(
+                                    div()
+                                        .truncate()
+                                        .text_size(ty::BODY)
+                                        .text_color(lb.text)
+                                        .child(meeting.title.clone()),
+                                )
                                 .when_some(mention.clone(), |this, mention| {
-                                    this.child(div().text_size(ty::SECONDARY).text_color(lb.text_secondary).line_clamp(2).child(mention.text))
+                                    this.child(
+                                        div()
+                                            .text_size(ty::SECONDARY)
+                                            .text_color(lb.text_secondary)
+                                            .line_clamp(2)
+                                            .child(mention.text),
+                                    )
                                 }),
                         )
-                        .child(div().flex_none().text_size(ty::SECONDARY).text_color(lb.text_secondary).child(profile::short_date(meeting.started_at)))
+                        .child(
+                            div()
+                                .flex_none()
+                                .text_size(ty::SECONDARY)
+                                .text_color(lb.text_secondary)
+                                .child(profile::short_date(meeting.started_at)),
+                        )
                         .on_click(move |_, _, cx| {
                             let at = mention.as_ref().and_then(|m| m.seek);
                             page.update(cx, |page, cx| page.open_meeting(id, at, cx))
@@ -663,7 +892,8 @@ impl ProjectsPage {
                 .collect();
             profile::divided(rows, cx).into_any_element()
         };
-        sections.push(profile::section(Ico::AudioLines, "Meetings", meetings, cx).into_any_element());
+        sections
+            .push(profile::section(Ico::AudioLines, "Meetings", meetings, cx).into_any_element());
         sections.push(
             div()
                 .text_size(ty::SECONDARY)
@@ -695,7 +925,11 @@ impl ProjectsPage {
     /// "Where It Stands": the written note, or how to get one.
     fn render_note(&self, project: &ProjectProfile, cx: &mut Context<Self>) -> AnyElement {
         let lb = cx.lb().clone();
-        let running = self.data.read(cx).project_notes_running.contains(&project.id);
+        let running = self
+            .data
+            .read(cx)
+            .project_notes_running
+            .contains(&project.id);
         let mut content = v_flex().gap(px(10.));
         match &project.summary {
             _ if running => content = content.child(profile::empty_row("Writing a note from the latest meetings and review notes…", cx)),
@@ -748,12 +982,19 @@ impl ProjectsPage {
                     }
                 }
                 let stale = project.meetings.iter().any(|m| m.started_at > summary.generated_at);
+                let location = summary.location.trim();
+                let place = if location.is_empty() {
+                    "on this PC".to_string()
+                } else if location.starts_with("on ") {
+                    location.to_string()
+                } else {
+                    format!("on {location}")
+                };
                 let written = format!(
-                    "{}Written {} by {} on {}. Check the meetings before relying on it.",
+                    "{}Written {} by {} {place}. Check the meetings before relying on it.",
                     if stale { "Newer evidence since this was written. " } else { "" },
                     written_when(summary.generated_at),
                     if summary.engine_name.is_empty() { "the Think model" } else { summary.engine_name.as_str() },
-                    if summary.location.is_empty() { "this PC" } else { summary.location.as_str() },
                 );
                 content = content.child(div().text_size(ty::SECONDARY).text_color(lb.text_secondary).child(written));
             }
@@ -765,9 +1006,17 @@ impl ProjectsPage {
                 Button::new("project-write-note")
                     .outline()
                     .small()
-                    .label(if project.summary.is_none() { "Write Note" } else { "Update" })
+                    .label(if project.summary.is_none() {
+                        "Write Note"
+                    } else {
+                        "Update"
+                    })
                     .disabled(running || project.meetings.is_empty())
-                    .on_click(move |_, _, cx| data.update(cx, |data, cx| data.request(AppEvent::WriteProjectNote(id.clone()), cx))),
+                    .on_click(move |_, _, cx| {
+                        data.update(cx, |data, cx| {
+                            data.request(AppEvent::WriteProjectNote(id.clone()), cx)
+                        })
+                    }),
             ),
         );
         profile::section(Ico::FileText, "Where It Stands", content, cx).into_any_element()
@@ -784,25 +1033,35 @@ fn project_menu(
         let rename_page = page.clone();
         let stop_page = page.clone();
         let (name, others) = (project.name.clone(), project.other_names.clone());
-        menu.item(PopupMenuItem::new("Rename…").on_click(move |_, window, cx| {
-            let editing = Some((id, name.clone(), others.clone()));
-            rename_page.update(cx, |page, cx| page.open_name_sheet(editing, window, cx))
-        }))
+        menu.item(
+            PopupMenuItem::new("Rename…").on_click(move |_, window, cx| {
+                let editing = Some((id, name.clone(), others.clone()));
+                rename_page.update(cx, |page, cx| page.open_name_sheet(editing, window, cx))
+            }),
+        )
         .separator()
-        .item(PopupMenuItem::new("Stop Tracking").on_click(move |_, _, cx| stop_page.update(cx, |page, cx| page.stop_tracking(id, cx))))
+        .item(
+            PopupMenuItem::new("Stop Tracking").on_click(move |_, _, cx| {
+                stop_page.update(cx, |page, cx| page.stop_tracking(id, cx))
+            }),
+        )
     } else {
         let track_page = page.clone();
         let hide_page = page.clone();
         let (track_name, hide_name) = (project.name.clone(), project.name.clone());
-        menu.item(PopupMenuItem::new(format!("Track {}", project.name)).on_click(move |_, _, cx| {
-            let name = track_name.clone();
-            track_page.update(cx, |page, cx| page.track(&name, Vec::new(), cx))
-        }))
+        menu.item(
+            PopupMenuItem::new(format!("Track {}", project.name)).on_click(move |_, _, cx| {
+                let name = track_name.clone();
+                track_page.update(cx, |page, cx| page.track(&name, Vec::new(), cx))
+            }),
+        )
         .separator()
-        .item(PopupMenuItem::new("Not a Project").on_click(move |_, _, cx| {
-            let name = hide_name.clone();
-            hide_page.update(cx, |page, cx| page.hide_suggestion(&name, cx))
-        }))
+        .item(
+            PopupMenuItem::new("Not a Project").on_click(move |_, _, cx| {
+                let name = hide_name.clone();
+                hide_page.update(cx, |page, cx| page.hide_suggestion(&name, cx))
+            }),
+        )
     }
 }
 
@@ -810,8 +1069,19 @@ fn value_row(label: &str, value: String, color: gpui_kit::Hsla, cx: &App) -> gpu
     let lb = cx.lb();
     h_flex()
         .gap(px(10.))
-        .child(div().flex_1().text_size(ty::BODY).text_color(color).child(label.to_string()))
-        .child(div().text_size(ty::BODY).text_color(lb.text_secondary).child(value))
+        .child(
+            div()
+                .flex_1()
+                .text_size(ty::BODY)
+                .text_color(color)
+                .child(label.to_string()),
+        )
+        .child(
+            div()
+                .text_size(ty::BODY)
+                .text_color(lb.text_secondary)
+                .child(value),
+        )
 }
 
 /// "19 meetings · 1 yours · 3h 10m this week · last yesterday" (`ProjectDetailView.summary`).
@@ -829,18 +1099,31 @@ fn summary(project: &ProjectProfile, long: bool) -> String {
         parts.push(format!("{} yours", project.my_actions.len()));
     }
     if long && !project.others_actions.is_empty() {
-        parts.push(format!("{} waiting on others", project.others_actions.len()));
+        parts.push(format!(
+            "{} waiting on others",
+            project.others_actions.len()
+        ));
     }
     if long && !project.decisions.is_empty() {
         parts.push(profile::count(project.decisions.len(), "decision"));
     }
     if project.week_seconds >= 60. {
-        parts.push(format!("{} this week", profile::duration(project.week_seconds)));
+        parts.push(format!(
+            "{} this week",
+            profile::duration(project.week_seconds)
+        ));
     }
     if let Some(last) = project.last_active {
-        parts.push(format!("last {}", profile::relative_day(last, Local::now())));
+        parts.push(format!(
+            "last {}",
+            profile::relative_day(last, Local::now())
+        ));
     }
-    if parts.is_empty() { "Nothing linked yet".into() } else { parts.join(" · ") }
+    if parts.is_empty() {
+        "Nothing linked yet".into()
+    } else {
+        parts.join(" · ")
+    }
 }
 
 fn written_when(at: chrono::DateTime<Utc>) -> String {
@@ -886,7 +1169,11 @@ impl Render for ProjectsPage {
                 .justify_center()
                 .text_size(ty::BODY)
                 .text_color(lb.text_secondary)
-                .child(if self.loaded { "Select a project." } else { "Loading projects…" })
+                .child(if self.loaded {
+                    "Select a project."
+                } else {
+                    "Loading projects…"
+                })
                 .into_any_element(),
         };
         h_flex()
@@ -903,7 +1190,15 @@ mod tests {
 
     #[test]
     fn other_names_are_cleaned() {
-        let names = vec!["  Atlas ".to_string(), "atlas".to_string(), "Orion".to_string(), "Project X".to_string()];
-        assert_eq!(clean_other_names(&names, "Project X"), vec!["Atlas".to_string(), "Orion".to_string()]);
+        let names = vec![
+            "  Atlas ".to_string(),
+            "atlas".to_string(),
+            "Orion".to_string(),
+            "Project X".to_string(),
+        ];
+        assert_eq!(
+            clean_other_names(&names, "Project X"),
+            vec!["Atlas".to_string(), "Orion".to_string()]
+        );
     }
 }

@@ -655,6 +655,16 @@ impl Render for AskPage {
             .on_action(cx.listener(|this, _: &NewConversation, window, cx| {
                 this.new_conversation(window, cx)
             }))
+            .on_action(
+                cx.listener(|this, _: &gpui_kit::component::input::Escape, _, cx| {
+                    // Escape stops an answer in progress, like the macOS cancel action.
+                    if this.is_responding(cx) {
+                        this.stop_answer(cx);
+                    } else {
+                        cx.propagate();
+                    }
+                }),
+            )
             .when(searching, |this| {
                 this.capture_action(cx.listener(
                     |this, _: &gpui_kit::component::input::MoveUp, _, cx| {
