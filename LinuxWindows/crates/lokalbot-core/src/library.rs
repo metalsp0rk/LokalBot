@@ -123,6 +123,7 @@ impl Library {
         // Older pipeline_jobs tables predate last_error.
         let _ = db.execute("ALTER TABLE pipeline_jobs ADD COLUMN last_error TEXT", []);
         migrate_ocr_metadata(&db).context("indexing screen text metadata")?;
+        crate::search::migrate(&db).context("migrating the search index")?;
         Ok(Self {
             inner: Arc::new(Inner {
                 paths,
@@ -332,11 +333,7 @@ impl Library {
                 "INSERT OR REPLACE INTO deleted_meetings(meeting_id, deleted_at) VALUES (?1, ?2)",
                 rusqlite::params![id, crate::time::to_epoch(Utc::now())],
             )?;
-            db.execute("DELETE FROM docs WHERE meeting_id = ?1", [&id])?;
-            db.execute(
-                "DELETE FROM search_document_rows WHERE meeting_id = ?1",
-                [&id],
-            )?;
+            crate::search::delete_documents(db, &id)?;
             db.execute("DELETE FROM indexed_meetings WHERE meeting_id = ?1", [&id])?;
             db.execute("DELETE FROM embeddings WHERE meeting_id = ?1", [&id])?;
             db.execute("DELETE FROM embedded_meetings WHERE meeting_id = ?1", [&id])?;
