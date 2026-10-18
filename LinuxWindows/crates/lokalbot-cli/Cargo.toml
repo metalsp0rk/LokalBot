@@ -11,6 +11,10 @@ rust-version.workspace = true
 name = "lokalbot-cli"
 path = "src/main.rs"
 
+[lib]
+name = "lokalbot_cli"
+path = "src/lib.rs"
+
 [dependencies]
 lokalbot-core.workspace = true
 anyhow.workspace = true
@@ -19,3 +23,9 @@ serde.workspace = true
 serde_json.workspace = true
 chrono.workspace = true
 uuid.workspace = true
+rusqlite.workspace = true
+ureq.workspace = true
+directories.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

@@ -4003,9 +4003,13 @@ dependencies = [
  "anyhow",
  "chrono",
  "clap",
+ "directories",
  "lokalbot-core",
+ "rusqlite",
  "serde",
  "serde_json",
+ "tempfile",
+ "ureq",
  "uuid",
 ]
 
