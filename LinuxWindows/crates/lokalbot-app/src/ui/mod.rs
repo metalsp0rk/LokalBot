@@ -6,7 +6,10 @@
 //! Page code should compose these instead of restyling raw `div`s so every
 //! page keeps the same radii, paddings and colors.
 
+pub mod action_row;
 pub mod controls;
+pub mod segmented_tabs;
+pub mod waveform;
 
 pub use gpui_kit::assets::IconName as Ico;
 use gpui_kit::component::{Icon, h_flex, v_flex};

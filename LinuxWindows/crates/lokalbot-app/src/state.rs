@@ -353,6 +353,13 @@ impl AppData {
         self.meetings.iter().find(|m| m.id == id)
     }
 
+    /// A page wrote meeting files itself (corrections, speaker names): pages
+    /// that show them reload on the next `revision`.
+    pub fn mark_library_changed(&mut self, cx: &mut Context<Self>) {
+        self.revision += 1;
+        cx.notify();
+    }
+
     pub fn set_action_status(
         &mut self,
         meeting_id: Uuid,
@@ -517,6 +524,9 @@ pub enum AppEvent {
     InstallCli,
     /// Start or stop dictation from the UI ("Try here").
     ToggleDictation,
+    /// Start the live transcript preview of the current recording, from the
+    /// latest 12 seconds or from the beginning.
+    LivePreview { from_beginning: bool },
 }
 
 impl gpui_kit::EventEmitter<AppEvent> for AppData {}

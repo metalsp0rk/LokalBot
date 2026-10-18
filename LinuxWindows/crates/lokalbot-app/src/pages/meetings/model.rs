@@ -1,0 +1,667 @@
+//! What the meeting workspace shows, loaded off the main thread: the meeting
+//! files plus everything derived from them for display (speaker names and
+//! colors, the recap, actions with the user's corrections, transcript rows).
+
+use std::collections::{HashMap, HashSet};
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
+
+use chrono::{DateTime, Local, Utc};
+use gpui_kit::SharedString;
+use lokalbot_core::{
+    ActionItem, ActionState, ActionStatus, Decision, Library, Meeting, MeetingOutcomes, OutcomeSourceCitation,
+    OutcomeState, Transcript,
+};
+
+/// A meeting's files and their display projection.
+pub struct MeetingDoc {
+    pub meeting: Meeting,
+    pub folder: PathBuf,
+    pub transcript: Option<Transcript>,
+    pub summary: Option<String>,
+    pub notes: String,
+    pub outcomes: Option<MeetingOutcomes>,
+    pub has_audio: bool,
+    /// Waveform overview, when the audio could be read.
+    pub peaks: Option<Arc<[f32]>>,
+    pub speakers: Speakers,
+    pub actions: Vec<MeetingAction>,
+    pub decisions: Vec<Decision>,
+    pub questions: Vec<String>,
+    pub recap: Vec<String>,
+    /// The summary's provenance line ("Duration 32m  ·  App Zoom").
+    pub summary_meta: Option<String>,
+    pub summary_body: String,
+    pub rows: Vec<TranscriptRow>,
+    pub review: Vec<ReviewSpeaker>,
+}
+
+impl MeetingDoc {
+    pub fn has_summary(&self) -> bool {
+        self.summary.as_deref().is_some_and(|s| !s.trim().is_empty())
+    }
+
+    pub fn has_transcript(&self) -> bool {
+        self.transcript.as_ref().is_some_and(|t| !t.segments.is_empty())
+    }
+
+    /// Row index whose segment contains `seconds` (or the nearest before it).
+    pub fn row_at(&self, seconds: f64) -> Option<usize> {
+        self.rows
+            .iter()
+            .position(|row| seconds >= row.start && seconds < row.end.max(row.start + 0.5))
+            .or_else(|| self.rows.iter().rposition(|row| row.start <= seconds))
+    }
+
+    /// Remote speakers that still carry a placeholder name.
+    pub fn unnamed_remote_speakers(&self) -> usize {
+        self.review.iter().filter(|s| !s.is_user && !s.is_named && s.can_confirm).count()
+    }
+}
+
+/// An extracted action with the user's saved corrections applied.
+#[derive(Clone, Debug)]
+pub struct MeetingAction {
+    pub id: String,
+    pub text: String,
+    pub original_text: String,
+    pub owner: Option<String>,
+    pub owner_label: Option<String>,
+    pub due: Option<String>,
+    pub is_for_user: bool,
+    pub status: ActionStatus,
+    pub citation: Option<OutcomeSourceCitation>,
+}
+
+#[derive(Clone, Debug)]
+pub struct TranscriptRow {
+    pub index: usize,
+    pub start: f64,
+    pub end: f64,
+    pub speaker: String,
+    pub name: SharedString,
+    pub color: usize,
+    pub text: SharedString,
+    pub begins_turn: bool,
+}
+
+#[derive(Clone, Debug)]
+pub struct ReviewSpeaker {
+    pub key: String,
+    pub name: String,
+    pub color: usize,
+    pub is_user: bool,
+    pub is_named: bool,
+    pub can_confirm: bool,
+    pub sample: Option<(f64, String)>,
+    pub action_count: usize,
+}
+
+impl ReviewSpeaker {
+    /// `MeetingSpeakerReviewItem.status`.
+    pub fn status(&self) -> &'static str {
+        if self.is_user {
+            "Attributed to you"
+        } else if !self.can_confirm {
+            "Mixed or unresolved audio"
+        } else if self.is_named {
+            "Named in this meeting"
+        } else {
+            "Name not confirmed"
+        }
+    }
+}
+
+/// Display names and colors for a transcript's speakers
+/// (`MeetingSpeakerPresentation.swift`).
+#[derive(Default, Clone, Debug)]
+pub struct Speakers {
+    order: Vec<String>,
+    colors: HashMap<String, usize>,
+    names: HashMap<String, String>,
+    users: HashSet<String>,
+    owner_users: HashSet<String>,
+}
+
+impl Speakers {
+    pub fn new(transcript: Option<&Transcript>) -> Self {
+        let mut this = Self::default();
+        let Some(transcript) = transcript else { return this };
+        for segment in &transcript.segments {
+            let key = Transcript::canonical_speaker_key(&segment.speaker);
+            let confirmed_user = segment
+                .attribution
+                .is_some_and(|a| a.identity == lokalbot_core::SpeakerIdentity::User);
+            if key == "me" || confirmed_user {
+                this.users.insert(key.clone());
+            }
+            if !this.order.contains(&key) {
+                this.order.push(key);
+            }
+        }
+        let mut next = 1;
+        for key in &this.order {
+            let color = if this.users.contains(key) {
+                0
+            } else {
+                next += 1;
+                next - 1
+            };
+            this.colors.insert(key.clone(), color);
+            let name = transcript
+                .speaker_aliases
+                .get(key)
+                .filter(|alias| !alias.trim().is_empty())
+                .cloned()
+                .unwrap_or_else(|| Transcript::default_speaker_name(key));
+            if this.users.contains(key) {
+                this.owner_users.insert(name.to_lowercase());
+            }
+            this.names.insert(key.clone(), display_label(&name, this.users.contains(key)));
+        }
+        this
+    }
+
+    pub fn name(&self, speaker: &str) -> String {
+        let key = Transcript::canonical_speaker_key(speaker);
+        self.names
+            .get(&key)
+            .cloned()
+            .unwrap_or_else(|| display_label(&Transcript::default_speaker_name(&key), false))
+    }
+
+    pub fn color_index(&self, speaker: &str) -> usize {
+        self.colors.get(&Transcript::canonical_speaker_key(speaker)).copied().unwrap_or(1)
+    }
+
+    /// An action owner as people should read it ("You", "Other speaker").
+    pub fn owner(&self, value: &str, is_for_user: bool) -> String {
+        display_label(value, is_for_user || self.owner_users.contains(&value.trim().to_lowercase()))
+    }
+}
+
+/// `SpeakerDisplayName.label`: "Me" (as the user) reads "You", "Them" reads
+/// "Other speaker" and "Them 2" reads "Speaker 2".
+pub fn display_label(name: &str, is_user: bool) -> String {
+    let trimmed = name.trim();
+    let lower = trimmed.to_lowercase();
+    if lower == "me" {
+        return if is_user { "You".into() } else { trimmed.to_string() };
+    }
+    if lower == "them" {
+        return "Other speaker".into();
+    }
+    if let Some(n) = lower.strip_prefix("them ").filter(|n| n.chars().all(|c| c.is_ascii_digit()) && !n.is_empty()) {
+        return format!("Speaker {n}");
+    }
+    trimmed.to_string()
+}
+
+fn is_placeholder_name(name: &str) -> bool {
+    let lower = name.trim().to_lowercase();
+    lower.is_empty()
+        || ["me", "them", "you", "other speaker", "local speaker", "speaker unclear", "remote speaker"].contains(&lower.as_str())
+        || lower.strip_prefix("speaker ").is_some_and(|n| n.chars().all(|c| c.is_ascii_digit()))
+        || lower.strip_prefix("them ").is_some_and(|n| n.chars().all(|c| c.is_ascii_digit()))
+}
+
+/// Applies `outcome-state.json` corrections to one extracted action.
+pub fn merge_action(item: &ActionItem, state: Option<&ActionState>, speakers: &Speakers) -> MeetingAction {
+    let status = state.map(|s| s.status).unwrap_or_default();
+    let text = state
+        .and_then(|s| s.text_correction.clone())
+        .filter(|t| !t.trim().is_empty())
+        .unwrap_or_else(|| item.text.clone());
+    let (owner, owner_corrected) = match state {
+        Some(s) if s.owner_was_cleared => (None, true),
+        Some(s) if s.owner_override.is_some() => (s.owner_override.clone(), true),
+        _ => (item.owner.clone(), false),
+    };
+    let due = match state {
+        Some(s) if s.due_was_cleared => None,
+        Some(s) if s.due_override.is_some() => s.due_override.clone(),
+        _ => item.due.clone(),
+    };
+    let is_for_user = if owner_corrected {
+        owner.as_deref().is_some_and(|o| o.trim().eq_ignore_ascii_case("me"))
+    } else {
+        item.is_for_user
+    };
+    let owner_label = owner.as_deref().filter(|o| !o.trim().is_empty()).map(|o| speakers.owner(o, is_for_user));
+    MeetingAction {
+        id: item.id.clone(),
+        text,
+        original_text: item.text.clone(),
+        owner,
+        owner_label,
+        due,
+        is_for_user,
+        status,
+        citation: item.citations.first().cloned(),
+    }
+}
+
+/// Reads and projects one meeting. Runs on a background thread.
+pub fn load(library: &Library, meeting: Meeting) -> MeetingDoc {
+    let folder = library.meeting_dir(&meeting);
+    let transcript = library.transcript(&meeting).unwrap_or_else(|err| {
+        log::warn!("transcript for {}: {err:#}", meeting.id);
+        None
+    });
+    let summary = library.summary(&meeting).ok().flatten();
+    let notes = library.notes(&meeting).unwrap_or_default();
+    let outcomes = library.outcomes(&meeting).ok().flatten();
+    let state: OutcomeState = library.outcome_state(&meeting).unwrap_or_default();
+    let audio = library.audio(&meeting);
+    let has_audio = audio.mic.is_some() || audio.system.is_some();
+    let peaks = [audio.mic.as_deref(), audio.system.as_deref()]
+        .into_iter()
+        .flatten()
+        .filter_map(|path| wav_peaks(path, 720))
+        .reduce(|a, b| a.iter().zip(b.iter().chain(std::iter::repeat(&0.))).map(|(x, y)| x.max(*y)).collect())
+        .map(normalize)
+        .map(Arc::from);
+
+    let speakers = Speakers::new(transcript.as_ref());
+    let actions: Vec<MeetingAction> = outcomes
+        .as_ref()
+        .map(|o| o.action_items.iter().map(|item| merge_action(item, state.actions.get(&item.id), &speakers)).collect())
+        .unwrap_or_default();
+    let decisions = outcomes.as_ref().map(|o| o.decision_records.clone()).unwrap_or_default();
+    let questions = outcomes.as_ref().map(|o| o.open_questions.clone()).unwrap_or_default();
+    let (summary_meta, summary_body) = summary.as_deref().map(split_summary).unwrap_or((None, String::new()));
+    let recap = summary.as_deref().and_then(recap).map(|text| recap_points(&text)).unwrap_or_default();
+    let rows = transcript.as_ref().map(|t| transcript_rows(t, &speakers)).unwrap_or_default();
+    let review = transcript.as_ref().map(|t| review_speakers(t, &speakers, &actions)).unwrap_or_default();
+
+    MeetingDoc {
+        meeting,
+        folder,
+        transcript,
+        summary,
+        notes,
+        outcomes,
+        has_audio,
+        peaks,
+        speakers,
+        actions,
+        decisions,
+        questions,
+        recap,
+        summary_meta,
+        summary_body,
+        rows,
+        review,
+    }
+}
+
+fn transcript_rows(transcript: &Transcript, speakers: &Speakers) -> Vec<TranscriptRow> {
+    let mut rows: Vec<TranscriptRow> = Vec::with_capacity(transcript.segments.len());
+    for (index, segment) in transcript.segments.iter().enumerate() {
+        let text = Transcript::display_text(&segment.text);
+        if text.is_empty() {
+            continue;
+        }
+        let key = Transcript::canonical_speaker_key(&segment.speaker);
+        let begins_turn = rows.last().is_none_or(|last| last.speaker != key);
+        rows.push(TranscriptRow {
+            index,
+            start: segment.start,
+            end: segment.end,
+            name: speakers.name(&key).into(),
+            color: speakers.color_index(&key),
+            speaker: key,
+            text: text.into(),
+            begins_turn,
+        });
+    }
+    rows
+}
+
+fn review_speakers(transcript: &Transcript, speakers: &Speakers, actions: &[MeetingAction]) -> Vec<ReviewSpeaker> {
+    let mut seen = Vec::<String>::new();
+    for segment in &transcript.segments {
+        let key = Transcript::canonical_speaker_key(&segment.speaker);
+        if !seen.contains(&key) {
+            seen.push(key);
+        }
+    }
+    let mut items: Vec<ReviewSpeaker> = seen
+        .iter()
+        .map(|key| {
+            let segments: Vec<_> =
+                transcript.segments.iter().filter(|s| Transcript::canonical_speaker_key(&s.speaker) == *key).collect();
+            let sample = segments
+                .iter()
+                .filter(|s| s.start.is_finite() && s.end > s.start && Transcript::display_text(&s.text).split_whitespace().count() >= 3)
+                .max_by(|a, b| {
+                    let score = |s: &&&lokalbot_core::Segment| {
+                        (Transcript::display_text(&s.text).split_whitespace().count().min(25) as f64) + (s.end - s.start).min(12.)
+                    };
+                    score(a).partial_cmp(&score(b)).unwrap_or(std::cmp::Ordering::Equal).then(b.start.total_cmp(&a.start))
+                })
+                .map(|s| (s.start, Transcript::display_text(&s.text)));
+            let name = speakers.name(key);
+            let alias = transcript.speaker_aliases.get(key).filter(|a| !a.trim().is_empty());
+            let action_count = actions
+                .iter()
+                .filter(|a| {
+                    a.owner.as_deref().is_some_and(|o| Transcript::canonical_speaker_key(o) == *key || o == name)
+                        || a.citation.as_ref().is_some_and(|c| Transcript::canonical_speaker_key(&c.speaker) == *key)
+                })
+                .count();
+            ReviewSpeaker {
+                key: key.clone(),
+                color: speakers.color_index(key),
+                is_user: speakers.users.contains(key),
+                is_named: alias.is_some() && !is_placeholder_name(&name),
+                can_confirm: !key.contains("unclear"),
+                sample,
+                action_count,
+                name,
+            }
+        })
+        .collect();
+    let order: HashMap<String, usize> = seen.iter().enumerate().map(|(ix, key)| (key.clone(), ix)).collect();
+    items.sort_by(|a, b| {
+        (b.action_count > 0)
+            .cmp(&(a.action_count > 0))
+            .then(b.action_count.cmp(&a.action_count))
+            .then(order[&a.key].cmp(&order[&b.key]))
+    });
+    items
+}
+
+/// Lifts the "**Duration:** 32m · **App:** Zoom" provenance line out of the
+/// summary body (`SummaryPresentation.split`).
+pub fn split_summary(markdown: &str) -> (Option<String>, String) {
+    let lines: Vec<&str> = markdown.lines().collect();
+    for (index, line) in lines.iter().enumerate().take(4) {
+        let trimmed = line.trim();
+        if trimmed.is_empty() || trimmed.starts_with('#') {
+            continue;
+        }
+        let Some(items) = metadata_items(trimmed).filter(|items| items.len() >= 2) else { break };
+        let shown: Vec<String> = items
+            .into_iter()
+            .filter(|(label, value)| label != "Sources" && !(label == "App" && value == "Merged meetings"))
+            .map(|(label, value)| format!("{label} {value}"))
+            .collect();
+        let body = lines
+            .iter()
+            .enumerate()
+            .filter(|(ix, _)| *ix != index)
+            .map(|(_, l)| *l)
+            .collect::<Vec<_>>()
+            .join("\n")
+            .trim()
+            .to_string();
+        return ((!shown.is_empty()).then(|| shown.join("  ·  ")), body);
+    }
+    (None, markdown.trim().to_string())
+}
+
+fn metadata_items(line: &str) -> Option<Vec<(String, String)>> {
+    let mut items = Vec::new();
+    for piece in line.split(" · ") {
+        let piece = piece.trim();
+        let rest = piece.strip_prefix("**")?;
+        let (label, value) = rest.split_once(":**")?;
+        let (label, value) = (label.trim(), value.trim());
+        if label.is_empty() || value.is_empty() {
+            return None;
+        }
+        items.push((label.to_string(), value.to_string()));
+    }
+    (!items.is_empty()).then_some(items)
+}
+
+/// The recap preview (`SummaryPresentation.recap`): the TL;DR section, or the
+/// first prose paragraph.
+pub fn recap(markdown: &str) -> Option<String> {
+    let (_, body) = split_summary(markdown);
+    let lines: Vec<&str> = body.lines().collect();
+    if let Some(heading) = lines.iter().position(|l| l.trim().eq_ignore_ascii_case("## tl;dr")) {
+        let section = lines[heading + 1..]
+            .iter()
+            .take_while(|l| !l.trim_start().starts_with('#'))
+            .copied()
+            .collect::<Vec<_>>()
+            .join("\n");
+        let section = section.trim();
+        if !section.is_empty() && !section.eq_ignore_ascii_case("none") {
+            return recap_text(section);
+        }
+    }
+    body.split("\n\n").find_map(|paragraph| {
+        let content = paragraph
+            .lines()
+            .filter(|l| !l.trim_start().starts_with('#'))
+            .collect::<Vec<_>>()
+            .join("\n");
+        let content = content.trim();
+        if content.is_empty()
+            || content.eq_ignore_ascii_case("none")
+            || content.starts_with("- ")
+            || content.starts_with("* ")
+            || content.starts_with('|')
+        {
+            return None;
+        }
+        recap_text(content)
+    })
+}
+
+fn recap_text(section: &str) -> Option<String> {
+    let text = section
+        .lines()
+        .map(|line| {
+            let trimmed = line.trim_start();
+            let mut out = line.to_string();
+            for bullet in ["- ", "* ", "• "] {
+                if let Some(rest) = trimmed.strip_prefix(bullet) {
+                    let rest = rest.trim_start();
+                    // Drop a leading "**Label:**" from bullets.
+                    let rest = rest
+                        .strip_prefix("**")
+                        .and_then(|r| r.split_once(":**").map(|(_, after)| after.trim_start()))
+                        .unwrap_or(rest);
+                    out = format!("• {rest}");
+                    break;
+                }
+            }
+            strip_trailing_stamp(&out)
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    let text = text.trim().to_string();
+    (!text.is_empty()).then_some(text)
+}
+
+/// Removes a trailing " — [00:12]" citation.
+fn strip_trailing_stamp(line: &str) -> String {
+    let trimmed = line.trim_end();
+    if let Some(open) = trimmed.rfind('[')
+        && trimmed.ends_with(']')
+    {
+        let inner = &trimmed[open + 1..trimmed.len() - 1];
+        if lokalbot_core::time::parse_stamp(inner).is_some() {
+            let before = trimmed[..open].trim_end();
+            let before = before.trim_end_matches(['—', '–', '-']).trim_end();
+            return before.to_string();
+        }
+    }
+    trimmed.to_string()
+}
+
+/// One recap point per non-empty line.
+pub fn recap_points(text: &str) -> Vec<String> {
+    text.lines().map(str::trim).filter(|l| !l.is_empty()).map(str::to_string).collect()
+}
+
+// ------------------------------------------------------------------ labels
+
+/// "Oct 8, 2026 at 11:57 AM".
+pub fn date_label(at: DateTime<Utc>) -> String {
+    at.with_timezone(&Local).format("%b %-d, %Y at %-I:%M %p").to_string()
+}
+
+/// Duration chip text: "2 min", "1 hr 5 min" (minutes floored, as on macOS).
+pub fn duration_label(meeting: &Meeting) -> String {
+    let minutes = (meeting.duration_seconds() / 60.).floor() as u64;
+    if minutes >= 60 { format!("{} hr {} min", minutes / 60, minutes % 60) } else { format!("{minutes} min") }
+}
+
+/// List row metadata: "Zoom · 10:57 AM · 2 min"; merged meetings omit the app.
+pub fn row_detail(meeting: &Meeting, live: bool) -> String {
+    let time = if live { "in progress".to_string() } else { lokalbot_core::time::clock_time(meeting.started_at) };
+    let duration = if live {
+        format!("{} min", ((Utc::now() - meeting.started_at).num_seconds().max(60) / 60))
+    } else {
+        duration_label(meeting)
+    };
+    if meeting.is_merged_meeting() {
+        format!("{time} · {duration}")
+    } else {
+        format!("{} · {time} · {duration}", meeting.app_name)
+    }
+}
+
+// ------------------------------------------------------------------ export
+
+/// The meeting as Markdown: title, metadata, notes, summary and transcript.
+pub fn meeting_markdown(doc: &MeetingDoc) -> String {
+    let meeting = &doc.meeting;
+    let mut out = format!("# {}\n\n", meeting.display_title());
+    let mut meta = vec![
+        format!("**Date:** {}", date_label(meeting.started_at)),
+        format!("**Duration:** {}", duration_label(meeting)),
+    ];
+    if !meeting.is_merged_meeting() {
+        meta.push(format!("**App:** {}", meeting.app_name));
+    }
+    out.push_str(&meta.join(" · "));
+    out.push_str("\n\n");
+    if !doc.notes.trim().is_empty() {
+        out.push_str("## Your notes\n\n");
+        out.push_str(doc.notes.trim());
+        out.push_str("\n\n");
+    }
+    if let Some(summary) = doc.summary.as_deref().filter(|s| !s.trim().is_empty()) {
+        out.push_str(summary.trim());
+        out.push_str("\n\n");
+    }
+    if let Some(transcript) = doc.transcript.as_ref().filter(|t| !t.segments.is_empty()) {
+        out.push_str("## Transcript\n\n");
+        out.push_str(&transcript.markdown());
+        out.push('\n');
+    }
+    out
+}
+
+pub fn transcript_text(doc: &MeetingDoc) -> String {
+    doc.rows
+        .iter()
+        .map(|row| format!("[{}] {}: {}", lokalbot_core::time::stamp(row.start), row.name, row.text))
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+// ------------------------------------------------------------------- audio
+
+/// Peak overview of a PCM WAV track, max-pooled into `buckets`.
+///
+/// Stand-in until `lokalbot_audio::waveform_peaks` is wired; other formats
+/// (`.m4a` from macOS libraries) return `None`.
+pub fn wav_peaks(path: &Path, buckets: usize) -> Option<Vec<f32>> {
+    if path.extension().is_none_or(|e| !e.eq_ignore_ascii_case("wav")) {
+        return None;
+    }
+    let bytes = std::fs::read(path).ok()?;
+    if bytes.len() < 12 || &bytes[0..4] != b"RIFF" || &bytes[8..12] != b"WAVE" {
+        return None;
+    }
+    let mut pos = 12;
+    let (mut format, mut channels, mut bits) = (0u16, 1u16, 16u16);
+    let mut data: Option<&[u8]> = None;
+    while pos + 8 <= bytes.len() {
+        let id = &bytes[pos..pos + 4];
+        let len = u32::from_le_bytes(bytes[pos + 4..pos + 8].try_into().ok()?) as usize;
+        let body = &bytes[pos + 8..(pos + 8 + len).min(bytes.len())];
+        if id == b"fmt " && body.len() >= 16 {
+            format = u16::from_le_bytes([body[0], body[1]]);
+            channels = u16::from_le_bytes([body[2], body[3]]).max(1);
+            bits = u16::from_le_bytes([body[14], body[15]]);
+        } else if id == b"data" {
+            data = Some(body);
+        }
+        pos += 8 + len + (len & 1);
+    }
+    let data = data?;
+    let frame_bytes = usize::from(bits / 8) * usize::from(channels);
+    if frame_bytes == 0 || buckets == 0 {
+        return None;
+    }
+    let frames = data.len() / frame_bytes;
+    if frames == 0 {
+        return None;
+    }
+    let sample = |frame: usize| -> f32 {
+        let offset = frame * frame_bytes;
+        match (format, bits) {
+            (1, 16) => i16::from_le_bytes([data[offset], data[offset + 1]]) as f32 / 32768.,
+            (3, 32) | (0xFFFE, 32) => f32::from_le_bytes(data[offset..offset + 4].try_into().unwrap_or([0; 4])),
+            _ => 0.,
+        }
+    };
+    let mut peaks = vec![0f32; buckets];
+    // Sample sparsely: a few thousand reads per bucket is plenty for an overview.
+    let stride = (frames / (buckets * 2000)).max(1);
+    let mut frame = 0;
+    while frame < frames {
+        let bucket = frame * buckets / frames;
+        peaks[bucket] = peaks[bucket].max(sample(frame).abs());
+        frame += stride;
+    }
+    Some(peaks)
+}
+
+fn normalize(peaks: Vec<f32>) -> Vec<f32> {
+    let max = peaks.iter().copied().fold(0., f32::max);
+    if max <= f32::EPSILON {
+        return peaks;
+    }
+    peaks.into_iter().map(|p| (p / max).sqrt()).collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn recap_prefers_the_tldr_section() {
+        let summary = "## TL;DR\nThe team chose Redis.\n\n## Decisions\n- Adopt Redis";
+        assert_eq!(recap(summary).as_deref(), Some("The team chose Redis."));
+    }
+
+    #[test]
+    fn recap_bullets_drop_labels_and_stamps() {
+        let summary = "## TL;DR\n- **Caching:** Redis wins — [00:12]\n- Ship Friday";
+        assert_eq!(recap_points(&recap(summary).unwrap()), vec!["• Redis wins", "• Ship Friday"]);
+    }
+
+    #[test]
+    fn provenance_line_is_split_out() {
+        let (meta, body) = split_summary("# Sync\n**Duration:** 32m · **App:** Zoom\n\nBody");
+        assert_eq!(meta.as_deref(), Some("Duration 32m  ·  App Zoom"));
+        assert_eq!(body, "# Sync\n\nBody");
+    }
+
+    #[test]
+    fn speaker_labels_match_the_mac() {
+        assert_eq!(display_label("Me", true), "You");
+        assert_eq!(display_label("Them", false), "Other speaker");
+        assert_eq!(display_label("Them 2", false), "Speaker 2");
+        assert_eq!(display_label("Maya", false), "Maya");
+    }
+}
