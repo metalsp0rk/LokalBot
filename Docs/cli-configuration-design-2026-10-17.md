@@ -296,7 +296,7 @@ scripts that must not start background services.
 
 **A new, separate grant**
 
-- Settings → Privacy → External agents gets a third toggle: "Allow external
+- Settings → Privacy → External agents gets another toggle: "Allow external
   agents to change LokalBot settings". It is off by default.
 - Only the app writes its marker, `control/settings-control-enabled`.
 - It does not imply meeting or screen access, and neither of those implies
@@ -610,7 +610,7 @@ launch-at-login choices. It has the same shape as `config import`.
 Phase 1, with the registry part of Phase 0, is implemented on branch
 `ccr-c1452663-cvoqi1`:
 
-- `SettingRegistry` covers all 130 settings keys; the 5 bookkeeping keys are
+- `SettingRegistry` covers all 137 settings keys (130 at first; 7 added when `master` gained meeting note export and personal learning); the 5 bookkeeping keys are
   listed in `internalKeys`. `SettingRegistryTests` checks it against
   `AppSettings`. `SettingDescriptor` keeps its own table for now; a test keeps
   their titles and categories equal.

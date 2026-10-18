@@ -89,6 +89,7 @@ final class AppControlHandler {
             "access": [
                 "meetingLibrary": .bool(app.agentAccess.isEnabled),
                 "screenMemory": .bool(app.screenMemoryAccess.isEnabled),
+                "personalContext": .bool(app.personalContextAccess.isEnabled),
                 "settings": .bool(gate.isEnabled),
             ],
             "permissions": .object(permissions),

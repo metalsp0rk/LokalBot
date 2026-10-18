@@ -38,6 +38,7 @@ final class SettingRegistryTests: XCTestCase {
             "diarizationModel": try stored(DiarizationModel.allCases),
             "screenContextCaptureMode": try stored(AppSettings.ScreenContextCaptureMode.allCases),
             "dailyMemoryExportFormat": try stored(AppSettings.DailyMemoryExportFormat.allCases),
+            "meetingNoteExportFormat": try stored(AppSettings.DailyMemoryExportFormat.allCases),
             "enabledMemoryRoutines": try stored(AppSettings.MemoryRoutineKind.allCases),
             "transcriptionModel": try stored(TranscriptionModelChoice.allCases),
             "speechVoice": try stored(KokoroVoice.allCases),

@@ -33,6 +33,10 @@ struct SettingDescriptor: Identifiable {
            ["settings.useCalendarTitles", "settings.requireCalendarForBrowser",
             "settings.useCalendarAgenda"].contains(id) { return "settings.calendarDetectionEnabled" }
         if !settings.dailyMemoryExportEnabled, id == "settings.dailyMemoryExportFormat" { return "settings.dailyMemoryExportEnabled" }
+        if !settings.meetingNoteExportEnabled,
+           ["settings.meetingNoteExportFormat", "settings.meetingNoteExportIncludesTranscript"].contains(id) {
+            return "settings.meetingNoteExportEnabled"
+        }
         if !settings.memoryRoutinesEnabled, id == "settings.memoryRoutineWeekday" { return "settings.memoryRoutinesEnabled" }
         if ["settings.openAIBaseURL", "settings.openAIModel"].contains(id), settings.summarizerBackend != .openAICompatible {
             return "settings.summarizerBackend"
@@ -72,6 +76,9 @@ struct SettingDescriptor: Identifiable {
         .init(id: "settings.stopDebounceSeconds", title: "Wait before stopping", category: .recording, aliases: "stop debounce delay seconds audio"),
         .init(id: "settings.cotypingDebounceMs", title: "Pause before suggesting", category: .writing, aliases: "autocomplete delay latency milliseconds"),
         .init(id: "settings.screenshotIntervalMinutes", title: "Idle capture interval", category: .dayMemory, aliases: "screenshot frequency fallback minutes"),
+        .init(id: "settings.personalLearningEnabled", title: "Learn about me from my meetings and work", category: .dayMemory, aliases: "learn about me automatic facts goals profile overnight typing coding agents work memory"),
+        .init(id: "settings.personalLearningFromDictation", title: "Learn from my dictation", category: .dayMemory, aliases: "about you learn dictation dictated speech voice typing messages review"),
+        .init(id: "settings.askMemoryEnabled", title: "Remember what I tell Ask", category: .dayMemory, aliases: "about you remember memory facts preferences goals principles values personal profile"),
         .init(id: "settings.summarizerBackend", title: "Think model backend", category: .models, aliases: "main llm remote processing destination inference think summarization apple ollama openai chatgpt claude subscription plan"),
         .init(id: "settings.openAIBaseURL", title: "OpenAI-compatible server URL", category: .models, aliases: "remote processing endpoint host base URL"),
         .init(id: "settings.openAIModel", title: "OpenAI-compatible model", category: .models, aliases: "remote inference model name"),
@@ -125,6 +132,9 @@ struct SettingDescriptor: Identifiable {
         .init(id: "settings.autoSummarize", title: "Summarize automatically after transcription", category: .recording, aliases: "autoSummarize"),
         .init(id: "settings.echoCancellation", title: "Remove the other side from your microphone track", category: .recording, aliases: "echoCancellation"),
         .init(id: "settings.noteTemplate", title: "Notes template", category: .recording, aliases: "noteTemplate"),
+        .init(id: "settings.meetingNoteExportEnabled", title: "Export a note for each meeting", category: .recording, aliases: "meetingNoteExportEnabled obsidian logseq markdown vault meeting notes export folder"),
+        .init(id: "settings.meetingNoteExportFormat", title: "Format", category: .recording, aliases: "meetingNoteExportFormat obsidian logseq markdown meeting notes"),
+        .init(id: "settings.meetingNoteExportIncludesTranscript", title: "Include the transcript", category: .recording, aliases: "meetingNoteExportIncludesTranscript meeting notes export transcript"),
         .init(id: "settings.summaryLanguage", title: "Notes language", category: .recording, aliases: "summaryLanguage"),
         .init(id: "settings.trackingEnabled", title: "Track app & window activity", category: .dayMemory, aliases: "trackingEnabled"),
         .init(id: "settings.effectiveScreenContextCaptureMode", title: "Screen context", category: .dayMemory, aliases: "effectiveScreenContextCaptureMode"),
@@ -168,6 +178,7 @@ struct SettingDescriptor: Identifiable {
         .init(id: "settings.resourceMonitor", title: "Resource monitor", category: .advanced, aliases: "cpu ram memory footprint"),
         .init(id: "settings.agentAccess", title: "External meeting access", category: .privacy, aliases: "mcp claude coding agent CLI"),
         .init(id: "settings.screenMemoryAccess", title: "External screen access", category: .privacy, aliases: "mcp screen memory agent"),
+        .init(id: "settings.personalContextAccess", title: "External personal context access", category: .privacy, aliases: "mcp agent about you personal context share facts preferences goals principles"),
         .init(id: "settings.settingsControlAccess", title: "External settings access", category: .privacy, aliases: "cli terminal agent configure settings control"),
     ]
 }

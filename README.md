@@ -7,6 +7,7 @@
 **Find what you said or saw on your Mac.**
 
 Private meeting notes, workday recall, dictation, and autocomplete—with AI that runs on your Mac.<br />
+Your AI agents can search it too, from Claude Code, Codex, or any MCP client.<br />
 Free and open source. No account. Nothing joins your calls.
 
 [![Download LokalBot for macOS](https://img.shields.io/badge/%E2%80%82Download%20for%20macOS%E2%80%82-LokalBot.dmg-0969da?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/stevyhacker/lokalbot/releases/latest/download/LokalBot.dmg)
@@ -14,9 +15,12 @@ Free and open source. No account. Nothing joins your calls.
 <sub>Apple Silicon (M1 or later) · macOS 15+ · or <code>brew install --cask stevyhacker/tap/lokalbot</code></sub>
 
 [![Latest release](https://img.shields.io/github/v/release/stevyhacker/lokalbot?color=1f6feb&label=release)](https://github.com/stevyhacker/lokalbot/releases/latest)
-[![Downloads](https://img.shields.io/github/downloads/stevyhacker/lokalbot/total?color=1f6feb&label=downloads)](https://github.com/stevyhacker/lokalbot/releases)
 [![License: GPLv3](https://img.shields.io/badge/license-GPLv3-2ea043)](LICENSE)
 [![MCP: read-only server](https://img.shields.io/badge/MCP-read--only%20server-8250df)](#for-developers--agents)
+
+<sub>⭐ If LokalBot is useful to you, star the repo. It's built by one developer, and stars are how other people find it.</sub>
+
+**English** · [简体中文](README.zh-CN.md)
 
 [Features](#features) · [Compare](#how-it-compares) · [Privacy](#privacy) · [Get started](#get-started) · [Models](#local-ai-your-choice) · [Agents & CLI](#for-developers--agents) · [Website](https://www.lokalbot.com/)
 
@@ -208,6 +212,12 @@ lokalbot-cli mcp
 
 Without a PATH installation, use `/Applications/LokalBot.app/Contents/Helpers/lokalbot-cli`.
 
+Connect Claude Code with one command, or install the [Claude Code plugin](Distribution/claude-plugin/README.md):
+
+```bash
+claude mcp add lokalbot -- /Applications/LokalBot.app/Contents/Helpers/lokalbot-cli mcp
+```
+
 Screen-memory MCP tools require separate permission scoped to today, the last seven days, or all retained history. They return text and metadata, not decrypted screenshots. External clients may send results to their own model providers.
 
 The app also has an optional **Agent Mode** for working with reviewed context. File and shell actions follow its approval settings; it is separate from the read-only CLI/MCP interface.
@@ -263,6 +273,6 @@ For larger changes, [open an issue](https://github.com/stevyhacker/lokalbot/issu
 
 ## License & acknowledgements
 
-LokalBot is free software under [GPLv3](LICENSE). Third-party components and models retain their own licenses; see [third-party notices](THIRD_PARTY_NOTICES.md).
+LokalBot is free software under [GPLv3](LICENSE). Code in the Autocomplete engine that was ported from [Cotabby](https://github.com/FuJacob/cotabby) stays under [AGPLv3](LICENSES/AGPL-3.0.txt). Other third-party components and models retain their own licenses; see [third-party notices](THIRD_PARTY_NOTICES.md).
 
-Built with [llama.cpp](https://github.com/ggml-org/llama.cpp), [MLX Swift](https://github.com/ml-explore/mlx-swift), [speech-swift](https://github.com/soniqo/speech-swift), [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx), [WhisperKit](https://github.com/argmaxinc/WhisperKit), [FluidAudio](https://github.com/FluidInference/FluidAudio), [Sparkle](https://github.com/sparkle-project/Sparkle), and [XcodeGen](https://github.com/yonaskolb/XcodeGen), with models including [Qwen3-ASR](https://huggingface.co/Qwen), [IBM Granite Speech](https://huggingface.co/ibm-granite), [Parakeet](https://huggingface.co/nvidia), and [LFM2.5](https://huggingface.co/LiquidAI). The Autocomplete engine shares its loop with [Cotabby](https://cotabby.app).
+Built with [llama.cpp](https://github.com/ggml-org/llama.cpp), [MLX Swift](https://github.com/ml-explore/mlx-swift), [speech-swift](https://github.com/soniqo/speech-swift), [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx), [WhisperKit](https://github.com/argmaxinc/WhisperKit), [FluidAudio](https://github.com/FluidInference/FluidAudio), [Sparkle](https://github.com/sparkle-project/Sparkle), and [XcodeGen](https://github.com/yonaskolb/XcodeGen), with models including [Qwen3-ASR](https://huggingface.co/Qwen), [IBM Granite Speech](https://huggingface.co/ibm-granite), [Parakeet](https://huggingface.co/nvidia), and [LFM2.5](https://huggingface.co/LiquidAI). The Autocomplete engine started from [Cotabby](https://cotabby.app)'s open-source code.

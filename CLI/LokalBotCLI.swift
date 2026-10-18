@@ -14,11 +14,13 @@ struct LokalBotCLI: AsyncParsableCommand {
             need the separate settings access in Settings → Privacy.
             """,
         subcommands: [
+            BriefCommand.self,
             ListCommand.self,
             GetCommand.self,
             SearchCommand.self,
             ActionsCommand.self,
             PeopleCommand.self,
+            PersonalContextCommand.self,
             PathCommand.self,
             ConfigCommand.self,
             StatusCommand.self,
