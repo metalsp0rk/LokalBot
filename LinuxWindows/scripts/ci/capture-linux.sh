@@ -71,6 +71,9 @@ if [ -n "${LB_CAPTURE_SESSION:-}" ] && command -v xfce4-panel >/dev/null; then
   sleep 3
 fi
 for page in "${PAGES[@]}"; do
+  # Keep the pointer off the window from the start: moving the window later
+  # leaves GPUI with a stale hover under the old pointer position.
+  DISPLAY="$DISPLAY_NUM" xdotool mousemove 2 2 2>/dev/null || true
   DISPLAY="$DISPLAY_NUM" LOKALBOT_STORAGE_ROOT="$ROOT" "$BIN" --page "$page" >/tmp/lokalbot-$page.log 2>&1 &
   APP=$!
   sleep "${CAPTURE_WAIT:-8}"

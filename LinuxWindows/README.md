@@ -6,6 +6,13 @@ macOS app's experience (the same Today, Meetings, Timeline, People, Projects, As
 library format, so a library recorded on one platform opens on the other. Recording, transcription,
 summaries, search and the read-only CLI/MCP server all run on your computer by default.
 
+<p>
+  <img src="docs/screenshots/linux-desktop-meetings.png" width="49%" alt="LokalBot on Linux">
+  <img src="docs/screenshots/windows-desktop-today.png" width="49%" alt="LokalBot on Windows">
+</p>
+
+More screenshots of both apps are in [docs/screenshots](docs/screenshots).
+
 ## What works where
 
 | Feature | Linux | Windows | Notes |
