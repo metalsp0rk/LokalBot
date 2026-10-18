@@ -266,6 +266,10 @@ struct LokalBotApp: App {
                 }
                 .keyboardShortcut("r", modifiers: [.command, .shift])
 
+                Button(app.settings.appLanguage.localized("Import Recording…")) {
+                    RecordingImportPanel.choose(into: app)
+                }
+
                 Divider()
 
                 Button(app.settings.appLanguage.localized(

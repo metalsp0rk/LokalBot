@@ -11,7 +11,8 @@ calendar events, or usage history.
 
 LokalBot can store the following under its Application Support directory:
 
-- meeting microphone and system-audio tracks;
+- meeting microphone and system-audio tracks, and an AAC copy of the audio
+  in recordings you import;
 - transcripts, summaries, notes, search indexes, and meeting metadata,
   including attendee names and emails for calendar-matched meetings and,
   only when you turn on **Use invitation agendas**, the invitation's agenda
@@ -45,6 +46,15 @@ audio is deleted after transcription by default. Dictated text is not kept,
 except briefly for learning while **Learn from my dictation** is on (see About
 you below). You can delete an individual
 meeting in the app or remove the entire LokalBot Application Support directory.
+
+**Imported recordings.** When you drop an audio or video file onto Meetings or
+choose **Import Recording…**, LokalBot reads the file without changing or
+moving it and saves an AAC copy of its audio as the meeting's system track.
+The meeting is dated from the file and processed like a recorded meeting with
+your current Transcribe and Think choices. Its voices are treated like a call's
+other participants, so they are never enrolled in or matched against voice
+profiles. Screen memory from the file's time span is not attached to it,
+because the recording was not made on this Mac.
 
 **Read coding agent sessions** is on by default and can be turned off in
 Settings → Day Memory. While it is on, LokalBot reads Claude Code session files
@@ -319,7 +329,8 @@ The app may make these outbound connections:
   server you choose in Settings → Models → Transcribe, such as OpenAI, Groq,
   OpenRouter, or whisper.cpp on another computer, instead of a model on this
   Mac. It is off unless you select it. LokalBot then sends that server audio:
-  each meeting track as WAV clips of at most 30 seconds cut at pauses,
+  each meeting track, imported recordings included, as WAV clips of at most
+  30 seconds cut at pauses,
   dictation recordings, the live preview while recording when you turn it on,
   and the Transcribe model check's built-in spoken sample. Each clip carries
   the model id, the language hint, and the transcription vocabulary, including
