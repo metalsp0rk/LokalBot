@@ -5,9 +5,9 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
 
 use anyhow::{Result, anyhow};
-use chrono::Utc;
 use uuid::Uuid;
 
+use lokalbot_ai::ask::AskEvent;
 use lokalbot_core::{ChatMessage, ChatRole, Conversation};
 
 use crate::models::Models;
@@ -87,7 +87,8 @@ impl AskWorker {
                     .into_iter()
                     .find(|p| p.id == project_id)
                     .ok_or_else(|| anyhow!("That project no longer exists."))?;
-                let summary = crate::compat::project_note(&think, &shared.library, &project)?;
+                let summary =
+                    lokalbot_ai::project_status::generate(&think, &shared.library, &project)?;
                 shared.library.save_project_summary(summary)?;
                 Ok(())
             })();
@@ -146,18 +147,25 @@ fn answer(
     let mut text = String::new();
     let mut activity: Vec<String> = Vec::new();
     let mut last_emit = Instant::now() - Duration::from_secs(1);
-    let reply = crate::compat::answer(
+    let scope = lokalbot_ai::ask::AskScope {
+        meeting_ids: scope.meeting_ids.clone(),
+        since: scope.since,
+        until: scope.until,
+        include_meetings: scope.include_meetings,
+        include_screen: scope.include_screen,
+    };
+    let reply = lokalbot_ai::ask::answer(
         &think,
         library,
         question,
         &history,
-        scope,
+        &scope,
         cancel,
         &mut |event| {
             match event {
-                crate::compat::AskEvent::Delta(delta) => text.push_str(&delta),
-                crate::compat::AskEvent::Activity(step) => activity.push(step),
-                crate::compat::AskEvent::Status(status) => progress(&text, &activity, Some(status)),
+                AskEvent::Delta(delta) => text.push_str(&delta),
+                AskEvent::Activity(step) => activity.push(step),
+                AskEvent::Status(status) => progress(&text, &activity, Some(status)),
             }
             if last_emit.elapsed() > Duration::from_millis(60) {
                 last_emit = Instant::now();
@@ -166,7 +174,6 @@ fn answer(
         },
     )?;
 
-    let now = Utc::now();
     conversation.messages.push(ChatMessage {
         id: Uuid::new_v4(),
         role: ChatRole::User,
@@ -180,7 +187,6 @@ fn answer(
     }
     conversation.messages.push(reply);
     conversation.updated_at = lokalbot_core::time::now_seconds();
-    let _ = now;
     library.save_conversation(&conversation)?;
     Ok(())
 }

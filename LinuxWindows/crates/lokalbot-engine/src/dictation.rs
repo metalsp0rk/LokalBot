@@ -185,7 +185,7 @@ fn process(shared: &Shared, samples: &[f32]) -> Result<DictationUpdate> {
     if settings.dictation_intent == DictationIntent::Compose {
         shared.emit(EngineEvent::Dictation(DictationUpdate::Composing));
         let think = shared.think(&settings)?;
-        text = crate::compat::prepare_dictation(&think, &text, &settings)?;
+        text = lokalbot_ai::dictation::prepare(&think, &text, &settings)?;
     }
     let (inserted, notice) = match settings.dictation_output_mode {
         DictationOutputMode::Paste => {

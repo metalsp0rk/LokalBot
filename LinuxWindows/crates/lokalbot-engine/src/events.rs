@@ -56,6 +56,7 @@ pub struct AskScope {
 }
 
 #[derive(Clone, Debug)]
+#[allow(clippy::large_enum_variant)]
 pub enum EngineEvent {
     Recording(RecordingUpdate),
     /// `None` when the meeting is no longer being processed.
@@ -89,6 +90,7 @@ pub enum EngineEvent {
 }
 
 #[derive(Clone, Debug)]
+#[allow(clippy::large_enum_variant)]
 pub enum RecordingUpdate {
     Started {
         meeting: Meeting,

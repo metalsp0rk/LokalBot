@@ -54,13 +54,12 @@ impl SpeechCache {
 
     /// Frees the model when it has not been used for a while.
     pub fn release_if_idle(&self) {
-        if let Some(mut loaded) = self.loaded.try_lock() {
-            if loaded
+        if let Some(mut loaded) = self.loaded.try_lock()
+            && loaded
                 .as_ref()
                 .is_some_and(|l| l.last_used.elapsed() > IDLE_UNLOAD)
-            {
-                *loaded = None;
-            }
+        {
+            *loaded = None;
         }
     }
 }

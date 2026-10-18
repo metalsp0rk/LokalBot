@@ -335,12 +335,10 @@ impl Inner {
                     .models
                     .missing(&self.models.embedding_requirements())
                     .is_empty()
+                && let Err(err) =
+                    lokalbot_ai::embeddings::index_meeting(&self.shared.runtime, library, &meeting)
             {
-                if let Err(err) =
-                    crate::compat::index_meeting(&self.shared.runtime, library, &meeting)
-                {
-                    log::warn!("updating meaning search failed: {err:#}");
-                }
+                log::warn!("updating meaning search failed: {err:#}");
             }
         }
         Ok(Outcome::Done)

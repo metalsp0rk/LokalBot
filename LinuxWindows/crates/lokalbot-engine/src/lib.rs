@@ -4,15 +4,16 @@
 //! reports back through [`EngineEvent`]s. Nothing here touches the UI.
 
 mod ask;
-mod compat;
 mod daymemory;
 mod detector;
 mod dictation;
 mod digest;
 pub mod events;
+mod indexing;
 mod models;
 mod pipeline;
 mod recording;
+mod retention;
 pub mod secrets;
 mod speech;
 
@@ -182,6 +183,8 @@ fn dispatch(shared: Arc<Shared>, commands: Sender<Command>, receiver: Receiver<C
     let detector = detector::Detector::start(shared.clone(), commands.clone(), meeting_detector);
     let dictation = dictation::Dictation::new(shared.clone(), models.clone());
     models.publish_status();
+    indexing::start(shared.clone(), models.clone());
+    retention::start(shared.clone());
 
     while let Ok(command) = receiver.recv() {
         log::debug!("engine command: {command:?}");

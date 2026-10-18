@@ -142,7 +142,9 @@ impl Models {
         if self.shared.settings().semantic_search_enabled {
             ids.extend(self.embedding_requirements());
         }
-        ids.dedup();
+        // Think and search both need the runtime; download it once.
+        let mut seen = std::collections::HashSet::new();
+        ids.retain(|id| seen.insert(id.clone()));
         let missing = self.missing(&ids);
         if missing.is_empty() {
             self.shared
@@ -165,11 +167,11 @@ impl Models {
         let this = self.clone();
         let id = id.to_string();
         std::thread::spawn(move || {
-            if let Err(err) = this.download_blocking(&id) {
-                if !err.to_string().contains("cancelled") {
-                    this.shared
-                        .error(format!("Downloading {id} failed: {err:#}"));
-                }
+            if let Err(err) = this.download_blocking(&id)
+                && !err.to_string().contains("cancelled")
+            {
+                this.shared
+                    .error(format!("Downloading {id} failed: {err:#}"));
             }
         });
     }
