@@ -515,12 +515,25 @@ mod keys {
         }
     }
 
+    /// wtype creates a new virtual keyboard each run; without a short pause
+    /// the compositor can drop the first key while it applies the keymap.
+    const WTYPE_SETTLE_MS: &str = "50";
+
     fn wayland_paste(combo: PasteCombo) -> bool {
         let timeout = Duration::from_secs(3);
         if let Some(wtype) = find_program("wtype") {
             let args: &[&str] = match combo {
-                PasteCombo::CtrlV => &["-M", "ctrl", "v", "-m", "ctrl"],
-                PasteCombo::ShiftInsert => &["-M", "shift", "-k", "Insert", "-m", "shift"],
+                PasteCombo::CtrlV => &["-s", WTYPE_SETTLE_MS, "-M", "ctrl", "v", "-m", "ctrl"],
+                PasteCombo::ShiftInsert => &[
+                    "-s",
+                    WTYPE_SETTLE_MS,
+                    "-M",
+                    "shift",
+                    "-k",
+                    "Insert",
+                    "-m",
+                    "shift",
+                ],
             };
             if run(&wtype, args, timeout) {
                 return true;
@@ -543,7 +556,7 @@ mod keys {
         let timeout =
             Duration::from_secs(5) + Duration::from_millis(20) * text.chars().count() as u32;
         if let Some(wtype) = find_program("wtype")
-            && run(&wtype, &["--", text], timeout)
+            && run(&wtype, &["-s", WTYPE_SETTLE_MS, "--", text], timeout)
         {
             return true;
         }

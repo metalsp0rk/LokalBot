@@ -65,7 +65,16 @@ pub(super) fn source() -> Box<dyn ActivitySource> {
         Ok(probe) => probe,
         Err(err) => {
             log::warn!("activity: {err:#}");
-            return Box::new(Unavailable::new(format!("{err:#}")));
+            let reason = match &desktop {
+                Desktop::X11 => "LokalBot could not connect to the X server, so day memory cannot see which app is in front.".to_string(),
+                Desktop::Hyprland | Desktop::Sway => format!(
+                    "LokalBot could not reach {}'s IPC socket, so day memory cannot see which window is in front.",
+                    desktop.label()
+                ),
+                Desktop::Kde => "KDE Plasma did not run LokalBot's window script (KWin scripting), so day memory cannot see which window is in front.".to_string(),
+                _ => format!("{err:#}"),
+            };
+            return Box::new(Unavailable::new(reason));
         }
     };
     let idle = super::idle::probe_for(&desktop);
