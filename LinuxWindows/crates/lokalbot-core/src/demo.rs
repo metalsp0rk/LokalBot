@@ -1719,7 +1719,10 @@ fn seed_people_and_projects(paths: &LibraryPaths, clock: &Clock) -> Result<()> {
         engine_name: ENGINE.into(),
         location: "on this PC".into(),
     };
-    write_json(&paths.projects_dir().join("summaries.json"), &vec![summary])?;
+    crate::projects::write_project_summaries(
+        &paths.projects_dir().join("summaries.json"),
+        vec![summary],
+    )?;
     Ok(())
 }
 

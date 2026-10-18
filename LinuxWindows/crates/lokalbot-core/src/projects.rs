@@ -1209,9 +1209,12 @@ impl Library {
         write_json(&self.paths().projects_dir().join("tracked.json"), curation)
     }
 
-    /// Saved "Where it stands" notes.
+    /// Saved "Where it stands" notes, with profile ids (`tracked:<UUID>`) and
+    /// local `YYYY-MM-DD` meeting dates.
     pub fn project_summaries(&self) -> Result<Vec<ProjectSummary>> {
-        Ok(read_json(&self.paths().projects_dir().join("summaries.json"))?.unwrap_or_default())
+        let stored: Vec<ProjectSummary> =
+            read_json(&self.paths().projects_dir().join("summaries.json"))?.unwrap_or_default();
+        Ok(stored.into_iter().map(summary_from_disk).collect())
     }
 
     /// Replaces the note for `summary.project_id`; the file stays sorted by ID.
@@ -1219,14 +1222,113 @@ impl Library {
         let mut all = self.project_summaries()?;
         all.retain(|s| s.project_id != summary.project_id);
         all.push(summary);
-        all.sort_by(|a, b| a.project_id.cmp(&b.project_id));
-        write_json(&self.paths().projects_dir().join("summaries.json"), &all)
+        write_project_summaries(&self.paths().projects_dir().join("summaries.json"), all)
     }
+}
+
+/// Writes `projects/summaries.json` the way macOS reads it (`ProjectStore`):
+/// a bare project UUID and ISO-8601 meeting dates. macOS decodes the file as
+/// a whole, so a note that is not for a tracked project is left out.
+pub(crate) fn write_project_summaries(
+    path: &std::path::Path,
+    summaries: Vec<ProjectSummary>,
+) -> Result<()> {
+    let mut disk: Vec<ProjectSummary> = summaries.into_iter().filter_map(summary_to_disk).collect();
+    disk.sort_by(|a, b| a.project_id.cmp(&b.project_id));
+    write_json(path, &disk)
+}
+
+fn summary_from_disk(mut summary: ProjectSummary) -> ProjectSummary {
+    if let Ok(id) = Uuid::parse_str(&summary.project_id) {
+        summary.project_id = format!("tracked:{}", crate::ids::uuid_upper(&id));
+    }
+    for point in &mut summary.points {
+        if let Some(date) = point
+            .meeting_date
+            .as_deref()
+            .and_then(crate::time::parse_iso)
+        {
+            point.meeting_date = Some(crate::time::local_day(date).format("%Y-%m-%d").to_string());
+        }
+    }
+    summary
+}
+
+fn summary_to_disk(mut summary: ProjectSummary) -> Option<ProjectSummary> {
+    let id = summary
+        .project_id
+        .strip_prefix("tracked:")
+        .unwrap_or(&summary.project_id);
+    let Ok(id) = Uuid::parse_str(id) else {
+        log::warn!(
+            "not saving a project note for untracked project {}",
+            summary.project_id
+        );
+        return None;
+    };
+    summary.project_id = crate::ids::uuid_upper(&id);
+    for point in &mut summary.points {
+        if let Some(raw) = point.meeting_date.take() {
+            point.meeting_date = if crate::time::parse_iso(&raw).is_some() {
+                Some(raw)
+            } else {
+                NaiveDate::parse_from_str(&raw, "%Y-%m-%d").ok().map(|day| {
+                    crate::time::local_day_bounds(day)
+                        .0
+                        .to_rfc3339_opts(chrono::SecondsFormat::Secs, true)
+                })
+            };
+        }
+    }
+    Some(summary)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn project_summaries_are_stored_the_way_macos_reads_them() {
+        let dir = tempfile::tempdir().unwrap();
+        let library = Library::open(crate::LibraryPaths::new(dir.path())).unwrap();
+        let id = Uuid::new_v4();
+        let summary = ProjectSummary {
+            project_id: format!("tracked:{}", crate::ids::uuid_upper(&id)),
+            overview: "The order waits for the quote.".into(),
+            points: vec![ProjectPoint {
+                text: "Exports are slow.".into(),
+                meeting_id: Some(crate::ids::uuid_upper(&Uuid::new_v4())),
+                meeting_title: Some("Laptop refresh".into()),
+                meeting_date: Some("2026-10-15".into()),
+            }],
+            open_questions: Vec::new(),
+            meeting_ids: Vec::new(),
+            evidence_fingerprint: "abc".into(),
+            generated_at: crate::time::parse_iso("2026-10-18T09:00:00Z").unwrap(),
+            engine_name: "Qwen3.5 4B".into(),
+            location: "on this PC".into(),
+        };
+        library.save_project_summary(summary.clone()).unwrap();
+        let mut untracked = summary.clone();
+        untracked.project_id = "topic:northwind".into();
+        library.save_project_summary(untracked).unwrap();
+
+        let path = dir.path().join("projects").join("summaries.json");
+        let raw: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+        let entries = raw.as_array().unwrap();
+        assert_eq!(
+            entries.len(),
+            1,
+            "untracked notes would break the macOS decoder"
+        );
+        assert_eq!(entries[0]["projectID"], crate::ids::uuid_upper(&id));
+        let date = entries[0]["points"][0]["meetingDate"].as_str().unwrap();
+        assert!(crate::time::parse_iso(date).is_some(), "{date}");
+
+        let loaded = library.project_summaries().unwrap();
+        assert_eq!(loaded, vec![summary]);
+    }
 
     #[test]
     fn significant_terms_skip_generic_words() {
