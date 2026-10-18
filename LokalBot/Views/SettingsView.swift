@@ -168,11 +168,11 @@ struct SettingsView: View {
     @ViewBuilder private func sections(for tab: AppState.SettingsTab) -> some View {
         switch tab {
         case .general:
-            generalSection; updatesSection
+            generalSection; updatesSection; aboutSection
         case .recording:
-            meetingsSection; processingSection; summarizationSection
+            meetingsSection; processingSection; summarizationSection; meetingNoteExportSection
         case .dayMemory:
-            dayTrackingSection; routinesSection; dreamingSection
+            dayTrackingSection; routinesSection; dreamingSection; aboutYouSection
         case .writing:
             AutocompleteExperienceView(server: app.cotypingServer)
             AutocompleteStatisticsView()
@@ -704,6 +704,46 @@ struct SettingsView: View {
 
     }
 
+    @ViewBuilder private var meetingNoteExportSection: some View {
+            if shows("Meeting note export", ["export", "obsidian", "logseq", "markdown", "vault",
+                                             "notes", "transcript", "folder"]) {
+                Section("Meeting note export") {
+                    Toggle(isOn: Binding(
+                        get: { app.settings.meetingNoteExportEnabled },
+                        set: { enabled in
+                            app.settings.meetingNoteExportEnabled = enabled
+                            if enabled && app.settings.meetingNoteExportFolder.isEmpty {
+                                chooseMeetingNoteExportFolder()
+                            }
+                        })) {
+                        SettingsLabel("Export a note for each meeting",
+                                      help: "Writes one unencrypted Markdown note per meeting, including meetings already recorded, to a folder you choose, such as an Obsidian vault. Each note has the summary, action items as you corrected them, and the people and tracked projects involved. A note you edit, move, or delete is yours: LokalBot leaves it alone.")
+                    }
+                    .settingTarget("settings.meetingNoteExportEnabled", selected: app.focusedSettingID)
+                    if app.settings.meetingNoteExportEnabled {
+                        Picker("Format", selection: $app.settings.meetingNoteExportFormat) {
+                            ForEach(AppSettings.DailyMemoryExportFormat.allCases) { format in
+                                Text(LocalizedStringKey(format.rawValue)).tag(format)
+                            }
+                        }
+                        .settingTarget("settings.meetingNoteExportFormat", selected: app.focusedSettingID)
+                        Toggle("Include the transcript", isOn: $app.settings.meetingNoteExportIncludesTranscript)
+                            .settingTarget("settings.meetingNoteExportIncludesTranscript", selected: app.focusedSettingID)
+                        LabeledContent("Folder") {
+                            Button(app.settings.meetingNoteExportFolder.isEmpty
+                                   ? "Choose…"
+                                   : URL(fileURLWithPath: app.settings.meetingNoteExportFolder).lastPathComponent) {
+                                chooseMeetingNoteExportFolder()
+                            }
+                            .buttonStyle(.plain)
+                            .foregroundStyle(Brand.teal)
+                        }
+                    }
+                }
+            }
+
+    }
+
     @ViewBuilder private var dayTrackingSection: some View {
             if shows("Day tracking", ["tracking", "activity", "screenshots", "screen", "capture",
                                       "ocr", "window", "accessibility", "retention", "private",
@@ -1050,6 +1090,15 @@ struct SettingsView: View {
         }
     }
 
+    @ViewBuilder private var aboutYouSection: some View {
+        if shows("About you", ["about", "you", "remember", "memory", "facts", "preferences", "goals",
+                               "principles", "values", "personal", "profile", "forget"]) {
+            Section("About you") {
+                AboutYouSettings(personalModel: app.personalModel, access: app.personalContextAccess)
+            }
+        }
+    }
+
     private func dreamMemoryPinRow(
         title: String,
         detail: String,
@@ -1106,6 +1155,10 @@ struct SettingsView: View {
                     .settingTarget("settings.agentAccess", selected: app.focusedSettingID)
                     ScreenMemoryAccessToggleRow(manager: app.screenMemoryAccess)
                     .settingTarget("settings.screenMemoryAccess", selected: app.focusedSettingID)
+                    PersonalContextAccessToggleRow(manager: app.personalContextAccess)
+                    .settingTarget("settings.personalContextAccess", selected: app.focusedSettingID)
+                    SettingsControlAccessToggleRow(manager: app.settingsControl)
+                    .settingTarget("settings.settingsControlAccess", selected: app.focusedSettingID)
                 }
             }
 
@@ -1158,6 +1211,19 @@ struct SettingsView: View {
                 }
             }
 
+    }
+
+    /// The repository opens in the default browser; LokalBot itself sends nothing.
+    private var aboutSection: some View {
+        Section("About") {
+            LabeledContent {
+                Button("Star on GitHub") { app.githubStar.openRepository() }
+                    .accessibilityIdentifier("settings.githubStar")
+            } label: {
+                SettingsLabel("Open source",
+                              help: "LokalBot is free and built by one person. A GitHub star helps others find it.")
+            }
+        }
     }
 
     @ViewBuilder private var systemSection: some View {
@@ -1342,6 +1408,28 @@ struct SettingsView: View {
         }
     }
 
+    private func chooseMeetingNoteExportFolder() {
+        let panel = NSOpenPanel()
+        panel.title = app.settings.appLanguage.localized("Choose meeting note export folder")
+        panel.prompt = app.settings.appLanguage.localized("Choose")
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.canCreateDirectories = true
+        panel.allowsMultipleSelection = false
+        if !app.settings.meetingNoteExportFolder.isEmpty {
+            panel.directoryURL = URL(fileURLWithPath: app.settings.meetingNoteExportFolder)
+        }
+        panel.begin { response in
+            guard response == .OK, let url = panel.url else {
+                if app.settings.meetingNoteExportFolder.isEmpty {
+                    app.settings.meetingNoteExportEnabled = false
+                }
+                return
+            }
+            app.settings.meetingNoteExportFolder = url.path
+        }
+    }
+
     private func chooseMemoryRoutineFolder() {
         let panel = NSOpenPanel()
         panel.title = app.settings.appLanguage.localized("Choose routine output folder")
@@ -1430,6 +1518,52 @@ private struct AgentAccessToggleRow: View {
                 set: { manager.setEnabled($0) })) {
                 SettingsLabel("Allow external agents to read your meeting library",
                               help: "Lets MCP clients and the lokalbot-cli skill (Claude, Cursor, …) list, read, search, and ask about your meetings — read-only and localhost only. Off by default.")
+            }
+        }
+    }
+}
+
+private struct SettingsControlAccessToggleRow: View {
+    @ObservedObject var manager: SettingsControlAccessManager
+
+    var body: some View {
+        Toggle(isOn: Binding(
+            get: { manager.isEnabled },
+            set: { manager.setEnabled($0) })) {
+            SettingsLabel("Allow external agents to change LokalBot settings",
+                          help: "Lets lokalbot-cli read your settings and app status, open Settings at a setting, and start LokalBot in the background. Separate from the other agent access toggles. Off by default.")
+        }
+    }
+}
+
+private struct PersonalContextAccessToggleRow: View {
+    @EnvironmentObject private var app: AppState
+    @ObservedObject var manager: PersonalContextAccessManager
+
+    var body: some View {
+        Group {
+            Toggle(isOn: Binding(
+                get: { manager.isEnabled },
+                set: { manager.setEnabled($0) })) {
+                SettingsLabel("Allow external agents to read what I shared about myself",
+                              help: "Separate, read-only access to the About you items you mark Share with agents. Nothing else in About you is readable.")
+            }
+            .accessibilityIdentifier("settings.personalContextAccess")
+            if manager.isEnabled {
+                LabeledContent {
+                    Button("Choose items…") {
+                        app.settingsTab = .dayMemory
+                        app.focusedSettingID = "settings.askMemoryEnabled"
+                    }
+                    .buttonStyle(.workspaceLink)
+                } label: {
+                    SettingsLabel(manager.sharedCount == 1 ? "1 item shared"
+                                                           : "\(manager.sharedCount) items shared",
+                                  help: "Agents get the most relevant shared items for their task, at most 12 at a time.")
+                }
+            }
+            if let error = manager.lastError {
+                Text(error).workspaceTextRole(.warning)
             }
         }
     }

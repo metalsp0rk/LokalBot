@@ -369,6 +369,16 @@ struct AppSettings: Codable, Equatable {
     /// refreshed. The scheduler clamps decoded values defensively.
     var dailyMemoryExportHour: Int = 18
 
+    // MARK: - Meeting note export
+
+    /// Optional, local-only: one Markdown note per meeting in a folder the
+    /// person picks, in the same formats as the daily note. An empty folder
+    /// keeps the export parked.
+    var meetingNoteExportEnabled: Bool = false
+    var meetingNoteExportFolder: String = ""
+    var meetingNoteExportFormat: DailyMemoryExportFormat = .markdown
+    var meetingNoteExportIncludesTranscript: Bool = true
+
     // MARK: - Dreaming
 
     /// Overnight retrospective: after `dreamingHour`, once the Mac is on AC
@@ -386,6 +396,25 @@ struct AppSettings: Codable, Equatable {
     /// silently skipping the last workday, without backfilling history from
     /// before the user opted in.
     var dreamingFirstEligibleDayKey: String?
+    /// Ask saves "Remember …" statements and gives the selected ones to the
+    /// Think model with each question. On by default; nothing is saved until
+    /// the person asks. Turning it off stops saving and use but keeps what is
+    /// already remembered until the person forgets it.
+    var askMemoryEnabled: Bool = true
+    /// After the overnight review, learn facts and goals about the person
+    /// from their own lines in that day's meetings (preferences wait for
+    /// review; principles are never learned). Needs Ask memory and the review.
+    var personalLearningEnabled: Bool = true
+    /// Also learn from what the person dictates into other apps. Off by
+    /// default: while on, LokalBot keeps the raw dictated words, encrypted,
+    /// until the next learning pass reads them and for at most two days
+    /// (`DictationLearningLog`). Items found there always wait for review.
+    var personalLearningFromDictation: Bool = false
+
+    /// Dictation is kept for learning only while every switch it needs is on.
+    var learnsFromDictation: Bool {
+        askMemoryEnabled && personalLearningEnabled && personalLearningFromDictation
+    }
 
     // MARK: - Safe routines
 
@@ -888,9 +917,16 @@ struct AppSettings: Codable, Equatable {
         case dailyMemoryExportFolder
         case dailyMemoryExportFormat
         case dailyMemoryExportHour
+        case meetingNoteExportEnabled
+        case meetingNoteExportFolder
+        case meetingNoteExportFormat
+        case meetingNoteExportIncludesTranscript
         case dreamingEnabled
         case dreamingHour
         case dreamingFirstEligibleDayKey
+        case askMemoryEnabled
+        case personalLearningEnabled
+        case personalLearningFromDictation
         case memoryRoutinesEnabled
         case memoryRoutineFolder
         case enabledMemoryRoutines
@@ -1086,11 +1122,18 @@ struct AppSettings: Codable, Equatable {
         try c.encode(dailyMemoryExportFolder, forKey: .dailyMemoryExportFolder)
         try c.encode(dailyMemoryExportFormat, forKey: .dailyMemoryExportFormat)
         try c.encode(min(23, max(0, dailyMemoryExportHour)), forKey: .dailyMemoryExportHour)
+        try c.encode(meetingNoteExportEnabled, forKey: .meetingNoteExportEnabled)
+        try c.encode(meetingNoteExportFolder, forKey: .meetingNoteExportFolder)
+        try c.encode(meetingNoteExportFormat, forKey: .meetingNoteExportFormat)
+        try c.encode(meetingNoteExportIncludesTranscript, forKey: .meetingNoteExportIncludesTranscript)
         try c.encode(dreamingEnabled, forKey: .dreamingEnabled)
         try c.encode(min(23, max(0, dreamingHour)), forKey: .dreamingHour)
         try c.encodeIfPresent(
             dreamingFirstEligibleDayKey,
             forKey: .dreamingFirstEligibleDayKey)
+        try c.encode(askMemoryEnabled, forKey: .askMemoryEnabled)
+        try c.encode(personalLearningEnabled, forKey: .personalLearningEnabled)
+        try c.encode(personalLearningFromDictation, forKey: .personalLearningFromDictation)
         try c.encode(memoryRoutinesEnabled, forKey: .memoryRoutinesEnabled)
         try c.encode(memoryRoutineFolder, forKey: .memoryRoutineFolder)
         try c.encode(enabledMemoryRoutines, forKey: .enabledMemoryRoutines)
@@ -1276,9 +1319,20 @@ struct AppSettings: Codable, Equatable {
             .dailyMemoryExportFormat, defaults.dailyMemoryExportFormat)
         dailyMemoryExportHour = min(
             23, max(0, decode(.dailyMemoryExportHour, defaults.dailyMemoryExportHour)))
+        meetingNoteExportEnabled = decode(
+            .meetingNoteExportEnabled, defaults.meetingNoteExportEnabled)
+        meetingNoteExportFolder = decode(
+            .meetingNoteExportFolder, defaults.meetingNoteExportFolder)
+        meetingNoteExportFormat = decode(
+            .meetingNoteExportFormat, defaults.meetingNoteExportFormat)
+        meetingNoteExportIncludesTranscript = decode(
+            .meetingNoteExportIncludesTranscript, defaults.meetingNoteExportIncludesTranscript)
         dreamingEnabled = decode(.dreamingEnabled, defaults.dreamingEnabled)
         dreamingHour = min(23, max(0, decode(.dreamingHour, defaults.dreamingHour)))
         dreamingFirstEligibleDayKey = decode(.dreamingFirstEligibleDayKey, String?.none)
+        askMemoryEnabled = decode(.askMemoryEnabled, defaults.askMemoryEnabled)
+        personalLearningEnabled = decode(.personalLearningEnabled, defaults.personalLearningEnabled)
+        personalLearningFromDictation = decode(.personalLearningFromDictation, defaults.personalLearningFromDictation)
         memoryRoutinesEnabled = decode(.memoryRoutinesEnabled, defaults.memoryRoutinesEnabled)
         memoryRoutineFolder = decode(.memoryRoutineFolder, defaults.memoryRoutineFolder)
         enabledMemoryRoutines = decode(.enabledMemoryRoutines, defaults.enabledMemoryRoutines)

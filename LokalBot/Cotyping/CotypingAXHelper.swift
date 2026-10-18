@@ -1,3 +1,8 @@
+// Contains code ported from Cotabby (https://github.com/FuJacob/cotabby),
+// copyright the Cotabby authors, under the GNU AGPL v3.0
+// (LICENSES/AGPL-3.0.txt). Modified for LokalBot since 23 June 2026.
+// See THIRD_PARTY_NOTICES.md.
+
 import AppKit
 import ApplicationServices
 import Foundation
@@ -249,6 +254,39 @@ enum CotypingAXHelper {
         guard withinDeadline(), DictationInsertionCheck.allowsReadBack(
             boundIdentity: focusIdentityKey, liveIdentity: liveIdentity, isSecure: isSecure) else { return nil }
         return boundedAcceptanceContent(on: element, withinDeadline: withinDeadline)?.precedingText
+    }
+
+    /// The window title and page address around the field a dictation was just
+    /// pasted into, for Learn from my dictation's exclusions. Same guards as
+    /// `dictationTextBeforeCaret`: the bound field must still have focus and
+    /// must not be secure. Never reads the field's text.
+    static func dictationLearningSurface(processID: pid_t, focusIdentityKey: String?) -> DictationLearningSurface? {
+        guard isTrusted, processID > 0, processID != ProcessInfo.processInfo.processIdentifier,
+              let focusIdentityKey, !focusIdentityKey.isEmpty else { return nil }
+        let deadline = DispatchTime.now().uptimeNanoseconds &+ 250 * 1_000_000
+        func withinDeadline() -> Bool { DispatchTime.now().uptimeNanoseconds <= deadline }
+        guard let frontmost = NSWorkspace.shared.frontmostApplication,
+              frontmost.processIdentifier == processID,
+              let element = focusedElementForAcceptance(processID: processID), withinDeadline(),
+              self.processID(of: element) == processID else { return nil }
+        let role = stringAttribute(element, kAXRoleAttribute as String) ?? ""
+        let subrole = stringAttribute(element, kAXSubroleAttribute as String)
+        let isSecure = CotypingSecureFieldDetector.isSecure(
+            role: role,
+            subrole: subrole,
+            roleDescription: stringAttribute(element, kAXRoleDescriptionAttribute as String),
+            title: stringAttribute(element, kAXTitleAttribute as String),
+            descriptionLabel: stringAttribute(element, kAXDescriptionAttribute as String))
+        let liveIdentity = self.focusIdentityKey(
+            for: element, processID: processID, bundleID: frontmost.bundleIdentifier,
+            role: role, subrole: subrole)
+        guard withinDeadline(), DictationInsertionCheck.allowsReadBack(
+            boundIdentity: focusIdentityKey, liveIdentity: liveIdentity, isSecure: isSecure) else { return nil }
+        let title = windowTitle(near: element)
+        guard withinDeadline() else { return nil }
+        let url = webURL(near: element)
+        guard withinDeadline() else { return nil }
+        return DictationLearningSurface(windowTitle: title, pageURL: url)
     }
 
     /// Captures only the focus identity, marked-text state, selection, and bounded
