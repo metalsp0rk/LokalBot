@@ -176,6 +176,21 @@ jobs:
           $settings | ConvertTo-Json -Depth 10 | Set-Content -Encoding utf8 $settingsPath
           ./scripts/ci/capture-windows.ps1 -Exe $exe -Root $root -OutDir $out -Pages today,meetings,ask -Suffix "-dark" -WaitSeconds 8
 
+      # Checks autocomplete in another app on the runner's real desktop: the
+      # UI Automation field read, the ghost after the caret, Tab through the
+      # keyboard hook and the inserted text, in Notepad.
+      - name: Check autocomplete
+        shell: pwsh
+        run: |
+          $out = Join-Path $env:RUNNER_TEMP "screenshots\autocomplete-probe"
+          Get-Process notepad -ErrorAction SilentlyContinue | Stop-Process -Force
+          cargo run --release --locked -p lokalbot-app --example autocomplete_probe -- --out $out 2>&1 |
+            Tee-Object (Join-Path $env:RUNNER_TEMP "autocomplete-probe.txt")
+          $code = $LASTEXITCODE
+          New-Item -ItemType Directory -Force $out | Out-Null
+          Copy-Item (Join-Path $env:RUNNER_TEMP "autocomplete-probe.txt") $out
+          if ($code -ne 0) { throw "autocomplete_probe failed with $code" }
+
       # Checks screen capture, UI Automation text and OCR on the runner's real
       # desktop (an SSH session has none). Downloads the 12 MB OCR model.
       - name: Check screen capture
@@ -183,6 +198,7 @@ jobs:
         run: |
           $out = Join-Path $env:RUNNER_TEMP "screenshots"
           New-Item -ItemType Directory -Force $out | Out-Null
+          Get-Process notepad -ErrorAction SilentlyContinue | Stop-Process -Force
           cargo run --release --locked -p lokalbot-engine --example screen_capture -- --download-ocr `
             --notepad "LokalBot screen check: the Zephyr invoice is 4821 euros." --delay 4 `
             --save (Join-Path $out "screen-check.jpg") 2>&1 | Tee-Object (Join-Path $out "screen-check.txt")
