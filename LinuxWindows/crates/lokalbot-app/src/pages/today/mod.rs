@@ -743,7 +743,7 @@ impl Render for TodayPage {
             move |b, window, _| {
                 if bounds.get().map(|old| old.size) != Some(b.size) {
                     bounds.set(Some(b));
-                    window.refresh();
+                    window.request_animation_frame();
                 }
             },
             |_, _, _, _| {},

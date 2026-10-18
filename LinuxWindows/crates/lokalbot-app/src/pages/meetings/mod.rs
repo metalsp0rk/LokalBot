@@ -885,7 +885,7 @@ impl Render for MeetingsPage {
             move |bounds, window, _| {
                 if bounds_cell.get() != Some(bounds) {
                     bounds_cell.set(Some(bounds));
-                    window.refresh();
+                    window.request_animation_frame();
                 }
             },
             |_, _, _, _| {},
