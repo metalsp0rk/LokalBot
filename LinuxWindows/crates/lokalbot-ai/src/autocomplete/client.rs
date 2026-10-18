@@ -521,7 +521,9 @@ impl<'a> Decoder<'a> {
             self.malformed = true;
             return Flow::Stop;
         };
-        if self.gate.needs_evaluation() && !text.is_empty() {
+        // A token that ends inside a character still counts toward the
+        // first word's probability, as in the in-process runtime.
+        if self.gate.needs_evaluation() {
             let boundary = self
                 .gate
                 .needs_boundary_mass(&text)
