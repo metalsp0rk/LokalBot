@@ -285,6 +285,7 @@ fn run(
                         None
                     };
                     if let Some(key) = key {
+                        log::debug!("autocomplete: {key:?} held for the ghost");
                         *HELD.down.lock() = true;
                         handler(key);
                     }

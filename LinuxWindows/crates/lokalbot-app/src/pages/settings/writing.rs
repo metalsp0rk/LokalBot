@@ -320,6 +320,8 @@ impl SettingsPage {
                     |_, _, _, _| {},
                 )
                 .absolute()
+                .top_0()
+                .left_0()
                 .size_full()
             })
             .when_some(self.practice_ghost(ghost.clone(), cx), |this, ghost| {

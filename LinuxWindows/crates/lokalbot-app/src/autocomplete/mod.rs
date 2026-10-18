@@ -573,6 +573,7 @@ impl Autocomplete {
                     .sent
                     .fit(field_id, &before, &text, Instant::now())
                     .to_string();
+                log::debug!("autocomplete: practice suggestion {fitted:?}");
                 self.practice.session = (!fitted.is_empty())
                     .then(|| GhostSession::new(field_id, before, fitted, false));
                 cx.notify();
@@ -940,7 +941,9 @@ impl Autocomplete {
                 field_id: PRACTICE_FIELD_ID,
                 app_name: "LokalBot".into(),
                 app_id: lokalbot_platform::privacy::SELF_APP_ID.into(),
-                window_title: "Settings".into(),
+                // No window title, as on macOS: "Settings" would steer the
+                // model toward settings talk.
+                window_title: String::new(),
                 before,
                 after,
                 visible_text: visible,
