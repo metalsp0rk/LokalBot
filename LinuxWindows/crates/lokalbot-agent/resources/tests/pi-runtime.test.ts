@@ -298,6 +298,8 @@ async function piTurn(options: {
     // Windows processes need SystemRoot, TEMP and the rest of the system set.
     env: { ...(windows ? process.env : {}), PATH: process.env.PATH, HOME: options.workspace,
       PI_SKIP_VERSION_CHECK: "1", PI_TELEMETRY: "0",
+      // As in the launch plan: no transpiler caches outside the runtime.
+      BUN_RUNTIME_TRANSPILER_CACHE_PATH: "0", JITI_FS_CACHE: "false",
       PI_CODING_AGENT_DIR: options.piConfig ?? join(options.workspace, "pi-config"),
       LOKALBOT_LLM_BASE_URL: `http://127.0.0.1:${server.port}/v1`,
       LOKALBOT_LLM_MODEL: "stub-model", LOKALBOT_LLM_CTX: "16384" },

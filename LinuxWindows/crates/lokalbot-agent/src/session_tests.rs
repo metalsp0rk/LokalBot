@@ -59,12 +59,13 @@ impl Launcher for FakeLauncher {
 }
 
 struct Harness {
-    _dir: tempfile::TempDir,
     env: Arc<AgentEnvironment>,
     launcher: Arc<FakeLauncher>,
     rx: async_channel::Receiver<TaskInput>,
     tx: Inbox,
     session: AgentSession,
+    /// Dropped last: Windows can't remove the library while it is open.
+    _dir: tempfile::TempDir,
 }
 
 impl Harness {
@@ -91,12 +92,12 @@ impl Harness {
         let (tx, rx) = async_channel::unbounded();
         let session = AgentSession::new(env.clone(), Uuid::new_v4(), tx.clone());
         Self {
-            _dir: dir,
             env,
             launcher,
             rx,
             tx,
             session,
+            _dir: dir,
         }
     }
 

@@ -657,11 +657,12 @@ mod tests {
     }
 
     struct Fixture {
-        _dir: tempfile::TempDir,
         env: Arc<AgentEnvironment>,
         launcher: Arc<Instant>,
         rx: async_channel::Receiver<TaskInput>,
         tx: Inbox,
+        /// Dropped last: Windows can't remove the library while it is open.
+        _dir: tempfile::TempDir,
     }
 
     fn fixture() -> Fixture {
@@ -680,11 +681,11 @@ mod tests {
         });
         let (tx, rx) = async_channel::unbounded();
         Fixture {
-            _dir: dir,
             env,
             launcher,
             rx,
             tx,
+            _dir: dir,
         }
     }
 

@@ -11,8 +11,9 @@ try {
   Copy-Item (Join-Path $resources "tests\pi-runtime.test.ts") (Join-Path $root "resources\tests")
   New-Item -ItemType Junction -Path (Join-Path $root "node_modules") -Target (Join-Path $runtime "pi\node_modules") | Out-Null
   $env:LOKALBOT_PINNED_RUNTIME_ROOT = $runtime
-  # No transpiler cache: Bun would keep it in the user's .bun folder.
+  # No transpiler caches: Bun and jiti would keep them in .bun and %TEMP%.
   $env:BUN_RUNTIME_TRANSPILER_CACHE_PATH = "0"
+  $env:JITI_FS_CACHE = "false"
   & (Join-Path $runtime "bun\bun.exe") test (Join-Path $root "resources\tests\pi-runtime.test.ts")
   $code = $LASTEXITCODE
 } finally {
