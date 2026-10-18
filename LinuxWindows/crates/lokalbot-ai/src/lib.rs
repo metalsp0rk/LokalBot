@@ -9,13 +9,21 @@
 //! inside it (`err.downcast_ref::<AiError>()`).
 
 pub mod catalog;
+pub mod digest;
 pub mod download;
 mod error;
 mod http;
 pub mod json;
+pub mod language;
+pub mod notes;
 mod process;
+pub mod prompts;
 pub mod runtime;
+pub mod sanitize;
 pub mod think;
+
+#[cfg(test)]
+mod test_support;
 
 pub use catalog::{ModelEntry, ModelKind, Preset};
 pub use download::{DownloadSpec, download, extract_archive};

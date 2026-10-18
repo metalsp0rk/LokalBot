@@ -693,7 +693,10 @@ pub fn free_space(dir: &Path) -> Option<u64> {
         }
         // SAFETY: statvfs returned 0, so the struct is initialized.
         let stat = unsafe { stat.assume_init() };
-        Some(u64::from(stat.f_bavail).saturating_mul(u64::from(stat.f_frsize)))
+        // The field types vary across Unix targets.
+        #[allow(clippy::useless_conversion)]
+        let (available, block) = (u64::from(stat.f_bavail), u64::from(stat.f_frsize));
+        Some(available.saturating_mul(block))
     }
     #[cfg(windows)]
     {

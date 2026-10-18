@@ -22,6 +22,10 @@ sha2.workspace = true
 hex.workspace = true
 regex.workspace = true
 unicode-normalization.workspace = true
+# Look-around in the spoken-undertaking patterns (`SpokenUndertaking.swift`).
+fancy-regex = "0.19"
+# "Match transcript" summary language detection.
+whatlang = "0.18"
 # Runtime and model archives: llama.cpp ships .zip (Windows) and .tar.gz
 # (Linux); sherpa-onnx models are .tar.bz2. All decoders are pure Rust.
 zip = { version = "9", default-features = false, features = ["deflate-flate2"] }
@@ -44,3 +48,4 @@ windows-sys = { version = "0.61", features = [
 
 [dev-dependencies]
 tempfile.workspace = true
+env_logger.workspace = true

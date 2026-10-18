@@ -340,6 +340,16 @@ impl ThinkClient {
         matches!(self.inner.backend, Backend::BuiltIn { .. })
     }
 
+    /// The built-in model runs on the CPU build (no GPU found or chosen).
+    pub fn runs_on_cpu(&self) -> bool {
+        match &self.inner.backend {
+            Backend::BuiltIn { runtime, .. } => {
+                runtime.active_backend() != Some(crate::runtime::LlamaBackend::Vulkan)
+            }
+            _ => false,
+        }
+    }
+
     /// Changes whenever a different model or server would answer; part of
     /// generation checkpoints.
     pub fn checkpoint_identity(&self) -> String {

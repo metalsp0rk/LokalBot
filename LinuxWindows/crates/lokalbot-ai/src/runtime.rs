@@ -246,7 +246,13 @@ struct BackendChoice {
     device: Option<String>,
 }
 
-const CONDITIONAL_FLAGS: [&str; 4] = ["--reasoning", "--cache-ram", "--no-webui", "--jinja"];
+const CONDITIONAL_FLAGS: [&str; 5] = [
+    "--reasoning",
+    "--cache-ram",
+    "--no-ui",
+    "--no-webui",
+    "--jinja",
+];
 
 struct Installer {
     paths: LibraryPaths,
@@ -1075,7 +1081,10 @@ impl ServerInner {
         if record.flags.iter().any(|f| f == "--jinja") || record.flags.is_empty() {
             args.push("--jinja".into());
         }
-        if record.flags.iter().any(|f| f == "--no-webui") {
+        // b11474 renamed `--no-webui` to `--no-ui` and keeps the old name as an alias.
+        if record.flags.iter().any(|f| f == "--no-ui") {
+            args.push("--no-ui".into());
+        } else if record.flags.iter().any(|f| f == "--no-webui") {
             args.push("--no-webui".into());
         }
         args.extend(["--api-key".into(), token.clone()]);
@@ -1163,7 +1172,11 @@ impl ServerInner {
                 return Err(failure("llama-server exited during startup", &tail));
             }
             if health(self.port, &token) {
-                tail.lock().ready = true;
+                // Startup lines only explain a failed start.
+                let mut output = tail.lock();
+                output.ready = true;
+                output.lines.clear();
+                drop(output);
                 return Ok(Running {
                     pid,
                     child: Some(child),
@@ -1431,6 +1444,11 @@ impl RuntimeManager {
             .chain([LlamaBackend::Vulkan, LlamaBackend::Cpu])
             .find(|backend| installer.record(*backend).is_some())
             .map(|backend| backend.label().to_string())
+    }
+
+    /// The backend this session's servers use, once one has been resolved.
+    pub fn active_backend(&self) -> Option<LlamaBackend> {
+        *self.shared.installer.active.lock()
     }
 
     /// The installed `llama-server --version` line, if any.
