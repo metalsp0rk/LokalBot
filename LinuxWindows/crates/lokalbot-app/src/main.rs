@@ -64,6 +64,19 @@ fn main() {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
     let options = parse_options();
     let paths = LibraryPaths::resolve(options.storage_root.as_deref());
+    if std::env::args().any(|arg| arg == "--seed-demo") {
+        // Writes the fictional demo library used for screenshots, then exits.
+        match lokalbot_core::demo::seed(&paths, chrono::Utc::now()) {
+            Ok(()) => {
+                println!("Seeded the demo library at {}", paths.root().display());
+                return;
+            }
+            Err(err) => {
+                eprintln!("Could not seed the demo library: {err:#}");
+                std::process::exit(1);
+            }
+        }
+    }
     let library = match Library::open(paths.clone()) {
         Ok(library) => library,
         Err(err) => {
