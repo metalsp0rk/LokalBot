@@ -399,7 +399,7 @@ pub fn notify_meeting_detected(app_name: String, title: String, cx: &mut App) {
     let Some(desktop) = desktop(cx) else { return };
     let tx = desktop.sender.clone();
     std::thread::spawn(move || {
-        let body = lokalbot_i18n::format("Record {title}?", &[("title", format!("{}", title))]);
+        let body = lokalbot_i18n::format("Record {title}?", &[("title", title.to_string())]);
         let callback_title = title.clone();
         let result = lokalbot_platform::notify::notify_with_timeout(
             lokalbot_i18n::tr("Meeting detected"),
@@ -433,7 +433,7 @@ pub fn notify_recording_saved(title: String, minutes: u64) {
         let body = lokalbot_i18n::format(
             "{title} · {minutes} min · transcribing…",
             &[
-                ("title", format!("{}", title)),
+                ("title", title.to_string()),
                 ("minutes", format!("{}", minutes)),
             ],
         );

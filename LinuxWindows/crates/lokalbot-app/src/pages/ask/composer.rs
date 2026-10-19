@@ -61,7 +61,7 @@ pub fn inference(cx: &App) -> Inference {
         .unwrap_or(url);
     Inference {
         icon: Ico::Network,
-        label: lokalbot_i18n::format("Remote · {host}", &[("host", format!("{}", host))]).into(),
+        label: lokalbot_i18n::format("Remote · {host}", &[("host", host.to_string())]).into(),
         remote: true,
         blocked: false,
     }
@@ -84,7 +84,7 @@ impl AskPage {
                 "{0} · All screens",
                 &[(
                     "0",
-                    format!("{}", super::history::count_label(scope.len(), "meeting")),
+                    super::history::count_label(scope.len(), "meeting").to_string(),
                 )],
             );
             rows.push(
@@ -153,7 +153,7 @@ impl AskPage {
                     .icon(Icon::new(Ico::CircleX))
                     .label(lokalbot_i18n::format(
                         "Results: {0}",
-                        &[("0", format!("{}", lokalbot_i18n::tr(self.facet.label())))],
+                        &[("0", lokalbot_i18n::tr(self.facet.label()).to_string())],
                     ))
                     .tooltip(lokalbot_i18n::tr("Clear the result-type filter"))
                     .on_click(cx.listener(|this, _, window, cx| {
@@ -177,11 +177,11 @@ impl AskPage {
                 &[
                     (
                         "0",
-                        format!("{}", super::history::count_label(count, "meeting")),
+                        super::history::count_label(count, "meeting").to_string(),
                     ),
                     (
                         "1",
-                        format!("{}", super::history::count_label(screens, "screen moment")),
+                        super::history::count_label(screens, "screen moment").to_string(),
                     ),
                 ],
             )
@@ -189,8 +189,8 @@ impl AskPage {
             lokalbot_i18n::format(
                 "Answer sources: {0} · {1}",
                 &[
-                    ("0", format!("{}", self.sources.summary())),
-                    ("1", format!("{}", self.date_scope.label())),
+                    ("0", self.sources.summary().to_string()),
+                    ("1", self.date_scope.label().to_string()),
                 ],
             )
         };
@@ -220,7 +220,7 @@ impl AskPage {
                             .child(crate::ui::text::paragraph(lokalbot_i18n::format(
                                 "Meeting · {0} · {date}",
                                 &[
-                                    ("0", format!("{}", group.meeting.display_title())),
+                                    ("0", group.meeting.display_title().to_string()),
                                     ("date", format!("{}", date)),
                                 ],
                             )))
@@ -243,14 +243,12 @@ impl AskPage {
                             .child(crate::ui::text::paragraph(lokalbot_i18n::format(
                                 "Screen · {0} · {when} · {1}",
                                 &[
-                                    ("0", format!("{}", screen.moment.app)),
+                                    ("0", screen.moment.app.to_string()),
                                     ("when", format!("{}", when)),
                                     (
                                         "1",
-                                        format!(
-                                            "{}",
-                                            super::history::count_label(screen.captures, "moment")
-                                        ),
+                                        super::history::count_label(screen.captures, "moment")
+                                            .to_string(),
                                     ),
                                 ],
                             )))
@@ -263,7 +261,7 @@ impl AskPage {
                 } else {
                     lokalbot_i18n::format(
                         "Ask can search the selected sources within {0}. Result-type and screen-app filters apply to search results only.",
-                        &[("0", format!("{}", self.date_scope.label().to_lowercase()))],
+                        &[("0", self.date_scope.label().to_lowercase().to_string())],
                     )
                 };
                 details.push(

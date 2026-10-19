@@ -302,9 +302,9 @@ impl Onboarding {
             )
             .child(text(
                 if screen_context {
-                    lokalbot_i18n::format("Text and images build on app activity. Images are encrypted on disk; captured text remains searchable under your retention policy ({retention}), and passwords, excluded apps and private windows are never captured.", &[("retention", format!("{}", retention))])
+                    lokalbot_i18n::format("Text and images build on app activity. Images are encrypted on disk; captured text remains searchable under your retention policy ({retention}), and passwords, excluded apps and private windows are never captured.", &[("retention", retention.to_string())])
                 } else {
-                    lokalbot_i18n::format("Day Memory notes the app in front and its window title, never what you type or what is on screen. Window titles are cleared after {retention}; you can change this in Settings → Privacy & Data.", &[("retention", format!("{}", retention))])
+                    lokalbot_i18n::format("Day Memory notes the app in front and its window title, never what you type or what is on screen. Window titles are cleared after {retention}; you can change this in Settings → Privacy & Data.", &[("retention", retention.to_string())])
                 },
                 lb.text_secondary,
             ))
@@ -537,7 +537,7 @@ impl Onboarding {
                             .child(if download == 0 {
                                 lokalbot_i18n::tr("Everything is already on this PC.").to_string()
                             } else {
-                                lokalbot_i18n::format("About {0} to download", &[("0", format!("{}", size_label(download)))])
+                                lokalbot_i18n::format("About {0} to download", &[("0", size_label(download).to_string())])
                             }),
                     ),
             )

@@ -27,44 +27,8 @@ pub const LANGUAGES: &[Language] = &[
     Language { code: "sr-Latn", name: "Srpski (latinica)", english_name: "Serbian (Latin)", rtl: false },
 ];
 
-// Each language's copy as (key, text) pairs sorted by key's bytes, so a lookup
-// is a binary search. Data rather than a `match`: one match over every key of
-// every language makes release builds of rustc overflow its stack.
-pub(crate) static CATALOGS: [(&str, &[(&str, &str)]); 24] = [
-    ("en", EN),
-    ("zh-Hans", ZH_HANS),
-    ("zh-Hant", ZH_HANT),
-    ("hi", HI),
-    ("es", ES),
-    ("ar", AR),
-    ("fr", FR),
-    ("bn", BN),
-    ("pt", PT),
-    ("id", ID),
-    ("ur", UR),
-    ("ru", RU),
-    ("de", DE),
-    ("ja", JA),
-    ("pcm", PCM),
-    ("ar-EG", AR_EG),
-    ("mr", MR),
-    ("vi", VI),
-    ("te", TE),
-    ("sw", SW),
-    ("ha", HA),
-    ("ko", KO),
-    ("it", IT),
-    ("sr-Latn", SR_LATN),
-];
-
-pub fn lookup(locale: &str, key: &str) -> Option<&'static str> {
-    let (_, entries) = CATALOGS.iter().find(|(code, _)| *code == locale)?;
-    entries
-        .binary_search_by(|(candidate, _)| (*candidate).cmp(key))
-        .ok()
-        .map(|index| entries[index].1)
-}
-
+// One sorted table per language, searched by key. A single `match` over
+// every string ran rustc out of memory in release builds.
 static EN: &[(&str, &str)] = &[
     (" · {0} captures", " · {0} captures"),
     (" · {captures} captures", " · {captures} captures"),
@@ -2367,7 +2331,7 @@ static ZH_HANS: &[(&str, &str)] = &[
     ("Agents can read only context captured since local midnight.", "代理只能读取自当地时间午夜以来捕获的上下文。"),
     ("Alibaba's model hub in mainland China, for files it carries unchanged. Other files come from HF-Mirror, then Hugging Face.", "阿里巴巴的魔搭模型社区，只用于与原版完全一致的文件；其他文件依次从 HF-Mirror 和 Hugging Face 下载。"),
     ("All", "全部"),
-    ("All actions from this meeting. Only yours appear in My actions. Choose an owner to correct it, or a timestamp to check the source.", "本次会议的所有行动。只有你的出现在我的行​​动中。选择所有者来更正它，或选择时间戳来检查来源。"),
+    ("All actions from this meeting. Only yours appear in My actions. Choose an owner to correct it, or a timestamp to check the source.", "本次会议的所有行动。只有你的出现在我的行动中。选择所有者来更正它，或选择时间戳来检查来源。"),
     ("All apps", "所有应用"),
     ("All meetings", "所有会议"),
     ("All reads run automatically, including outside the working folder. File changes and shell commands ask first.", "所有读取都会自动运行，包括工作文件夹之外的读取。文件更改和 shell 命令首先询问。"),
@@ -3010,7 +2974,7 @@ static ZH_HANS: &[(&str, &str)] = &[
     ("Includes scheduled daily summaries, which can send activity titles and meeting evidence to this origin without a prompt each time.", "包括计划的每日摘要，可以将活动标题和会议证据发送到此源，而无需每次提示。"),
     ("Increase Text Size", "放大文字"),
     ("Increment", "增加"),
-    ("Individual app activity and retained screen moments. Use this for exact evidence or cleanup.", "单独的应用程序活动和保留的屏幕时刻。用它来获取确切的证据或清理​​。"),
+    ("Individual app activity and retained screen moments. Use this for exact evidence or cleanup.", "单独的应用程序活动和保留的屏幕时刻。用它来获取确切的证据或清理。"),
     ("Input Monitoring", "输入监控"),
     ("Insert", "插入"),
     ("Insert suggestion", "插入建议"),
@@ -4560,7 +4524,7 @@ static ZH_HANT: &[(&str, &str)] = &[
     ("Agents can read only context captured since local midnight.", "代理只能读取自当地时间午夜以来捕获的上下文。"),
     ("Alibaba's model hub in mainland China, for files it carries unchanged. Other files come from HF-Mirror, then Hugging Face.", "阿里巴巴的魔搭模型社群，只用於與原版完全一致的檔案；其他檔案依序從 HF-Mirror 和 Hugging Face 下載。"),
     ("All", "全部"),
-    ("All actions from this meeting. Only yours appear in My actions. Choose an owner to correct it, or a timestamp to check the source.", "本次会议的所有行动。只有你的出现在我的行​​动中。选择所有者来更正它，或选择时间戳来检查来源。"),
+    ("All actions from this meeting. Only yours appear in My actions. Choose an owner to correct it, or a timestamp to check the source.", "本次会议的所有行动。只有你的出现在我的行动中。选择所有者来更正它，或选择时间戳来检查来源。"),
     ("All apps", "所有 App"),
     ("All meetings", "所有會議"),
     ("All reads run automatically, including outside the working folder. File changes and shell commands ask first.", "所有讀取都會自動執行，包括工作資料夾以外的讀取。文件更改和 shell 命令首先詢問。"),
@@ -7114,7 +7078,7 @@ static HI: &[(&str, &str)] = &[
     ("Day digest", "दिन का सार"),
     ("Day digest actions", "दिन के सार के काम"),
     ("Day memory", "दिन की स्मृति"),
-    ("Day memory is paused, so nothing is captured.", "दिन की स्मृति रुक ​​गई है, इसलिए कुछ भी कैप्चर नहीं किया गया है।"),
+    ("Day memory is paused, so nothing is captured.", "दिन की स्मृति रुक गई है, इसलिए कुछ भी कैप्चर नहीं किया गया है।"),
     ("Day tracking is off — enable it in Settings.", "दिन की ट्रैकिंग बंद है - इसे सेटिंग्स में सक्षम करें।"),
     ("Day-Memory Detail", "दिन की स्मृति का विवरण"),
     ("Deadline updated", "समयसीमा अपडेट हुई"),
@@ -17867,7 +17831,7 @@ static PT: &[(&str, &str)] = &[
     ("Browser audio is captured by process and may include other tabs in that process.", "O áudio do navegador é capturado por processo e pode incluir outras abas desse processo."),
     ("Browsers", "Navegadores"),
     ("Building merged meeting…", "Criando reunião combinada…"),
-    ("Built on this PC from calendar attendees, names you gave speakers, action owners, and meeting notes. Email addresses are used only to tell people apart and are never shown or shared.", "Construído neste PC a partir de participantes da agenda, nomes que você deu aos palestrantes, proprietários de ações e notas de reuniões. Os endereços de e-mail são usados ​​apenas para diferenciar as pessoas e nunca são mostrados ou compartilhados."),
+    ("Built on this PC from calendar attendees, names you gave speakers, action owners, and meeting notes. Email addresses are used only to tell people apart and are never shown or shared.", "Construído neste PC a partir de participantes da agenda, nomes que você deu aos palestrantes, proprietários de ações e notas de reuniões. Os endereços de e-mail são usados apenas para diferenciar as pessoas e nunca são mostrados ou compartilhados."),
     ("Built-in (no setup)", "Integrado (sem configuração)"),
     ("Built-in (on-device)", "Integrado (no dispositivo)"),
     ("Bun {0}", "Bun {0}"),
@@ -18483,7 +18447,7 @@ static PT: &[(&str, &str)] = &[
     ("LokalBot is up to date.", "O LokalBot está atualizado."),
     ("LokalBot manages this model and rebuilds the local index when it changes.", "O LokalBot gerencia este modelo e reconstrói o índice local quando ele muda."),
     ("LokalBot never sends this. Copy it into your mail or chat app to send it yourself.", "O LokalBot nunca envia isto. Copie para seu app de e-mail ou chat para enviar por conta própria."),
-    ("LokalBot used only the sources enabled for this question. Citation numbers remain stable even when a local source is later removed.", "LokalBot utilizou apenas as fontes habilitadas para esta questão. Os números de citações permanecem estáveis ​​mesmo quando uma fonte local é removida posteriormente."),
+    ("LokalBot used only the sources enabled for this question. Citation numbers remain stable even when a local source is later removed.", "LokalBot utilizou apenas as fontes habilitadas para esta questão. Os números de citações permanecem estáveis mesmo quando uma fonte local é removida posteriormente."),
     ("LokalBot was updated but could not restart. Quit and open it again. ({err})", "O LokalBot foi atualizado, mas não conseguiu reiniciar. Encerre-o e abra-o novamente. ({err})"),
     ("LokalBot {0}", "LokalBot {0}"),
     ("LokalBot {0} · {build}", "LokalBot {0} · {build}"),
@@ -23017,7 +22981,7 @@ static UR: &[(&str, &str)] = &[
     ("New Task", "نیا کام"),
     ("New activity available · Update digest to include it", "نئی سرگرمی دستیاب ہے · شامل کرنے کے لیے جامع خلاصہ اپ ڈیٹ کریں"),
     ("New conversation", "نئی گفتگو"),
-    ("New lines appear as people speak.", "جیسے جیسے لوگ بولتے ہیں نئی ​​لکیریں نمودار ہوتی ہیں۔"),
+    ("New lines appear as people speak.", "جیسے جیسے لوگ بولتے ہیں نئی لکیریں نمودار ہوتی ہیں۔"),
     ("New meeting name", "اجلاس کا نیا نام"),
     ("New task (Ctrl+N)", "نیا کام (Ctrl+N)"),
     ("New task (⌘N)", "نیا کام (⌘N)"),
@@ -24471,7 +24435,7 @@ static RU: &[(&str, &str)] = &[
     ("Capture meetings and the day context you choose.", "Записывайте встречи и выбранный контекст дня."),
     ("Captured", "Захвачено"),
     ("Captured screen", "Захваченный экран"),
-    ("Captures context after app or window changes, a pause in typing or pointer input, a clipboard change, or the idle fallback, without storing keys, pointer positions, or clipboard contents. Accessible text is preferred; on-device OCR fills gaps. Private windows, excluded apps and sites, password fields, and detected credentials are never captured, and nothing is captured while day memory is paused or the screen is locked. Images are encrypted with a key kept in this PC's credential store; extracted text follows the same retention (see Privacy & Data). Saved moments keep their encrypted frame and text until you unsave or delete them. Excluded apps log as “Private”.", "Захватывает контекст после изменений приложения или окна, паузы при наборе текста или ввода указателя, изменения буфера обмена или перехода в режим ожидания без сохранения ключей, положений указателя или содержимого буфера обмена. Доступный текст является предпочтительным; OCR на устройстве заполняет пробелы. Частные окна, исключенные приложения и сайты, поля паролей и обнаруженные учетные данные никогда не фиксируются, и ничего не фиксируется, пока дневная память приостановлена ​​или экран заблокирован. Изображения шифруются ключом, хранящимся в хранилище учетных данных этого компьютера; извлеченный текст следует тому же принципу хранения (см. Конфиденциальность и данные). Сохраненные моменты сохраняют зашифрованный кадр и текст, пока вы их не отмените или не удалите. Исключенные приложения регистрируются как «Частные»."),
+    ("Captures context after app or window changes, a pause in typing or pointer input, a clipboard change, or the idle fallback, without storing keys, pointer positions, or clipboard contents. Accessible text is preferred; on-device OCR fills gaps. Private windows, excluded apps and sites, password fields, and detected credentials are never captured, and nothing is captured while day memory is paused or the screen is locked. Images are encrypted with a key kept in this PC's credential store; extracted text follows the same retention (see Privacy & Data). Saved moments keep their encrypted frame and text until you unsave or delete them. Excluded apps log as “Private”.", "Захватывает контекст после изменений приложения или окна, паузы при наборе текста или ввода указателя, изменения буфера обмена или перехода в режим ожидания без сохранения ключей, положений указателя или содержимого буфера обмена. Доступный текст является предпочтительным; OCR на устройстве заполняет пробелы. Частные окна, исключенные приложения и сайты, поля паролей и обнаруженные учетные данные никогда не фиксируются, и ничего не фиксируется, пока дневная память приостановлена или экран заблокирован. Изображения шифруются ключом, хранящимся в хранилище учетных данных этого компьютера; извлеченный текст следует тому же принципу хранения (см. Конфиденциальность и данные). Сохраненные моменты сохраняют зашифрованный кадр и текст, пока вы их не отмените или не удалите. Исключенные приложения регистрируются как «Частные»."),
     ("Captures encrypted visuals for day memory. Only used in Text + visual context mode; system-audio capture does not use this permission.", "Захватывает зашифрованные изображения для памяти дня. Используется только в режиме Текст + визуальный контекст; захват системного звука не использует это разрешение."),
     ("Change the Ask shortcut", "Изменить сочетание для Спросить"),
     ("Change the dictation shortcut", "Изменить сочетание диктовки"),
@@ -45142,7 +45106,7 @@ static HA: &[(&str, &str)] = &[
     ("Pin items to keep them during automatic memory cleanup.", "Manne abubuwa don riƙe su yayin tsaftace ƙwaƙwalwa kai tsaye."),
     ("Pinned", "An manne"),
     ("Pinned revision", "Sigar da aka ƙayyade"),
-    ("Pixels may have expired or could not be read. Retained text remains in the moment inspector.", "Pixels ƙila sun ƙare ko kuma ba za a iya karanta su ba. Rubutun da aka riƙe ya ​​rage a cikin mai duba lokacin."),
+    ("Pixels may have expired or could not be read. Retained text remains in the moment inspector.", "Pixels ƙila sun ƙare ko kuma ba za a iya karanta su ba. Rubutun da aka riƙe ya rage a cikin mai duba lokacin."),
     ("Plan in Agent…", "Tsara a Wakili…"),
     ("Play", "Kunna"),
     ("Play / pause (Space)", "Kunna / dakatar (Space)"),
@@ -47891,7 +47855,7 @@ static KO: &[(&str, &str)] = &[
     ("The API key was not saved: {err}", "API 키가 저장되지 않았습니다: {err}"),
     ("The Ask shortcut already uses this shortcut. Choose another.", "질문 바로가기가 이미 이 바로가기를 사용하고 있습니다. 다른 것을 선택하세요."),
     ("The agent can read and change ordinary files anywhere, run shell commands, and use any other agent tool without asking. File-tool changes to LokalBot’s private data and runtime still ask. Shell commands and other tools may delete data, access secrets, change app files, or connect to the network. This choice is remembered for future sessions.", "에이전트는 어디서나 일반 파일을 읽고 변경할 수 있으며, 셸 명령을 실행하고, 묻지 않고도 다른 에이전트 도구를 사용할 수 있습니다. 파일 도구가 LokalBot의 개인 데이터로 변경되고 런타임이 여전히 묻습니다. 셸 명령 및 기타 도구는 데이터를 삭제하고, 비밀에 액세스하고, 앱 파일을 변경하거나, 네트워크에 연결할 수 있습니다. 이 선택은 향후 세션에서 기억됩니다."),
-    ("The agent can read any file this account can access on this PC, including files outside the working folder, without showing each request. File changes and shell commands will still ask. This choice is remembered for future sessions.", "에이전트는 각 요청을 표시하지 않고도 작업 폴더 외부의 파일을 포함하여 이 계정이 이 PC에서 액세스할 수 있는 모든 파일을 읽을 수 있습니다. 파일 변경 및 쉘 명령은 여전히 ​​묻습니다. 이 선택은 향후 세션에서 기억됩니다."),
+    ("The agent can read any file this account can access on this PC, including files outside the working folder, without showing each request. File changes and shell commands will still ask. This choice is remembered for future sessions.", "에이전트는 각 요청을 표시하지 않고도 작업 폴더 외부의 파일을 포함하여 이 계정이 이 PC에서 액세스할 수 있는 모든 파일을 읽을 수 있습니다. 파일 변경 및 쉘 명령은 여전히 묻습니다. 이 선택은 향후 세션에서 기억됩니다."),
     ("The agent can read, create, overwrite, and edit ordinary files anywhere this account can access on this PC without showing each request. File-tool changes to LokalBot’s private data and runtime will still ask, as will shell commands. This choice is remembered for future sessions.", "에이전트는 각 요청을 표시하지 않고도 이 계정이 이 PC에서 액세스할 수 있는 모든 위치에서 일반 파일을 읽고, 만들고, 덮어쓰고, 편집할 수 있습니다. LokalBot의 개인 데이터에 대한 파일 도구 변경 및 런타임은 쉘 명령과 마찬가지로 계속 묻습니다. 이 선택은 향후 세션에서 기억됩니다."),
     ("The answer can retrieve passages from these meetings and screen moments, including collapsed matches. It may use only the passages relevant to your question.", "답변을 생성할 때 접힌 검색 결과를 포함해 이 회의와 화면 순간에서 구절을 검색할 수 있습니다. 그중 질문과 관련된 구절만 사용될 수 있습니다."),
     ("The answer did not fit at the cursor, so it is hidden.", "답변이 커서 위치에 맞지 않아 숨겼습니다."),
@@ -48530,7 +48494,7 @@ static IT: &[(&str, &str)] = &[
     ("Autocomplete also sends what you type, with the context you turn on under Writing, to %@.", "Il completamento automatico invia anche ciò che scrivi, insieme al contesto che attivi in Scrittura, a %@."),
     ("Autocomplete and Compose dictation write as you, in this style. Both are optional and stay on this PC unless your Think model runs on a server.", "Completamento automatico e composizione dettatura scrivi come te, in questo stile. Entrambi sono opzionali e rimangono su questo PC a meno che il modello Think non venga eseguito su un server."),
     ("Autocomplete and global dictation shortcuts can be enabled later from Write.", "Il completamento automatico e le abbreviazioni globali della dettatura possono essere attivati più tardi da Scrivi."),
-    ("Autocomplete and the dictation shortcut can be turned on later in Settings → Writing and Dictation.", "Il completamento automatico e la scorciatoia per la dettatura possono essere attivati ​​successivamente in Impostazioni → Scrittura e dettatura."),
+    ("Autocomplete and the dictation shortcut can be turned on later in Settings → Writing and Dictation.", "Il completamento automatico e la scorciatoia per la dettatura possono essere attivati successivamente in Impostazioni → Scrittura e dettatura."),
     ("Autocomplete and your writing profile.", "Completamento automatico e il tuo profilo di scrittura."),
     ("Autocomplete could not start: {reason}", "Impossibile avviare il completamento automatico: {reason}"),
     ("Autocomplete model", "Modello di completamento automatico"),
@@ -49615,7 +49579,7 @@ static IT: &[(&str, &str)] = &[
     ("Read coding agent sessions", "Leggi le sessioni degli agenti di programmazione"),
     ("Read the file shown below and make its contents available to this session.", "Leggere il file mostrato di seguito e renderne disponibile il contenuto per questa sessione."),
     ("Read your Claude Code and Codex sessions so LokalBot remembers what your agents did. Files stay on this Mac.", "Legge le tue sessioni di Claude Code e Codex perché LokalBot ricordi cosa hanno fatto i tuoi agenti. I file restano su questo Mac."),
-    ("Reads and ordinary file edits run automatically, including outside the working folder. File-tool changes to LokalBot’s private data and shell commands ask first.", "Le letture e le modifiche ordinarie ai file vengono eseguite automaticamente, anche all'esterno della cartella di lavoro. Le modifiche dello strumento file ai dati privati ​​di LokalBot e i comandi della shell vengono richiesti per primi."),
+    ("Reads and ordinary file edits run automatically, including outside the working folder. File-tool changes to LokalBot’s private data and shell commands ask first.", "Le letture e le modifiche ordinarie ai file vengono eseguite automaticamente, anche all'esterno della cartella di lavoro. Le modifiche dello strumento file ai dati privati di LokalBot e i comandi della shell vengono richiesti per primi."),
     ("Reads in the working folder run automatically. Outside reads, file changes, and shell commands ask first.", "Le letture nella cartella di lavoro vengono eseguite automaticamente. Le letture esterne, le modifiche ai file e i comandi della shell vengono richiesti per primi."),
     ("Reads screen text", "Legge il testo sullo schermo"),
     ("Reads text from the window's pixels on this PC when accessibility shows little. ocrs, {size}, models under {0}. Latin script only.", "Legge il testo dai pixel della finestra su questo PC quando l'accessibilità è scarsa. ocrs, {size}, modelli sotto {0}. Solo scrittura latina."),
@@ -49626,7 +49590,7 @@ static IT: &[(&str, &str)] = &[
     ("Reads visible interface text through accessibility, with on-device OCR when it shows little; no screenshots are stored.", "Legge il testo dell'interfaccia visibile attraverso l'accessibilità, con OCR sul dispositivo quando mostra poco; nessuno screenshot viene memorizzato."),
     ("Reads window titles and visible interface text for activity and text-context features.", "Legge i titoli delle finestre e il testo visibile dell’interfaccia per le funzioni di attività e di contesto testuale."),
     ("Reads your Mac Calendar to confirm meetings and suggest attendee names for speakers. Attendee emails stay in local meeting metadata.", "Legge il Calendario del tuo Mac per confermare le riunioni e suggerire i nomi dei partecipanti per gli interlocutori. Le email dei partecipanti restano nei metadati locali delle riunioni."),
-    ("Reads, ordinary file edits, shell calls, and every other agent tool run automatically. File-tool changes to LokalBot’s private data still ask; shell commands remain unrestricted.", "Le letture, le normali modifiche ai file, le chiamate alla shell e ogni altro strumento agente vengono eseguiti automaticamente. Le modifiche dello strumento file ai dati privati ​​di LokalBot richiedono ancora; i comandi della shell rimangono illimitati."),
+    ("Reads, ordinary file edits, shell calls, and every other agent tool run automatically. File-tool changes to LokalBot’s private data still ask; shell commands remain unrestricted.", "Le letture, le normali modifiche ai file, le chiamate alla shell e ogni altro strumento agente vengono eseguiti automaticamente. Le modifiche dello strumento file ai dati privati di LokalBot richiedono ancora; i comandi della shell rimangono illimitati."),
     ("Ready", "Pronto"),
     ("Ready to use · not a test result", "Pronto all'uso · non è un risultato del test"),
     ("Ready — hold {shortcut} to dictate.", "Pronto: tieni premuto {shortcut} per dettare."),
@@ -50083,9 +50047,9 @@ static IT: &[(&str, &str)] = &[
     ("Thai", "Tailandese"),
     ("The API key was not saved: {err}", "La chiave API non è stata salvata: {err}"),
     ("The Ask shortcut already uses this shortcut. Choose another.", "La scorciatoia Chiedi utilizza già questa scorciatoia. Scegline un altro."),
-    ("The agent can read and change ordinary files anywhere, run shell commands, and use any other agent tool without asking. File-tool changes to LokalBot’s private data and runtime still ask. Shell commands and other tools may delete data, access secrets, change app files, or connect to the network. This choice is remembered for future sessions.", "L'agente può leggere e modificare file ordinari ovunque, eseguire comandi shell e utilizzare qualsiasi altro strumento dell'agente senza chiedere conferma. Le modifiche dello strumento file ai dati privati ​​e al runtime di LokalBot richiedono ancora. I comandi della shell e altri strumenti possono eliminare dati, accedere a segreti, modificare file di app o connettersi alla rete. Questa scelta viene ricordata per le sessioni future."),
+    ("The agent can read and change ordinary files anywhere, run shell commands, and use any other agent tool without asking. File-tool changes to LokalBot’s private data and runtime still ask. Shell commands and other tools may delete data, access secrets, change app files, or connect to the network. This choice is remembered for future sessions.", "L'agente può leggere e modificare file ordinari ovunque, eseguire comandi shell e utilizzare qualsiasi altro strumento dell'agente senza chiedere conferma. Le modifiche dello strumento file ai dati privati e al runtime di LokalBot richiedono ancora. I comandi della shell e altri strumenti possono eliminare dati, accedere a segreti, modificare file di app o connettersi alla rete. Questa scelta viene ricordata per le sessioni future."),
     ("The agent can read any file this account can access on this PC, including files outside the working folder, without showing each request. File changes and shell commands will still ask. This choice is remembered for future sessions.", "L'agente può leggere qualsiasi file a cui questo account può accedere su questo PC, inclusi i file esterni alla cartella di lavoro, senza mostrare ciascuna richiesta. Le modifiche ai file e i comandi della shell continueranno a chiedere. Questa scelta viene ricordata per le sessioni future."),
-    ("The agent can read, create, overwrite, and edit ordinary files anywhere this account can access on this PC without showing each request. File-tool changes to LokalBot’s private data and runtime will still ask, as will shell commands. This choice is remembered for future sessions.", "L'agente può leggere, creare, sovrascrivere e modificare file ordinari ovunque questo account possa accedere su questo PC senza mostrare ogni richiesta. Le modifiche dello strumento file ai dati privati ​​e al runtime di LokalBot continueranno a chiedere, così come i comandi della shell. Questa scelta viene ricordata per le sessioni future."),
+    ("The agent can read, create, overwrite, and edit ordinary files anywhere this account can access on this PC without showing each request. File-tool changes to LokalBot’s private data and runtime will still ask, as will shell commands. This choice is remembered for future sessions.", "L'agente può leggere, creare, sovrascrivere e modificare file ordinari ovunque questo account possa accedere su questo PC senza mostrare ogni richiesta. Le modifiche dello strumento file ai dati privati e al runtime di LokalBot continueranno a chiedere, così come i comandi della shell. Questa scelta viene ricordata per le sessioni future."),
     ("The answer can retrieve passages from these meetings and screen moments, including collapsed matches. It may use only the passages relevant to your question.", "La risposta può recuperare passaggi da queste riunioni e da questi momenti dello schermo, incluse le corrispondenze compresse. Può utilizzare solo i passaggi pertinenti alla tua domanda."),
     ("The answer did not fit at the cursor, so it is hidden.", "La risposta non si adattava alla posizione del cursore, quindi è nascosta."),
     ("The autocomplete server URL must start with http:// or https://.", "L’URL del server del completamento automatico deve iniziare con http:// o https://."),
@@ -50114,7 +50078,7 @@ static IT: &[(&str, &str)] = &[
     ("The sources below are read only when you start with a writing request, such as “reply…”, “write…” or “draft…”. Other dictation is only cleaned up.", "Le fonti qui sotto vengono lette solo quando inizi con una richiesta di scrittura, come “rispondi…”, “scrivi…” o “redigi…”. Le altre dettature vengono solo ripulite."),
     ("The text may not have been inserted", "Il testo potrebbe non essere stato inserito"),
     ("The update could not be installed: {err}", "Impossibile installare l'aggiornamento: {err}"),
-    ("The working folder is separate from LokalBot’s private data. Meeting Library tools provide scoped local read access when this task runs. Saved screen moments require the separate screen-memory grant. Raw private-library file reads follow the approval mode even when a parent folder is selected.", "La cartella di lavoro è separata dai dati privati ​​di LokalBot. Gli strumenti della Raccolta riunioni forniscono accesso in lettura locale con ambito quando viene eseguita questa attività. I momenti salvati sullo schermo richiedono la concessione separata della memoria dello schermo. Le letture non elaborate dei file della libreria privata seguono la modalità di approvazione anche quando è selezionata una cartella principale."),
+    ("The working folder is separate from LokalBot’s private data. Meeting Library tools provide scoped local read access when this task runs. Saved screen moments require the separate screen-memory grant. Raw private-library file reads follow the approval mode even when a parent folder is selected.", "La cartella di lavoro è separata dai dati privati di LokalBot. Gli strumenti della Raccolta riunioni forniscono accesso in lettura locale con ambito quando viene eseguita questa attività. I momenti salvati sullo schermo richiedono la concessione separata della memoria dello schermo. Le letture non elaborate dei file della libreria privata seguono la modalità di approvazione anche quando è selezionata una cartella principale."),
     ("Theme", "Tema"),
     ("These are captured window titles. Expand a title to inspect the activity behind it.", "Questi sono i titoli delle finestre acquisiti. Espandi un titolo per esaminare l’attività corrispondente."),
     ("These choices are applied on the final Review step.", "Queste scelte vengono applicate nel passaggio finale Revisione."),
@@ -50146,7 +50110,7 @@ static IT: &[(&str, &str)] = &[
     ("This session is already open as a task.", "Questa sessione è già aperta come attività."),
     ("This shortcut could not be registered. Another app may already use it.", "Impossibile registrare questa abbreviazione. Un’altra app potrebbe già usarla."),
     ("This stops every Agent task and permanently removes its local conversation, draft, and task metadata. Your meeting library is not affected.", "Questa operazione interrompe ogni attività dell'agente e rimuove permanentemente i relativi metadati di conversazione locale, bozza e attività. La libreria delle riunioni non è interessata."),
-    ("This task uses an older working folder inside LokalBot’s private data. Its saved history is still available, but it cannot run here. Choose a folder outside LokalBot’s private data to start a new task; attach specific sources or use the scoped library tools.", "Questa attività utilizza una cartella di lavoro precedente all'interno dei dati privati ​​di LokalBot. La cronologia salvata è ancora disponibile, ma non può essere eseguita qui. Scegli una cartella esterna ai dati privati ​​di LokalBot per avviare una nuova attività; allegare fonti specifiche o utilizzare gli strumenti della libreria con ambito."),
+    ("This task uses an older working folder inside LokalBot’s private data. Its saved history is still available, but it cannot run here. Choose a folder outside LokalBot’s private data to start a new task; attach specific sources or use the scoped library tools.", "Questa attività utilizza una cartella di lavoro precedente all'interno dei dati privati di LokalBot. La cronologia salvata è ancora disponibile, ma non può essere eseguita qui. Scegli una cartella esterna ai dati privati di LokalBot per avviare una nuova attività; allegare fonti specifiche o utilizzare gli strumenti della libreria con ambito."),
     ("This task’s access", "Accesso di questo incarico"),
     ("This version is too old to update itself. Download the new version from GitHub.", "Questa versione è troppo vecchia per aggiornarsi da sola. Scarica la nuova versione da GitHub."),
     ("Threads", "Filoni"),
@@ -50298,7 +50262,7 @@ static IT: &[(&str, &str)] = &[
     ("Waiting on You", "Ti aspetto"),
     ("Waiting on {first}", "In attesa di {first}"),
     ("Walk through meeting recording, day memory, and models again. Nothing changes until you apply your choices at the end.", "Esplora di nuovo la registrazione della riunione, la memoria giornaliera e i modelli. Non cambia nulla finché non applichi le tue scelte alla fine."),
-    ("Wayland keeps window titles private on many desktops; LokalBot records the app names it can see and fills in titles where the desktop shares them.", "Wayland mantiene privati ​​i titoli delle finestre su molti desktop; LokalBot registra i nomi delle app che può vedere e inserisce i titoli laddove il desktop li condivide."),
+    ("Wayland keeps window titles private on many desktops; LokalBot records the app names it can see and fills in titles where the desktop shares them.", "Wayland mantiene privati i titoli delle finestre su molti desktop; LokalBot registra i nomi delle app che può vedere e inserisce i titoli laddove il desktop li condivide."),
     ("Weekly log day", "Giorno del registro settimanale"),
     ("Weekly work log", "Registro settimanale del lavoro"),
     ("Welcome to LokalBot", "Ti diamo il benvenuto in LokalBot"),
@@ -52696,3 +52660,38 @@ static SR_LATN: &[(&str, &str)] = &[
     ("↩ Open", "↩ Otvori"),
     ("▶ {stamp} · {speaker}", "▶ {stamp} · {speaker}"),
 ];
+
+pub(crate) static TABLES: &[(&str, &[(&str, &str)])] = &[
+    ("en", EN),
+    ("zh-Hans", ZH_HANS),
+    ("zh-Hant", ZH_HANT),
+    ("hi", HI),
+    ("es", ES),
+    ("ar", AR),
+    ("fr", FR),
+    ("bn", BN),
+    ("pt", PT),
+    ("id", ID),
+    ("ur", UR),
+    ("ru", RU),
+    ("de", DE),
+    ("ja", JA),
+    ("pcm", PCM),
+    ("ar-EG", AR_EG),
+    ("mr", MR),
+    ("vi", VI),
+    ("te", TE),
+    ("sw", SW),
+    ("ha", HA),
+    ("ko", KO),
+    ("it", IT),
+    ("sr-Latn", SR_LATN),
+];
+
+pub fn lookup(locale: &str, key: &str) -> Option<&'static str> {
+    let (_, table) = TABLES.iter().find(|(code, _)| *code == locale)?;
+    table
+        .binary_search_by(|(candidate, _)| (*candidate).cmp(key))
+        .ok()
+        .map(|index| table[index].1)
+}

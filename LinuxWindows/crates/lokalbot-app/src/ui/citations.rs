@@ -150,13 +150,13 @@ pub fn evidence_summary(
     keys.dedup();
     let title = resolve(first, meetings, screens).title;
     if citations.len() == 1 {
-        lokalbot_i18n::format("1 source · {title}", &[("title", format!("{}", title))])
+        lokalbot_i18n::format("1 source · {title}", &[("title", title.to_string())])
     } else if keys.len() == 1 {
         lokalbot_i18n::format(
             "{0} citations · {title}",
             &[
                 ("0", format!("{}", citations.len())),
-                ("title", format!("{}", title)),
+                ("title", title.to_string()),
             ],
         )
     } else {
@@ -195,8 +195,8 @@ pub fn resolve(
                     detail: lokalbot_i18n::format(
                         "Meeting · {0}{stamp}",
                         &[
-                            ("0", format!("{}", date_and_time(meeting.started_at))),
-                            ("stamp", format!("{}", stamp)),
+                            ("0", date_and_time(meeting.started_at).to_string()),
+                            ("stamp", stamp.to_string()),
                         ],
                     ),
                     available: true,
@@ -204,7 +204,7 @@ pub fn resolve(
                 }
             }
             None => ResolvedCitation {
-                title: lokalbot_i18n::format("Meeting {id}", &[("id", format!("{}", id))]),
+                title: lokalbot_i18n::format("Meeting {id}", &[("id", id.to_string())]),
                 detail: lokalbot_i18n::tr("Local source missing").into(),
                 available: false,
                 is_screen: false,
@@ -222,8 +222,8 @@ pub fn resolve(
                     detail: lokalbot_i18n::format(
                         "Screen · {0} · {1}",
                         &[
-                            ("0", format!("{}", moment.app)),
-                            ("1", format!("{}", date_and_time(moment.ts))),
+                            ("0", moment.app.to_string()),
+                            ("1", date_and_time(moment.ts).to_string()),
                         ],
                     ),
                     available: true,

@@ -16,6 +16,9 @@ ROOT = Path(__file__).resolve().parents[2]
 OUTPUT = ROOT / "LinuxWindows/crates/lokalbot-i18n/src/catalogs.rs"
 FIELDS = re.compile(r'\{\w+\}|%(?:\d+\$)?(?:lld|ld|[diufgs@])')
 BIDI_CONTROLS = re.compile('[\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]')
+# Zero-width space, soft hyphen and word joiner: invisible, usually left by a
+# translation tool, and denied by clippy in the generated Rust.
+INVISIBLE = re.compile('[\u200b\u00ad\u2060]')
 KEYBOARD_TOKENS = re.compile(r'\b(?:Ctrl|Alt|Shift)(?:\+[A-Za-z]+)+|\b(?:Return|Tab|Esc)\b', re.ASCII)
 
 
@@ -47,6 +50,8 @@ def read_desktop_catalogs(codes):
                 raise ValueError(f"{code}: changed keyboard names: {key} => {value}")
             if key.count('\n') != value.count('\n') or BIDI_CONTROLS.search(value):
                 raise ValueError(f"{code}: changed line breaks or embedded direction controls: {key}")
+            if INVISIBLE.search(value):
+                raise ValueError(f"{code}: invisible character in translation: {key}")
             if code == "en" and value != key:
                 raise ValueError(f"English source key differs from value: {key}")
     return catalogs
@@ -68,13 +73,10 @@ def read_strings(path):
 
 
 def rust_string(value):
-    # JSON's Unicode escapes differ from Rust's. Keep non-ASCII text literal.
-    return json.dumps(value, ensure_ascii=False).replace("\\b", "\\u{8}").replace("\\f", "\\u{c}")
-
-
-def constant(code):
-    """`zh-Hans` → `ZH_HANS`: the name of a language's generated table."""
-    return re.sub(r"[^A-Za-z0-9]", "_", code).upper()
+    # JSON's Unicode escapes differ from Rust's. Keep non-ASCII text literal,
+    # except invisible characters, which Rust gets as escapes.
+    literal = json.dumps(value, ensure_ascii=False).replace("\\b", "\\u{8}").replace("\\f", "\\u{c}")
+    return INVISIBLE.sub(lambda m: f"\\u{{{ord(m.group()):x}}}", literal)
 
 
 def generate():
@@ -91,21 +93,10 @@ def generate():
         lines.append(f"    Language {{ code: {rust_string(code)}, name: {rust_string(names[case])}, english_name: {rust_string(english_names[case])}, rtl: {rtl} }},")
     lines.extend([
         "];", "",
-        "// Each language's copy as (key, text) pairs sorted by key's bytes, so a lookup",
-        "// is a binary search. Data rather than a `match`: one match over every key of",
-        "// every language makes release builds of rustc overflow its stack.",
-        f"pub(crate) static CATALOGS: [(&str, &[(&str, &str)]); {len(cases)}] = [",
+        "// One sorted table per language, searched by key. A single `match` over",
+        "// every string ran rustc out of memory in release builds.",
     ])
-    lines.extend(f"    ({rust_string(code)}, {constant(code)})," for code in cases.values())
-    lines.extend([
-        "];", "", "pub fn lookup(locale: &str, key: &str) -> Option<&'static str> {",
-        "    let (_, entries) = CATALOGS.iter().find(|(code, _)| *code == locale)?;",
-        "    entries",
-        "        .binary_search_by(|(candidate, _)| (*candidate).cmp(key))",
-        "        .ok()",
-        "        .map(|index| entries[index].1)",
-        "}",
-    ])
+    tables = []
     for code in cases.values():
         catalog = read_strings(ROOT / f"LokalBot/Resources/{code}.lproj/Localizable.strings")
         if catalog.keys() != english.keys():
@@ -118,11 +109,24 @@ def generate():
         if catalog.keys() & desktop[code].keys():
             raise ValueError(f"{code}: shared keys must be edited in the macOS catalog, not overridden")
         catalog.update(desktop[code])
-        lines.extend(["", f"static {constant(code)}: &[(&str, &str)] = &["])
-        lines.extend(f"    ({rust_string(key)}, {rust_string(value)})," for key, value in
-                     sorted(catalog.items(), key=lambda item: item[0].encode("utf-8")))
-        lines.append("];")
-    lines.append("")
+        name = re.sub(r"[^A-Z0-9]", "_", code.upper())
+        tables.append((code, name))
+        # Python orders str by code point, which is Rust's UTF-8 byte order.
+        lines.append(f"static {name}: &[(&str, &str)] = &[")
+        lines.extend(f"    ({rust_string(key)}, {rust_string(value)})," for key, value in sorted(catalog.items()))
+        lines.extend(["];", ""])
+    lines.append("pub(crate) static TABLES: &[(&str, &[(&str, &str)])] = &[")
+    lines.extend(f"    ({rust_string(code)}, {name})," for code, name in tables)
+    lines.extend([
+        "];", "",
+        "pub fn lookup(locale: &str, key: &str) -> Option<&'static str> {",
+        "    let (_, table) = TABLES.iter().find(|(code, _)| *code == locale)?;",
+        "    table",
+        "        .binary_search_by(|(candidate, _)| (*candidate).cmp(key))",
+        "        .ok()",
+        "        .map(|index| table[index].1)",
+        "}", "",
+    ])
     return "\n".join(lines)
 
 

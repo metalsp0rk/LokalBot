@@ -782,7 +782,7 @@ impl SettingsPage {
                             .text_color(lb.text_secondary)
                             .child(crate::ui::text::paragraph(lokalbot_i18n::format(
                                 "LokalBot {0}",
-                                &[("0", format!("{}", env!("CARGO_PKG_VERSION")))],
+                                &[("0", env!("CARGO_PKG_VERSION").to_string())],
                             ))),
                     ),
             )
@@ -805,7 +805,7 @@ impl SettingsPage {
                 Ico::Search,
                 lokalbot_i18n::format(
                     "No Results for “{0}”",
-                    &[("0", format!("{}", self.query.trim()))],
+                    &[("0", self.query.trim().to_string())],
                 ),
                 lokalbot_i18n::tr("Check the spelling or try a different setting name."),
                 cx,

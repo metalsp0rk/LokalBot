@@ -133,7 +133,7 @@ impl SettingsPage {
                 ),
             );
 
-        let shortcut_help: SharedString = lokalbot_i18n::format("Press {0} in any app to search your work memory or ask a question. LokalBot registers only this shortcut and never reads other keystrokes.", &[("0", format!("{}", settings.quick_recall_shortcut))])
+        let shortcut_help: SharedString = lokalbot_i18n::format("Press {0} in any app to search your work memory or ask a question. LokalBot registers only this shortcut and never reads other keystrokes.", &[("0", settings.quick_recall_shortcut.to_string())])
         .into();
         let shortcut_data = data.clone();
         let shortcut = Section::new(lokalbot_i18n::tr("Shortcut"))

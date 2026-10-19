@@ -260,8 +260,8 @@ impl SettingsPage {
                         lokalbot_i18n::format(
                             "LokalBot {0} · {build}",
                             &[
-                                ("0", format!("{}", env!("CARGO_PKG_VERSION"))),
-                                ("build", format!("{}", build)),
+                                ("0", env!("CARGO_PKG_VERSION").to_string()),
+                                ("build", build.to_string()),
                             ],
                         ),
                         cx,

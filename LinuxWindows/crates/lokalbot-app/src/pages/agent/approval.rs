@@ -173,11 +173,11 @@ impl AgentPage {
                         .outline()
                         .label(lokalbot_i18n::format(
                             "Allow {tool} for Session",
-                            &[("tool", format!("{}", tool))],
+                            &[("tool", tool.to_string())],
                         ))
                         .tooltip(lokalbot_i18n::format(
                             "Automatically allow future {tool} requests until this session closes",
-                            &[("tool", format!("{}", tool))],
+                            &[("tool", tool.to_string())],
                         ))
                         .on_click(cx.listener(move |this, _, _, cx| {
                             this.respond(&session_id, true, ApprovalScope::Session, cx)
@@ -230,7 +230,7 @@ impl AgentPage {
                                             .child(crate::ui::text::paragraph(
                                                 lokalbot_i18n::format(
                                                     "Approval required: {0}",
-                                                    &[("0", format!("{}", request.tool))],
+                                                    &[("0", request.tool.to_string())],
                                                 ),
                                             )),
                                     ),
