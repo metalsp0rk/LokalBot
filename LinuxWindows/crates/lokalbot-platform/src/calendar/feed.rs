@@ -58,7 +58,7 @@ pub fn fetch(link: &str, options: &ParseOptions) -> Result<Vec<CalendarEvent>> {
     }
     let response = request
         .call()
-        .with_context(|| format!("{} did not answer", redacted(&url)))?;
+        .map_err(|err| anyhow::anyhow!("{} did not answer ({})", redacted(&url), describe(&err)))?;
     let status = response.status().as_u16();
     if status == 401 || status == 403 {
         bail!("{} refused the link (HTTP {status})", redacted(&url));
@@ -112,9 +112,12 @@ fn caldav_query(
     if let Some(authorization) = authorization {
         request = request.header("Authorization", authorization);
     }
+    let request = request
+        .body(body)
+        .map_err(|_| anyhow::anyhow!("the link is not a valid address"))?;
     let response = agent
-        .run(request.body(body)?)
-        .context("the CalDAV request failed")?;
+        .run(request)
+        .map_err(|err| anyhow::anyhow!("the CalDAV request failed ({})", describe(&err)))?;
     let status = response.status().as_u16();
     if status != 207 {
         bail!("the server answered HTTP {status}");
@@ -150,6 +153,22 @@ pub(crate) fn calendar_data(xml: &str) -> Result<Vec<String>> {
         .filter_map(|node| node.text().map(str::to_string))
         .filter(|text| !text.trim().is_empty())
         .collect())
+}
+
+/// A transport failure in words that never repeat the link: some `ureq`
+/// errors carry the whole URL, and a calendar link is a secret.
+fn describe(err: &ureq::Error) -> String {
+    match err {
+        ureq::Error::StatusCode(code) => format!("HTTP {code}"),
+        ureq::Error::Timeout(_) => "timed out".into(),
+        ureq::Error::HostNotFound => "host not found".into(),
+        ureq::Error::ConnectionFailed => "connection failed".into(),
+        ureq::Error::TooManyRedirects | ureq::Error::RedirectFailed => "redirect failed".into(),
+        ureq::Error::BadUri(_) => "the link is not a valid address".into(),
+        ureq::Error::Io(io) => format!("network error: {:?}", io.kind()),
+        ureq::Error::Tls(_) => "secure connection failed".into(),
+        _ => "the request failed".into(),
+    }
 }
 
 fn caldav_time(value: DateTime<Utc>) -> String {
@@ -300,6 +319,28 @@ mod tests {
             "https://dav.example.com/…"
         );
         assert_eq!(redacted("not a link"), "a calendar link");
+    }
+
+    #[test]
+    fn failures_never_repeat_the_link() {
+        let options = ParseOptions {
+            provider: String::new(),
+            from: Utc::now(),
+            to: Utc::now(),
+            my_addresses: Vec::new(),
+            calendar_title: None,
+            default_zone: None,
+        };
+        let secret = "https://ana:hunter2@127.0.0.1:9/private-0123abc/basic.ics";
+        let error = format!("{:#}", fetch(secret, &options).unwrap_err());
+        assert!(!error.contains("private-0123abc"), "{error}");
+        assert!(!error.contains("hunter2"), "{error}");
+        assert!(error.starts_with("https://127.0.0.1/…"), "{error}");
+        let error = format!(
+            "{:#}",
+            fetch("https://exa mple.com/secret-path", &options).unwrap_err()
+        );
+        assert!(!error.contains("secret-path"), "{error}");
     }
 
     #[test]
