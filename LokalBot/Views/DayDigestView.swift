@@ -253,9 +253,10 @@ struct DayDigestView: View {
 
     private var timelineDecisions: some View {
         VStack(alignment: .leading, spacing: 6) {
+            // Plain text like the other modes' Decisions label, so a
+            // static-text query can tell whether the section is shown.
             Text("Decisions")
                 .font(DayDigestTaskType.sectionTitle)
-                .accessibilityAddTraits(.isHeader)
             ForEach(Array(presentation.decisions.enumerated()), id: \.offset) { _, decision in
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     Image(systemName: "checkmark.seal")

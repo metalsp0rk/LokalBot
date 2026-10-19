@@ -58,9 +58,11 @@ struct NeedsAttentionSection: View {
     private var plainBody: some View {
         VStack(alignment: .leading, spacing: 2) {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
+                // No header trait, matching the panel style's heading: a
+                // header becomes a different accessibility element, which
+                // static-text queries no longer find.
                 Text(LocalizedStringKey(title))
                     .font(.scaled(.headline))
-                    .accessibilityAddTraits(.isHeader)
                 Text(threads.count, format: .number)
                     .font(AppFont.scaled(.callout).monospacedDigit())
                     .foregroundStyle(.secondary)
