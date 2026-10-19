@@ -1573,7 +1573,12 @@ private func meetingWorkspaceMetadataItems(
             warning: meeting.hasSystemTrack ? nil
                 : "Only your microphone was recorded. Other participants are captured only if your mic picked them up."),
     ]
-    return items.filter { !meeting.isMergedMeeting || $0.field != .app }
+    // An imported file's audio came from neither this Mac's microphone nor
+    // its system audio, so "Mic + system" would be wrong.
+    return items.filter {
+        !(meeting.isMergedMeeting && $0.field == .app)
+            && !(meeting.isImported && $0.field == .audioSource)
+    }
 }
 
 private func transcriptEngineDescription(_ engine: String) -> String {
