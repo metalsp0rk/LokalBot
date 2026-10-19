@@ -10,6 +10,7 @@
 //! inside it (`err.downcast_ref::<AiError>()`).
 
 pub mod ask;
+pub mod ask_agent;
 pub mod autocomplete;
 pub mod catalog;
 pub mod dictation;

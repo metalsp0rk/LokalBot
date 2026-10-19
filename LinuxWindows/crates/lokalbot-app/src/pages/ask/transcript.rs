@@ -835,7 +835,7 @@ fn step(activity: &ChatActivity) -> Step {
         "doc.text" => Ico::FileText,
         "calendar" | "calendar.day.timeline.left" => Ico::Calendar,
         "rectangle.on.rectangle" | "display" => Ico::Monitor,
-        "list.bullet" => Ico::ListChecks,
+        "list.bullet" | "checklist" => Ico::ListChecks,
         _ => Ico::CircleCheck,
     };
     Step {
