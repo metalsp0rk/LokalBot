@@ -4,7 +4,7 @@ import Foundation
 /// external agents to change settings; accepts connections from this user
 /// only and hands each request to the main actor.
 final class AppControlServer {
-    typealias Handler = @MainActor (AppControlRequest) async -> AppControlResponse
+    typealias Handler = @MainActor (AppControlRequest, AppControlPeer) async -> AppControlResponse
 
     let path: String
     private let handler: Handler
@@ -81,11 +81,12 @@ final class AppControlServer {
             return
         }
         let request = try? JSONDecoder().decode(AppControlRequest.self, from: line)
+        let peer = AppControlPeer.of(client)
         let handler = self.handler
         Task { @MainActor in
             let response: AppControlResponse
             if let request {
-                response = await handler(request)
+                response = await handler(request, peer)
             } else {
                 response = .failure(.invalidRequest("The request is not a LokalBot control request."))
             }
@@ -97,5 +98,23 @@ final class AppControlServer {
                 close(client)
             }
         }
+    }
+}
+
+/// Who sent a control request, for the audit log: the client process and,
+/// when it runs under a shell, the agent that started that shell.
+struct AppControlPeer: Equatable, Sendable {
+    var pid: Int32?
+    var description: String
+
+    static let unknown = AppControlPeer(pid: nil, description: "lokalbot-cli")
+
+    static func of(_ descriptor: Int32) -> AppControlPeer {
+        var pid: pid_t = 0
+        var length = socklen_t(MemoryLayout<pid_t>.size)
+        guard getsockopt(descriptor, SOL_LOCAL, LOCAL_PEERPID, &pid, &length) == 0, pid > 0 else {
+            return .unknown
+        }
+        return AppControlPeer(pid: pid, description: ProcessAncestry.describe(pid: pid) ?? "lokalbot-cli")
     }
 }

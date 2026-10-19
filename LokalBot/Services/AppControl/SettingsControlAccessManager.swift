@@ -11,14 +11,17 @@ final class SettingsControlAccessManager: ObservableObject {
     private let gate: SettingsControlGate
     private let makeHandler: @MainActor () -> AppControlServer.Handler
     private let onError: (String) -> Void
+    private let onDisable: () -> Void
     private var server: AppControlServer?
 
     init(gate: SettingsControlGate,
          makeHandler: @escaping @MainActor () -> AppControlServer.Handler,
-         onError: @escaping (String) -> Void = { _ in }) {
+         onError: @escaping (String) -> Void = { _ in },
+         onDisable: @escaping () -> Void = {}) {
         self.gate = gate
         self.makeHandler = makeHandler
         self.onError = onError
+        self.onDisable = onDisable
     }
 
     var socketPath: String {
@@ -44,6 +47,8 @@ final class SettingsControlAccessManager: ObservableObject {
             gate.disable()
             isEnabled = false
             stop()
+            // Requests already waiting go with the grant.
+            onDisable()
         }
     }
 

@@ -83,7 +83,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // `lokalbot-cli` starting the app for a terminal request counts as a
         // background launch too: the person asked for a setting, not a window.
         if lokalbotLaunchesMenuBarOnly() {
-            if LaunchAtLogin.wasLaunchedAtLogin || AppControlProtocol.isBackgroundLaunch() {
+            // An agent's setup launch opens only its request window.
+            if LaunchAtLogin.wasLaunchedAtLogin || AppControlProtocol.isBackgroundLaunch() || AgentSetup.isLaunch() {
                 DispatchQueue.main.async { DockPolicy.beginLaunchSuppression() }
             } else {
                 DispatchQueue.main.async { WindowAccess.shared.open("main") }
@@ -737,6 +738,11 @@ final class WindowAccess {
     /// The visible main SwiftUI window, matched by its scene identifier —
     /// `navigationTitle` retitles the window per tab (e.g. "Timeline"), so
     /// matching on the title silently stops finding it.
+    /// Closes a window scene by its identifier when it is open.
+    func close(_ id: String) {
+        NSApp?.windows.filter { $0.identifier?.rawValue == id }.forEach { $0.close() }
+    }
+
     static func visibleMainWindow(in application: NSApplication) -> NSWindow? {
         application.windows.first { window in
             guard window.isVisible else { return false }

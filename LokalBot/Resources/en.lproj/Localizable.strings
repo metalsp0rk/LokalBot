@@ -1,9 +1,11 @@
 // Interface strings. Keep user content and model prompts out of this table.
 "%@ detected — ready" = "%@ detected — ready";
 "%lld selected" = "%lld selected";
+"%lld settings changes are waiting for your approval" = "%lld settings changes are waiting for your approval";
 "2. Review action owners" = "2. Review action owners";
 "A domain excludes its subdomains too. A URL with a path excludes that URL prefix. Existing rules are kept until you remove them." = "A domain excludes its subdomains too. A URL with a path excludes that URL prefix. Existing rules are kept until you remove them.";
 "A newly granted permission may require a relaunch. Finish setup first; relaunch from Settings if the feature remains unavailable." = "A newly granted permission may require a relaunch. Finish setup first; relaunch from Settings if the feature remains unavailable.";
+"A settings change is waiting for your approval" = "A settings change is waiting for your approval";
 "About" = "About";
 "Accept next" = "Accept next";
 "Accept punctuation with the word" = "Accept punctuation with the word";
@@ -41,6 +43,7 @@
 "Add ⌃, ⌥ or ⌘ so the shortcut does not block typing, or use a function key." = "Add ⌃, ⌥ or ⌘ so the shortcut does not block typing, or use a function key.";
 "Additional saved audio is outside the meeting boundaries." = "Additional saved audio is outside the meeting boundaries.";
 "Adds titles of documents and pages captured during the call, never their captured text. Requires screen context in Day Memory." = "Adds titles of documents and pages captured during the call, never their captured text. Requires screen context in Day Memory.";
+"Adds: %@" = "Adds: %@";
 "Advanced" = "Advanced";
 "After a shortcut recording" = "After a shortcut recording";
 "After applying" = "After applying";
@@ -58,11 +61,14 @@
 "All meetings" = "All meetings";
 "All retained history" = "All retained history";
 "All three core models will run on this Mac." = "All three core models will run on this Mac.";
+"Allow" = "Allow";
 "Allow Once" = "Allow Once";
 "Allow external agents to change LokalBot settings" = "Allow external agents to change LokalBot settings";
 "Allow external agents to read screen memory" = "Allow external agents to read screen memory";
 "Allow external agents to read your meeting library" = "Allow external agents to read your meeting library";
 "Allow multi-line suggestions" = "Allow multi-line suggestions";
+"Allow only an agent you started yourself. Any program on this Mac can make this request." = "Allow only an agent you started yourself. Any program on this Mac can make this request.";
+"Allowing it lets the agent change your LokalBot settings, download models, and walk you through macOS permissions. Turning on capture, a data source, or sharing still asks you here. You can turn this off at any time in Settings → Privacy." = "Allowing it lets the agent change your LokalBot settings, download models, and walk you through macOS permissions. Turning on capture, a data source, or sharing still asks you here. You can turn this off at any time in Settings → Privacy.";
 "Also allow relevant work memory derived from screen activity and daily journals. Reads what is already saved; it does not capture new screens or start an overnight review. Mixed meeting and screen memories require both settings." = "Also allow relevant work memory derived from screen activity and daily journals. Reads what is already saved; it does not capture new screens or start an overnight review. Mixed meeting and screen memories require both settings.";
 "Also assigned to another voice" = "Also assigned to another voice";
 "Also prepare Autocomplete (optional)" = "Also prepare Autocomplete (optional)";
@@ -77,6 +83,10 @@
 "Apply Choices and Start" = "Apply Choices and Start";
 "Apply policy and cleanup" = "Apply policy and cleanup";
 "Apply…" = "Apply…";
+"Approve" = "Approve";
+"Approve and clean up" = "Approve and clean up";
+"Approve only what you asked your agent to do. Approving can show macOS permission prompts for what it turns on." = "Approve only what you asked your agent to do. Approving can show macOS permission prompts for what it turns on.";
+"Approve Settings Change" = "Approve Settings Change";
 "Apps use ⌘ with a single key. Add ⌃, ⌥ or ⇧." = "Apps use ⌘ with a single key. Add ⌃, ⌥ or ⇧.";
 "Archived" = "Archived";
 "Arrived in the field" = "Arrived in the field";
@@ -96,6 +106,7 @@
 "Ask via notification waits for you to start recording. Manual mode keeps Record Now available." = "Ask via notification waits for you to start recording. Manual mode keeps Record Now available.";
 "Ask your work memory" = "Ask your work memory";
 "Asks before recording meetings" = "Asks before recording meetings";
+"asks to set up LokalBot for you from the terminal." = "asks to set up LokalBot for you from the terminal.";
 "Ask…" = "Ask…";
 "Attach context" = "Attach context";
 "Auto-detect" = "Auto-detect";
@@ -143,6 +154,7 @@
 "Captures encrypted visuals for day memory. Only used in Text + visual context mode; system-audio capture does not use this permission." = "Captures encrypted visuals for day memory. Only used in Text + visual context mode; system-audio capture does not use this permission.";
 "Change the Ask shortcut" = "Change the Ask shortcut";
 "Change the dictation shortcut" = "Change the dictation shortcut";
+"Changes details that are hidden here, such as a URL's password or query." = "Changes details that are hidden here, such as a URL's password or query.";
 "Changes the interface immediately. Transcription and notes languages are set separately." = "Changes the interface immediately. Transcription and notes languages are set separately.";
 "Change…" = "Change…";
 "Check Setup…" = "Check Setup…";
@@ -182,6 +194,7 @@
 "Clear search filters" = "Clear search filters";
 "Clear selection" = "Clear selection";
 "Dictation already uses this shortcut. Choose another." = "Dictation already uses this shortcut. Choose another.";
+"Don't Allow" = "Don't Allow";
 "Hold the modifiers and press a key, like ⌃⇧ Space." = "Hold the modifiers and press a key, like ⌃⇧ Space.";
 "macOS already uses this shortcut. Choose another." = "macOS already uses this shortcut. Choose another.";
 "Model folder selection cleared" = "Model folder selection cleared";
@@ -303,6 +316,8 @@
 "Downloading…" = "Downloading…";
 "Downloads use the model provider. They do not send your meeting content. Existing downloaded models are kept." = "Downloads use the model provider. They do not send your meeting content. Existing downloaded models are kept.";
 "Draft Follow-up…" = "Draft Follow-up…";
+"Drop an audio or video file to import it." = "Drop an audio or video file to import it.";
+"Drop to import" = "Drop to import";
 "Draft follow-up for latest meeting" = "Draft follow-up for latest meeting";
 "Due" = "Due";
 "Due date as agreed" = "Due date as agreed";
@@ -416,6 +431,12 @@
 "Image space recovered" = "Image space recovered";
 "Image zoom" = "Image zoom";
 "Images to remove" = "Images to remove";
+"Import" = "Import";
+"Import a recording" = "Import a recording";
+"Import an audio or video recording" = "Import an audio or video recording";
+"Import Recording" = "Import Recording";
+"Import Recording…" = "Import Recording…";
+"Importing %@…" = "Importing %@…";
 "In progress" = "In progress";
 "Include saved moments" = "Include saved moments";
 "Include the transcript" = "Include the transcript";
@@ -460,7 +481,7 @@
 "Legacy rule · review" = "Legacy rule · review";
 "Lets MCP clients and the lokalbot-cli skill (Claude, Cursor, …) list, read, search, and ask about your meetings — read-only and localhost only. Off by default." = "Lets MCP clients and the lokalbot-cli skill (Claude, Cursor, …) list, read, search, and ask about your meetings — read-only and localhost only. Off by default.";
 "Lets dictation and cotyping detect their global keyboard shortcuts." = "Lets dictation and cotyping detect their global keyboard shortcuts.";
-"Lets lokalbot-cli read your settings and app status, open Settings at a setting, and start LokalBot in the background. Separate from the other agent access toggles. Off by default." = "Lets lokalbot-cli read your settings and app status, open Settings at a setting, and start LokalBot in the background. Separate from the other agent access toggles. Off by default.";
+"Lets lokalbot-cli read and change your preferences, show you a setting, and start LokalBot in the background. Turning on capture, a data source, or sharing still needs you here. Separate from the other agent access toggles. Off by default." = "Lets lokalbot-cli read and change your preferences, show you a setting, and start LokalBot in the background. Turning on capture, a data source, or sharing still needs you here. Separate from the other agent access toggles. Off by default.";
 "Library" = "Library";
 "Library location" = "Library location";
 "Light" = "Light";
@@ -479,7 +500,7 @@
 "Local journal" = "Local journal";
 "Local models process on this Mac. Each remote server requires its own approval before context can leave the Mac." = "Local models process on this Mac. Each remote server requires its own approval before context can leave the Mac.";
 "Logs, health reports, settings without secrets, and library counts. Never meeting audio, transcripts, notes, or screenshots." = "Logs, health reports, settings without secrets, and library counts. Never meeting audio, transcripts, notes, or screenshots.";
-"LokalBot detects meeting apps automatically, or start a recording now." = "LokalBot detects meeting apps automatically, or start a recording now.";
+"LokalBot detects meeting apps automatically, or start a recording now. You can also drop an audio or video file here." = "LokalBot detects meeting apps automatically, or start a recording now. You can also drop an audio or video file here.";
 "LokalBot is free and built by one person. A GitHub star helps others find it." = "LokalBot is free and built by one person. A GitHub star helps others find it.";
 "LokalBot manages this model and rebuilds the local index when it changes." = "LokalBot manages this model and rebuilds the local index when it changes.";
 "LokalBot never sends this. Copy it into your mail or chat app to send it yourself." = "LokalBot never sends this. Copy it into your mail or chat app to send it yourself.";
@@ -589,6 +610,7 @@
 "No suggested names match this search." = "No suggested names match this search.";
 "No supporting passage was stored." = "No supporting passage was stored.";
 "No transcript speakers are available yet." = "No transcript speakers are available yet.";
+"None" = "None";
 "None yet" = "None yet";
 "Not connected" = "Not connected";
 "Not now" = "Not now";
@@ -600,6 +622,7 @@
 "Notes language" = "Notes language";
 "Notes template" = "Notes template";
 "Nothing in saved moments, captured screens, or meetings matches this search." = "Nothing in saved moments, captured screens, or meetings matches this search.";
+"Nothing is waiting for your approval." = "Nothing is waiting for your approval.";
 "Nothing recording right now" = "Nothing recording right now";
 "OK" = "OK";
 "Off" = "Off";
@@ -644,6 +667,7 @@
 "OpenAI-compatible server" = "OpenAI-compatible server";
 "Opening Session…" = "Opening Session…";
 "Opens the correct Settings pane and shows a draggable LokalBot app row." = "Opens the correct Settings pane and shows a draggable LokalBot app row.";
+"or record a meeting — it appears in the list automatically." = "or record a meeting — it appears in the list automatically.";
 "Original Wording" = "Original Wording";
 "Original wording or YYYY-MM-DD" = "Original wording or YYYY-MM-DD";
 "Other activity" = "Other activity";
@@ -720,11 +744,11 @@
 "Ready" = "Ready";
 "Reasoning" = "Reasoning";
 "Recent" = "Recent";
+"Recent changes by agents" = "Recent changes by agents";
 "Recent generations" = "Recent generations";
 "Reconnect" = "Reconnect";
 "Record Capture Trace (60 s)" = "Record Capture Trace (60 s)";
 "Record Now" = "Record Now";
-"Record a meeting — it appears in the list automatically." = "Record a meeting — it appears in the list automatically.";
 "Record automatically" = "Record automatically";
 "Record now" = "Record now";
 "Record your side of each call." = "Record your side of each call.";
@@ -761,6 +785,7 @@
 "Remove from List" = "Remove from List";
 "Remove the other side from your microphone track" = "Remove the other side from your microphone track";
 "Remove…" = "Remove…";
+"Removes: %@" = "Removes: %@";
 "Rename" = "Rename";
 "Rename…" = "Rename…";
 "Repair Agent Mode" = "Repair Agent Mode";
@@ -882,8 +907,11 @@
 "Session preview" = "Session preview";
 "Sessions" = "Sessions";
 "Set by the model" = "Set by the model";
+"Set up LokalBot with your agent" = "Set up LokalBot with your agent";
+"Set Up with Your Agent" = "Set Up with Your Agent";
 "Settings" = "Settings";
 "Settings categories" = "Settings categories";
+"Settings changed from the terminal. Undo restores the earlier value while the setting still holds the agent's." = "Settings changed from the terminal. Undo restores the earlier value while the setting still holds the agent's.";
 "Settings navigation" = "Settings navigation";
 "Settings…" = "Settings…";
 "Setup progress" = "Setup progress";
@@ -957,7 +985,7 @@
 "Summarization" = "Summarization";
 "Summarize automatically after transcription" = "Summarize automatically after transcription";
 "Summary" = "Summary";
-"Symlinks the bundled CLI at ~/.local/bin/lokalbot-cli and the skill into ~/.agents/skills and ~/.claude/skills. Read-only by design." = "Symlinks the bundled CLI at ~/.local/bin/lokalbot-cli and the skill into ~/.agents/skills and ~/.claude/skills. Read-only by design.";
+"Symlinks the bundled CLI at ~/.local/bin/lokalbot-cli and the skill into ~/.agents/skills and ~/.claude/skills. Library access is read-only; changing settings needs its own toggle under Privacy." = "Symlinks the bundled CLI at ~/.local/bin/lokalbot-cli and the skill into ~/.agents/skills and ~/.claude/skills. Library access is read-only; changing settings needs its own toggle under Privacy.";
 "System" = "System";
 "System audio input level" = "System audio input level";
 "System default" = "System default";
@@ -1086,6 +1114,8 @@
 "Voice" = "Voice";
 "Wait before stopping" = "Wait before stopping";
 "Waiting for models" = "Waiting for models";
+"wants to change LokalBot settings." = "wants to change LokalBot settings.";
+"wants to save an API key in LokalBot." = "wants to save an API key in LokalBot.";
 "Weekly log day" = "Weekly log day";
 "Weekly work log" = "Weekly work log";
 "Welcome to LokalBot" = "Welcome to LokalBot";
@@ -1132,7 +1162,6 @@
 "— inline AI autocomplete that stays on your Mac." = "— inline AI autocomplete that stays on your Mac.";
 "↑↓ Navigate" = "↑↓ Navigate";
 "↩ Open" = "↩ Open";
-"简体中文" = "简体中文";
 "Local model folder" = "Local model folder";
 "Choose model folder…" = "Choose model folder…";
 "Model format & downloads" = "Model format & downloads";
