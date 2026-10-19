@@ -545,7 +545,7 @@ impl ProjectsPage {
         let ask_data = self.data.clone();
         let question = lokalbot_i18n::format(
             "What is the latest on {0}?",
-            &[("0", format!("{}", project.name))],
+            &[("0", project.name.to_string())],
         );
         let meeting_ids: Vec<Uuid> = project.meetings.iter().map(|m| m.id).collect();
         let menu_page = page.clone();
@@ -613,10 +613,7 @@ impl ProjectsPage {
                                                     "Also: {0}",
                                                     &[(
                                                         "0",
-                                                        format!(
-                                                            "{}",
-                                                            project.other_names.join(", ")
-                                                        ),
+                                                        project.other_names.join(", ").to_string(),
                                                     )],
                                                 ),
                                             )),
@@ -633,7 +630,7 @@ impl ProjectsPage {
                                 .icon(Icon::new(Ico::TextSearch))
                                 .label(lokalbot_i18n::format(
                                     "Ask About {0}",
-                                    &[("0", format!("{}", project.name))],
+                                    &[("0", project.name.to_string())],
                                 ))
                                 .on_click(move |_, _, cx| {
                                     let request = AskRequest {
@@ -671,11 +668,11 @@ impl ProjectsPage {
                     .child(
                         v_flex()
                             .gap(px(10.))
-                            .child(div().text_size(ty::BODY).text_color(lb.text).child(crate::ui::text::paragraph(lokalbot_i18n::format("{0} came up in {1}. Track it to keep a note on where it stands, or hide it if it is not a project.", &[("0", format!("{}", project.name)), ("1", format!("{}", profile::count(count, "meeting")))]))))
+                            .child(div().text_size(ty::BODY).text_color(lb.text).child(crate::ui::text::paragraph(lokalbot_i18n::format("{0} came up in {1}. Track it to keep a note on where it stands, or hide it if it is not a project.", &[("0", project.name.to_string()), ("1", profile::count(count, "meeting").to_string())]))))
                             .child(
                                 h_flex()
                                     .gap(px(8.))
-                                    .child(Button::new("project-track").primary().icon(Icon::new(Ico::Plus)).label(lokalbot_i18n::format("Track {0}", &[("0", format!("{}", project.name))])).on_click(
+                                    .child(Button::new("project-track").primary().icon(Icon::new(Ico::Plus)).label(lokalbot_i18n::format("Track {0}", &[("0", project.name.to_string())])).on_click(
                                         move |_, _, cx| {
                                             let name = track_name.clone();
                                             track_page.update(cx, |page, cx| page.track(&name, Vec::new(), cx))
@@ -744,7 +741,7 @@ impl ProjectsPage {
                     lokalbot_i18n::format(
                         "Show {0} last mentioned over {LOOKBACK_DAYS} days ago",
                         &[
-                            ("0", format!("{}", profile::count(count, "older action"))),
+                            ("0", profile::count(count, "older action").to_string()),
                             ("LOOKBACK_DAYS", format!("{}", LOOKBACK_DAYS)),
                         ],
                     )
@@ -1015,7 +1012,7 @@ impl ProjectsPage {
                     let page = cx.entity();
                     let meeting = point.meeting_id.as_deref().and_then(|id| Uuid::parse_str(id).ok());
                     let source = match (&point.meeting_title, &point.meeting_date) {
-                        (Some(title), Some(date)) => Some(lokalbot_i18n::format("{title} · {date}", &[("title", format!("{}", title)), ("date", format!("{}", date))])),
+                        (Some(title), Some(date)) => Some(lokalbot_i18n::format("{title} · {date}", &[("title", title.to_string()), ("date", date.to_string())])),
                         (Some(title), None) => Some(title.clone()),
                         _ => None,
                     };
@@ -1123,7 +1120,7 @@ fn project_menu(
         menu.item(
             PopupMenuItem::new(lokalbot_i18n::format(
                 "Track {0}",
-                &[("0", format!("{}", project.name))],
+                &[("0", project.name.to_string())],
             ))
             .on_click(move |_, _, cx| {
                 let name = track_name.clone();
@@ -1171,7 +1168,7 @@ fn summary(project: &ProjectProfile, long: bool) -> String {
     } else {
         parts.push(lokalbot_i18n::format(
             "Came up in {meetings}",
-            &[("meetings", format!("{}", meetings))],
+            &[("meetings", meetings.to_string())],
         ));
     }
     if !project.my_actions.is_empty() {
@@ -1192,7 +1189,7 @@ fn summary(project: &ProjectProfile, long: bool) -> String {
     if project.week_seconds >= 60. {
         parts.push(lokalbot_i18n::format(
             "{0} this week",
-            &[("0", format!("{}", profile::duration(project.week_seconds)))],
+            &[("0", profile::duration(project.week_seconds).to_string())],
         ));
     }
     if let Some(last) = project.last_active {

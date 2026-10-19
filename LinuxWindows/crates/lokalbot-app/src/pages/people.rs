@@ -194,7 +194,7 @@ impl PeoplePage {
             let save_input = input.clone();
             let (save_id, reset_id) = (person_id.clone(), person_id.clone());
             let (save_members, reset_members) = (members.clone(), members.clone());
-            dialog.title(lokalbot_i18n::format("Rename {name}", &[("name", format!("{}", name))])).w(px(440.)).child(
+            dialog.title(lokalbot_i18n::format("Rename {name}", &[("name", name.to_string())])).w(px(440.)).child(
                 v_flex()
                     .gap(px(12.))
                     .child(Input::new(&input))
@@ -568,7 +568,7 @@ impl PeoplePage {
         let ask_data = self.data.clone();
         let question = lokalbot_i18n::format(
             "What has {0} been working on lately, and what is open between us?",
-            &[("0", format!("{}", person.name))],
+            &[("0", person.name.to_string())],
         );
         let meeting_ids: Vec<Uuid> = person.meetings.iter().map(|m| m.id).collect();
         let page = cx.entity();
@@ -609,10 +609,7 @@ impl PeoplePage {
                                                     "Also appears as {0}",
                                                     &[(
                                                         "0",
-                                                        format!(
-                                                            "{}",
-                                                            person.other_names.join(", ")
-                                                        ),
+                                                        person.other_names.join(", ").to_string(),
                                                     )],
                                                 ),
                                             )),
@@ -629,7 +626,7 @@ impl PeoplePage {
                                 .icon(Icon::new(Ico::TextSearch))
                                 .label(lokalbot_i18n::format(
                                     "Ask About {first}",
-                                    &[("first", format!("{}", first))],
+                                    &[("first", first.to_string())],
                                 ))
                                 .disabled(person.meetings.is_empty())
                                 .on_click(move |_, _, cx| {
@@ -704,7 +701,7 @@ impl PeoplePage {
                     profile::empty_row(
                         lokalbot_i18n::format(
                             "Nothing open between you and {first}.",
-                            &[("first", format!("{}", first))],
+                            &[("first", first.to_string())],
                         ),
                         cx,
                     ),
@@ -732,7 +729,7 @@ impl PeoplePage {
                         Ico::ArrowDownLeft,
                         lokalbot_i18n::format(
                             "Waiting on {first}",
-                            &[("first", format!("{}", first))],
+                            &[("first", first.to_string())],
                         ),
                         rows,
                         cx,
@@ -799,7 +796,7 @@ impl PeoplePage {
                         } else {
                             lokalbot_i18n::format(
                                 "{0} (suggested)",
-                                &[("0", format!("{}", link.name))],
+                                &[("0", link.name.to_string())],
                             )
                         };
                         let target = link.id.clone();
@@ -872,7 +869,7 @@ impl PeoplePage {
             profile::empty_row(
                 lokalbot_i18n::format(
                     "{first} appears only as an action owner.",
-                    &[("first", format!("{}", first))],
+                    &[("first", first.to_string())],
                 ),
                 cx,
             )

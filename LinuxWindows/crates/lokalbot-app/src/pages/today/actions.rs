@@ -572,7 +572,7 @@ impl ActionsWorkspace {
                     .child(label(lokalbot_i18n::tr("Original Wording")))
                     .child(div().text_size(ty::BODY).text_color(lb.text).child(reference.original_text.clone()))
                     .when_some(reference.action.due.clone(), |this, due| {
-                        this.child(div().text_size(ty::SECONDARY).text_color(lb.text_secondary).child(crate::ui::text::paragraph(lokalbot_i18n::format("Original due phrase: {due}", &[("due", format!("{}", due))]))))
+                        this.child(div().text_size(ty::SECONDARY).text_color(lb.text_secondary).child(crate::ui::text::paragraph(lokalbot_i18n::format("Original due phrase: {due}", &[("due", due.to_string())]))))
                     })
                     .children(reference.citations.iter().enumerate().map(|(ix, citation)| {
                         let data = self.data.clone();

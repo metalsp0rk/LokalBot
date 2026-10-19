@@ -64,7 +64,7 @@ pub(crate) fn set_thread_status(
         "Mark all {0}",
         &[(
             "0",
-            format!("{}", lokalbot_i18n::tr(status.label()).to_lowercase()),
+            lokalbot_i18n::tr(status.label()).to_lowercase().to_string(),
         )],
     )
     .into();
@@ -409,20 +409,18 @@ fn sources_popover(
                             "Owner: {0}",
                             &[(
                                 "0",
-                                format!(
-                                    "{}",
-                                    crate::pages::meetings::model::display_label(
-                                        owner,
-                                        reference.is_for_user
-                                    )
-                                ),
+                                crate::pages::meetings::model::display_label(
+                                    owner,
+                                    reference.is_for_user,
+                                )
+                                .to_string(),
                             )],
                         ));
                     }
                     if let Some(due) = reference.due.as_deref() {
                         details.push(lokalbot_i18n::format(
                             "Due: {due}",
-                            &[("due", format!("{}", due))],
+                            &[("due", due.to_string())],
                         ));
                     }
                     details.push(lokalbot_i18n::tr(reference.status.label()).to_string());
@@ -467,7 +465,7 @@ fn sources_popover(
                                     .text_color(lb.text_secondary)
                                     .child(crate::ui::text::paragraph(lokalbot_i18n::format(
                                         "Corrected to: {0}",
-                                        &[("0", format!("{}", reference.text))],
+                                        &[("0", reference.text.to_string())],
                                     ))),
                             )
                         })

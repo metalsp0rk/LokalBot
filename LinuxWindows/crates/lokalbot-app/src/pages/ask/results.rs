@@ -26,19 +26,19 @@ impl AskPage {
         let count_text = {
             let base = history::count_label(count, "result");
             let base = if self.results.truncated {
-                lokalbot_i18n::format("More than {base}", &[("base", format!("{}", base))])
+                lokalbot_i18n::format("More than {base}", &[("base", base.to_string())])
             } else {
                 base
             };
             if asks {
                 lokalbot_i18n::format(
                     "{base} · Return asks · ↓ to pick a result",
-                    &[("base", format!("{}", base))],
+                    &[("base", base.to_string())],
                 )
             } else {
                 lokalbot_i18n::format(
                     "{base} · Return opens · Ctrl+Return asks",
-                    &[("base", format!("{}", base))],
+                    &[("base", base.to_string())],
                 )
             }
         };
@@ -86,9 +86,9 @@ impl AskPage {
             let message = lokalbot_i18n::format(
                 "No results for “{0}” in {1} · {2}.",
                 &[
-                    ("0", format!("{}", self.query.trim())),
-                    ("1", format!("{}", self.sources.summary())),
-                    ("2", format!("{}", self.date_scope.label())),
+                    ("0", self.query.trim().to_string()),
+                    ("1", self.sources.summary().to_string()),
+                    ("2", self.date_scope.label().to_string()),
                 ],
             );
             let filtered = self.facet != Facet::All || self.date_scope != DateScope::AnyTime;
@@ -269,10 +269,7 @@ impl AskPage {
             .to_string();
         let mut meta = lokalbot_i18n::format(
             "{0} · {when}",
-            &[
-                ("0", format!("{}", moment.app)),
-                ("when", format!("{}", when)),
-            ],
+            &[("0", moment.app.to_string()), ("when", when.to_string())],
         );
         if screen.captures > 1 {
             meta.push_str(&lokalbot_i18n::format(

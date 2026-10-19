@@ -369,7 +369,7 @@ pub(crate) fn digest_card(
                     .when_some(updated, |this, at| {
                         this.child(crate::ui::text::paragraph(lokalbot_i18n::format(
                             "Updated {0}",
-                            &[("0", format!("{}", lokalbot_core::time::clock_time(at)))],
+                            &[("0", lokalbot_core::time::clock_time(at).to_string())],
                         )))
                     })
                     .when(digest.is_stale, |this| {
@@ -618,7 +618,7 @@ fn task_groups(
                             .child(crate::ui::text::paragraph(lokalbot_i18n::format(
                                 "{0} · {count}",
                                 &[
-                                    ("0", format!("{}", status.group_title())),
+                                    ("0", status.group_title().to_string()),
                                     ("count", format!("{}", count)),
                                 ],
                             ))),

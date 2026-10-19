@@ -194,18 +194,15 @@ impl TimelinePage {
             &[
                 (
                     "0",
-                    format!("{}", lokalbot_core::time::clock_time(session.start)),
+                    lokalbot_core::time::clock_time(session.start).to_string(),
                 ),
                 (
                     "1",
-                    format!("{}", lokalbot_core::time::clock_time(session.end)),
+                    lokalbot_core::time::clock_time(session.end).to_string(),
                 ),
                 (
                     "2",
-                    format!(
-                        "{}",
-                        crate::pages::today::digest::hm(session.active_seconds)
-                    ),
+                    crate::pages::today::digest::hm(session.active_seconds).to_string(),
                 ),
             ],
         );
@@ -465,7 +462,7 @@ impl TimelinePage {
                         this.ask_day(
                             lokalbot_i18n::format(
                                 "What matters from my work session on {title}?",
-                                &[("title", format!("{}", title))],
+                                &[("title", title.to_string())],
                             ),
                             Vec::new(),
                             cx,
@@ -830,7 +827,7 @@ impl TimelinePage {
                             this.ask_day(
                                 lokalbot_i18n::format(
                                     "What matters from {title}?",
-                                    &[("title", format!("{}", title))],
+                                    &[("title", title.to_string())],
                                 ),
                                 vec![meeting_id],
                                 cx,
