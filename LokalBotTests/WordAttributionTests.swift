@@ -151,6 +151,133 @@ final class WordAttributionTests: XCTestCase {
         XCTAssertEqual(Double(snapshot.files.reduce(0) { $0 + $1.bytes }) / 1e9, 1, accuracy: 0.05)
     }
 
+    // MARK: - Word times from the transcription server
+
+    /// MAI-Transcribe-2's words for a synthetic clip: one voice, then another
+    /// from 5.0 s (`RemoteTranscriptionEngineTests.recordedVerboseJSON`).
+    private let twoVoices = WordTimedTranscript.Segment(
+        segment: .init(start: 0, end: 8.2, speaker: "speaker",
+                       text: "The quarterly plan is ready for review. Thanks. I will send my notes tomorrow.",
+                       timingPrecision: .span),
+        words: [("The", 0.08, 0.179), ("quarterly", 0.24, 0.62), ("plan", 0.72, 0.92), ("is", 0.98, 1.06),
+                ("ready", 1.16, 1.36), ("for", 1.4, 1.519), ("review.", 1.64, 1.979), ("Thanks.", 5.16, 5.66),
+                ("I", 5.96, 6.04), ("will", 6.08, 6.24), ("send", 6.36, 6.539), ("my", 6.6, 6.719),
+                ("notes", 6.84, 7.08), ("tomorrow.", 7.16, 7.719)].map { AlignedWordTiming(text: $0.0, start: $0.1, end: $0.2) })
+    private let twoTurns: [DiarizedSegment] = [.init(start: 0, end: 2.1, speakerId: "A"),
+                                               .init(start: 5.1, end: 7.8, speakerId: "B")]
+
+    @MainActor
+    func testServerWordTimesSkipTheAligner() async throws {
+        let engine = ServerTimedASR(providesWordTimings: true, segments: [twoVoices])
+        let aligner = AlignerFetches()
+
+        let result = try await AttributedTrackTranscriber.transcribe(
+            url: URL(fileURLWithPath: "/nonexistent/track.wav"), duration: 10, diarization: twoTurns, source: .system,
+            engine: engine, language: "en", prompt: nil, prepareAligner: { try aligner.fetch() })
+
+        XCTAssertEqual(result.segments.map(\.text),
+                       ["The quarterly plan is ready for review.", "Thanks. I will send my notes tomorrow."])
+        XCTAssertEqual(result.segments.map(\.speaker), ["them 1", "them 2"])
+        XCTAssertEqual(result.segments.map(\.start), [0, 5.1])
+        XCTAssertEqual(result.segments.map(\.end), [2.1, 7.8])
+        XCTAssertEqual(result.engine, "Server fixture")
+        XCTAssertEqual(aligner.count, 0, "Not even downloaded")
+        XCTAssertEqual(engine.calls.regions, 0)
+    }
+
+    @MainActor
+    func testServerWordTimesAttributeLanguagesTheAlignerLacks() async throws {
+        let serbian = WordTimedTranscript.Segment(
+            segment: .init(start: 0, end: 8, speaker: "speaker",
+                           text: "Plan je spreman za pregled. Hvala, poslaću beleške sutra.", timingPrecision: .span),
+            words: [("Plan", 0.1, 0.4), ("je", 0.45, 0.55), ("spreman", 0.6, 1.0), ("za", 1.05, 1.15),
+                    ("pregled.", 1.2, 1.8), ("Hvala,", 5.2, 5.6), ("poslaću", 5.7, 6.1), ("beleške", 6.2, 6.6),
+                    ("sutra.", 6.7, 7.2)].map { AlignedWordTiming(text: $0.0, start: $0.1, end: $0.2) })
+        let engine = ServerTimedASR(providesWordTimings: true, segments: [serbian])
+        let aligner = AlignerFetches()
+
+        let result = try await AttributedTrackTranscriber.transcribe(
+            url: URL(fileURLWithPath: "/nonexistent/track.wav"), duration: 10, diarization: twoTurns, source: .system,
+            engine: engine, language: "sr", prompt: nil, prepareAligner: { try aligner.fetch() })
+
+        XCTAssertEqual(result.segments.map(\.text), ["Plan je spreman za pregled.", "Hvala, poslaću beleške sutra."])
+        XCTAssertEqual(result.segments.map(\.speaker), ["them 1", "them 2"])
+        XCTAssertEqual(aligner.count, 0)
+        XCTAssertEqual(engine.calls.regions, 0, "Before server word times, Serbian fell back to speaker regions")
+    }
+
+    @MainActor
+    func testSegmentsTheServerLeftUntimedAreAlignedOrKeptWhole() async throws {
+        let untimed = WordTimedTranscript.Segment(
+            segment: .init(start: 7.9, end: 8.6, speaker: "speaker", text: "Okay, see you then.", timingPrecision: .span))
+        let engine = ServerTimedASR(providesWordTimings: true, segments: [twoVoices, untimed])
+        let aligner = AlignerFetches(fails: true)
+
+        let result = try await AttributedTrackTranscriber.transcribe(
+            url: URL(fileURLWithPath: "/nonexistent/track.wav"), duration: 10, diarization: twoTurns, source: .system,
+            engine: engine, language: "en", prompt: nil, prepareAligner: { try aligner.fetch() })
+
+        XCTAssertEqual(aligner.count, 1, "Only the untimed segment needs the aligner")
+        XCTAssertEqual(result.segments.map(\.text), ["The quarterly plan is ready for review.",
+                                                     "Thanks. I will send my notes tomorrow.", "Okay, see you then."])
+        XCTAssertEqual(result.segments.map(\.speaker), ["them 1", "them 2", "them 2"],
+                       "Without the aligner the untimed segment keeps the speaker at its midpoint")
+        XCTAssertEqual(engine.calls.regions, 0)
+    }
+
+    @MainActor
+    func testWithoutAnyWordTimesAnUnsupportedLanguageStillUsesRegions() async throws {
+        let url = try writeTrack(seconds: 10)
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        var untimed = twoVoices
+        untimed.words = nil
+        let engine = ServerTimedASR(providesWordTimings: true, segments: [untimed])
+        let aligner = AlignerFetches()
+
+        let result = try await AttributedTrackTranscriber.transcribe(
+            url: url, duration: 10, diarization: twoTurns, source: .system,
+            engine: engine, language: "sr", prompt: nil, prepareAligner: { try aligner.fetch() })
+
+        XCTAssertEqual(aligner.count, 0)
+        XCTAssertEqual(engine.calls.wordAttribution, 1)
+        XCTAssertEqual(engine.calls.regions, 4)
+        XCTAssertEqual(Set(result.segments.map(\.speaker)), ["them", "them 1", "them 2"])
+    }
+
+    @MainActor
+    func testEnginesWithoutWordTimesFetchTheAlignerBeforeTranscribing() async throws {
+        let url = try writeTrack(seconds: 10)
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        let engine = ServerTimedASR(providesWordTimings: false, segments: [twoVoices])
+        let aligner = AlignerFetches(fails: true)
+
+        _ = try await AttributedTrackTranscriber.transcribe(
+            url: url, duration: 10, diarization: twoTurns, source: .system,
+            engine: engine, language: "en", prompt: nil, prepareAligner: { try aligner.fetch() })
+
+        XCTAssertEqual(aligner.count, 1)
+        XCTAssertEqual(engine.calls.wordAttribution, 0, "An unavailable aligner means speaker regions, as before")
+        XCTAssertEqual(engine.calls.regions, 4)
+    }
+
+    func testServerWordsThatDoNotMatchTheTextGoToTheAligner() {
+        XCTAssertEqual(AttributedTrackTranscriber.engineWords(of: twoVoices)?.count, 14)
+        var mismatched = twoVoices
+        mismatched.words?[3].text = "was"
+        XCTAssertNil(AttributedTrackTranscriber.engineWords(of: mismatched))
+        mismatched.words = []
+        XCTAssertNil(AttributedTrackTranscriber.engineWords(of: mismatched))
+    }
+
+    private func writeTrack(seconds: Int) throws -> URL {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("lokalbot-word-attribution-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let url = directory.appendingPathComponent("track.wav")
+        try OnnxTranscriptionEngine.writeWav([Float](repeating: 0.1, count: seconds * 16_000), to: url)
+        return url
+    }
+
     /// Opt-in hardware check: the pinned digests match the real files, which
     /// load offline and time every word. No network access is allowed.
     func testCachedAlignerVerifiesPinsAndTimesEveryWord() async throws {
@@ -164,5 +291,47 @@ final class WordAttributionTests: XCTestCase {
             .align(samples, text: "Three short words.", language: "en")
         XCTAssertEqual(words.map(\.text), ["Three", "short", "words."])
         XCTAssertTrue(words.allSatisfy { $0.start >= 0 && $0.start <= $0.end && $0.end <= 3.1 })
+    }
+}
+
+/// A word-attribution engine whose transcript carries the given word times.
+/// Speaker regions, the fallback, answer each region with fixed text.
+private struct ServerTimedASR: TranscriptionEngine {
+    final class Calls: @unchecked Sendable {
+        var wordAttribution = 0
+        var regions = 0
+    }
+
+    var providesWordTimings: Bool
+    var segments: [WordTimedTranscript.Segment]
+    let calls = Calls()
+
+    var displayName: String { "Server fixture" }
+    var supportsStreaming: Bool { false }
+    var speakerAttribution: SpeakerAttributionStrategy { .alignedWords }
+    func prepare(progress: ModelPreparationProgressHandler?) async throws {}
+
+    func transcribe(audio: URL, language: String?) async throws -> Transcript {
+        calls.regions += 1
+        return Transcript(segments: [.init(start: 0, end: 0.05, speaker: "", text: "Region text.")],
+                          engine: displayName)
+    }
+
+    func transcribeForWordAttribution(audio: URL, language: String?, prompt: String?) async throws -> WordTimedTranscript {
+        calls.wordAttribution += 1
+        return WordTimedTranscript(segments: segments, engine: displayName)
+    }
+}
+
+@MainActor
+private final class AlignerFetches {
+    private let fails: Bool
+    private(set) var count = 0
+
+    init(fails: Bool = false) { self.fails = fails }
+
+    func fetch() throws {
+        count += 1
+        if fails { throw URLError(.notConnectedToInternet) }
     }
 }

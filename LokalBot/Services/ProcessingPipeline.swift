@@ -1009,7 +1009,7 @@ final class ProcessingPipeline: ObservableObject {
         // Reject missing or unreadable recordings before any model download.
         guard !sources.isEmpty else { throw PipelineError.noAudio }
         try await yieldToCapture(meetingID: meeting.id)
-        if config.multiSpeakerDiarization { try await prepareDiarizationModels(config: config) }
+        if config.multiSpeakerDiarization { try await prepareDiarizationModels(config: config, engine: engine) }
         let language = config.transcriptionLanguage.code
         var tracks: [Transcript] = []
         var voiceSamples: [SpeakerVoiceSample] = []
@@ -1163,11 +1163,14 @@ final class ProcessingPipeline: ObservableObject {
     /// Shared by recording-time prewarm and the post-meeting stage. The
     /// `NeuralDiarizationEngine` instance is retained by this pipeline, so the
     /// downloaded/prepared models are reused instead of rebuilt per job.
-    func prepareDiarizationModels(config: AppSettings) async throws {
+    func prepareDiarizationModels(config: AppSettings, engine: TranscriptionEngine) async throws {
         try await diarizer.prepareModels(model: config.diarizationModel, includeVoiceSamples: config.rememberSpeakersOnMac)
-        guard config.transcriptionModel.engine.speakerAttribution == .alignedWords else { return }
+        guard config.transcriptionModel.engine.speakerAttribution == .alignedWords,
+              !engine.providesWordTimings else { return }
         // Fetch the word aligner with the speaker models. A failure is not
-        // fatal: attribution falls back to speaker regions for this job.
+        // fatal: attribution falls back to speaker regions for this job. A
+        // server that times words itself fetches it only if a clip comes
+        // back without word times.
         do {
             try await QwenWordAligner.shared.downloadIfNeeded()
         } catch is CancellationError {
