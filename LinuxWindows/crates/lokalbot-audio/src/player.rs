@@ -11,8 +11,9 @@ use std::time::Duration;
 use anyhow::{Context, Result, anyhow, bail};
 use parking_lot::Mutex;
 
+use crate::decode::TrackReader;
 use crate::stretch::{SampleSource, Wsola};
-use crate::wav::{SAMPLE_RATE, WavReader};
+use crate::wav::SAMPLE_RATE;
 
 pub const MIN_SPEED: f32 = 0.75;
 pub const MAX_SPEED: f32 = 2.0;
@@ -20,7 +21,7 @@ pub const MAX_SPEED: f32 = 2.0;
 const BLOCK: usize = SAMPLE_RATE as usize / 50;
 
 struct Track {
-    reader: WavReader,
+    reader: TrackReader,
     gain: f32,
     frames: u64,
     /// Frame the reader will return next.
@@ -216,12 +217,12 @@ impl Player {
             (mic, if both { 0.55 } else { 1.0 }),
         ] {
             let Some(path) = path else { continue };
-            let reader = WavReader::open(path)
+            let reader = TrackReader::open(path)
                 .with_context(|| format!("could not open {}", path.display()))?;
-            if reader.info().sample_rate != SAMPLE_RATE {
+            if reader.sample_rate() != SAMPLE_RATE {
                 bail!("{} is not a 16 kHz track", path.display());
             }
-            let frames = reader.info().frames();
+            let frames = reader.frames();
             tracks.push(Track {
                 reader,
                 gain,

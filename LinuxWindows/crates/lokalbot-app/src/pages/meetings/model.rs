@@ -262,12 +262,11 @@ pub fn load(library: &Library, meeting: Meeting) -> MeetingDoc {
     let summary = library.summary(&meeting).ok().flatten();
     let notes = library.notes(&meeting).unwrap_or_default();
     let outcomes = library.outcomes(&meeting).ok().flatten();
+    // The WAV tracks this app records, or the `.m4a` a macOS library keeps:
+    // the player and the waveform read both.
     let audio = library.audio(&meeting);
-    // The player reads the 16 kHz WAV tracks this app records; macOS
-    // libraries keep `.m4a`, which plays only on macOS.
-    let is_wav = |p: &&Path| p.extension().is_some_and(|e| e.eq_ignore_ascii_case("wav"));
-    let mic = audio.mic.clone().filter(|p| is_wav(&p.as_path()));
-    let system = audio.system.clone().filter(|p| is_wav(&p.as_path()));
+    let mic = audio.mic.clone();
+    let system = audio.system.clone();
     let has_audio = mic.is_some() || system.is_some();
     let tracks: Vec<&Path> = [mic.as_deref(), system.as_deref()]
         .into_iter()

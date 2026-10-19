@@ -16,6 +16,8 @@ serde.workspace = true
 serde_json.workspace = true
 cpal = "0.18.2"
 rodio = { version = "0.23", default-features = false, features = ["playback"] }
+# Decodes the AAC (.m4a) tracks a macOS library keeps, and FLAC.
+symphonia = { version = "0.6.1", default-features = false, features = ["aac", "isomp4", "flac"] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 # PulseAudio (and PipeWire through pipewire-pulse) over its native protocol,

@@ -17,7 +17,7 @@ More screenshots of both apps are in [docs/screenshots](docs/screenshots).
 
 | Feature | Linux | Windows | Notes |
 | --- | --- | --- | --- |
-| Meetings: record mic + system audio | ✓ (PulseAudio/PipeWire monitor) | ✓ (WASAPI loopback) | No bot joins the call. Tracks are 16 kHz WAV files. |
+| Meetings: record mic + system audio | ✓ (PulseAudio/PipeWire monitor) | ✓ (WASAPI loopback) | No bot joins the call. Tracks are 16 kHz WAV files; meetings recorded on macOS (AAC `.m4a`) play and transcribe too. A recording cut short by a crash or power loss is closed at its last audio when LokalBot starts again, then processed as usual. |
 | On-device transcription | ✓ | ✓ | sherpa-onnx: Qwen3-ASR 0.6B by default; Parakeet v3, SenseVoice and Whisper turbo optional. Speakers are separated with pyannote segmentation and TitaNet embeddings. |
 | Notes, actions, decisions, day digest, project notes, follow-up drafts | ✓ | ✓ | The macOS prompts, run by the built-in llama.cpp server (Vulkan or CPU), Ollama, or an OpenAI-compatible server you approve. Follow-ups are written only by a model on your computer, and LokalBot never sends them. |
 | Ask with citations | ✓ | ✓ | Finds the relevant meetings first (keyword and meaning search), then answers in one model turn. Every citation is checked against the sources it was given. |

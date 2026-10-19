@@ -9,7 +9,7 @@ use std::time::UNIX_EPOCH;
 use anyhow::{Context, Result, bail};
 use serde::{Deserialize, Serialize};
 
-use crate::wav::WavReader;
+use crate::decode::TrackReader;
 
 const CACHE_FILE: &str = ".waveform-peaks.json";
 const CACHE_LIMIT_BYTES: u64 = 1 << 20;
@@ -95,14 +95,14 @@ fn read_cache(path: &Path, key: &str, buckets: usize) -> Option<Vec<f32>> {
 fn compute_peaks(paths: &[&Path], buckets: usize) -> Result<Vec<f32>> {
     let mut readers = Vec::new();
     for path in paths {
-        match WavReader::open(path) {
+        match TrackReader::open(path) {
             Ok(reader) => readers.push(reader),
             Err(error) => log::warn!("waveform: skipping {}: {error}", path.display()),
         }
     }
     let duration = readers
         .iter()
-        .map(|r| r.info().duration_seconds())
+        .map(|r| r.duration_seconds())
         .fold(0.0, f64::max);
     if readers.is_empty() || duration <= 0.0 {
         bail!("no audio to draw");
@@ -110,7 +110,7 @@ fn compute_peaks(paths: &[&Path], buckets: usize) -> Result<Vec<f32>> {
     let mut peaks = vec![0.0f32; buckets];
     let mut block = Vec::new();
     for reader in &mut readers {
-        let rate = reader.info().sample_rate as f64;
+        let rate = reader.sample_rate() as f64;
         let mut frame = 0u64;
         loop {
             block.clear();

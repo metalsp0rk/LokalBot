@@ -360,11 +360,12 @@ fn decode_sample(bytes: &[u8], encoding: SampleEncoding) -> f32 {
     }
 }
 
-/// Whole file as 16 kHz mono `f32`, resampled when the file uses another rate.
+/// A whole track as 16 kHz mono `f32`, in any format the library selects,
+/// resampled when the file uses another rate.
 pub fn read_mono_16k(path: &Path) -> io::Result<Vec<f32>> {
-    let mut reader = WavReader::open(path)?;
-    let rate = reader.info().sample_rate;
-    let mut raw = Vec::with_capacity(reader.info().frames() as usize);
+    let mut reader = crate::decode::TrackReader::open(path)?;
+    let rate = reader.sample_rate();
+    let mut raw = Vec::with_capacity(reader.frames() as usize);
     while reader.read_mono(1 << 16, &mut raw)? > 0 {}
     if rate == SAMPLE_RATE {
         return Ok(raw);
@@ -376,9 +377,9 @@ pub fn read_mono_16k(path: &Path) -> io::Result<Vec<f32>> {
     Ok(out)
 }
 
-/// Seconds of audio in a WAV file.
+/// Seconds of audio in a track, in any format the library selects.
 pub fn duration_seconds(path: &Path) -> io::Result<f64> {
-    Ok(read_info(path)?.duration_seconds())
+    Ok(crate::decode::TrackReader::open(path)?.duration_seconds())
 }
 
 /// Fixes the header of a WAV file whose writer stopped before updating it (a

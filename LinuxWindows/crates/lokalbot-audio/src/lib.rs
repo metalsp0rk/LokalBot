@@ -3,9 +3,12 @@
 //! A meeting is two time-aligned tracks in its folder, `mic.wav` ("Me") and
 //! `system.wav` ("Them"), both 16 kHz mono 16-bit PCM — the format the speech
 //! models read, so no conversion happens before transcription. The macOS app
-//! records AAC `.m4a` files instead; everything else about the tracks matches.
+//! records AAC `.m4a` files instead; [`TrackReader`] reads those (and FLAC) as
+//! the same 16 kHz stream, so playback, waveforms and transcription work on a
+//! library from either platform.
 
 mod capture;
+mod decode;
 mod mic_capture;
 mod player;
 mod recorder;
@@ -17,6 +20,7 @@ mod wav;
 mod waveform;
 
 pub use capture::{AudioDevice, input_devices};
+pub use decode::{CompressedReader, TrackReader};
 pub use mic_capture::MicCapture;
 pub use player::{MAX_SPEED, MIN_SPEED, Player};
 pub use recorder::{

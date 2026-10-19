@@ -26,6 +26,7 @@ the vendor fetch scripts, and `AgentRuntimeManifest`.
 | llama.cpp | MIT | https://github.com/ggml-org/llama.cpp |
 | sherpa-onnx | Apache-2.0 | https://github.com/k2-fsa/sherpa-onnx |
 | ONNX Runtime | MIT | https://github.com/microsoft/onnxruntime |
+| Symphonia (AAC and FLAC decoding in the Linux and Windows app) | MPL-2.0 | https://github.com/pdeljanov/Symphonia |
 | Bun (optional Agent Mode runtime) | MIT | https://github.com/oven-sh/bun |
 | pi agent packages (optional, installed on request) | MIT | https://github.com/earendil-works/pi |
 | LFM models (downloaded on request) | LFM Open License v1.0 | https://docs.liquid.ai/lfm/help/model-license |
