@@ -19,7 +19,7 @@ More screenshots of both apps are in [docs/screenshots](docs/screenshots).
 | --- | --- | --- | --- |
 | Meetings: record mic + system audio | ✓ (PulseAudio/PipeWire monitor) | ✓ (WASAPI loopback) | No bot joins the call. Tracks are 16 kHz WAV files; meetings recorded on macOS (AAC `.m4a`) play and transcribe too. A recording cut short by a crash or power loss is closed at its last audio when LokalBot starts again, then processed as usual. |
 | On-device transcription | ✓ | ✓ | sherpa-onnx: Qwen3-ASR 0.6B by default; Parakeet v3, SenseVoice and Whisper turbo optional. Speakers are separated with pyannote segmentation and TitaNet embeddings. |
-| Notes, actions, decisions, day digest, project notes, follow-up drafts | ✓ | ✓ | The macOS prompts, run by the built-in llama.cpp server (Vulkan or CPU), Ollama, or an OpenAI-compatible server you approve. Follow-ups are written only by a model on your computer, and LokalBot never sends them. |
+| Notes, actions, decisions, day digest, project notes, follow-up drafts | ✓ | ✓ | The macOS prompts, run by the built-in llama.cpp server (Vulkan or CPU), Ollama, an OpenAI-compatible server you approve, or your own ChatGPT or Claude plan (see [Think providers](#think-providers)). Follow-ups are written only by a model on your computer, and LokalBot never sends them. |
 | Ask with citations | ✓ | ✓ | As on macOS, the model looks things up with tools (search, list and read meetings, action items, screen text, app activity) and answers once it has enough; each citation must match a source a tool returned. A Think model running on the CPU, or one with a context window under 16K tokens, instead gets the relevant meetings found first (keyword and meaning search) and answers in one turn. |
 | Keyword and meaning search, Quick Recall | ✓ | ✓ | SQLite FTS5 plus EmbeddingGemma vectors, kept up to date in the background. |
 | Day memory (app and window activity) | X11, Hyprland, Sway, KDE; GNOME with the Window Calls extension | ✓ | Window titles are cleared after the retention window in Privacy settings. |
@@ -31,12 +31,35 @@ More screenshots of both apps are in [docs/screenshots](docs/screenshots).
 | Live transcript preview while recording | ✓ | ✓ | Opt-in from the live meeting view. Each track is transcribed in 4–12 s chunks cut at a pause, as Me and Remote speaker; the full transcript replaces it after the meeting. |
 | Autocomplete in other apps | X11 (GTK; Qt, Chromium/Electron and Firefox once system accessibility is on); Wayland: the practice editor in Settings only | ✓ (apps whose fields support UI Automation) | Off until you turn it on in Settings → Writing. LFM2.5 1.2B on this computer by default, about 250 ms to a suggestion on CPU. Tab accepts a word, Esc dismisses. Password fields, terminals and excluded apps are never read, and nothing is stored. |
 | Agent Mode | ✓ | ✓ (Git Bash, or PowerShell without it) | Runs the pi coding agent with your Think model. Setup downloads Bun and pi (pinned and checksum-verified, about 65 MB on Linux and 70 MB on Windows). File changes and commands need your approval. |
-| Calendar, meeting merge and boundaries, spoken summaries, coding-agent sessions in day memory | — | — | macOS only for now. |
+| Calendar | ✓ (private iCal/CalDAV links; Evolution Data Server, including GNOME Online Accounts) | ✓ (private iCal/CalDAV links) | Off until you turn it on in Settings → Meetings. Titles and stamps recordings like macOS, backs browser calls with the event's meeting link, splits back-to-back meetings, suggests attendee names for speakers, and lists today's meetings on Today with Join, Record and a pre-meeting brief from the local Think model. Links are kept in the system credential store. |
+| Meeting merge and boundaries, spoken summaries, coding-agent sessions in day memory | — | — | macOS only for now. |
+
+## Think providers
+
+Think (notes, digests, Ask, Compose) runs on the built-in model by default. On a PC without a
+supported GPU, local models are slow, so Settings → Models → Connections also offers:
+
+- **OpenAI-compatible server**: any `/v1` URL, such as OpenRouter, OpenAI, Cerebras, LM Studio or
+  llama-server. With OpenRouter, **Provider data use** keeps every request on private endpoints
+  (providers that do not collect inference data) unless you choose to follow your OpenRouter
+  privacy settings. A URL on `api.anthropic.com` uses Anthropic's Messages API, with structured
+  output, effort control and prompt caching for the system prompt and transcript.
+- **Ollama**, on this PC or another one.
+- **ChatGPT plan**: **Continue with ChatGPT** signs in through your browser (OpenAI's Sign in with
+  ChatGPT) and returns to LokalBot on `127.0.0.1`. Requests go to OpenAI's Responses API and count
+  toward your plan. The sign-in is kept only in the system credential store; on a Linux desktop
+  without a Secret Service (GNOME Keyring, KWallet) it cannot be used.
+- **Claude plan**: runs the Claude Code you installed and signed in to yourself (`claude` on PATH,
+  in `~/.local/bin`, or npm's `claude.cmd` on Windows), with its tools, MCP servers, settings and
+  session history turned off. LokalBot never sees your Claude credentials.
+
+Every remote server and each plan needs its own approval before any context leaves your computer.
+Agent Mode runs on the built-in model, Ollama or an OpenAI-compatible server, not on a plan.
 
 ## Install
 
-Download the archive for your platform from the latest CI run (`lokalbot-linux-x86_64`,
-`lokalbot-windows-x86_64`) or release:
+Download the archive for your platform from [GitHub Releases](https://github.com/stevyhacker/lokalbot/releases).
+No release includes the Linux and Windows archives yet; until one does, [build from source](#build-from-source).
 
 - **Linux** (x86_64): extract `LokalBot-<version>-linux-x86_64.tar.gz` and run `./install.sh`. It installs
   `lokalbot` and `lokalbot-cli` into `~/.local/bin` and adds LokalBot to your applications menu.
@@ -50,6 +73,31 @@ default transcription, Think and search models.
 Your library lives in `~/.local/share/LokalBot` on Linux and `%LOCALAPPDATA%\LokalBot` on Windows.
 Set `LOKALBOT_STORAGE_ROOT` or pass `--lokalbot-storage-root <dir>` to use another folder. Logs are in
 the library's `logs` folder (Settings → Advanced → Logs).
+
+### Coding agents
+
+To let Claude Code, Codex and other coding agents read your library, turn on "Allow external agents to read
+your meeting library" in Settings → Privacy & Data, then click **Install for your coding agent…** in
+Settings → Advanced → Agent CLI. It installs the LokalBot skill into `~/.agents/skills` and `~/.claude/skills`
+(under your user folder on Windows) and puts `lokalbot-cli` here:
+
+- **Linux**: `~/.local/bin/lokalbot-cli`. If you used `install.sh`, the CLI is already there and is left as
+  it is. If `~/.local/bin` isn't on your PATH, add it to `~/.bashrc` (or `~/.zshrc`):
+
+  ```bash
+  echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+  ```
+
+- **Windows**: `%LOCALAPPDATA%\Programs\LokalBot\bin\lokalbot-cli.exe`. Add that folder to your PATH from
+  PowerShell, then open a new terminal:
+
+  ```powershell
+  [Environment]::SetEnvironmentVariable('Path', [Environment]::GetEnvironmentVariable('Path', 'User') + ";$env:LOCALAPPDATA\Programs\LokalBot\bin", 'User')
+  ```
+
+The same section has Copy buttons for the MCP setup commands (Claude Code, Codex and other MCP clients), which
+use the full path above. Try it in a terminal with `lokalbot-cli brief`. Without the app,
+`lokalbot-cli install-skill` does the same, and `lokalbot-cli install-skill --uninstall` removes what it installed.
 
 ## Build from source
 

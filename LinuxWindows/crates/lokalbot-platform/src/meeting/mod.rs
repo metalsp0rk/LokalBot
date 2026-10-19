@@ -8,6 +8,12 @@
 //! browsers need a Google Meet window title plus the browser's own mic stream
 //! for 2 s. A meeting ends `stop_debounce` after its evidence disappears.
 //!
+//! The calendar ([`CalendarHint`], `MeetingDetector.swift`) adds evidence but
+//! never replaces it: a browser holding the microphone during an event with
+//! a conferencing link is a call even without a Meet title, a chat app starts
+//! without the sustained wait while an event is on, and a native app gets
+//! extra stop grace inside its event's scheduled window.
+//!
 //! Poll [`MeetingDetector::poll`] every ~2 s from one background thread.
 
 use std::collections::HashMap;
@@ -29,6 +35,20 @@ pub struct DetectedMeeting {
     /// The meeting's name from a browser tab title ("Meet – Weekly sync"),
     /// when it has one.
     pub title_hint: Option<String>,
+}
+
+/// What the calendar says about now; set before each poll.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct CalendarHint {
+    /// A calendar event is active (`calendarBacked` for native apps).
+    pub active: bool,
+    /// The active event's conferencing link, if any.
+    pub meeting_url: Option<String>,
+    /// Browser calls count only with `meeting_url` (`requireCalendarForBrowser`).
+    pub require_for_browser: bool,
+    /// Stop grace for a native app while its event is in its scheduled window
+    /// (`calendarBackedGrace`). Browser calls never get it.
+    pub grace: Option<Duration>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -93,6 +113,9 @@ enum AppKind {
     Slack,
     Discord,
     Meet,
+    /// A browser call on a conferencing site other than Meet, known from the
+    /// calendar event's link ("Zoom", "Teams", …).
+    WebCall(&'static str),
 }
 
 impl AppKind {
@@ -104,7 +127,12 @@ impl AppKind {
             Self::Slack => "Slack",
             Self::Discord => "Discord",
             Self::Meet => "Google Meet",
+            Self::WebCall(name) => name,
         }
+    }
+
+    fn in_browser(self) -> bool {
+        matches!(self, Self::Meet | Self::WebCall(_))
     }
 
     /// Dedicated conferencing apps start at once; chat apps make short sounds
@@ -117,7 +145,7 @@ impl AppKind {
         match self {
             Self::Zoom | Self::Webex => 0,
             Self::Teams => 1,
-            Self::Meet => 2,
+            Self::Meet | Self::WebCall(_) => 2,
             Self::Slack => 3,
             Self::Discord => 4,
         }
@@ -202,6 +230,36 @@ fn meet_title(title: &str) -> Option<Option<String>> {
     Some((!name.is_empty() && !is_code).then(|| name.to_string()))
 }
 
+/// The kind of browser call a calendar link names.
+fn link_kind(url: &str) -> Option<AppKind> {
+    if !lokalbot_core::calendar::is_meeting_url(url) {
+        return None;
+    }
+    let host = lokalbot_core::calendar::url_host(url)?;
+    let is = |domain: &str| host == domain || host.ends_with(&format!(".{domain}"));
+    Some(if is("meet.google.com") {
+        AppKind::Meet
+    } else if is("zoom.us") || is("zoom.com") {
+        AppKind::WebCall("Zoom")
+    } else if is("teams.microsoft.com") || is("teams.live.com") {
+        AppKind::WebCall("Teams")
+    } else if is("webex.com") {
+        AppKind::WebCall("Webex")
+    } else if is("jit.si") {
+        AppKind::WebCall("Jitsi Meet")
+    } else if is("whereby.com") {
+        AppKind::WebCall("Whereby")
+    } else if is("meeting.tencent.com") || is("voovmeeting.com") {
+        AppKind::WebCall("Tencent Meeting")
+    } else if is("vc.feishu.cn") || is("vc.larksuite.com") {
+        AppKind::WebCall("Feishu")
+    } else if is("meeting.dingtalk.com") {
+        AppKind::WebCall("DingTalk")
+    } else {
+        AppKind::WebCall("Browser call")
+    })
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 struct Candidate {
     kind: AppKind,
@@ -240,6 +298,7 @@ struct Core {
     pending: Option<Confirmation>,
     /// Meet titles seen through `observe_window`, by browser family.
     observed_titles: HashMap<&'static str, (Option<String>, Instant)>,
+    calendar: CalendarHint,
 }
 
 impl Core {
@@ -250,6 +309,7 @@ impl Core {
             active: None,
             pending: None,
             observed_titles: HashMap::new(),
+            calendar: CalendarHint::default(),
         }
     }
 
@@ -260,7 +320,7 @@ impl Core {
     }
 
     /// Meeting candidates in priority order, one per app.
-    /// `current` lets a Meet call that is already running continue on its
+    /// `current` lets a browser call that is already running continue on its
     /// browser's microphone alone, after the user switches tabs.
     fn candidates(
         &mut self,
@@ -268,9 +328,12 @@ impl Core {
         current: Option<&Candidate>,
         now: Instant,
     ) -> Vec<Candidate> {
-        let active_meet_family = current
-            .filter(|candidate| candidate.kind == AppKind::Meet)
-            .and_then(|candidate| candidate.family);
+        let active_browser = current
+            .filter(|candidate| candidate.kind.in_browser())
+            .and_then(|candidate| Some((candidate.kind, candidate.family?)));
+        let link_kind = self.calendar.meeting_url.as_deref().and_then(link_kind);
+        let browsers_allowed =
+            !self.calendar.require_for_browser || self.calendar.meeting_url.is_some();
         self.observed_titles
             .retain(|_, (_, seen)| now.duration_since(*seen) <= OBSERVED_TITLE_LIFETIME);
         let mut meet_windows: HashMap<&'static str, Option<String>> = HashMap::new();
@@ -306,10 +369,19 @@ impl Core {
                     break;
                 }
                 if let Some(family) = browser_family(name) {
+                    if !browsers_allowed {
+                        break;
+                    }
                     if let Some(hint) = meet_windows.get(family) {
                         candidate = Some((AppKind::Meet, Some(family), hint.clone()));
-                    } else if active_meet_family == Some(family) {
-                        candidate = Some((AppKind::Meet, Some(family), None));
+                    } else if let Some((kind, active_family)) = active_browser
+                        && active_family == family
+                    {
+                        candidate = Some((kind, Some(family), None));
+                    } else if let Some(kind) = link_kind {
+                        // The calendar's link check: the browser holds the
+                        // microphone during an event with a conferencing link.
+                        candidate = Some((kind, Some(family), None));
                     }
                     break;
                 }
@@ -348,8 +420,11 @@ impl Core {
     /// start now (`startConfirmed`).
     fn confirm(&mut self, candidate: &Candidate, now: Instant) -> bool {
         let (needed, gap) = match candidate.kind {
-            AppKind::Meet => (BROWSER_START, BROWSER_GAP),
-            kind if kind.needs_sustained_evidence() => (SUSTAINED_START, SUSTAINED_GAP),
+            kind if kind.in_browser() => (BROWSER_START, BROWSER_GAP),
+            // A calendar-backed start skips the wait (`requiresSustainedAudioForStart`).
+            kind if kind.needs_sustained_evidence() && !self.calendar.active => {
+                (SUSTAINED_START, SUSTAINED_GAP)
+            }
             _ => return true,
         };
         let continues = self.pending.as_ref().is_some_and(|pending| {
@@ -377,7 +452,7 @@ impl Core {
     /// Drops a start window whose evidence gap ran past its tolerance.
     fn expire_pending(&mut self, now: Instant) {
         if let Some(pending) = &self.pending {
-            let gap = if pending.kind == AppKind::Meet {
+            let gap = if pending.kind.in_browser() {
                 BROWSER_GAP
             } else {
                 SUSTAINED_GAP
@@ -443,7 +518,10 @@ impl Core {
             None => self.expire_pending(now),
         }
 
-        let debounce = self.stop_debounce;
+        let debounce = match (current.kind.in_browser(), self.calendar.grace) {
+            (false, Some(grace)) => self.stop_debounce.max(grace),
+            _ => self.stop_debounce,
+        };
         let ended = self.active.as_mut().is_some_and(|active| {
             let stop_at = *active.stop_at.get_or_insert(now + debounce);
             now >= stop_at
@@ -482,6 +560,11 @@ impl MeetingDetector {
     /// 5–120 s like `stopDebounceSeconds`.
     pub fn set_stop_debounce(&mut self, debounce: Duration) {
         self.core.stop_debounce = debounce.clamp(MIN_STOP_DEBOUNCE, MAX_STOP_DEBOUNCE);
+    }
+
+    /// What the calendar says about now (see [`CalendarHint`]).
+    pub fn set_calendar(&mut self, hint: CalendarHint) {
+        self.core.calendar = hint;
     }
 
     /// Reads the current evidence and returns what changed since the last
@@ -701,6 +784,84 @@ mod tests {
         // Switching tabs keeps the call while the browser holds the mic.
         call.windows.clear();
         assert!(run(&mut core, start, 16, 60, &call).is_empty());
+    }
+
+    #[test]
+    fn a_calendar_link_makes_a_browser_microphone_a_call() {
+        let start = Instant::now();
+        let mut core = Core::new(1);
+        let call = evidence(&[stream(77, "chrome")]);
+        assert!(run(&mut core, start, 0, 4, &call).is_empty());
+        core.calendar = CalendarHint {
+            active: true,
+            meeting_url: Some("https://us02web.zoom.us/j/123".into()),
+            ..Default::default()
+        };
+        let events = run(&mut core, start, 6, 8, &call);
+        assert!(
+            matches!(&events[..], [(8, DetectorEvent::Started(m))] if m.app_name == "Zoom" && m.title_hint.is_none()),
+            "{events:?}"
+        );
+        // The call continues on the microphone after the event ends.
+        core.calendar = CalendarHint::default();
+        assert!(run(&mut core, start, 10, 60, &call).is_empty());
+        assert!(core.active.is_some());
+        // A Meet link names Google Meet.
+        assert_eq!(
+            link_kind("https://meet.google.com/abc-defg-hij"),
+            Some(AppKind::Meet)
+        );
+        assert_eq!(link_kind("https://docs.example.com/x"), None);
+    }
+
+    #[test]
+    fn strict_mode_needs_a_calendar_link_for_browser_calls() {
+        let start = Instant::now();
+        let mut core = Core::new(1);
+        core.calendar.require_for_browser = true;
+        let mut call = evidence(&[stream(77, "chrome")]);
+        call.windows.push(WindowTitle {
+            app: "chrome".into(),
+            title: "Meet – Weekly sync - Google Chrome".into(),
+        });
+        assert!(run(&mut core, start, 0, 10, &call).is_empty());
+        core.calendar.meeting_url = Some("https://meet.google.com/abc-defg-hij".into());
+        let events = run(&mut core, start, 12, 14, &call);
+        assert!(
+            matches!(&events[..], [(14, DetectorEvent::Started(m))] if m.title_hint.as_deref() == Some("Weekly sync")),
+            "{events:?}"
+        );
+    }
+
+    #[test]
+    fn calendar_backed_chat_apps_start_at_once() {
+        let start = Instant::now();
+        let mut core = Core::new(1);
+        core.calendar.active = true;
+        let events = run(
+            &mut core,
+            start,
+            0,
+            0,
+            &evidence(&[stream(9, "ms-teams.exe")]),
+        );
+        assert!(matches!(&events[..], [(0, DetectorEvent::Started(m))] if m.app_name == "Teams"));
+    }
+
+    #[test]
+    fn a_scheduled_native_meeting_gets_extra_stop_grace() {
+        let start = Instant::now();
+        let mut core = Core::new(1);
+        core.calendar.grace = Some(Duration::from_secs(180));
+        let zoom = evidence(&[stream(42, "Zoom.exe")]);
+        assert_eq!(run(&mut core, start, 0, 0, &zoom).len(), 1);
+        let quiet = Evidence::default();
+        assert!(run(&mut core, start, 2, 180, &quiet).is_empty());
+        let events = run(&mut core, start, 182, 184, &quiet);
+        assert!(
+            matches!(&events[..], [(182, DetectorEvent::Ended(_))]),
+            "{events:?}"
+        );
     }
 
     #[test]

@@ -27,6 +27,12 @@ open = "5"
 notify-rust = "4"
 arboard = "3.7"
 unicode-segmentation = "1.13"
+# Calendars: private iCal/CalDAV links. calcard parses iCalendar, resolves
+# IANA, Windows and Outlook zone names, and iterates RRULEs.
+calcard = { version = "=0.3.14", default-features = false }
+iana-time-zone = "0.1"
+roxmltree = "0.21"
+ureq.workspace = true
 
 [target.'cfg(any(target_os = "linux", target_os = "windows"))'.dependencies]
 global-hotkey = "0.9"
