@@ -1294,3 +1294,28 @@
 "Downloads from huggingface.co, where the models are published." = "huggingface.co से डाउनलोड होता है, जहाँ मॉडल प्रकाशित होते हैं।";
 "A community mirror of Hugging Face that works in mainland China. If it fails, LokalBot tries Hugging Face." = "Hugging Face का एक सामुदायिक मिरर, जो मुख्य भूमि चीन में काम करता है। यह विफल हो तो LokalBot Hugging Face आज़माता है।";
 "Alibaba's model hub in mainland China, for files it carries unchanged. Other files come from HF-Mirror, then Hugging Face." = "मुख्य भूमि चीन में Alibaba का मॉडल हब, उन फ़ाइलों के लिए जिन्हें वह बिना बदलाव के रखता है। बाकी फ़ाइलें HF-Mirror से, फिर Hugging Face से आती हैं।";
+
+// Selection actions
+"Change the selection actions shortcut" = "चुने हुए टेक्स्ट की कार्रवाइयों का शॉर्टकट बदलें";
+"Choose an action or describe what to do…" = "कोई कार्रवाई चुनें या बताएँ कि क्या करना है…";
+"Describe what to write…" = "बताएँ कि क्या लिखना है…";
+"Draft a reply with my memory" = "मेरी मेमोरी से जवाब का मसौदा लिखें";
+"Enable the selection actions shortcut" = "चुने हुए टेक्स्ट की कार्रवाइयों का शॉर्टकट चालू करें";
+"Explain with my memory" = "मेरी मेमोरी से समझाएँ";
+"Fix spelling and grammar" = "वर्तनी और व्याकरण सुधारें";
+"From your memory" = "आपकी मेमोरी से";
+"Improve writing" = "लेखन सुधारें";
+"Insert" = "डालें";
+"Make friendlier" = "अधिक मैत्रीपूर्ण बनाएँ";
+"Make more professional" = "अधिक पेशेवर बनाएँ";
+"Make shorter" = "छोटा करें";
+"Open Accessibility Settings" = "ऐक्सेसिबिलिटी सेटिंग्स खोलें";
+"Replace Selection" = "चुना हुआ टेक्स्ट बदलें";
+"Search memory or run a command…" = "मेमोरी में खोजें या कमांड चलाएँ…";
+"Selection actions" = "चुने हुए टेक्स्ट की कार्रवाइयाँ";
+"Selection actions already use this shortcut. Choose another." = "चुने हुए टेक्स्ट की कार्रवाइयाँ पहले से इस शॉर्टकट का उपयोग करती हैं। कोई दूसरा चुनें।";
+"Selection actions shortcut" = "चुने हुए टेक्स्ट की कार्रवाइयों का शॉर्टकट";
+"Summarize" = "सारांश बनाएँ";
+"Translate to English" = "अंग्रेज़ी में अनुवाद करें";
+"Use my memory for typed instructions" = "टाइप किए गए निर्देशों के लिए मेरी मेमोरी का उपयोग करें";
+"Write with your memory" = "अपनी मेमोरी के साथ लिखें";

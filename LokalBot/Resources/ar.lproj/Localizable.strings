@@ -1294,3 +1294,28 @@
 "Downloads from huggingface.co, where the models are published." = "يُنزّل من huggingface.co، حيث تُنشر النماذج.";
 "A community mirror of Hugging Face that works in mainland China. If it fails, LokalBot tries Hugging Face." = "مرآة مجتمعية لـ Hugging Face تعمل في البر الرئيسي للصين. إذا فشلت، يحاول LokalBot التنزيل من Hugging Face.";
 "Alibaba's model hub in mainland China, for files it carries unchanged. Other files come from HF-Mirror, then Hugging Face." = "مركز نماذج Alibaba في البر الرئيسي للصين، للملفات التي يوفّرها دون تعديل. تأتي الملفات الأخرى من HF-Mirror، ثم من Hugging Face.";
+
+// Selection actions
+"Change the selection actions shortcut" = "تغيير اختصار إجراءات النص المحدد";
+"Choose an action or describe what to do…" = "اختر إجراءً أو صف ما تريد فعله…";
+"Describe what to write…" = "صف ما تريد كتابته…";
+"Draft a reply with my memory" = "صياغة رد باستخدام ذاكرتي";
+"Enable the selection actions shortcut" = "تفعيل اختصار إجراءات النص المحدد";
+"Explain with my memory" = "الشرح باستخدام ذاكرتي";
+"Fix spelling and grammar" = "تصحيح الإملاء والقواعد";
+"From your memory" = "من ذاكرتك";
+"Improve writing" = "تحسين الكتابة";
+"Insert" = "إدراج";
+"Make friendlier" = "جعل النص أكثر ودًا";
+"Make more professional" = "جعل النص أكثر احترافية";
+"Make shorter" = "اختصار النص";
+"Open Accessibility Settings" = "فتح إعدادات تسهيلات الاستخدام";
+"Replace Selection" = "استبدال النص المحدد";
+"Search memory or run a command…" = "ابحث في الذاكرة أو نفّذ أمرًا…";
+"Selection actions" = "إجراءات النص المحدد";
+"Selection actions already use this shortcut. Choose another." = "تستخدم إجراءات النص المحدد هذا الاختصار بالفعل. اختر اختصارًا آخر.";
+"Selection actions shortcut" = "اختصار إجراءات النص المحدد";
+"Summarize" = "تلخيص";
+"Translate to English" = "الترجمة إلى الإنجليزية";
+"Use my memory for typed instructions" = "استخدام ذاكرتي للتعليمات المكتوبة";
+"Write with your memory" = "اكتب باستخدام ذاكرتك";

@@ -1294,3 +1294,28 @@
 "Downloads from huggingface.co, where the models are published." = "Tải xuống từ huggingface.co, nơi các mô hình được phát hành.";
 "A community mirror of Hugging Face that works in mainland China. If it fails, LokalBot tries Hugging Face." = "Bản sao cộng đồng của Hugging Face hoạt động ở Trung Quốc đại lục. Nếu thất bại, LokalBot sẽ thử Hugging Face.";
 "Alibaba's model hub in mainland China, for files it carries unchanged. Other files come from HF-Mirror, then Hugging Face." = "Kho mô hình của Alibaba ở Trung Quốc đại lục, dùng cho các tệp được cung cấp nguyên vẹn. Các tệp khác lấy từ HF-Mirror, rồi Hugging Face.";
+
+// Selection actions
+"Change the selection actions shortcut" = "Đổi phím tắt thao tác với văn bản đã chọn";
+"Choose an action or describe what to do…" = "Chọn thao tác hoặc mô tả việc cần làm…";
+"Describe what to write…" = "Mô tả nội dung cần viết…";
+"Draft a reply with my memory" = "Soạn câu trả lời bằng bộ nhớ của tôi";
+"Enable the selection actions shortcut" = "Bật phím tắt thao tác với văn bản đã chọn";
+"Explain with my memory" = "Giải thích bằng bộ nhớ của tôi";
+"Fix spelling and grammar" = "Sửa chính tả và ngữ pháp";
+"From your memory" = "Từ bộ nhớ của bạn";
+"Improve writing" = "Cải thiện cách viết";
+"Insert" = "Chèn";
+"Make friendlier" = "Viết thân thiện hơn";
+"Make more professional" = "Viết chuyên nghiệp hơn";
+"Make shorter" = "Viết ngắn hơn";
+"Open Accessibility Settings" = "Mở cài đặt Trợ năng";
+"Replace Selection" = "Thay thế vùng chọn";
+"Search memory or run a command…" = "Tìm trong bộ nhớ hoặc chạy lệnh…";
+"Selection actions" = "Thao tác với văn bản đã chọn";
+"Selection actions already use this shortcut. Choose another." = "Thao tác với văn bản đã chọn đã dùng phím tắt này. Hãy chọn phím khác.";
+"Selection actions shortcut" = "Phím tắt thao tác với văn bản đã chọn";
+"Summarize" = "Tóm tắt";
+"Translate to English" = "Dịch sang tiếng Anh";
+"Use my memory for typed instructions" = "Dùng bộ nhớ của tôi cho chỉ dẫn đã nhập";
+"Write with your memory" = "Viết bằng bộ nhớ của bạn";

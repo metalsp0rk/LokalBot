@@ -1294,3 +1294,28 @@
 "Downloads from huggingface.co, where the models are published." = "Hupakua kutoka huggingface.co, ambako modeli huchapishwa.";
 "A community mirror of Hugging Face that works in mainland China. If it fails, LokalBot tries Hugging Face." = "Kioo cha jumuiya cha Hugging Face kinachofanya kazi China bara. Kikishindwa, LokalBot hujaribu Hugging Face.";
 "Alibaba's model hub in mainland China, for files it carries unchanged. Other files come from HF-Mirror, then Hugging Face." = "Kituo cha modeli cha Alibaba kilicho China bara, kwa faili kinazotoa bila kubadilishwa. Faili nyingine hutoka HF-Mirror, kisha Hugging Face.";
+
+// Selection actions
+"Change the selection actions shortcut" = "Badilisha njia ya mkato ya vitendo vya maandishi yaliyochaguliwa";
+"Choose an action or describe what to do…" = "Chagua kitendo au eleza cha kufanya…";
+"Describe what to write…" = "Eleza cha kuandika…";
+"Draft a reply with my memory" = "Andaa rasimu ya jibu kwa kumbukumbu yangu";
+"Enable the selection actions shortcut" = "Washa njia ya mkato ya vitendo vya maandishi yaliyochaguliwa";
+"Explain with my memory" = "Eleza kwa kumbukumbu yangu";
+"Fix spelling and grammar" = "Sahihisha tahajia na sarufi";
+"From your memory" = "Kutoka kwenye kumbukumbu yako";
+"Improve writing" = "Boresha maandishi";
+"Insert" = "Ingiza";
+"Make friendlier" = "Fanya yawe ya kirafiki zaidi";
+"Make more professional" = "Fanya yawe ya kitaalamu zaidi";
+"Make shorter" = "Fupisha";
+"Open Accessibility Settings" = "Fungua Mipangilio ya Ufikivu";
+"Replace Selection" = "Badilisha Maandishi Yaliyochaguliwa";
+"Search memory or run a command…" = "Tafuta kwenye kumbukumbu au tekeleza amri…";
+"Selection actions" = "Vitendo vya maandishi yaliyochaguliwa";
+"Selection actions already use this shortcut. Choose another." = "Vitendo vya maandishi yaliyochaguliwa tayari vinatumia njia hii ya mkato. Chagua nyingine.";
+"Selection actions shortcut" = "Njia ya mkato ya vitendo vya maandishi yaliyochaguliwa";
+"Summarize" = "Toa muhtasari";
+"Translate to English" = "Tafsiri kwa Kiingereza";
+"Use my memory for typed instructions" = "Tumia kumbukumbu yangu kwa maagizo yaliyoandikwa";
+"Write with your memory" = "Andika kwa kumbukumbu yako";

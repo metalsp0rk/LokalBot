@@ -1294,3 +1294,28 @@
 "Downloads from huggingface.co, where the models are published." = "Lädt von huggingface.co, wo die Modelle veröffentlicht werden.";
 "A community mirror of Hugging Face that works in mainland China. If it fails, LokalBot tries Hugging Face." = "Ein Community-Mirror von Hugging Face, der in Festlandchina funktioniert. Schlägt er fehl, versucht es LokalBot bei Hugging Face.";
 "Alibaba's model hub in mainland China, for files it carries unchanged. Other files come from HF-Mirror, then Hugging Face." = "Alibabas Modell-Hub in Festlandchina, für Dateien, die er unverändert bereitstellt. Andere Dateien kommen von HF-Mirror, danach von Hugging Face.";
+
+// Selection actions
+"Change the selection actions shortcut" = "Kurzbefehl für Auswahlaktionen ändern";
+"Choose an action or describe what to do…" = "Aktion auswählen oder Aufgabe beschreiben…";
+"Describe what to write…" = "Beschreiben, was geschrieben werden soll…";
+"Draft a reply with my memory" = "Antwort mit meinem Gedächtnis entwerfen";
+"Enable the selection actions shortcut" = "Kurzbefehl für Auswahlaktionen aktivieren";
+"Explain with my memory" = "Mit meinem Gedächtnis erklären";
+"Fix spelling and grammar" = "Rechtschreibung und Grammatik korrigieren";
+"From your memory" = "Aus deinem Gedächtnis";
+"Improve writing" = "Text verbessern";
+"Insert" = "Einfügen";
+"Make friendlier" = "Freundlicher formulieren";
+"Make more professional" = "Professioneller formulieren";
+"Make shorter" = "Kürzen";
+"Open Accessibility Settings" = "Bedienungshilfen öffnen";
+"Replace Selection" = "Auswahl ersetzen";
+"Search memory or run a command…" = "Gedächtnis durchsuchen oder Befehl ausführen…";
+"Selection actions" = "Auswahlaktionen";
+"Selection actions already use this shortcut. Choose another." = "Auswahlaktionen verwenden diesen Kurzbefehl bereits. Wähle einen anderen.";
+"Selection actions shortcut" = "Kurzbefehl für Auswahlaktionen";
+"Summarize" = "Zusammenfassen";
+"Translate to English" = "Ins Englische übersetzen";
+"Use my memory for typed instructions" = "Mein Gedächtnis für eingegebene Anweisungen verwenden";
+"Write with your memory" = "Mit deinem Gedächtnis schreiben";

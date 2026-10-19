@@ -1294,3 +1294,28 @@
 "Downloads from huggingface.co, where the models are published." = "Baixa de huggingface.co, onde os modelos são publicados.";
 "A community mirror of Hugging Face that works in mainland China. If it fails, LokalBot tries Hugging Face." = "Um espelho comunitário do Hugging Face que funciona na China continental. Se falhar, o LokalBot tenta o Hugging Face.";
 "Alibaba's model hub in mainland China, for files it carries unchanged. Other files come from HF-Mirror, then Hugging Face." = "O hub de modelos da Alibaba na China continental, para os arquivos que ele oferece sem alterações. Os demais arquivos vêm do HF-Mirror e depois do Hugging Face.";
+
+// Selection actions
+"Change the selection actions shortcut" = "Alterar atalho das ações de seleção";
+"Choose an action or describe what to do…" = "Escolha uma ação ou descreva o que fazer…";
+"Describe what to write…" = "Descreva o que escrever…";
+"Draft a reply with my memory" = "Esboçar uma resposta com minha memória";
+"Enable the selection actions shortcut" = "Ativar atalho das ações de seleção";
+"Explain with my memory" = "Explicar com minha memória";
+"Fix spelling and grammar" = "Corrigir ortografia e gramática";
+"From your memory" = "Da sua memória";
+"Improve writing" = "Melhorar a escrita";
+"Insert" = "Inserir";
+"Make friendlier" = "Tornar mais amigável";
+"Make more professional" = "Tornar mais profissional";
+"Make shorter" = "Encurtar";
+"Open Accessibility Settings" = "Abrir ajustes de acessibilidade";
+"Replace Selection" = "Substituir seleção";
+"Search memory or run a command…" = "Pesquisar na memória ou executar um comando…";
+"Selection actions" = "Ações de seleção";
+"Selection actions already use this shortcut. Choose another." = "As ações de seleção já usam este atalho. Escolha outro.";
+"Selection actions shortcut" = "Atalho das ações de seleção";
+"Summarize" = "Resumir";
+"Translate to English" = "Traduzir para inglês";
+"Use my memory for typed instructions" = "Usar minha memória nas instruções digitadas";
+"Write with your memory" = "Escreva com sua memória";

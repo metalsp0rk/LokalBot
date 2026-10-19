@@ -1294,3 +1294,28 @@
 "Downloads from huggingface.co, where the models are published." = "Ana saukewa daga huggingface.co, inda ake wallafa samfuran.";
 "A community mirror of Hugging Face that works in mainland China. If it fails, LokalBot tries Hugging Face." = "Madubin al'umma na Hugging Face da ke aiki a babban yankin China. Idan ya kasa, LokalBot zai gwada Hugging Face.";
 "Alibaba's model hub in mainland China, for files it carries unchanged. Other files come from HF-Mirror, then Hugging Face." = "Cibiyar samfura ta Alibaba a babban yankin China, don fayilolin da take ajiyewa ba tare da canji ba. Sauran fayiloli suna zuwa daga HF-Mirror, sannan daga Hugging Face.";
+
+// Selection actions
+"Change the selection actions shortcut" = "Canja gajeriyar hanyar ayyukan zaɓaɓɓen rubutu";
+"Choose an action or describe what to do…" = "Zaɓi aiki ko bayyana abin da za a yi…";
+"Describe what to write…" = "Bayyana abin da za a rubuta…";
+"Draft a reply with my memory" = "Rubuta amsa da ƙwaƙwalwata";
+"Enable the selection actions shortcut" = "Kunna gajeriyar hanyar ayyukan zaɓaɓɓen rubutu";
+"Explain with my memory" = "Bayyana da ƙwaƙwalwata";
+"Fix spelling and grammar" = "Gyara rubutun kalmomi da nahawu";
+"From your memory" = "Daga ƙwaƙwalwarka";
+"Improve writing" = "Inganta rubutu";
+"Insert" = "Saka";
+"Make friendlier" = "Sa ya fi nuna abokantaka";
+"Make more professional" = "Sa ya fi zama na ƙwararru";
+"Make shorter" = "Taƙaita rubutu";
+"Open Accessibility Settings" = "Buɗe saitunan sauƙaƙa amfani";
+"Replace Selection" = "Sauya zaɓaɓɓen rubutu";
+"Search memory or run a command…" = "Bincika ƙwaƙwalwa ko gudanar da umarni…";
+"Selection actions" = "Ayyukan zaɓaɓɓen rubutu";
+"Selection actions already use this shortcut. Choose another." = "Ayyukan zaɓaɓɓen rubutu suna amfani da wannan gajeriyar hanyar. Zaɓi wata.";
+"Selection actions shortcut" = "Gajeriyar hanyar ayyukan zaɓaɓɓen rubutu";
+"Summarize" = "Taƙaita";
+"Translate to English" = "Fassara zuwa Turanci";
+"Use my memory for typed instructions" = "Yi amfani da ƙwaƙwalwata don umarnin da aka rubuta";
+"Write with your memory" = "Rubuta da ƙwaƙwalwarka";

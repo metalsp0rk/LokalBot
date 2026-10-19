@@ -1294,3 +1294,28 @@
 "Downloads from huggingface.co, where the models are published." = "మోడళ్లు ప్రచురించబడే huggingface.co నుండి డౌన్‌లోడ్ అవుతుంది.";
 "A community mirror of Hugging Face that works in mainland China. If it fails, LokalBot tries Hugging Face." = "చైనా ప్రధాన భూభాగంలో పనిచేసే Hugging Face కమ్యూనిటీ మిర్రర్. అది విఫలమైతే LokalBot Hugging Faceను ప్రయత్నిస్తుంది.";
 "Alibaba's model hub in mainland China, for files it carries unchanged. Other files come from HF-Mirror, then Hugging Face." = "చైనా ప్రధాన భూభాగంలోని Alibaba మోడల్ హబ్, అది మార్పు లేకుండా అందించే ఫైల్‌ల కోసం. ఇతర ఫైల్‌లు HF-Mirror నుండి, ఆ తర్వాత Hugging Face నుండి వస్తాయి.";
+
+// Selection actions
+"Change the selection actions shortcut" = "ఎంచుకున్న పాఠ్య చర్యల సత్వరమార్గాన్ని మార్చండి";
+"Choose an action or describe what to do…" = "ఒక చర్యను ఎంచుకోండి లేదా ఏమి చేయాలో వివరించండి…";
+"Describe what to write…" = "ఏమి రాయాలో వివరించండి…";
+"Draft a reply with my memory" = "నా మెమరీతో ప్రత్యుత్తర ముసాయిదా రాయండి";
+"Enable the selection actions shortcut" = "ఎంచుకున్న పాఠ్య చర్యల సత్వరమార్గాన్ని ప్రారంభించండి";
+"Explain with my memory" = "నా మెమరీతో వివరించండి";
+"Fix spelling and grammar" = "అక్షరదోషాలు మరియు వ్యాకరణాన్ని సరిచేయండి";
+"From your memory" = "మీ మెమరీ నుండి";
+"Improve writing" = "రచనను మెరుగుపరచండి";
+"Insert" = "చొప్పించండి";
+"Make friendlier" = "మరింత స్నేహపూర్వకంగా మార్చండి";
+"Make more professional" = "మరింత వృత్తిపరంగా మార్చండి";
+"Make shorter" = "కుదించండి";
+"Open Accessibility Settings" = "యాక్సెసిబిలిటీ సెట్టింగ్‌లను తెరవండి";
+"Replace Selection" = "ఎంచుకున్న పాఠ్యాన్ని భర్తీ చేయండి";
+"Search memory or run a command…" = "మెమరీలో వెతకండి లేదా ఆదేశాన్ని అమలు చేయండి…";
+"Selection actions" = "ఎంచుకున్న పాఠ్య చర్యలు";
+"Selection actions already use this shortcut. Choose another." = "ఎంచుకున్న పాఠ్య చర్యలు ఇప్పటికే ఈ సత్వరమార్గాన్ని ఉపయోగిస్తున్నాయి. మరొకదాన్ని ఎంచుకోండి.";
+"Selection actions shortcut" = "ఎంచుకున్న పాఠ్య చర్యల సత్వరమార్గం";
+"Summarize" = "సారాంశం ఇవ్వండి";
+"Translate to English" = "ఆంగ్లంలోకి అనువదించండి";
+"Use my memory for typed instructions" = "టైప్ చేసిన సూచనల కోసం నా మెమరీని ఉపయోగించండి";
+"Write with your memory" = "మీ మెమరీతో రాయండి";

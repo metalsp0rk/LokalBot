@@ -1294,3 +1294,28 @@
 "Downloads from huggingface.co, where the models are published." = "E dey download from huggingface.co, where dem dey publish the models.";
 "A community mirror of Hugging Face that works in mainland China. If it fails, LokalBot tries Hugging Face." = "Community mirror of Hugging Face wey dey work for mainland China. If e fail, LokalBot go try Hugging Face.";
 "Alibaba's model hub in mainland China, for files it carries unchanged. Other files come from HF-Mirror, then Hugging Face." = "Alibaba model hub for mainland China, for files wey e carry without change. Other files dey come from HF-Mirror, then Hugging Face.";
+
+// Selection actions
+"Change the selection actions shortcut" = "Change shortcut for selected text actions";
+"Choose an action or describe what to do…" = "Choose action or describe wetin to do…";
+"Describe what to write…" = "Describe wetin to write…";
+"Draft a reply with my memory" = "Draft reply with my memory";
+"Enable the selection actions shortcut" = "Turn on shortcut for selected text actions";
+"Explain with my memory" = "Explain with my memory";
+"Fix spelling and grammar" = "Correct spelling and grammar";
+"From your memory" = "From your memory";
+"Improve writing" = "Make writing better";
+"Insert" = "Insert";
+"Make friendlier" = "Make am friendlier";
+"Make more professional" = "Make am more professional";
+"Make shorter" = "Make am shorter";
+"Open Accessibility Settings" = "Open Accessibility Settings";
+"Replace Selection" = "Replace Selected Text";
+"Search memory or run a command…" = "Search memory or run command…";
+"Selection actions" = "Selected text actions";
+"Selection actions already use this shortcut. Choose another." = "Selected text actions don dey use this shortcut. Choose another one.";
+"Selection actions shortcut" = "Shortcut for selected text actions";
+"Summarize" = "Summarize";
+"Translate to English" = "Translate to English";
+"Use my memory for typed instructions" = "Use my memory for instructions wey I type";
+"Write with your memory" = "Write with your memory";

@@ -1294,3 +1294,28 @@
 "Downloads from huggingface.co, where the models are published." = "मॉडेल जिथे प्रकाशित होतात त्या huggingface.co वरून डाउनलोड होते.";
 "A community mirror of Hugging Face that works in mainland China. If it fails, LokalBot tries Hugging Face." = "मुख्य भूमी चीनमध्ये चालणारा Hugging Face चा समुदाय मिरर. तो अयशस्वी झाल्यास LokalBot Hugging Face वापरून पाहते.";
 "Alibaba's model hub in mainland China, for files it carries unchanged. Other files come from HF-Mirror, then Hugging Face." = "मुख्य भूमी चीनमधील Alibaba चे मॉडेल हब, जे फाइल्स ते बदल न करता ठेवते त्यांच्यासाठी. इतर फाइल्स HF-Mirror वरून, नंतर Hugging Face वरून येतात.";
+
+// Selection actions
+"Change the selection actions shortcut" = "निवडलेल्या मजकुराच्या कृतींचा शॉर्टकट बदला";
+"Choose an action or describe what to do…" = "कृती निवडा किंवा काय करायचे ते सांगा…";
+"Describe what to write…" = "काय लिहायचे ते सांगा…";
+"Draft a reply with my memory" = "माझ्या स्मृतीतून उत्तराचा मसुदा लिहा";
+"Enable the selection actions shortcut" = "निवडलेल्या मजकुराच्या कृतींचा शॉर्टकट सुरू करा";
+"Explain with my memory" = "माझ्या स्मृतीतून समजावून सांगा";
+"Fix spelling and grammar" = "शब्दलेखन आणि व्याकरण दुरुस्त करा";
+"From your memory" = "तुमच्या स्मृतीतून";
+"Improve writing" = "लेखन सुधारा";
+"Insert" = "घाला";
+"Make friendlier" = "अधिक मैत्रीपूर्ण करा";
+"Make more professional" = "अधिक व्यावसायिक करा";
+"Make shorter" = "लहान करा";
+"Open Accessibility Settings" = "सुलभता सेटिंग्ज उघडा";
+"Replace Selection" = "निवडलेला मजकूर बदला";
+"Search memory or run a command…" = "स्मृतीत शोधा किंवा आदेश चालवा…";
+"Selection actions" = "निवडलेल्या मजकुराच्या कृती";
+"Selection actions already use this shortcut. Choose another." = "निवडलेल्या मजकुराच्या कृती आधीच हा शॉर्टकट वापरतात. दुसरा निवडा.";
+"Selection actions shortcut" = "निवडलेल्या मजकुराच्या कृतींचा शॉर्टकट";
+"Summarize" = "सारांश करा";
+"Translate to English" = "इंग्रजीत भाषांतर करा";
+"Use my memory for typed instructions" = "टाइप केलेल्या सूचनांसाठी माझी स्मृती वापरा";
+"Write with your memory" = "तुमच्या स्मृतीसह लिहा";

@@ -1294,3 +1294,28 @@
 "Downloads from huggingface.co, where the models are published." = "モデルが公開されているhuggingface.coからダウンロードします。";
 "A community mirror of Hugging Face that works in mainland China. If it fails, LokalBot tries Hugging Face." = "中国本土で使えるHugging Faceのコミュニティミラーです。失敗した場合、LokalBotはHugging Faceを試します。";
 "Alibaba's model hub in mainland China, for files it carries unchanged. Other files come from HF-Mirror, then Hugging Face." = "中国本土にあるAlibabaのモデルハブで、元のまま提供されているファイルに使います。その他のファイルはHF-Mirror、次にHugging Faceから取得します。";
+
+// Selection actions
+"Change the selection actions shortcut" = "選択テキスト操作のショートカットを変更";
+"Choose an action or describe what to do…" = "操作を選ぶか、指示を入力…";
+"Describe what to write…" = "書きたい内容を入力…";
+"Draft a reply with my memory" = "メモリを使って返信を下書き";
+"Enable the selection actions shortcut" = "選択テキスト操作のショートカットを有効にする";
+"Explain with my memory" = "メモリを使って説明";
+"Fix spelling and grammar" = "誤字と文法を修正";
+"From your memory" = "メモリから";
+"Improve writing" = "文章を改善";
+"Insert" = "挿入";
+"Make friendlier" = "より親しみやすく";
+"Make more professional" = "よりプロフェッショナルに";
+"Make shorter" = "短くする";
+"Open Accessibility Settings" = "アクセシビリティ設定を開く";
+"Replace Selection" = "選択範囲を置き換え";
+"Search memory or run a command…" = "メモリを検索するか、コマンドを実行…";
+"Selection actions" = "選択テキスト操作";
+"Selection actions already use this shortcut. Choose another." = "このショートカットは選択テキスト操作で使用中です。別のものを選んでください。";
+"Selection actions shortcut" = "選択テキスト操作のショートカット";
+"Summarize" = "要約";
+"Translate to English" = "英語に翻訳";
+"Use my memory for typed instructions" = "入力した指示にメモリを使う";
+"Write with your memory" = "メモリを使って書く";

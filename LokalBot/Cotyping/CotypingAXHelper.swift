@@ -204,6 +204,57 @@ enum CotypingAXHelper {
             selection: selection)
     }
 
+    /// The focused element's selected text, read once because the person
+    /// pressed the selection actions shortcut. Nil without Accessibility
+    /// access, for a secure field, or when nothing is selected. WebKit and
+    /// Chromium report a web page's selection as a text-marker range.
+    static func selectedTextForSelectionAction(
+        source: SelectionSource, excludedApps: [String], maxCharacters: Int
+    ) -> String? {
+        let deadline = DispatchTime.now().uptimeNanoseconds &+ 400 * 1_000_000
+        guard let element = selectionActionElement(source: source, excludedApps: excludedApps),
+              DispatchTime.now().uptimeNanoseconds <= deadline else { return nil }
+        var text = stringAttribute(element, kAXSelectedTextAttribute as String) ?? ""
+        if text.isEmpty,
+           Set(parameterizedAttributeNames(on: element)).contains(stringForMarkerRangeAttribute as String),
+           let range = copyOpaqueAttribute(selectedTextMarkerRangeAttribute, on: element),
+           let current = selectionActionElement(source: source, excludedApps: excludedApps),
+           CFEqual(current, element), DispatchTime.now().uptimeNanoseconds <= deadline {
+            text = stringForMarkerRange(range, on: element) ?? ""
+        }
+        guard let current = selectionActionElement(source: source, excludedApps: excludedApps),
+              CFEqual(current, element), DispatchTime.now().uptimeNanoseconds <= deadline,
+              !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+        return text.count > maxCharacters ? String(text.prefix(maxCharacters)) : text
+    }
+
+    /// Validate both the frontmost application and the actual AX element's
+    /// owner before a selection read or a process-bound clipboard copy.
+    static func selectionActionFocusIsAllowed(source: SelectionSource, excludedApps: [String]) -> Bool {
+        selectionActionElement(source: source, excludedApps: excludedApps) != nil
+    }
+
+    private static func selectionActionElement(source: SelectionSource, excludedApps: [String]) -> AXUIElement? {
+        func sourceIsAllowed() -> Bool {
+            guard isTrusted, source.processID > 0,
+                  let frontmost = NSWorkspace.shared.frontmostApplication,
+                  frontmost.processIdentifier == source.processID,
+                  frontmost.bundleIdentifier == source.bundleID else { return false }
+            return !CotypingAvailability.isExcluded(
+                appName: frontmost.localizedName ?? "", bundleID: frontmost.bundleIdentifier, excluded: excludedApps)
+        }
+        guard sourceIsAllowed(), let element = focusedElementForAcceptance(processID: source.processID),
+              processID(of: element) == source.processID else { return nil }
+        let isSecure = CotypingSecureFieldDetector.isSecure(
+            role: stringAttribute(element, kAXRoleAttribute as String),
+            subrole: stringAttribute(element, kAXSubroleAttribute as String),
+            roleDescription: stringAttribute(element, kAXRoleDescriptionAttribute as String),
+            title: stringAttribute(element, kAXTitleAttribute as String),
+            descriptionLabel: stringAttribute(element, kAXDescriptionAttribute as String))
+        guard !isSecure, sourceIsAllowed() else { return nil }
+        return element
+    }
+
     /// The bounded text before the caret in the field a dictation was pasted
     /// into, to confirm the text arrived. Nil when another field has focus or
     /// the field cannot be read; the caller then makes no claim either way.

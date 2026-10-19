@@ -1294,3 +1294,28 @@
 "Downloads from huggingface.co, where the models are published." = "모델이 게시된 huggingface.co에서 다운로드합니다.";
 "A community mirror of Hugging Face that works in mainland China. If it fails, LokalBot tries Hugging Face." = "중국 본토에서 작동하는 Hugging Face 커뮤니티 미러입니다. 실패하면 LokalBot이 Hugging Face를 시도합니다.";
 "Alibaba's model hub in mainland China, for files it carries unchanged. Other files come from HF-Mirror, then Hugging Face." = "중국 본토의 Alibaba 모델 허브로, 원본 그대로 제공하는 파일에 사용합니다. 다른 파일은 HF-Mirror에서, 그다음 Hugging Face에서 받습니다.";
+
+// Selection actions
+"Change the selection actions shortcut" = "선택 영역 작업 단축키 변경";
+"Choose an action or describe what to do…" = "작업을 선택하거나 할 일을 설명하세요…";
+"Describe what to write…" = "작성할 내용을 설명하세요…";
+"Draft a reply with my memory" = "내 메모리로 답장 초안 작성";
+"Enable the selection actions shortcut" = "선택 영역 작업 단축키 활성화";
+"Explain with my memory" = "내 메모리로 설명";
+"Fix spelling and grammar" = "맞춤법과 문법 수정";
+"From your memory" = "내 메모리에서";
+"Improve writing" = "글 다듬기";
+"Insert" = "삽입";
+"Make friendlier" = "더 친근하게";
+"Make more professional" = "더 전문적으로";
+"Make shorter" = "줄이기";
+"Open Accessibility Settings" = "손쉬운 사용 설정 열기";
+"Replace Selection" = "선택 영역 바꾸기";
+"Search memory or run a command…" = "메모리 검색 또는 명령 실행…";
+"Selection actions" = "선택 영역 작업";
+"Selection actions already use this shortcut. Choose another." = "선택 영역 작업에서 이미 사용 중인 단축키입니다. 다른 단축키를 선택하세요.";
+"Selection actions shortcut" = "선택 영역 작업 단축키";
+"Summarize" = "요약";
+"Translate to English" = "영어로 번역";
+"Use my memory for typed instructions" = "입력한 지시에 내 메모리 사용";
+"Write with your memory" = "메모리로 글쓰기";

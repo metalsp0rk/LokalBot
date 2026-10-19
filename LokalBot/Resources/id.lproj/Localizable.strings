@@ -1294,3 +1294,28 @@
 "Downloads from huggingface.co, where the models are published." = "Mengunduh dari huggingface.co, tempat model dipublikasikan.";
 "A community mirror of Hugging Face that works in mainland China. If it fails, LokalBot tries Hugging Face." = "Mirror komunitas Hugging Face yang berfungsi di Tiongkok daratan. Jika gagal, LokalBot mencoba Hugging Face.";
 "Alibaba's model hub in mainland China, for files it carries unchanged. Other files come from HF-Mirror, then Hugging Face." = "Hub model Alibaba di Tiongkok daratan, untuk file yang disediakannya tanpa perubahan. File lain diambil dari HF-Mirror, lalu Hugging Face.";
+
+// Selection actions
+"Change the selection actions shortcut" = "Ubah pintasan tindakan teks terpilih";
+"Choose an action or describe what to do…" = "Pilih tindakan atau jelaskan yang ingin dilakukan…";
+"Describe what to write…" = "Jelaskan yang ingin ditulis…";
+"Draft a reply with my memory" = "Buat draf balasan dengan memori saya";
+"Enable the selection actions shortcut" = "Aktifkan pintasan tindakan teks terpilih";
+"Explain with my memory" = "Jelaskan dengan memori saya";
+"Fix spelling and grammar" = "Perbaiki ejaan dan tata bahasa";
+"From your memory" = "Dari memori Anda";
+"Improve writing" = "Perbaiki tulisan";
+"Insert" = "Sisipkan";
+"Make friendlier" = "Buat lebih ramah";
+"Make more professional" = "Buat lebih profesional";
+"Make shorter" = "Persingkat";
+"Open Accessibility Settings" = "Buka Pengaturan Aksesibilitas";
+"Replace Selection" = "Ganti Pilihan";
+"Search memory or run a command…" = "Cari memori atau jalankan perintah…";
+"Selection actions" = "Tindakan teks terpilih";
+"Selection actions already use this shortcut. Choose another." = "Tindakan teks terpilih sudah memakai pintasan ini. Pilih yang lain.";
+"Selection actions shortcut" = "Pintasan tindakan teks terpilih";
+"Summarize" = "Ringkas";
+"Translate to English" = "Terjemahkan ke bahasa Inggris";
+"Use my memory for typed instructions" = "Gunakan memori saya untuk instruksi yang diketik";
+"Write with your memory" = "Menulis dengan memori Anda";

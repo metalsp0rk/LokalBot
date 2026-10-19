@@ -1294,3 +1294,28 @@
 "Downloads from huggingface.co, where the models are published." = "從發布這些模型的 huggingface.co 下載。";
 "A community mirror of Hugging Face that works in mainland China. If it fails, LokalBot tries Hugging Face." = "Hugging Face 的社群鏡像，可在中國大陸使用。下載失敗時，LokalBot 會改用 Hugging Face。";
 "Alibaba's model hub in mainland China, for files it carries unchanged. Other files come from HF-Mirror, then Hugging Face." = "阿里巴巴的魔搭模型社群，只用於與原版完全一致的檔案；其他檔案依序從 HF-Mirror 和 Hugging Face 下載。";
+
+// Selection actions
+"Change the selection actions shortcut" = "更改選取文字操作快速鍵";
+"Choose an action or describe what to do…" = "選擇操作或描述要做的事…";
+"Describe what to write…" = "描述要寫的內容…";
+"Draft a reply with my memory" = "結合我的記憶草擬回覆";
+"Enable the selection actions shortcut" = "啟用選取文字操作快速鍵";
+"Explain with my memory" = "結合我的記憶解釋";
+"Fix spelling and grammar" = "修正拼字與文法";
+"From your memory" = "來自你的記憶";
+"Improve writing" = "潤飾文字";
+"Insert" = "插入";
+"Make friendlier" = "改寫得更親切";
+"Make more professional" = "改寫得更專業";
+"Make shorter" = "縮短內容";
+"Open Accessibility Settings" = "開啟輔助使用設定";
+"Replace Selection" = "取代選取文字";
+"Search memory or run a command…" = "搜尋記憶或執行指令…";
+"Selection actions" = "選取文字操作";
+"Selection actions already use this shortcut. Choose another." = "選取文字操作已使用此快速鍵。請選擇其他快速鍵。";
+"Selection actions shortcut" = "選取文字操作快速鍵";
+"Summarize" = "摘要";
+"Translate to English" = "翻譯成英文";
+"Use my memory for typed instructions" = "對輸入的指示使用我的記憶";
+"Write with your memory" = "運用你的記憶寫作";

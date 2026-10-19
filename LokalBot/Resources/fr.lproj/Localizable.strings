@@ -1294,3 +1294,28 @@
 "Downloads from huggingface.co, where the models are published." = "Télécharge depuis huggingface.co, où les modèles sont publiés.";
 "A community mirror of Hugging Face that works in mainland China. If it fails, LokalBot tries Hugging Face." = "Un miroir communautaire de Hugging Face qui fonctionne en Chine continentale. En cas d’échec, LokalBot essaie Hugging Face.";
 "Alibaba's model hub in mainland China, for files it carries unchanged. Other files come from HF-Mirror, then Hugging Face." = "Le hub de modèles d’Alibaba en Chine continentale, pour les fichiers qu’il propose à l’identique. Les autres fichiers viennent de HF-Mirror, puis de Hugging Face.";
+
+// Selection actions
+"Change the selection actions shortcut" = "Modifier le raccourci des actions de sélection";
+"Choose an action or describe what to do…" = "Choisissez une action ou décrivez la tâche…";
+"Describe what to write…" = "Décrivez le texte à rédiger…";
+"Draft a reply with my memory" = "Rédiger une réponse avec ma mémoire";
+"Enable the selection actions shortcut" = "Activer le raccourci des actions de sélection";
+"Explain with my memory" = "Expliquer avec ma mémoire";
+"Fix spelling and grammar" = "Corriger l’orthographe et la grammaire";
+"From your memory" = "Depuis votre mémoire";
+"Improve writing" = "Améliorer la rédaction";
+"Insert" = "Insérer";
+"Make friendlier" = "Rendre plus convivial";
+"Make more professional" = "Rendre plus professionnel";
+"Make shorter" = "Raccourcir";
+"Open Accessibility Settings" = "Ouvrir les réglages d’accessibilité";
+"Replace Selection" = "Remplacer la sélection";
+"Search memory or run a command…" = "Rechercher dans la mémoire ou exécuter une commande…";
+"Selection actions" = "Actions de sélection";
+"Selection actions already use this shortcut. Choose another." = "Les actions de sélection utilisent déjà ce raccourci. Choisissez-en un autre.";
+"Selection actions shortcut" = "Raccourci des actions de sélection";
+"Summarize" = "Résumer";
+"Translate to English" = "Traduire en anglais";
+"Use my memory for typed instructions" = "Utiliser ma mémoire pour les instructions saisies";
+"Write with your memory" = "Écrivez avec votre mémoire";

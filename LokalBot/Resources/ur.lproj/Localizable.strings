@@ -1294,3 +1294,28 @@
 "Downloads from huggingface.co, where the models are published." = "huggingface.co سے ڈاؤن لوڈ ہوتا ہے، جہاں ماڈلز شائع ہوتے ہیں۔";
 "A community mirror of Hugging Face that works in mainland China. If it fails, LokalBot tries Hugging Face." = "Hugging Face کا ایک کمیونٹی مرر جو مین لینڈ چین میں کام کرتا ہے۔ ناکام ہونے پر LokalBot Hugging Face آزماتا ہے۔";
 "Alibaba's model hub in mainland China, for files it carries unchanged. Other files come from HF-Mirror, then Hugging Face." = "مین لینڈ چین میں Alibaba کا ماڈل ہب، ان فائلوں کے لیے جو یہ بغیر تبدیلی کے رکھتا ہے۔ باقی فائلیں HF-Mirror سے، پھر Hugging Face سے آتی ہیں۔";
+
+// Selection actions
+"Change the selection actions shortcut" = "منتخب متن کی کارروائیوں کا شارٹ کٹ بدلیں";
+"Choose an action or describe what to do…" = "کوئی کارروائی منتخب کریں یا بتائیں کیا کرنا ہے…";
+"Describe what to write…" = "بتائیں کیا لکھنا ہے…";
+"Draft a reply with my memory" = "میری یادداشت سے جواب کا مسودہ لکھیں";
+"Enable the selection actions shortcut" = "منتخب متن کی کارروائیوں کا شارٹ کٹ فعال کریں";
+"Explain with my memory" = "میری یادداشت سے وضاحت کریں";
+"Fix spelling and grammar" = "ہجے اور گرامر درست کریں";
+"From your memory" = "آپ کی یادداشت سے";
+"Improve writing" = "تحریر بہتر بنائیں";
+"Insert" = "داخل کریں";
+"Make friendlier" = "زیادہ دوستانہ بنائیں";
+"Make more professional" = "زیادہ پیشہ ورانہ بنائیں";
+"Make shorter" = "مختصر کریں";
+"Open Accessibility Settings" = "رسائی کی ترتیبات کھولیں";
+"Replace Selection" = "منتخب متن بدلیں";
+"Search memory or run a command…" = "یادداشت میں تلاش کریں یا کمانڈ چلائیں…";
+"Selection actions" = "منتخب متن کی کارروائیاں";
+"Selection actions already use this shortcut. Choose another." = "منتخب متن کی کارروائیاں پہلے ہی یہ شارٹ کٹ استعمال کرتی ہیں۔ کوئی اور منتخب کریں۔";
+"Selection actions shortcut" = "منتخب متن کی کارروائیوں کا شارٹ کٹ";
+"Summarize" = "خلاصہ کریں";
+"Translate to English" = "انگریزی میں ترجمہ کریں";
+"Use my memory for typed instructions" = "ٹائپ کردہ ہدایات کے لیے میری یادداشت استعمال کریں";
+"Write with your memory" = "اپنی یادداشت سے لکھیں";

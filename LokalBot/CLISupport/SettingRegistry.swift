@@ -278,6 +278,12 @@ enum SettingRegistry {
         entry("quickRecallShortcut", .general, "Ask shortcut", .structured,
               aliases: "quick recall hotkey keyboard key combination",
               summary: "Key combination that opens Ask, as a key code and modifier flags."),
+        entry("selectionActionsEnabled", .general, "Enable the selection actions shortcut", .bool, .consent,
+              aliases: "rewrite selected text global hotkey",
+              summary: "Register a global shortcut that reads the text selected in the frontmost app and offers AI actions on it."),
+        entry("selectionActionsShortcut", .general, "Selection actions shortcut", .structured,
+              aliases: "selection actions hotkey keyboard key combination",
+              summary: "Key combination that opens selection actions, as a key code and modifier flags."),
     ]
 
     private static let recording: [SettingSpec] = [

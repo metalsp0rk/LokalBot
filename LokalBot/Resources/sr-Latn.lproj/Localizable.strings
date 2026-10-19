@@ -1294,3 +1294,28 @@
 "Downloads from huggingface.co, where the models are published." = "Preuzima sa huggingface.co, gde se modeli objavljuju.";
 "A community mirror of Hugging Face that works in mainland China. If it fails, LokalBot tries Hugging Face." = "Mirror Hugging Face-a koji održava zajednica i koji radi u kontinentalnoj Kini. Ako ne uspe, LokalBot pokušava preko Hugging Face-a.";
 "Alibaba's model hub in mainland China, for files it carries unchanged. Other files come from HF-Mirror, then Hugging Face." = "Alibabin centar modela u kontinentalnoj Kini, za datoteke koje nudi neizmenjene. Ostale datoteke stižu sa HF-Mirror-a, pa sa Hugging Face-a.";
+
+// Selection actions
+"Change the selection actions shortcut" = "Promeni prečicu za radnje nad izabranim tekstom";
+"Choose an action or describe what to do…" = "Izaberi radnju ili opiši šta treba uraditi…";
+"Describe what to write…" = "Opiši šta treba napisati…";
+"Draft a reply with my memory" = "Sastavi nacrt odgovora uz moju memoriju";
+"Enable the selection actions shortcut" = "Uključi prečicu za radnje nad izabranim tekstom";
+"Explain with my memory" = "Objasni uz moju memoriju";
+"Fix spelling and grammar" = "Ispravi pravopis i gramatiku";
+"From your memory" = "Iz tvoje memorije";
+"Improve writing" = "Poboljšaj tekst";
+"Insert" = "Umetni";
+"Make friendlier" = "Napiši prisnije";
+"Make more professional" = "Napiši profesionalnije";
+"Make shorter" = "Skrati";
+"Open Accessibility Settings" = "Otvori podešavanja pristupačnosti";
+"Replace Selection" = "Zameni izabrani tekst";
+"Search memory or run a command…" = "Pretraži memoriju ili pokreni komandu…";
+"Selection actions" = "Radnje nad izabranim tekstom";
+"Selection actions already use this shortcut. Choose another." = "Radnje nad izabranim tekstom već koriste ovu prečicu. Izaberi drugu.";
+"Selection actions shortcut" = "Prečica za radnje nad izabranim tekstom";
+"Summarize" = "Sažmi";
+"Translate to English" = "Prevedi na engleski";
+"Use my memory for typed instructions" = "Koristi moju memoriju za upisana uputstva";
+"Write with your memory" = "Piši uz svoju memoriju";

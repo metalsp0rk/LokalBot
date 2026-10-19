@@ -1294,3 +1294,28 @@
 "Downloads from huggingface.co, where the models are published." = "huggingface.co থেকে ডাউনলোড হয়, যেখানে মডেলগুলো প্রকাশিত হয়।";
 "A community mirror of Hugging Face that works in mainland China. If it fails, LokalBot tries Hugging Face." = "Hugging Face-এর একটি কমিউনিটি মিরর, যা চীনের মূল ভূখণ্ডে কাজ করে। এটি ব্যর্থ হলে LokalBot Hugging Face চেষ্টা করে।";
 "Alibaba's model hub in mainland China, for files it carries unchanged. Other files come from HF-Mirror, then Hugging Face." = "চীনের মূল ভূখণ্ডে Alibaba-র মডেল হাব, যেসব ফাইল এটি অপরিবর্তিত রাখে সেগুলোর জন্য। অন্য ফাইল আসে HF-Mirror থেকে, তারপর Hugging Face থেকে।";
+
+// Selection actions
+"Change the selection actions shortcut" = "নির্বাচিত লেখার কাজের শর্টকাট পরিবর্তন করুন";
+"Choose an action or describe what to do…" = "একটি কাজ বেছে নিন বা কী করতে হবে লিখুন…";
+"Describe what to write…" = "কী লিখতে হবে তা বর্ণনা করুন…";
+"Draft a reply with my memory" = "আমার স্মৃতি ব্যবহার করে উত্তরের খসড়া লিখুন";
+"Enable the selection actions shortcut" = "নির্বাচিত লেখার কাজের শর্টকাট চালু করুন";
+"Explain with my memory" = "আমার স্মৃতি ব্যবহার করে ব্যাখ্যা করুন";
+"Fix spelling and grammar" = "বানান ও ব্যাকরণ ঠিক করুন";
+"From your memory" = "আপনার স্মৃতি থেকে";
+"Improve writing" = "লেখার মান উন্নত করুন";
+"Insert" = "সন্নিবেশ করুন";
+"Make friendlier" = "আরও আন্তরিক করুন";
+"Make more professional" = "আরও পেশাদার করুন";
+"Make shorter" = "সংক্ষিপ্ত করুন";
+"Open Accessibility Settings" = "অ্যাক্সেসিবিলিটি সেটিংস খুলুন";
+"Replace Selection" = "নির্বাচিত লেখা প্রতিস্থাপন করুন";
+"Search memory or run a command…" = "স্মৃতিতে খুঁজুন বা একটি কমান্ড চালান…";
+"Selection actions" = "নির্বাচিত লেখার কাজ";
+"Selection actions already use this shortcut. Choose another." = "নির্বাচিত লেখার কাজ ইতিমধ্যেই এই শর্টকাট ব্যবহার করছে। অন্যটি বেছে নিন।";
+"Selection actions shortcut" = "নির্বাচিত লেখার কাজের শর্টকাট";
+"Summarize" = "সারসংক্ষেপ করুন";
+"Translate to English" = "ইংরেজিতে অনুবাদ করুন";
+"Use my memory for typed instructions" = "লিখিত নির্দেশের জন্য আমার স্মৃতি ব্যবহার করুন";
+"Write with your memory" = "আপনার স্মৃতি ব্যবহার করে লিখুন";

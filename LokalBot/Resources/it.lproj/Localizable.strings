@@ -1294,3 +1294,28 @@
 "Downloads from huggingface.co, where the models are published." = "Scarica da huggingface.co, dove i modelli vengono pubblicati.";
 "A community mirror of Hugging Face that works in mainland China. If it fails, LokalBot tries Hugging Face." = "Un mirror comunitario di Hugging Face che funziona nella Cina continentale. Se non funziona, LokalBot prova Hugging Face.";
 "Alibaba's model hub in mainland China, for files it carries unchanged. Other files come from HF-Mirror, then Hugging Face." = "L’hub di modelli di Alibaba nella Cina continentale, per i file che offre senza modifiche. Gli altri file arrivano da HF-Mirror, poi da Hugging Face.";
+
+// Selection actions
+"Change the selection actions shortcut" = "Modifica la scorciatoia delle azioni sulla selezione";
+"Choose an action or describe what to do…" = "Scegli un’azione o descrivi cosa fare…";
+"Describe what to write…" = "Descrivi cosa scrivere…";
+"Draft a reply with my memory" = "Scrivi una bozza di risposta con la mia memoria";
+"Enable the selection actions shortcut" = "Attiva la scorciatoia delle azioni sulla selezione";
+"Explain with my memory" = "Spiega con la mia memoria";
+"Fix spelling and grammar" = "Correggi ortografia e grammatica";
+"From your memory" = "Dalla tua memoria";
+"Improve writing" = "Migliora la scrittura";
+"Insert" = "Inserisci";
+"Make friendlier" = "Rendi più amichevole";
+"Make more professional" = "Rendi più professionale";
+"Make shorter" = "Accorcia";
+"Open Accessibility Settings" = "Apri le impostazioni di accessibilità";
+"Replace Selection" = "Sostituisci selezione";
+"Search memory or run a command…" = "Cerca nella memoria o esegui un comando…";
+"Selection actions" = "Azioni sulla selezione";
+"Selection actions already use this shortcut. Choose another." = "Le azioni sulla selezione usano già questa scorciatoia. Scegline un’altra.";
+"Selection actions shortcut" = "Scorciatoia delle azioni sulla selezione";
+"Summarize" = "Riassumi";
+"Translate to English" = "Traduci in inglese";
+"Use my memory for typed instructions" = "Usa la mia memoria per le istruzioni digitate";
+"Write with your memory" = "Scrivi con la tua memoria";
