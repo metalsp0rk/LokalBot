@@ -81,6 +81,14 @@ jobs:
           path: LinuxWindows/dist/*.tar.gz*
           retention-days: 14
 
+      # Installs the archive with install.sh into a scratch home, then has it
+      # update itself from a signed feed on 127.0.0.1 and relaunch.
+      - name: Check updating from a local feed
+        run: |
+          cargo build --release --locked -p lokalbot-update --bin lokalbot-update-feed
+          archive=$(ls dist/LokalBot-*-linux-x86_64.tar.gz)
+          scripts/ci/update-e2e.sh "$archive" "$archive" target/release/lokalbot-update-feed "$RUNNER_TEMP/update-e2e"
+
       - name: Capture the app
         run: |
           sudo apt-get install -y --no-install-recommends hsetroot xfce4-panel x11-utils dbus-daemon
@@ -158,6 +166,16 @@ jobs:
           name: lokalbot-windows-x86_64
           path: LinuxWindows/dist/*.zip*
           retention-days: 14
+
+      # Runs the extracted archive with lokalbot-cli serving MCP, then has it
+      # update itself from a signed feed on 127.0.0.1 and relaunch.
+      - name: Check updating from a local feed
+        shell: pwsh
+        run: |
+          cargo build --release --locked -p lokalbot-update --bin lokalbot-update-feed
+          if ($LASTEXITCODE -ne 0) { throw "building lokalbot-update-feed failed" }
+          $zip = (Get-ChildItem dist\LokalBot-*-windows-x86_64.zip).FullName
+          ./scripts/ci/update-e2e.ps1 -Archive $zip -Update $zip -Tool target\release\lokalbot-update-feed.exe -Work (Join-Path $env:RUNNER_TEMP "update-e2e")
 
       - name: Show display details
         shell: pwsh

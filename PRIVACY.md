@@ -1,6 +1,6 @@
 # LokalBot Privacy Policy
 
-Effective: October 18, 2026
+Effective: October 19, 2026
 
 LokalBot is a local-first macOS application. It has no LokalBot account,
 analytics service, advertising SDK, or telemetry backend. The project does not
@@ -841,8 +841,15 @@ platform differences:
 - **The live transcript preview** runs only when you start it during a
   recording. It uses the local transcription model and is not saved; the
   full transcript replaces it after the meeting.
+- **Updates.** While "Check for updates automatically" is on (the default),
+  LokalBot reads one small update feed for its platform from GitHub Releases
+  when it starts and once a day; "Check for Updates…" reads it on request.
+  The request carries LokalBot's version in its user agent and no library
+  data. The update archive downloads only when you choose Install and
+  Relaunch, and is checked against its pinned size, SHA-256 and the release
+  signature before it is unpacked.
 - **Network access** is limited to model and runtime downloads you request,
-  Agent Mode setup, and AI servers you approve.
+  Agent Mode setup, update checks, and AI servers you approve.
 
 ## Security and changes
 

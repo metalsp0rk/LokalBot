@@ -28,6 +28,7 @@ More screenshots of both apps are in [docs/screenshots](docs/screenshots).
 | Meeting detection | ✓ (PulseAudio source outputs) | ✓ (WASAPI capture sessions) | Asks with a notification by default. |
 | System tray, launch at login | ✓ (StatusNotifierItem; GNOME needs the AppIndicator extension) | ✓ | |
 | `lokalbot-cli` + MCP for coding agents | ✓ | ✓ | Read-only, off until you allow it in Settings → Privacy & Data. |
+| Signed automatic updates | ✓ (installed with `install.sh`, or run from the extracted folder) | ✓ (run from the extracted folder) | Checks GitHub daily; installs only when you choose Install and Relaunch. Copies under `/usr`, `/opt` or Program Files are pointed at the download instead. |
 | Live transcript preview while recording | ✓ | ✓ | Opt-in from the live meeting view. Each track is transcribed in 4–12 s chunks cut at a pause, as Me and Remote speaker; the full transcript replaces it after the meeting. |
 | Autocomplete in other apps | X11 (GTK; Qt, Chromium/Electron and Firefox once system accessibility is on); Wayland: the practice editor in Settings only | ✓ (apps whose fields support UI Automation) | Off until you turn it on in Settings → Writing. LFM2.5 1.2B on this computer by default, about 250 ms to a suggestion on CPU. Tab accepts a word, Esc dismisses. Password fields, terminals and excluded apps are never read, and nothing is stored. |
 | Agent Mode | ✓ | ✓ (Git Bash, or PowerShell without it) | Runs the pi coding agent with your Think model. Setup downloads Bun and pi (pinned and checksum-verified, about 65 MB on Linux and 70 MB on Windows). File changes and commands need your approval. |
@@ -35,14 +36,32 @@ More screenshots of both apps are in [docs/screenshots](docs/screenshots).
 
 ## Install
 
-Download the archive for your platform from the latest CI run (`lokalbot-linux-x86_64`,
-`lokalbot-windows-x86_64`) or release:
+Download the archive for your platform from the [latest release](https://github.com/stevyhacker/lokalbot/releases/latest)
+(each release ships macOS, Linux and Windows under one version) or from a CI run (`lokalbot-linux-x86_64`,
+`lokalbot-windows-x86_64`):
 
 - **Linux** (x86_64): extract `LokalBot-<version>-linux-x86_64.tar.gz` and run `./install.sh`. It installs
   `lokalbot` and `lokalbot-cli` into `~/.local/bin` and adds LokalBot to your applications menu.
   Runtime needs: a Vulkan or OpenGL driver (Mesa is fine), PulseAudio or PipeWire for system audio.
 - **Windows** 10/11 (x64): extract `LokalBot-<version>-windows-x86_64.zip` anywhere and run `lokalbot.exe`.
   The executable is not code-signed yet, so SmartScreen may ask you to confirm.
+
+### Updates
+
+With **Check for updates automatically** on (Settings → General → Updates; on for new installs), LokalBot
+reads the latest release's update feed from GitHub when it starts and once a day. **Check for Updates…**
+checks at any time. Like the macOS app, it never installs on its own: when a newer version is out, Settings
+and the tray menu offer **Install and Relaunch**, and a notification says so once. `lokalbot install-update`
+does the same from a terminal.
+
+Installing downloads the archive and checks its size, SHA-256 and Ed25519 signature (the macOS app's
+Sparkle key) before unpacking anything. It then replaces `lokalbot` and `lokalbot-cli` where they are
+(Linux: `~/.local/bin`, refreshing the applications-menu entry and icons that `install.sh` added; Windows:
+the extracted folder, and the copy `lokalbot-cli install-skill` made), stops the local model servers and Agent
+Mode, and starts the new version. On Windows a running `lokalbot-cli` (an agent's MCP server) keeps working;
+its old file is removed on a later start. Your library is never touched. When LokalBot cannot replace its own
+files (a package manager's copy, `/usr`, `/opt`, Program Files, a folder you cannot write), it offers the
+download from GitHub instead. Debug builds never update.
 
 On first launch LokalBot asks what to remember and downloads the models you choose: about 4 GB for the
 default transcription, Think and search models.

@@ -37,7 +37,7 @@ pub enum Check {
     UpToDate,
     /// The latest release has no feed for this platform (yet).
     Unpublished,
-    Newer(Release),
+    Newer(Box<Release>),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -106,7 +106,9 @@ impl Updater {
                 (true, Err(err)) => {
                     log::warn!("ignoring {PUBLIC_KEY_ENV}: {err}");
                 }
-                (false, _) => log::warn!("ignoring {PUBLIC_KEY_ENV}: the feed is not on this computer"),
+                (false, _) => {
+                    log::warn!("ignoring {PUBLIC_KEY_ENV}: the feed is not on this computer")
+                }
             }
         }
         if let Some(version) = env(CURRENT_VERSION_ENV) {
@@ -189,11 +191,11 @@ impl Updater {
             Offer::Newer {
                 version,
                 installable,
-            } => Check::Newer(Release {
+            } => Check::Newer(Box::new(Release {
                 feed,
                 version,
                 installable,
-            }),
+            })),
         })
     }
 
@@ -227,7 +229,8 @@ impl Updater {
             let _ = std::fs::remove_file(lokalbot_ai::download::sidecar_path(&archive));
             UpdateError::Integrity(reason)
         };
-        let bytes = std::fs::read(&archive).map_err(|err| UpdateError::Download(err.to_string()))?;
+        let bytes =
+            std::fs::read(&archive).map_err(|err| UpdateError::Download(err.to_string()))?;
         if bytes.len() as u64 != feed.size {
             return Err(discard("the archive size changed".into()));
         }
@@ -402,7 +405,7 @@ mod tests {
 
     fn newer(updater: &Updater) -> Release {
         match updater.check().unwrap() {
-            Check::Newer(release) => release,
+            Check::Newer(release) => *release,
             other => panic!("expected an update, got {other:?}"),
         }
     }
@@ -418,7 +421,9 @@ mod tests {
         assert!(release.installable);
         let mut last = (0, 0);
         let folder = updater
-            .prepare(&release, &AtomicBool::new(false), &mut |done, total| last = (done, total))
+            .prepare(&release, &AtomicBool::new(false), &mut |done, total| {
+                last = (done, total)
+            })
             .unwrap();
         assert_eq!(last.0, last.1);
         assert_eq!(folder.file_name().unwrap(), "LokalBot-0.10.11-linux-x86_64");
@@ -432,10 +437,19 @@ mod tests {
     fn up_to_date_older_and_unpublished_feeds() {
         let server = Server::start();
         let work = tempfile::tempdir().unwrap();
-        assert_eq!(updater(&server, "0.10.10", work.path()).check().unwrap(), Check::Unpublished);
+        assert_eq!(
+            updater(&server, "0.10.10", work.path()).check().unwrap(),
+            Check::Unpublished
+        );
         publish(&server, "0.10.10", &release_archive("0.10.10"), &key(SEED));
-        assert_eq!(updater(&server, "0.10.10", work.path()).check().unwrap(), Check::UpToDate);
-        assert_eq!(updater(&server, "0.11.0", work.path()).check().unwrap(), Check::UpToDate);
+        assert_eq!(
+            updater(&server, "0.10.10", work.path()).check().unwrap(),
+            Check::UpToDate
+        );
+        assert_eq!(
+            updater(&server, "0.11.0", work.path()).check().unwrap(),
+            Check::UpToDate
+        );
         // Below the minimum version: offered, but not installable here.
         let release = newer(&updater(&server, "0.9.6", work.path()));
         assert!(!release.installable);
@@ -457,7 +471,10 @@ mod tests {
         let mut tampered = archive.clone();
         let last = tampered.len() - 1;
         tampered[last] ^= 0xff;
-        server.put(&format!("/download/{}", feed.archive_name()), tampered.clone());
+        server.put(
+            &format!("/download/{}", feed.archive_name()),
+            tampered.clone(),
+        );
         feed.sha256 = hex::encode(sha2::Sha256::digest(&tampered));
         server.put("/feed.json", serde_json::to_vec(&feed).unwrap());
         let updater = updater(&server, "0.10.10", work.path());
@@ -467,14 +484,23 @@ mod tests {
             .unwrap_err();
         assert!(matches!(error, UpdateError::Integrity(_)), "{error}");
         let dir = work.path().join("0.10.11");
-        assert_eq!(std::fs::read_dir(&dir).map(|d| d.count()).unwrap_or(0), 0, "nothing kept or unpacked");
+        assert_eq!(
+            std::fs::read_dir(&dir).map(|d| d.count()).unwrap_or(0),
+            0,
+            "nothing kept or unpacked"
+        );
     }
 
     #[test]
     fn rejects_an_archive_signed_with_another_key() {
         let server = Server::start();
         let work = tempfile::tempdir().unwrap();
-        publish(&server, "0.10.11", &release_archive("0.10.11"), &key(OTHER_SEED));
+        publish(
+            &server,
+            "0.10.11",
+            &release_archive("0.10.11"),
+            &key(OTHER_SEED),
+        );
         let updater = updater(&server, "0.10.10", work.path());
         let release = newer(&updater);
         assert!(matches!(
@@ -495,7 +521,10 @@ mod tests {
         let error = updater
             .prepare(&release, &AtomicBool::new(false), &mut |_, _| {})
             .unwrap_err();
-        assert!(matches!(error, UpdateError::Download(ref m) if m.contains("SHA-256")), "{error}");
+        assert!(
+            matches!(error, UpdateError::Download(ref m) if m.contains("SHA-256")),
+            "{error}"
+        );
     }
 
     #[test]
@@ -509,7 +538,10 @@ mod tests {
         let error = updater
             .prepare(&release, &AtomicBool::new(false), &mut |_, _| {})
             .unwrap_err();
-        assert!(matches!(error, UpdateError::Integrity(ref m) if m.contains("LokalBot-0.10.11")), "{error}");
+        assert!(
+            matches!(error, UpdateError::Integrity(ref m) if m.contains("LokalBot-0.10.11")),
+            "{error}"
+        );
     }
 
     fn env(vars: &[(&'static str, &str)]) -> impl Fn(&str) -> Option<String> {

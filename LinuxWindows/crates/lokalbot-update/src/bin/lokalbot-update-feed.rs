@@ -100,10 +100,10 @@ fn sign(options: &Options) -> Result<String> {
         bail!("tag {tag} does not name version {version}");
     }
     let key = read_key(options.required("key-file")?)?;
-    if let Some(expected) = options.optional("expect-public-key") {
-        if key.public_key() != PublicKey::from_base64(expected)? {
-            bail!("the signing key does not belong to the expected public key {expected}");
-        }
+    if let Some(expected) = options.optional("expect-public-key")
+        && key.public_key() != PublicKey::from_base64(expected)?
+    {
+        bail!("the signing key does not belong to the expected public key {expected}");
     }
     let archive = Path::new(options.required("archive")?);
     let name = feed::archive_name(&version.to_string(), platform);
@@ -120,7 +120,10 @@ fn sign(options: &Options) -> Result<String> {
         .optional("notes-url")
         .map(str::to_string)
         .unwrap_or_else(|| format!("https://github.com/{repo}/releases/tag/{tag}"));
-    let minimum: Version = options.optional("minimum-version").unwrap_or("0.0.0").parse()?;
+    let minimum: Version = options
+        .optional("minimum-version")
+        .unwrap_or("0.0.0")
+        .parse()?;
     let feed = Feed {
         platform: platform.into(),
         version: version.to_string(),
@@ -157,7 +160,11 @@ fn verify(options: &Options) -> Result<String> {
     }
     let bytes = std::fs::read(archive).with_context(|| format!("reading {}", archive.display()))?;
     if bytes.len() as u64 != feed.size {
-        bail!("the archive is {} bytes; the feed says {}", bytes.len(), feed.size);
+        bail!(
+            "the archive is {} bytes; the feed says {}",
+            bytes.len(),
+            feed.size
+        );
     }
     if !hex::encode(sha2::Sha256::digest(&bytes)).eq_ignore_ascii_case(&feed.sha256) {
         bail!("the archive's SHA-256 does not match the feed");
@@ -195,10 +202,17 @@ mod tests {
         // A throwaway seed in Sparkle's file format, with a trailing newline.
         std::fs::write(
             &key_file,
-            format!("{}\n", base64::engine::general_purpose::STANDARD.encode([5u8; 32])),
+            format!(
+                "{}\n",
+                base64::engine::general_purpose::STANDARD.encode([5u8; 32])
+            ),
         )
         .unwrap();
-        let public = run(&args(&format!("public-key --key-file {}", key_file.display()))).unwrap();
+        let public = run(&args(&format!(
+            "public-key --key-file {}",
+            key_file.display()
+        )))
+        .unwrap();
         let archive = temp.path().join("LokalBot-0.10.11-windows-x86_64.zip");
         std::fs::write(&archive, b"zip bytes").unwrap();
         let output = temp.path().join("windows-x86_64.json");
@@ -209,15 +223,29 @@ mod tests {
             output.display()
         )))
         .unwrap();
-        assert!(!message.contains(&std::fs::read_to_string(&key_file).unwrap().trim().to_string()));
+        assert!(
+            !message.contains(
+                &std::fs::read_to_string(&key_file)
+                    .unwrap()
+                    .trim()
+                    .to_string()
+            )
+        );
         let feed: Feed = serde_json::from_slice(&std::fs::read(&output).unwrap()).unwrap();
         assert_eq!(
             feed.url,
             "https://github.com/stevyhacker/lokalbot/releases/download/v0.10.11/LokalBot-0.10.11-windows-x86_64.zip"
         );
-        assert_eq!(feed.release_notes_url, "https://github.com/stevyhacker/lokalbot/releases/tag/v0.10.11");
+        assert_eq!(
+            feed.release_notes_url,
+            "https://github.com/stevyhacker/lokalbot/releases/tag/v0.10.11"
+        );
         assert_eq!(feed.minimum_version, "0.10.10");
-        let verify = format!("verify --feed {} --archive {}", output.display(), archive.display());
+        let verify = format!(
+            "verify --feed {} --archive {}",
+            output.display(),
+            archive.display()
+        );
         assert!(run(&args(&format!("{verify} --public-key {public}"))).is_ok());
         // The release key did not sign this.
         assert!(run(&args(&verify)).is_err());
@@ -229,7 +257,11 @@ mod tests {
     fn refuses_a_key_mismatch_and_misnamed_archives() {
         let temp = tempfile::tempdir().unwrap();
         let key_file = temp.path().join("key");
-        std::fs::write(&key_file, base64::engine::general_purpose::STANDARD.encode([5u8; 32])).unwrap();
+        std::fs::write(
+            &key_file,
+            base64::engine::general_purpose::STANDARD.encode([5u8; 32]),
+        )
+        .unwrap();
         let archive = temp.path().join("LokalBot-0.10.11-linux-x86_64.tar.gz");
         std::fs::write(&archive, b"tar bytes").unwrap();
         let output = temp.path().join("feed.json");
@@ -241,9 +273,18 @@ mod tests {
                 output.display()
             )))
         };
-        let error = sign(&format!("--expect-public-key {}", lokalbot_update::PUBLIC_KEY), "0.10.11").unwrap_err();
+        let error = sign(
+            &format!("--expect-public-key {}", lokalbot_update::PUBLIC_KEY),
+            "0.10.11",
+        )
+        .unwrap_err();
         assert!(error.to_string().contains("does not belong"), "{error}");
-        assert!(sign("", "0.10.12").unwrap_err().to_string().contains("must be named"));
+        assert!(
+            sign("", "0.10.12")
+                .unwrap_err()
+                .to_string()
+                .contains("must be named")
+        );
         assert!(!output.exists());
         assert!(sign("", "0.10.11").is_ok());
     }

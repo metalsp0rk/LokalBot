@@ -134,10 +134,15 @@ fn is_managed(dir: &Path, env: &dyn Fn(&str) -> Option<OsString>) -> bool {
     }
     let under = |root: &Path| !root.as_os_str().is_empty() && dir.starts_with(root);
     if cfg!(windows) {
-        ["ProgramFiles", "ProgramFiles(x86)", "ProgramW6432", "SystemRoot"]
-            .iter()
-            .filter_map(|name| env(name))
-            .any(|root| under(Path::new(&root)))
+        [
+            "ProgramFiles",
+            "ProgramFiles(x86)",
+            "ProgramW6432",
+            "SystemRoot",
+        ]
+        .iter()
+        .filter_map(|name| env(name))
+        .any(|root| under(Path::new(&root)))
     } else {
         // AppImage, Snap and Flatpak run from read-only images.
         ["APPIMAGE", "SNAP", "FLATPAK_ID"]
@@ -186,7 +191,13 @@ impl Targets {
             env("LOCALAPPDATA")
                 .map(PathBuf::from)
                 .or_else(|| home().map(|h| h.join("AppData").join("Local")))
-                .map(|local| local.join("Programs").join("LokalBot").join("bin").join(CLI_BINARY))
+                .map(|local| {
+                    local
+                        .join("Programs")
+                        .join("LokalBot")
+                        .join("bin")
+                        .join(CLI_BINARY)
+                })
         } else {
             None
         };
@@ -244,7 +255,11 @@ struct Replacement {
 /// Windows CLI copy, files the archive folder also holds (licenses, notices,
 /// when LokalBot runs from an extracted archive), then install.sh's desktop
 /// entry and icons. Nothing is replaced unless every file could be staged.
-pub fn install(staged: &Path, targets: &Targets, style: SwapStyle) -> Result<Installed, InstallError> {
+pub fn install(
+    staged: &Path,
+    targets: &Targets,
+    style: SwapStyle,
+) -> Result<Installed, InstallError> {
     let mut replacements = plan(staged, targets)?;
     for replacement in &replacements {
         if let Err(source) = stage(replacement) {
@@ -486,12 +501,13 @@ fn is_leftover(name: &str) -> bool {
 /// entry starts this installation. Failures only log: the binaries are
 /// already in place.
 fn refresh_desktop_entry(staged: &Path, dir: &Path, data_dir: &Path) {
-    let entry_path = data_dir.join("applications").join(format!("{APP_ID}.desktop"));
+    let entry_path = data_dir
+        .join("applications")
+        .join(format!("{APP_ID}.desktop"));
     let source = staged.join(format!("{APP_ID}.desktop"));
-    let (Ok(installed), Ok(template)) = (
-        fs::read_to_string(&entry_path),
-        fs::read_to_string(&source),
-    ) else {
+    let (Ok(installed), Ok(template)) =
+        (fs::read_to_string(&entry_path), fs::read_to_string(&source))
+    else {
         return;
     };
     let exec = dir.join(APP_BINARY);
@@ -606,9 +622,15 @@ mod tests {
         write(&staged.join(CLI_BINARY), "new cli");
         write(&staged.join("THIRD_PARTY_NOTICES.md"), "new notices");
         write(&staged.join("LICENSES/AGPL-3.0.txt"), "new license");
-        write(&staged.join(format!("{APP_ID}.desktop")), "[Desktop Entry]\nName=LokalBot\nExec=lokalbot %U\nIcon=com.lokalbot.LokalBot\n");
+        write(
+            &staged.join(format!("{APP_ID}.desktop")),
+            "[Desktop Entry]\nName=LokalBot\nExec=lokalbot %U\nIcon=com.lokalbot.LokalBot\n",
+        );
         for size in ICON_SIZES {
-            write(&staged.join(format!("icons/lokalbot-{size}.png")), &format!("new icon {size}"));
+            write(
+                &staged.join(format!("icons/lokalbot-{size}.png")),
+                &format!("new icon {size}"),
+            );
         }
         staged
     }
@@ -654,7 +676,10 @@ mod tests {
             #[cfg(unix)]
             {
                 use std::os::unix::fs::PermissionsExt as _;
-                let mode = fs::metadata(bin.join(APP_BINARY)).unwrap().permissions().mode();
+                let mode = fs::metadata(bin.join(APP_BINARY))
+                    .unwrap()
+                    .permissions()
+                    .mode();
                 assert_eq!(mode & 0o777, 0o755, "{style:?}");
             }
         }
@@ -750,9 +775,16 @@ mod tests {
             let bin = temp.path().join("bin");
             write(&bin.join(APP_BINARY), "old app");
             write(&temp.path().join("elsewhere/lokalbot-cli"), "other cli");
-            std::os::unix::fs::symlink(temp.path().join("elsewhere/lokalbot-cli"), bin.join(CLI_BINARY)).unwrap();
+            std::os::unix::fs::symlink(
+                temp.path().join("elsewhere/lokalbot-cli"),
+                bin.join(CLI_BINARY),
+            )
+            .unwrap();
             install(&staged, &self::targets(&bin), SwapStyle::Unix).unwrap();
-            assert_eq!(read(&temp.path().join("elsewhere/lokalbot-cli")), "other cli");
+            assert_eq!(
+                read(&temp.path().join("elsewhere/lokalbot-cli")),
+                "other cli"
+            );
         }
     }
 
@@ -761,9 +793,18 @@ mod tests {
         let temp = tempfile::tempdir().unwrap();
         let folder = temp.path().join("LokalBot");
         write(&folder.join(APP_BINARY), "app");
-        write(&folder.join(sibling(&folder.join(CLI_BINARY), "old")), "running old cli");
-        write(&folder.join(sibling(&folder.join(CLI_BINARY), "3.old")), "older");
-        write(&folder.join(sibling(&folder.join(APP_BINARY), "new")), "half staged");
+        write(
+            &folder.join(sibling(&folder.join(CLI_BINARY), "old")),
+            "running old cli",
+        );
+        write(
+            &folder.join(sibling(&folder.join(CLI_BINARY), "3.old")),
+            "older",
+        );
+        write(
+            &folder.join(sibling(&folder.join(APP_BINARY), "new")),
+            "half staged",
+        );
         write(&folder.join("notes.old"), "not ours");
         remove_leftovers(&targets(&folder));
         assert_eq!(names(&folder), sorted(&[APP_BINARY, "notes.old"]));
@@ -782,15 +823,27 @@ mod tests {
         write(&bin.join(APP_BINARY), "old app");
         write(&bin.join(CLI_BINARY), "old cli");
         let entry = data.join("applications").join(format!("{APP_ID}.desktop"));
-        write(&entry, &format!("[Desktop Entry]\nName=Old\nExec={} %U\n", bin.join(APP_BINARY).display()));
+        write(
+            &entry,
+            &format!(
+                "[Desktop Entry]\nName=Old\nExec={} %U\n",
+                bin.join(APP_BINARY).display()
+            ),
+        );
         let mut targets = targets(&bin);
         targets.data_dir = Some(data.clone());
         install(&staged, &targets, SwapStyle::Unix).unwrap();
         assert_eq!(
             read(&entry),
-            format!("[Desktop Entry]\nName=LokalBot\nExec={} %U\nIcon=com.lokalbot.LokalBot\n", bin.join(APP_BINARY).display())
+            format!(
+                "[Desktop Entry]\nName=LokalBot\nExec={} %U\nIcon=com.lokalbot.LokalBot\n",
+                bin.join(APP_BINARY).display()
+            )
         );
-        assert_eq!(read(&data.join(format!("icons/hicolor/48x48/apps/{APP_ID}.png"))), "new icon 48");
+        assert_eq!(
+            read(&data.join(format!("icons/hicolor/48x48/apps/{APP_ID}.png"))),
+            "new icon 48"
+        );
 
         // An entry that starts another copy is left alone.
         let other = "[Desktop Entry]\nExec=/opt/LokalBot/lokalbot %U\n".to_string();
@@ -798,7 +851,11 @@ mod tests {
         fs::remove_file(data.join(format!("icons/hicolor/48x48/apps/{APP_ID}.png"))).unwrap();
         install(&staged, &targets, SwapStyle::Unix).unwrap();
         assert_eq!(read(&entry), other);
-        assert!(!data.join(format!("icons/hicolor/48x48/apps/{APP_ID}.png")).exists());
+        assert!(
+            !data
+                .join(format!("icons/hicolor/48x48/apps/{APP_ID}.png"))
+                .exists()
+        );
     }
 
     #[test]
@@ -807,7 +864,10 @@ mod tests {
         let none = |_: &str| None;
         let dir = temp.path().join("bin");
         fs::create_dir_all(&dir).unwrap();
-        assert_eq!(Installation::at(dir.clone(), &none).placement, Placement::Replaceable);
+        assert_eq!(
+            Installation::at(dir.clone(), &none).placement,
+            Placement::Replaceable
+        );
         let build = temp.path().join("LinuxWindows/target/release");
         fs::create_dir_all(&build).unwrap();
         assert_eq!(Installation::at(build, &none).placement, Placement::Managed);
@@ -816,15 +876,27 @@ mod tests {
         assert_eq!(Installation::at(cross, &none).placement, Placement::Managed);
         if cfg!(windows) {
             let program_files = temp.path().join("Program Files");
-            let env = |name: &str| (name == "ProgramFiles").then(|| program_files.clone().into_os_string());
+            let env = |name: &str| {
+                (name == "ProgramFiles").then(|| program_files.clone().into_os_string())
+            };
             let inside = program_files.join("LokalBot");
             fs::create_dir_all(&inside).unwrap();
             assert_eq!(Installation::at(inside, &env).placement, Placement::Managed);
         } else {
-            assert_eq!(Installation::at("/usr/bin".into(), &none).placement, Placement::Managed);
-            assert_eq!(Installation::at("/opt/LokalBot".into(), &none).placement, Placement::Managed);
-            let appimage = |name: &str| (name == "APPIMAGE").then(|| OsString::from("/tmp/LokalBot.AppImage"));
-            assert_eq!(Installation::at(dir.clone(), &appimage).placement, Placement::Managed);
+            assert_eq!(
+                Installation::at("/usr/bin".into(), &none).placement,
+                Placement::Managed
+            );
+            assert_eq!(
+                Installation::at("/opt/LokalBot".into(), &none).placement,
+                Placement::Managed
+            );
+            let appimage =
+                |name: &str| (name == "APPIMAGE").then(|| OsString::from("/tmp/LokalBot.AppImage"));
+            assert_eq!(
+                Installation::at(dir.clone(), &appimage).placement,
+                Placement::Managed
+            );
         }
         #[cfg(unix)]
         {
@@ -834,7 +906,10 @@ mod tests {
             fs::set_permissions(&locked, fs::Permissions::from_mode(0o555)).unwrap();
             // Root can write anywhere; the check only means something for users.
             if !is_writable(&locked) {
-                assert_eq!(Installation::at(locked.clone(), &none).placement, Placement::NotWritable);
+                assert_eq!(
+                    Installation::at(locked.clone(), &none).placement,
+                    Placement::NotWritable
+                );
             }
             fs::set_permissions(&locked, fs::Permissions::from_mode(0o755)).unwrap();
         }
@@ -852,7 +927,10 @@ mod tests {
         if cfg!(windows) {
             assert_eq!(
                 targets.cli_copy,
-                Some(PathBuf::from("C:/Users/a/AppData/Local/Programs/LokalBot/bin").join(CLI_BINARY))
+                Some(
+                    PathBuf::from("C:/Users/a/AppData/Local/Programs/LokalBot/bin")
+                        .join(CLI_BINARY)
+                )
             );
             assert_eq!(targets.data_dir, None);
         } else {
@@ -861,7 +939,10 @@ mod tests {
             let fallback = Targets::for_dir("/somewhere".into(), &|name: &str| {
                 (name == "HOME").then(|| OsString::from("/home/a"))
             });
-            assert_eq!(fallback.data_dir, Some(PathBuf::from("/home/a/.local/share")));
+            assert_eq!(
+                fallback.data_dir,
+                Some(PathBuf::from("/home/a/.local/share"))
+            );
         }
     }
 
@@ -893,7 +974,10 @@ mod tests {
         assert_eq!(read(&folder.join(APP_BINARY)), "new app");
         let old = sibling(&folder.join(CLI_BINARY), "old");
         assert!(old.exists(), "the running CLI keeps its old file");
-        assert!(running.try_wait().unwrap().is_none(), "the CLI keeps running");
+        assert!(
+            running.try_wait().unwrap().is_none(),
+            "the CLI keeps running"
+        );
 
         // A second update while the first old CLI is still running.
         write(&staged.join(CLI_BINARY), "newer cli");

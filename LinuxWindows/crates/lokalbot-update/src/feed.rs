@@ -60,7 +60,10 @@ pub enum Offer {
     UpToDate,
     /// `installable` is false when this copy is older than the feed's
     /// minimum version and must be replaced by hand.
-    Newer { version: Version, installable: bool },
+    Newer {
+        version: Version,
+        installable: bool,
+    },
 }
 
 impl Feed {
@@ -258,16 +261,35 @@ mod tests {
 
     #[test]
     fn rejects_invalid_fields() {
-        let cases: Vec<(&str, Box<dyn Fn(&mut Feed)>)> = vec![
+        type Change = Box<dyn Fn(&mut Feed)>;
+        let cases: Vec<(&str, Change)> = vec![
             ("version", Box::new(|f| f.version = "0.10".into())),
             ("version", Box::new(|f| f.version = "v0.10.11".into())),
-            ("minimumVersion", Box::new(|f| f.minimum_version = "".into())),
-            ("minimumVersion", Box::new(|f| f.minimum_version = "0.10.12".into())),
-            ("url", Box::new(|f| f.url = f.url.replace("https://", "http://"))),
-            ("url", Box::new(|f| f.url = "file:///tmp/LokalBot-0.10.11-linux-x86_64.tar.gz".into())),
+            (
+                "minimumVersion",
+                Box::new(|f| f.minimum_version = "".into()),
+            ),
+            (
+                "minimumVersion",
+                Box::new(|f| f.minimum_version = "0.10.12".into()),
+            ),
+            (
+                "url",
+                Box::new(|f| f.url = f.url.replace("https://", "http://")),
+            ),
+            (
+                "url",
+                Box::new(|f| f.url = "file:///tmp/LokalBot-0.10.11-linux-x86_64.tar.gz".into()),
+            ),
             // The URL must name this version's archive.
-            ("url", Box::new(|f| f.url = f.url.replace("0.10.11-linux", "0.10.10-linux"))),
-            ("releaseNotesUrl", Box::new(|f| f.release_notes_url = "javascript:alert(1)".into())),
+            (
+                "url",
+                Box::new(|f| f.url = f.url.replace("0.10.11-linux", "0.10.10-linux")),
+            ),
+            (
+                "releaseNotesUrl",
+                Box::new(|f| f.release_notes_url = "javascript:alert(1)".into()),
+            ),
             ("size", Box::new(|f| f.size = 0)),
             ("size", Box::new(|f| f.size = MAX_ARCHIVE_BYTES + 1)),
             ("sha256", Box::new(|f| f.sha256 = "ab".repeat(31))),

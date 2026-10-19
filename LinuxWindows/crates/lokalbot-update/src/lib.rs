@@ -66,7 +66,10 @@ mod tests {
             release_page(&Version::new(0, 10, 11)),
             "https://github.com/stevyhacker/lokalbot/releases/tag/v0.10.11"
         );
-        if cfg!(all(any(target_os = "linux", windows), target_arch = "x86_64")) {
+        if cfg!(all(
+            any(target_os = "linux", windows),
+            target_arch = "x86_64"
+        )) {
             assert!(PLATFORMS.contains(&platform().unwrap()));
         }
     }

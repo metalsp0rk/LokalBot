@@ -4364,6 +4364,7 @@ dependencies = [
  "lokalbot-i18n",
  "lokalbot-platform",
  "lokalbot-speech",
+ "lokalbot-update",
  "parking_lot",
  "raw-window-handle",
  "rust-i18n",

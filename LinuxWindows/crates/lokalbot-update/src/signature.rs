@@ -148,7 +148,10 @@ mod tests {
     fn a_valid_signature_verifies() {
         let key = SecretKey::from_sparkle(&seed_key(SEED)).unwrap();
         let signature = key.sign(b"archive bytes");
-        assert_eq!(key.public_key().verify(b"archive bytes", &signature), Ok(()));
+        assert_eq!(
+            key.public_key().verify(b"archive bytes", &signature),
+            Ok(())
+        );
     }
 
     #[test]
@@ -207,7 +210,12 @@ mod tests {
 
     #[test]
     fn malformed_keys_are_refused_without_echoing_them() {
-        for text in ["", "c2VjcmV0", "not base64 at all", &STANDARD.encode([1u8; 64])] {
+        for text in [
+            "",
+            "c2VjcmV0",
+            "not base64 at all",
+            &STANDARD.encode([1u8; 64]),
+        ] {
             let error = SecretKey::from_sparkle(text).err().unwrap();
             assert_eq!(error, SignatureError::InvalidPrivateKey);
             assert!(text.is_empty() || !error.to_string().contains(text));
