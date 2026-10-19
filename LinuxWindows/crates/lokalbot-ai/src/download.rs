@@ -68,6 +68,20 @@ pub fn download(
     download_with(spec, cancel, progress, &Options::default())
 }
 
+/// [`download`] that also accepts plain `http://` from this computer, for
+/// dry-run update feeds served locally. Size and SHA-256 are still checked.
+pub fn download_allowing_loopback_http(
+    spec: &DownloadSpec,
+    cancel: &AtomicBool,
+    progress: &mut dyn FnMut(u64, u64),
+) -> Result<()> {
+    let options = Options {
+        allow_loopback_http: true,
+        ..Options::default()
+    };
+    download_with(spec, cancel, progress, &options)
+}
+
 pub(crate) fn download_with(
     spec: &DownloadSpec,
     cancel: &AtomicBool,

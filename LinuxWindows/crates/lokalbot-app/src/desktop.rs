@@ -12,7 +12,7 @@ use parking_lot::Mutex;
 use lokalbot_core::settings::DictationTriggerMode;
 use lokalbot_engine::{Command, DictationCommand};
 use lokalbot_platform::shortcuts::{GlobalShortcuts, Shortcut, ShortcutEvent};
-use lokalbot_platform::tray::{self, Tray, TrayEvent, TrayMenuState, item_ids};
+use lokalbot_platform::tray::{self, Tray, TrayEvent, TrayMenuState, TrayUpdate, item_ids};
 use lokalbot_platform::{IpcCommand, IpcServer};
 
 use crate::state::{AppData, MeetingTab, RecordingState, SettingsCategory};
@@ -32,6 +32,8 @@ enum DesktopEvent {
         title: String,
         app_name: String,
     },
+    /// The "LokalBot <version> is available" notification was clicked.
+    ShowUpdate,
 }
 
 /// Handles that must live as long as the app.
@@ -69,7 +71,7 @@ pub fn start(data: &Entity<AppData>, root: &Path, cx: &mut App) {
             Some(icon) => match Tray::new(
                 icon,
                 "LokalBot",
-                tray::standard_items(&tray_state(data.read(cx))),
+                tray::standard_items(&tray_state(data.read(cx), tray_update(cx))),
                 Box::new(move |event| {
                     let _ = tx.send_blocking(DesktopEvent::Tray(event));
                 }),
@@ -154,7 +156,19 @@ fn tray_icon_rgba() -> Option<(Vec<u8>, u32, u32)> {
     Some((image.into_raw(), width, height))
 }
 
-fn tray_state(data: &AppData) -> TrayMenuState {
+/// The update row, from the updater's state.
+fn tray_update(cx: &App) -> Option<TrayUpdate> {
+    let updates = crate::updates::global(cx)?;
+    let updates = updates.read(cx);
+    let release = updates.status.release()?;
+    Some(TrayUpdate {
+        version: release.version.to_string(),
+        installable: updates.can_install(release),
+        busy: updates.status.busy(),
+    })
+}
+
+fn tray_state(data: &AppData, update: Option<TrayUpdate>) -> TrayMenuState {
     let (recording, timer, subtitle) = match &data.recording {
         RecordingState::Recording {
             meeting, started, ..
@@ -174,6 +188,7 @@ fn tray_state(data: &AppData) -> TrayMenuState {
         screen_capture: data.settings.tracking_enabled
             && data.settings.screen_context_capture_mode
                 != lokalbot_core::ScreenContextMode::ActivityOnly,
+        update,
     }
 }
 
@@ -192,7 +207,7 @@ fn refresh_tray(data: &Entity<AppData>, cx: &mut App) {
     let Some(tray) = desktop.tray.as_ref() else {
         return;
     };
-    let state = tray_state(data.read(cx));
+    let state = tray_state(data.read(cx), tray_update(cx));
     let mut last = desktop.tray_state.lock();
     if last.as_ref() == Some(&state) {
         return;
@@ -203,6 +218,7 @@ fn refresh_tray(data: &Entity<AppData>, cx: &mut App) {
             || l.subtitle != state.subtitle
             || l.day_memory_paused != state.day_memory_paused
             || l.screen_capture != state.screen_capture
+            || l.update != state.update
     });
     if menu_changed {
         let _ = tray.set_items(tray::standard_items(&state));
@@ -279,6 +295,12 @@ fn handle(data: &Entity<AppData>, event: DesktopEvent, cx: &mut App) {
                 crate::bridge::send(Command::SetDayMemoryPaused(paused), cx);
             }
             item_ids::CAPTURE_SCREEN => crate::bridge::send(Command::CaptureScreenNow, cx),
+            item_ids::INSTALL_UPDATE => {
+                if let Some(updates) = crate::updates::global(cx) {
+                    updates.update(cx, |updates, cx| updates.install(cx));
+                }
+            }
+            item_ids::DOWNLOAD_UPDATE => crate::updates::open_release_page(cx),
             item_ids::QUIT => cx.quit(),
             other => log::debug!("unknown tray item {other}"),
         },
@@ -300,6 +322,11 @@ fn handle(data: &Entity<AppData>, event: DesktopEvent, cx: &mut App) {
             IpcCommand::ToggleDictation => {
                 crate::bridge::send(Command::Dictation(DictationCommand::Toggle), cx)
             }
+            IpcCommand::InstallUpdate => {
+                if let Some(updates) = crate::updates::global(cx) {
+                    updates.update(cx, |updates, cx| updates.install_from_command(cx));
+                }
+            }
             IpcCommand::OpenMeeting(id) => {
                 show_main_window(cx);
                 if let Ok(id) = uuid::Uuid::parse_str(&id) {
@@ -316,6 +343,12 @@ fn handle(data: &Entity<AppData>, event: DesktopEvent, cx: &mut App) {
             },
             cx,
         ),
+        DesktopEvent::ShowUpdate => {
+            show_main_window(cx);
+            data.update(cx, |data, cx| {
+                data.open_settings(SettingsCategory::General, cx)
+            });
+        }
     }
 }
 
@@ -408,6 +441,31 @@ pub fn notify_recording_saved(title: String, minutes: u64) {
             lokalbot_platform::notify(lokalbot_i18n::tr("Recording saved"), &body, &[], None)
         {
             log::debug!("recording-saved notification failed: {err:#}");
+        }
+    });
+}
+
+/// "LokalBot <version> is available", once per version found by an
+/// automatic check (Sparkle shows its update alert then). Clicking it opens
+/// Settings → General, where Install and Relaunch is.
+pub fn notify_update_available(version: String, cx: &mut App) {
+    let Some(desktop) = desktop(cx) else { return };
+    let tx = desktop.sender.clone();
+    std::thread::spawn(move || {
+        let title =
+            lokalbot_i18n::format("LokalBot {version} is available", &[("version", version)]);
+        let result = lokalbot_platform::notify(
+            &title,
+            lokalbot_i18n::tr("Choose Install and Relaunch in Settings or the tray menu."),
+            &[],
+            Some(Box::new(move |action| {
+                if action == "default" {
+                    let _ = tx.send_blocking(DesktopEvent::ShowUpdate);
+                }
+            })),
+        );
+        if let Err(err) = result {
+            log::debug!("update notification failed: {err:#}");
         }
     });
 }

@@ -2,11 +2,14 @@ name: Windows desktop checks
 description: >
   Captures the app's pages and checks autocomplete and screen capture on the
   runner's real desktop. Runs only on GitHub's Windows runners: it changes
-  the resolution, minimizes every window, types into Notepad and reads the
-  screen. Expects the Rust workspace in LinuxWindows/.
+  the resolution, minimizes every window, types into Notepad, reads the
+  screen and starts the packaged app to update itself. Expects the Rust
+  workspace in LinuxWindows/.
 inputs:
   bin:
-    description: Folder with lokalbot.exe and examples\ (autocomplete_probe, screen_capture, screen_text).
+    description: >
+      Folder with lokalbot.exe, examples\ (autocomplete_probe, screen_capture,
+      screen_text) and update\ (the packaged zip and lokalbot-update-feed.exe).
     required: true
 runs:
   using: composite
@@ -76,3 +79,16 @@ runs:
         }
         & (Join-Path $env:BIN "examples\screen_text.exe") --delay 3 2>&1 |
           Tee-Object (Join-Path $out "screen-text.txt")
+
+    # Runs the extracted archive with lokalbot-cli serving MCP, then has it
+    # update itself from a signed feed on 127.0.0.1 and relaunch.
+    - name: Check updating from a local feed
+      shell: pwsh
+      working-directory: LinuxWindows
+      env:
+        BIN: ${{ inputs.bin }}
+      run: |
+        $update = Join-Path $env:BIN "update"
+        $zip = (Get-ChildItem (Join-Path $update "LokalBot-*-windows-x86_64.zip")).FullName
+        ./scripts/ci/update-e2e.ps1 -Archive $zip -Update $zip `
+          -Tool (Join-Path $update "lokalbot-update-feed.exe") -Work (Join-Path $env:RUNNER_TEMP "update-e2e")
