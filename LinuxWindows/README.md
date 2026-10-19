@@ -81,10 +81,47 @@ cargo run -p lokalbot-engine --example process_meeting -- <library> mic.wav syst
 `cargo run -p lokalbot-app -- --seed-demo --lokalbot-storage-root <empty dir>` writes the fictional demo
 library used for the screenshots.
 
-## Layout
+## Interface languages
+
+Choose **App language** in Settings → General → Appearance, or during setup.
+Windows and Linux offer the same 24 interface languages as macOS, including
+Serbian Latin, both Chinese scripts, Arabic, Egyptian Arabic and Urdu. The default
+is **Follow System**. Linux honors `LC_ALL`, `LC_MESSAGES`, `LANG` and the GNU
+`LANGUAGE` preference list; Windows uses its OS language preferences. An explicit
+choice is saved as `appLanguage` in the shared settings format. The notes language,
+transcription, user content, shortcuts and agent commands stay independent.
+
+Shared copy comes from `../LokalBot/Resources/*.lproj/Localizable.strings` and the
+language names/matching rules follow `AppLanguage.swift`. Desktop-specific copy is
+in `localizations/<locale>.json`; it must not override a shared key. Translations
+are embedded at build time. There is no translation service at runtime. The new
+desktop-only translations are machine-assisted and need native-speaker review,
+particularly longer help text and regional wording.
+
+After changing either catalog, run these from `LinuxWindows/`:
+
+```bash
+python3 scripts/sync-localizations.py
+python3 -m unittest discover -s scripts/tests
+cargo test -p lokalbot-i18n -p lokalbot-core
+```
+
+CI checks every locale's keys, placeholders and line breaks, keyboard names,
+embedded direction controls, source-key coverage and generated-file freshness. Commit the generated
+Rust catalog too: Windows builds use an archive without the macOS source tree.
+Language changes redraw open windows and update input hints without replacing
+the input entities. Interface rows mirror for right-to-left languages; text
+answers choose alignment from their content and code stays left-to-right.
+Plain interface paragraphs use Unicode line breaks before shaping each display
+line. This avoids the pinned GPUI renderer's glyph-order wrapping problem with
+Arabic and Urdu and keeps Indic graphemes intact. Inputs and rich-text editors
+continue to use the framework's native renderer.
+
+## Crates
 
 ```text
 crates/
+├── lokalbot-i18n      Embedded shared interface catalogs, language matching and formatting
 ├── lokalbot-core      Library format (macOS-compatible), SQLite search, actions, timeline, settings, screen moments
 ├── lokalbot-ai        Model catalog, downloads, llama.cpp runtime, Think/embedding clients, prompts, autocomplete, OCR
 ├── lokalbot-audio     Microphone + system audio capture, playback, waveforms

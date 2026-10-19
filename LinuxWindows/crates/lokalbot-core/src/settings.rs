@@ -19,6 +19,8 @@ pub struct Settings {
     #[serde(rename = "menuBarOnly")]
     pub run_in_tray: bool,
     pub app_theme: AppTheme,
+    /// Interface only; compatible with macOS's appLanguage preference.
+    pub app_language: String,
     pub text_size: TextSize,
     pub quick_recall_enabled: bool,
     pub quick_recall_shortcut: String,
@@ -131,6 +133,7 @@ impl Default for Settings {
             launch_at_login: false,
             run_in_tray: true,
             app_theme: AppTheme::System,
+            app_language: "system".into(),
             text_size: TextSize::Standard,
             quick_recall_enabled: false,
             quick_recall_shortcut: "Ctrl+Shift+Space".into(),
@@ -545,5 +548,36 @@ mod tests {
         assert_eq!(settings.retention_days, 14);
         assert!(!settings.tracking_enabled);
         assert_eq!(settings.day_digest_hour, 9);
+    }
+
+    #[test]
+    fn interface_language_survives_an_existing_library_upgrade() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("settings.json");
+        // The same preference key is used by the macOS app. Changing the
+        // interface must not change the language of generated meeting notes,
+        // shortcuts or any capture/consent choice.
+        std::fs::write(&path, r#"{"appLanguage":"sr-Latn","summaryLanguage":"de","trackingEnabled":false,"recordSystemAudio":false,"quickRecallShortcut":"Ctrl+Shift+Space"}"#).unwrap();
+        let settings = Settings::load(&path);
+        settings.save(&path).unwrap();
+        let saved: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+        assert_eq!(saved["appLanguage"], "sr-Latn");
+        assert_eq!(saved["summaryLanguage"], "de");
+        assert_eq!(saved["trackingEnabled"], false);
+        assert_eq!(saved["recordSystemAudio"], false);
+        assert_eq!(saved["quickRecallShortcut"], "Ctrl+Shift+Space");
+
+        std::fs::write(&path, r#"{"summaryLanguage":"ja","trackingEnabled":false}"#).unwrap();
+        let older = Settings::load(&path);
+        let upgraded = serde_json::to_value(&older).unwrap();
+        assert_eq!(upgraded["appLanguage"], "system");
+        assert_eq!(upgraded["summaryLanguage"], "ja");
+        assert_eq!(upgraded["trackingEnabled"], false);
+        assert_eq!(
+            Settings::load(&path),
+            older,
+            "loading does not rewrite an older library"
+        );
     }
 }

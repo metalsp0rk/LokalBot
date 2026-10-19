@@ -2,10 +2,11 @@
 //! downloads, and the explicit "Set Up Agent Mode" action. Nothing is
 //! downloaded until the user asks.
 
+use crate::i18n::h_flex;
 use gpui_kit::component::button::{Button, ButtonVariants as _};
 use gpui_kit::component::progress::Progress;
 use gpui_kit::component::spinner::Spinner;
-use gpui_kit::component::{Icon, Sizable as _, h_flex, v_flex};
+use gpui_kit::component::{Icon, Sizable as _, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
     AnyElement, Context, FontWeight, IntoElement, ParentElement as _, Styled as _, div, px,
@@ -36,22 +37,29 @@ impl AgentPage {
         };
         let remote = crate::pages::ask::composer_inference(cx).remote;
         let inference = if remote {
-            "Prompts and approved context are sent to your configured remote Think model."
+            lokalbot_i18n::tr(
+                "Prompts and approved context are sent to your configured remote Think model.",
+            )
         } else {
-            "Model inference runs on this PC."
+            lokalbot_i18n::tr("Model inference runs on this PC.")
         };
-        let description = format!(
-            "A local coding and file agent powered by your selected Think model. Setup downloads about {} and uses about {} after installation. {inference} Session history stays local; commands you approve run with your account’s permissions on this PC and may access files or the network.",
-            manifest.download_label(),
-            manifest.installed_label(),
+        let description = lokalbot_i18n::format(
+            "A local coding and file agent powered by your selected Think model. Setup downloads about {0} and uses about {1} after installation. {inference} Session history stays local; commands you approve run with your account’s permissions on this PC and may access files or the network.",
+            &[
+                ("0", format!("{}", manifest.download_label())),
+                ("1", format!("{}", manifest.installed_label())),
+                ("inference", format!("{}", inference)),
+            ],
         );
 
         let action: AnyElement = match &phase {
-            InstallPhase::Checking => status_line("Verifying Agent runtime…", cx),
+            InstallPhase::Checking => {
+                status_line(lokalbot_i18n::tr("Verifying Agent runtime…"), cx)
+            }
             InstallPhase::Idle => Button::new("agent-install")
                 .primary()
                 .icon(Icon::new(Ico::Download))
-                .label("Set Up Agent Mode")
+                .label(lokalbot_i18n::tr("Set Up Agent Mode"))
                 .font_weight(FontWeight::SEMIBOLD)
                 .on_click(cx.listener(|this, _, _, cx| this.install(false, cx)))
                 .into_any_element(),
@@ -68,10 +76,16 @@ impl AgentPage {
                     div()
                         .text_size(ty::CAPTION)
                         .text_color(lb.text_secondary)
-                        .child(format!("Downloading {name}…")),
+                        .child(crate::ui::text::paragraph(lokalbot_i18n::format(
+                            "Downloading {name}…",
+                            &[("name", format!("{}", name))],
+                        ))),
                 )
                 .into_any_element(),
-            InstallPhase::Installing { name } => status_line(&format!("Installing {name}…"), cx),
+            InstallPhase::Installing { name } => status_line(
+                &lokalbot_i18n::format("Installing {name}…", &[("name", format!("{}", name))]),
+                cx,
+            ),
             InstallPhase::Failed(message) => v_flex()
                 .gap(px(10.))
                 .items_center()
@@ -86,7 +100,7 @@ impl AgentPage {
                 .child(
                     Button::new("agent-install-retry")
                         .outline()
-                        .label("Repair Agent Mode")
+                        .label(lokalbot_i18n::tr("Repair Agent Mode"))
                         .on_click(cx.listener(|this, _, _, cx| this.install(true, cx))),
                 )
                 .into_any_element(),
@@ -118,7 +132,7 @@ impl AgentPage {
                         .text_size(ty::PAGE_TITLE)
                         .font_weight(FontWeight::BOLD)
                         .text_color(lb.text)
-                        .child("Agent Mode"),
+                        .child(crate::ui::text::paragraph(lokalbot_i18n::tr("Agent Mode"))),
                 )
                 .child(
                     div()
@@ -134,7 +148,7 @@ impl AgentPage {
                 .child(
                     div().pt(px(18.)).text_size(ty::SECONDARY).child(ui::link(
                         "agent-external-cli",
-                        "Using your own coding agent? Set up lokalbot-cli and MCP in Settings → Advanced.",
+                        lokalbot_i18n::tr("Using your own coding agent? Set up lokalbot-cli and MCP in Settings → Advanced."),
                         move |_, cx| {
                             settings_data.update(cx, |data, cx| {
                                 data.open_settings(SettingsCategory::Advanced, cx)

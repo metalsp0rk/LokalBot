@@ -1,8 +1,9 @@
 //! A shortcut recorder (`ShortcutRecorder.swift`): click, then press the
 //! shortcut. Escape cancels. Values read like "Ctrl+Shift+Space".
 
+use crate::i18n::h_flex;
 use gpui_kit::component::button::{Button, ButtonVariants as _};
-use gpui_kit::component::{Icon, Sizable as _, h_flex, v_flex};
+use gpui_kit::component::{Icon, Sizable as _, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
     App, Context, EventEmitter, FocusHandle, InteractiveElement as _, IntoElement, Keystroke,
@@ -103,7 +104,10 @@ impl ShortcutField {
             return;
         }
         let Some(candidate) = format_keystroke(keystroke) else {
-            self.error = Some("Hold the modifiers and press a key, like Ctrl+Shift+Space.".into());
+            self.error = Some(
+                lokalbot_i18n::tr("Hold the modifiers and press a key, like Ctrl+Shift+Space.")
+                    .into(),
+            );
             cx.notify();
             return;
         };
@@ -136,7 +140,7 @@ impl Render for ShortcutField {
         let _ = window;
         let recording = self.recording;
         let label: SharedString = if recording {
-            "Press a shortcut…".into()
+            lokalbot_i18n::tr("Press a shortcut…").into()
         } else {
             self.value.clone().into()
         };
@@ -181,7 +185,10 @@ impl Render for ShortcutField {
                                 .ghost()
                                 .xsmall()
                                 .icon(Icon::new(Ico::RotateCcw))
-                                .tooltip(format!("Reset to {}", self.default_value))
+                                .tooltip(lokalbot_i18n::format(
+                                    "Reset to {0}",
+                                    &[("0", format!("{}", self.default_value))],
+                                ))
                                 .on_click(cx.listener(|this, _, _, cx| this.reset(cx))),
                         )
                     }),

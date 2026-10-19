@@ -3,9 +3,10 @@
 use chrono::{DateTime, Days, Local, Utc};
 use gpui_kit::component::button::{Button, ButtonVariant};
 
+use crate::i18n::h_flex;
 use gpui_kit::component::input::Input;
 use gpui_kit::component::menu::{ContextMenuExt as _, PopupMenuItem};
-use gpui_kit::component::{Icon, Sizable as _, WindowExt as _, h_flex, v_flex};
+use gpui_kit::component::{Icon, Sizable as _, WindowExt as _, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
     AnyElement, Context, FontWeight, InteractiveElement as _, IntoElement, ParentElement as _,
@@ -50,7 +51,9 @@ impl AskPage {
                                         .text_size(ty::COLUMN_TITLE)
                                         .font_weight(FontWeight::BOLD)
                                         .text_color(lb.text)
-                                        .child("Conversations"),
+                                        .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                                            "Conversations",
+                                        ))),
                                 )
                                 .child(
                                     div()
@@ -64,7 +67,7 @@ impl AskPage {
                                 .outline()
                                 .small()
                                 .icon(Icon::new(Ico::SquarePen))
-                                .tooltip("Start a new question (Ctrl+N)")
+                                .tooltip(lokalbot_i18n::tr("Start a new question (Ctrl+N)"))
                                 .on_click(cx.listener(|this, _, window, cx| {
                                     this.new_conversation(window, cx)
                                 })),
@@ -80,12 +83,15 @@ impl AskPage {
         if sections.is_empty() {
             let message = if query.is_empty() {
                 if self.conversations_loaded {
-                    "Questions you ask appear here.".to_string()
+                    lokalbot_i18n::tr("Questions you ask appear here.").to_string()
                 } else {
                     String::new()
                 }
             } else {
-                format!("No questions match “{query}”.")
+                lokalbot_i18n::format(
+                    "No questions match “{query}”.",
+                    &[("query", format!("{}", query))],
+                )
             };
             rows.push(
                 div()
@@ -180,7 +186,7 @@ impl AskPage {
                 let page = page.clone();
                 let title = menu_title.clone();
                 menu.item(
-                    PopupMenuItem::new("Delete")
+                    PopupMenuItem::new(lokalbot_i18n::tr("Delete"))
                         .icon(Icon::new(Ico::Trash))
                         .on_click(move |_, window, cx| {
                             confirm_delete(page.clone(), id, title.clone(), window, cx);
@@ -200,12 +206,15 @@ fn confirm_delete(
     window.open_alert_dialog(cx, move |alert, _, _| {
         let page = page.clone();
         alert
-            .title("Delete Question?")
-            .description(format!("This removes “{title}” from Ask history."))
+            .title(lokalbot_i18n::tr("Delete Question?"))
+            .description(lokalbot_i18n::format(
+                "This removes “{title}” from Ask history.",
+                &[("title", format!("{}", title))],
+            ))
             .confirm()
-            .ok_text("Delete")
+            .ok_text(lokalbot_i18n::tr("Delete"))
             .ok_variant(ButtonVariant::Danger)
-            .cancel_text("Cancel")
+            .cancel_text(lokalbot_i18n::tr("Cancel"))
             .on_ok(move |_, _, cx| {
                 page.update(cx, |page, cx| page.delete_conversation(id, cx));
                 true
@@ -221,18 +230,14 @@ pub fn element_key(id: uuid::Uuid) -> u64 {
 
 /// "N conversations" / "1 conversation".
 pub fn count_label(count: usize, noun: &str) -> String {
-    if count == 1 {
-        format!("1 {noun}")
-    } else {
-        format!("{count} {noun}s")
-    }
+    lokalbot_i18n::count(count, noun)
 }
 
 /// The list title (`ChatViewModel.displayTitle`).
 pub fn display_title(conversation: &Conversation) -> String {
     let stored = conversation.title.trim();
     if stored == NEW_TITLE {
-        return NEW_TITLE.into();
+        return lokalbot_i18n::tr(NEW_TITLE).into();
     }
     let source = if stored.ends_with('…') || stored.is_empty() {
         conversation
@@ -305,11 +310,21 @@ pub fn row_timestamp(at: DateTime<Utc>, now: DateTime<Local>) -> String {
     let local = at.with_timezone(&Local);
     let today = now.date_naive();
     if local.date_naive() == today {
-        local.format("%-I:%M %p").to_string()
+        local
+            .format_localized(
+                lokalbot_i18n::date_pattern("%-I:%M %p"),
+                lokalbot_i18n::date_locale(),
+            )
+            .to_string()
     } else if Some(local.date_naive()) == today.pred_opt() {
-        "Yesterday".into()
+        lokalbot_i18n::tr("Yesterday").into()
     } else {
-        local.format("%b %-d, %Y").to_string()
+        local
+            .format_localized(
+                lokalbot_i18n::date_pattern("%b %-d, %Y"),
+                lokalbot_i18n::date_locale(),
+            )
+            .to_string()
     }
 }
 
@@ -331,10 +346,10 @@ pub fn sections<'a>(
                 .any(|m| m.text.to_lowercase().contains(&query))
     });
     let mut groups: [(&'static str, Vec<&Conversation>); 4] = [
-        ("Today", Vec::new()),
-        ("Yesterday", Vec::new()),
-        ("Previous 7 Days", Vec::new()),
-        ("Earlier", Vec::new()),
+        (lokalbot_i18n::tr("Today"), Vec::new()),
+        (lokalbot_i18n::tr("Yesterday"), Vec::new()),
+        (lokalbot_i18n::tr("Previous 7 Days"), Vec::new()),
+        (lokalbot_i18n::tr("Earlier"), Vec::new()),
     ];
     for conversation in matching {
         let day = conversation.updated_at.with_timezone(&Local).date_naive();

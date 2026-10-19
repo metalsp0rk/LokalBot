@@ -1,9 +1,10 @@
 //! The Transcript tab: a find bar and a virtualized list of speaker turns.
 
+use crate::i18n::h_flex;
 use gpui_kit::component::button::{Button, ButtonVariants as _};
 use gpui_kit::component::input::Input;
 use gpui_kit::component::scroll::ScrollableElement as _;
-use gpui_kit::component::{Disableable as _, Icon, Sizable as _, h_flex, v_flex};
+use gpui_kit::component::{Disableable as _, Icon, Sizable as _, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
     AnyElement, Context, FontWeight, HighlightStyle, InteractiveElement as _, IntoElement,
@@ -23,9 +24,15 @@ impl MeetingsPage {
         let status = if self.find.query.trim().is_empty() {
             None
         } else if total == 0 {
-            Some("No matches".to_string())
+            Some(lokalbot_i18n::tr("No matches").to_string())
         } else {
-            Some(format!("{} of {total} · Transcript", self.find.current + 1))
+            Some(lokalbot_i18n::format(
+                "{0} of {total} · Transcript",
+                &[
+                    ("0", format!("{}", self.find.current + 1)),
+                    ("total", format!("{}", total)),
+                ],
+            ))
         };
         let has_matches = total > 0;
         h_flex()
@@ -66,7 +73,7 @@ impl MeetingsPage {
                             .ghost()
                             .small()
                             .icon(Icon::new(Ico::ChevronUp))
-                            .tooltip("Previous match")
+                            .tooltip(lokalbot_i18n::tr("Previous match"))
                             .disabled(!has_matches)
                             .on_click(cx.listener(|this, _, _, cx| this.move_find(-1, cx))),
                     )
@@ -75,7 +82,7 @@ impl MeetingsPage {
                             .ghost()
                             .small()
                             .icon(Icon::new(Ico::ChevronDown))
-                            .tooltip("Next match")
+                            .tooltip(lokalbot_i18n::tr("Next match"))
                             .disabled(!has_matches)
                             .on_click(cx.listener(|this, _, _, cx| this.move_find(1, cx))),
                     )
@@ -85,7 +92,7 @@ impl MeetingsPage {
                                 .ghost()
                                 .small()
                                 .icon(Icon::new(Ico::X))
-                                .tooltip("Close search")
+                                .tooltip(lokalbot_i18n::tr("Close search"))
                                 .on_click(
                                     cx.listener(|this, _, window, cx| this.close_find(window, cx)),
                                 ),
@@ -117,7 +124,9 @@ impl MeetingsPage {
                                 .py(px(6.))
                                 .text_size(ty::BODY)
                                 .text_color(lb.text_secondary)
-                                .child("No transcript yet."),
+                                .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                                    "No transcript yet.",
+                                ))),
                         ),
                 )
                 .into_any_element();
@@ -175,7 +184,10 @@ impl MeetingsPage {
                             .text_size(ty::SECONDARY)
                             .text_color(lb.text_secondary)
                             .child(ui::icon(Ico::AudioLines, px(14.), lb.accent_text))
-                            .child(format!("Transcribed with {engine}")),
+                            .child(crate::ui::text::paragraph(lokalbot_i18n::format(
+                                "Transcribed with {engine}",
+                                &[("engine", format!("{}", engine))],
+                            ))),
                     )
                 })
                 .into_any_element();
@@ -233,8 +245,11 @@ impl MeetingsPage {
             .child(crate::ui::waveform::play_glyph(px(9.), lb.accent_text))
             .child(stamp.clone())
             .tooltip(move |window, cx| {
-                gpui_kit::component::tooltip::Tooltip::new(format!("Play from {stamp}"))
-                    .build(window, cx)
+                gpui_kit::component::tooltip::Tooltip::new(lokalbot_i18n::format(
+                    "Play from {stamp}",
+                    &[("stamp", format!("{}", stamp))],
+                ))
+                .build(window, cx)
             })
             .on_click(cx.listener(move |this, _, _, cx| {
                 this.focus_at = Some(start);
@@ -269,8 +284,9 @@ impl MeetingsPage {
                 .tooltip({
                     let name = row.name.clone();
                     move |window, cx| {
-                        gpui_kit::component::tooltip::Tooltip::new(format!(
-                            "Rename speaker: {name}"
+                        gpui_kit::component::tooltip::Tooltip::new(lokalbot_i18n::format(
+                            "Rename speaker: {name}",
+                            &[("name", format!("{}", name))],
                         ))
                         .build(window, cx)
                     }

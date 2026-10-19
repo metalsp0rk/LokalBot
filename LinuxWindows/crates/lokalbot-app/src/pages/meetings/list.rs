@@ -1,10 +1,11 @@
 //! The meeting list column: header with Record, search, and day groups.
 
+use crate::i18n::h_flex;
 use gpui_kit::component::input::Input;
 use gpui_kit::component::menu::{ContextMenuExt as _, PopupMenuItem};
 use gpui_kit::component::scroll::ScrollableElement as _;
 use gpui_kit::component::spinner::Spinner;
-use gpui_kit::component::{Sizable as _, h_flex, v_flex};
+use gpui_kit::component::{Sizable as _, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
     AnyElement, Context, FontWeight, InteractiveElement as _, IntoElement, KeyDownEvent,
@@ -45,7 +46,7 @@ impl MeetingsPage {
         let mut entries = Vec::new();
         let live_id = live.as_ref().map(|m| m.id);
         if let Some(live) = live.filter(|m| matches(m)) {
-            entries.push(Entry::Header("Recording Now".into()));
+            entries.push(Entry::Header(lokalbot_i18n::tr("Recording Now").into()));
             entries.push(Entry::Meeting {
                 meeting: Box::new(live),
                 live: true,
@@ -193,16 +194,16 @@ impl MeetingsPage {
                         .font_weight(FontWeight::SEMIBOLD)
                         .text_color(text)
                         .child(if recording {
-                            "Stop Recording"
+                            lokalbot_i18n::tr("Stop Recording")
                         } else {
-                            "Record"
+                            lokalbot_i18n::tr("Record")
                         }),
                 )
                 .tooltip(move |window, cx| {
                     gpui_kit::component::tooltip::Tooltip::new(if recording {
-                        "Stop Recording"
+                        lokalbot_i18n::tr("Stop Recording")
                     } else {
-                        "Record Now"
+                        lokalbot_i18n::tr("Record Now")
                     })
                     .build(window, cx)
                 })
@@ -229,16 +230,15 @@ impl MeetingsPage {
                                     .text_size(ty::COLUMN_TITLE)
                                     .font_weight(FontWeight::BOLD)
                                     .text_color(lb.text)
-                                    .child("Meetings"),
+                                    .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                                        "Meetings",
+                                    ))),
                             )
                             .child(
                                 div()
                                     .text_size(ty::SECONDARY)
                                     .text_color(lb.text_secondary)
-                                    .child(format!(
-                                        "{count} {}",
-                                        if count == 1 { "meeting" } else { "meetings" }
-                                    )),
+                                    .child(lokalbot_i18n::count(count, "meeting")),
                             ),
                     )
                     .child(record_button),
@@ -253,15 +253,15 @@ impl MeetingsPage {
                         .items_center()
                         .text_size(ty::SECONDARY)
                         .child(ui::icon(Ico::TriangleAlert, px(14.), lb.attention_text))
-                        .child(
-                            div()
-                                .flex_1()
-                                .text_color(lb.attention_text)
-                                .child(format!("{} failed", failed.len())),
-                        )
+                        .child(div().flex_1().text_color(lb.attention_text).child(
+                            crate::ui::text::paragraph(lokalbot_i18n::format(
+                                "{0} failed",
+                                &[("0", format!("{}", failed.len()))],
+                            )),
+                        ))
                         .child(ui::link(
                             "meetings-retry-failed",
-                            "Retry",
+                            lokalbot_i18n::tr("Retry"),
                             move |_, cx| {
                                 data_entity.update(cx, |data, cx| {
                                     for id in &failed {
@@ -292,19 +292,23 @@ impl MeetingsPage {
                     div()
                         .text_size(ty::BODY)
                         .text_color(lb.text_secondary)
-                        .child("Loading your meeting library…"),
+                        .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                            "Loading your meeting library…",
+                        ))),
                 )
                 .into_any_element()
         } else if self.entries.is_empty() {
             let (title, message) = if library_empty && self.query.is_empty() {
                 (
-                    "No meetings yet",
-                    "LokalBot detects meeting apps automatically, or start a recording now.",
+                    lokalbot_i18n::tr("No meetings yet"),
+                    lokalbot_i18n::tr(
+                        "LokalBot detects meeting apps automatically, or start a recording now.",
+                    ),
                 )
             } else {
                 (
-                    "No matching meetings",
-                    "Try different words, a meeting title, or app.",
+                    lokalbot_i18n::tr("No matching meetings"),
+                    lokalbot_i18n::tr("Try different words, a meeting title, or app."),
                 )
             };
             v_flex()
@@ -449,11 +453,13 @@ impl MeetingsPage {
                         let data = self.data.clone();
                         move |menu, _, _| {
                             let data = data.clone();
-                            menu.item(PopupMenuItem::new("Delete meeting…").on_click(
-                                move |_, window, cx| {
-                                    dialogs::confirm_delete(data.clone(), vec![id], window, cx);
-                                },
-                            ))
+                            menu.item(
+                                PopupMenuItem::new(lokalbot_i18n::tr("Delete meeting…")).on_click(
+                                    move |_, window, cx| {
+                                        dialogs::confirm_delete(data.clone(), vec![id], window, cx);
+                                    },
+                                ),
+                            )
                         }
                     });
                 v_flex()
@@ -514,9 +520,9 @@ fn stage_badge(
                     .text_size(ty::SECONDARY)
                     .text_color(lb.attention_text)
                     .child(ui::icon(Ico::TriangleAlert, px(13.), lb.attention_text))
-                    .child("Failed"),
+                    .child(crate::ui::text::paragraph(lokalbot_i18n::tr("Failed"))),
             )
-            .child(retry("Retry", "row-retry"))
+            .child(retry(lokalbot_i18n::tr("Retry"), "row-retry"))
             .id(("row-failed", meeting_id.as_u128() as u64))
             .tooltip({
                 let reason = reason.clone();
@@ -536,9 +542,14 @@ fn stage_badge(
                     .text_size(ty::SECONDARY)
                     .text_color(lb.text_secondary)
                     .child(ui::icon(Ico::CircleArrowDown, px(13.), lb.text_secondary))
-                    .child("Waiting for models"),
+                    .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                        "Waiting for models",
+                    ))),
             )
-            .child(retry("Download & process", "row-download"))
+            .child(retry(
+                lokalbot_i18n::tr("Download & process"),
+                "row-download",
+            ))
             .into_any_element(),
         other => h_flex()
             .flex_none()
@@ -555,21 +566,21 @@ fn stage_badge(
 /// `ProcessingPipeline.Stage.rowLabel`.
 fn row_stage_label(stage: &ProcessingStage) -> String {
     match stage {
-        ProcessingStage::Queued => "Queued".into(),
+        ProcessingStage::Queued => lokalbot_i18n::tr("Queued").into(),
         ProcessingStage::PreparingModel(name) => {
             let lower = name.to_lowercase();
             if lower.contains("speaker") {
-                "Preparing speaker model".into()
+                lokalbot_i18n::tr("Preparing speaker model").into()
             } else if lower.contains("think") || lower.contains("summar") {
-                "Preparing summary model".into()
+                lokalbot_i18n::tr("Preparing summary model").into()
             } else {
-                "Preparing speech model".into()
+                lokalbot_i18n::tr("Preparing speech model").into()
             }
         }
-        ProcessingStage::Transcribing => "Transcribing".into(),
-        ProcessingStage::IdentifyingSpeakers => "Identifying speakers".into(),
-        ProcessingStage::Summarizing => "Summarizing".into(),
-        ProcessingStage::WaitingForModels => "Waiting for models".into(),
-        ProcessingStage::Failed(_) => "Failed".into(),
+        ProcessingStage::Transcribing => lokalbot_i18n::tr("Transcribing").into(),
+        ProcessingStage::IdentifyingSpeakers => lokalbot_i18n::tr("Identifying speakers").into(),
+        ProcessingStage::Summarizing => lokalbot_i18n::tr("Summarizing").into(),
+        ProcessingStage::WaitingForModels => lokalbot_i18n::tr("Waiting for models").into(),
+        ProcessingStage::Failed(_) => lokalbot_i18n::tr("Failed").into(),
     }
 }

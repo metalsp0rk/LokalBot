@@ -132,7 +132,10 @@ impl AgentModel {
             }
         }
         self.phase = InstallPhase::Downloading {
-            name: format!("Bun {}", lokalbot_agent::manifest::BUN_VERSION),
+            name: lokalbot_i18n::format(
+                "Bun {0}",
+                &[("0", format!("{}", lokalbot_agent::manifest::BUN_VERSION))],
+            ),
             progress: Some(0.0),
         };
         cx.notify();
@@ -189,7 +192,7 @@ impl AgentModel {
                     }
                 }
                 this.set_phase(
-                    InstallPhase::Failed("The installed Agent runtime failed its integrity check. Repair it before starting another session.".into()),
+                    InstallPhase::Failed(lokalbot_i18n::tr("The installed Agent runtime failed its integrity check. Repair it before starting another session.").into()),
                     cx,
                 );
             });

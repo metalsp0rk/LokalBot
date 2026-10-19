@@ -2,8 +2,9 @@
 //! `RecordingHealthStrip.swift`): recording pill, capture health with level
 //! meters, the live transcript preview and a notes pad.
 
+use crate::i18n::h_flex;
 use gpui_kit::component::input::Textarea;
-use gpui_kit::component::{Sizable as _, h_flex, v_flex};
+use gpui_kit::component::{Sizable as _, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
     AnyElement, Context, FontWeight, Hsla, InteractiveElement as _, IntoElement,
@@ -57,7 +58,7 @@ impl MeetingsPage {
                 div()
                     .text_size(ty::SECONDARY)
                     .text_color(lb.recording_text)
-                    .child("Recording"),
+                    .child(crate::ui::text::paragraph(lokalbot_i18n::tr("Recording"))),
             )
             .child(live_bars(mic.max(system), elapsed, lb.recording_text))
             .child(
@@ -103,9 +104,17 @@ impl MeetingsPage {
                     ))
                     .child(chip(Ico::Video, meeting.app_name.clone(), lb.supporting))
                     .child(if has_system {
-                        chip(Ico::Volume2, "Mic + system".into(), lb.supporting)
+                        chip(
+                            Ico::Volume2,
+                            lokalbot_i18n::tr("Mic + system").into(),
+                            lb.supporting,
+                        )
                     } else {
-                        chip(Ico::TriangleAlert, "Mic only".into(), lb.attention_text)
+                        chip(
+                            Ico::TriangleAlert,
+                            lokalbot_i18n::tr("Mic only").into(),
+                            lb.attention_text,
+                        )
                     }),
             )
             .child(self.render_health(has_system, mic, system, cx));
@@ -123,7 +132,9 @@ impl MeetingsPage {
                     .text_size(ty::SECTION)
                     .font_weight(FontWeight::BOLD)
                     .text_color(lb.text)
-                    .child("Meeting Notes"),
+                    .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                        "Meeting Notes",
+                    ))),
             )
             .child(
                 ui::grouped_surface(cx)
@@ -146,7 +157,11 @@ impl MeetingsPage {
                         lb.text_secondary
                     })
                     .child(match &status {
-                        NotesStatus::Failed(message) => format!("Not saved: {message}").into(),
+                        NotesStatus::Failed(message) => lokalbot_i18n::format(
+                            "Not saved: {message}",
+                            &[("message", format!("{}", message))],
+                        )
+                        .into(),
                         other => status_text(other),
                     }),
             );
@@ -195,50 +210,50 @@ impl MeetingsPage {
             LivePreviewState::Off => h_flex()
                 .gap(px(8.))
                 .child(
-                    ui::controls::bordered("live-start-preview", "Start Live Transcript Preview")
-                        .on_click(send(LivePreviewCommand::Start {
-                            from_beginning: false,
-                        })),
+                    ui::controls::bordered(
+                        "live-start-preview",
+                        lokalbot_i18n::tr("Start Live Transcript Preview"),
+                    )
+                    .on_click(send(LivePreviewCommand::Start {
+                        from_beginning: false,
+                    })),
                 )
                 .child(
-                    ui::controls::bordered("live-preview-beginning", "From Beginning").on_click(
-                        send(LivePreviewCommand::Start {
-                            from_beginning: true,
-                        }),
-                    ),
+                    ui::controls::bordered(
+                        "live-preview-beginning",
+                        lokalbot_i18n::tr("From Beginning"),
+                    )
+                    .on_click(send(LivePreviewCommand::Start {
+                        from_beginning: true,
+                    })),
                 ),
             LivePreviewState::Running => h_flex().child(
-                ui::controls::bordered("live-pause-preview", "Pause Preview")
+                ui::controls::bordered("live-pause-preview", lokalbot_i18n::tr("Pause Preview"))
                     .on_click(send(LivePreviewCommand::Pause)),
             ),
             LivePreviewState::Paused => h_flex().child(
-                ui::controls::bordered("live-resume-preview", "Resume Preview").on_click(send(
-                    LivePreviewCommand::Start {
+                ui::controls::bordered("live-resume-preview", lokalbot_i18n::tr("Resume Preview"))
+                    .on_click(send(LivePreviewCommand::Start {
                         from_beginning: false,
-                    },
-                )),
+                    })),
             ),
             LivePreviewState::Failed(_) => h_flex().child(
-                ui::controls::bordered("live-retry-preview", "Retry Preview").on_click(send(
-                    LivePreviewCommand::Start {
+                ui::controls::bordered("live-retry-preview", lokalbot_i18n::tr("Retry Preview"))
+                    .on_click(send(LivePreviewCommand::Start {
                         from_beginning: false,
-                    },
-                )),
+                    })),
             ),
         };
         let note: Option<SharedString> = match &preview.state {
             LivePreviewState::Off => Some(
-                "Preview starts with the latest 12 seconds. The full transcript covers the whole recording."
+                lokalbot_i18n::tr("Preview starts with the latest 12 seconds. The full transcript covers the whole recording.")
                     .into(),
             ),
             LivePreviewState::Paused => Some(
-                "Preview paused. Recording continues; resume picks up where you left off.".into(),
+                lokalbot_i18n::tr("Preview paused. Recording continues; resume picks up where you left off.").into(),
             ),
             _ => preview.start.filter(|start| *start > 0.).map(|start| {
-                format!(
-                    "Preview starts at {}. Earlier audio remains in the full recording.",
-                    clock(start)
-                )
+                lokalbot_i18n::format("Preview starts at {0}. Earlier audio remains in the full recording.", &[("0", format!("{}", clock(start)))])
                 .into()
             }),
         };
@@ -251,27 +266,27 @@ impl MeetingsPage {
             let (icon, title, message): (Ico, &str, SharedString) = match &preview.state {
                 LivePreviewState::Off => (
                     Ico::MessageSquareQuote,
-                    "Preview is off",
-                    "Start live transcript preview to read along. Recording continues independently."
+                    lokalbot_i18n::tr("Preview is off"),
+                    lokalbot_i18n::tr("Start live transcript preview to read along. Recording continues independently.")
                         .into(),
                 ),
                 LivePreviewState::Paused => (
                     Ico::Pause,
-                    "Preview paused",
-                    "Resume preview when you want to read along. Recording continues.".into(),
+                    lokalbot_i18n::tr("Preview paused"),
+                    lokalbot_i18n::tr("Resume preview when you want to read along. Recording continues.").into(),
                 ),
                 LivePreviewState::Failed(message) => (
                     Ico::TriangleAlert,
-                    "Preview interrupted",
+                    lokalbot_i18n::tr("Preview interrupted"),
                     message.clone().into(),
                 ),
                 LivePreviewState::Running => (
                     Ico::AudioLines,
-                    "Listening…",
+                    lokalbot_i18n::tr("Listening…"),
                     preview
                         .status
                         .clone()
-                        .unwrap_or_else(|| "New lines appear as people speak.".into())
+                        .unwrap_or_else(|| lokalbot_i18n::tr("New lines appear as people speak.").into())
                         .into(),
                 ),
             };
@@ -304,7 +319,11 @@ impl MeetingsPage {
                             .font_weight(FontWeight::SEMIBOLD)
                             .text_color(lb.text_secondary)
                             .pt(px(1.))
-                            .child(if line.mine { "Me" } else { "Remote speaker" }),
+                            .child(if line.mine {
+                                lokalbot_i18n::tr("Me")
+                            } else {
+                                lokalbot_i18n::tr("Remote speaker")
+                            }),
                     )
                     .child(
                         div()
@@ -338,15 +357,16 @@ impl MeetingsPage {
                         .child(v_flex().w_full().p(px(12.)).gap(px(6.)).children(lines)),
                 )
                 .when(!near_bottom && !self.live_follow, |this| {
-                    this.child(div().absolute().bottom(px(8.)).right(px(8.)).child(
-                        ui::controls::bordered("live-follow", "Follow Live").on_click(cx.listener(
-                            |this, _, _, cx| {
-                                this.live_follow = true;
-                                this.live_scroll.scroll_to_bottom();
-                                cx.notify();
-                            },
-                        )),
-                    ))
+                    this.child(
+                        div().absolute().bottom(px(8.)).right(px(8.)).child(
+                            ui::controls::bordered("live-follow", lokalbot_i18n::tr("Follow Live"))
+                                .on_click(cx.listener(|this, _, _, cx| {
+                                    this.live_follow = true;
+                                    this.live_scroll.scroll_to_bottom();
+                                    cx.notify();
+                                })),
+                        ),
+                    )
                 })
                 .into_any_element()
         };
@@ -361,7 +381,9 @@ impl MeetingsPage {
                     .text_size(ty::SECTION)
                     .font_weight(FontWeight::BOLD)
                     .text_color(lb.text)
-                    .child("Live Transcript"),
+                    .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                        "Live Transcript",
+                    ))),
             )
             .child(controls)
             .children(note.map(|note| {
@@ -384,7 +406,9 @@ impl MeetingsPage {
                 div()
                     .text_size(ty::CAPTION)
                     .text_color(lb.text_tertiary)
-                    .child("Preview — the full transcript and summary arrive after the meeting."),
+                    .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                        "Preview — the full transcript and summary arrive after the meeting.",
+                    ))),
             )
             .into_any_element()
     }
@@ -399,22 +423,32 @@ impl MeetingsPage {
         let lb = cx.lb().clone();
         // The engine reports each track's state; levels only fill in until
         // its first update arrives.
-        let statuses = self.data.read(cx).recording_statuses.clone();
+        let statuses = self
+            .data
+            .read(cx)
+            .recording_statuses
+            .clone()
+            .map(|(mic, system)| {
+                (
+                    lokalbot_i18n::tr(&mic).to_string().into(),
+                    lokalbot_i18n::tr(&system).to_string().into(),
+                )
+            });
         let (mic_status, system_status): (SharedString, SharedString) =
             statuses.unwrap_or_else(|| {
                 (
                     if mic > 0.01 {
-                        "Receiving audio"
+                        lokalbot_i18n::tr("Receiving audio")
                     } else {
-                        "Waiting for audio"
+                        lokalbot_i18n::tr("Waiting for audio")
                     }
                     .into(),
                     if !has_system {
-                        "Not attached"
+                        lokalbot_i18n::tr("Not attached")
                     } else if system > 0.01 {
-                        "Receiving audio"
+                        lokalbot_i18n::tr("Receiving audio")
                     } else {
-                        "Waiting for audio"
+                        lokalbot_i18n::tr("Waiting for audio")
                     }
                     .into(),
                 )
@@ -440,10 +474,20 @@ impl MeetingsPage {
             .flex()
             .flex_col()
             .gap(px(6.))
-            .child(line(Ico::Mic, format!("Mic · {mic_status}"), Some(mic)))
+            .child(line(
+                Ico::Mic,
+                lokalbot_i18n::format(
+                    "Mic · {mic_status}",
+                    &[("mic_status", format!("{}", mic_status))],
+                ),
+                Some(mic),
+            ))
             .child(line(
                 Ico::Volume2,
-                format!("System · {system_status}"),
+                lokalbot_i18n::format(
+                    "System · {system_status}",
+                    &[("system_status", format!("{}", system_status))],
+                ),
                 has_system.then_some(system),
             ))
     }

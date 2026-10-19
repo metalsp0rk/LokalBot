@@ -2,9 +2,10 @@
 //! built from a meeting's outcomes, rewrite it with the local Think model,
 //! copy it, or save it with the meeting. LokalBot never sends it.
 
+use crate::i18n::h_flex;
 use gpui_kit::component::button::{Button, ButtonVariants as _};
 use gpui_kit::component::input::{Input, InputState, Textarea, TextareaState};
-use gpui_kit::component::{Disableable as _, Sizable as _, WindowExt as _, h_flex, v_flex};
+use gpui_kit::component::{Disableable as _, Sizable as _, WindowExt as _, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
     App, AppContext as _, ClipboardItem, Context, Entity, FontWeight, IntoElement,
@@ -75,7 +76,7 @@ impl FollowUpSheet {
             let body_text = draft.as_ref().map(|d| d.body.clone()).unwrap_or_default();
             let subject = cx.new(|cx| {
                 InputState::new(window, cx)
-                    .placeholder("Subject")
+                    .placeholder(crate::i18n::placeholder("Subject", window, cx))
                     .default_value(subject_text)
             });
             let body = cx.new(|cx| {
@@ -143,8 +144,13 @@ impl FollowUpSheet {
                     .update(cx, |input, cx| input.set_value(subject, window, cx));
                 self.body
                     .update(cx, |input, cx| input.set_value(body, window, cx));
-                self.status =
-                    Some(format!("Written on this PC by {model}. Review before sending.").into());
+                self.status = Some(
+                    lokalbot_i18n::format(
+                        "Written on this PC by {model}. Review before sending.",
+                        &[("model", format!("{}", model))],
+                    )
+                    .into(),
+                );
                 self.error = None;
             }
             FollowUpWriting::Failed(message) => {
@@ -174,7 +180,9 @@ impl FollowUpSheet {
             .update(cx, |input, cx| input.set_value(seeded.subject, window, cx));
         self.body
             .update(cx, |input, cx| input.set_value(seeded.body, window, cx));
-        self.status = Some("Reset to the outline built from this meeting's outcomes.".into());
+        self.status = Some(
+            lokalbot_i18n::tr("Reset to the outline built from this meeting's outcomes.").into(),
+        );
         self.error = None;
         cx.notify();
     }
@@ -185,7 +193,7 @@ impl FollowUpSheet {
         cx.write_to_clipboard(ClipboardItem::new_string(format!(
             "Subject: {subject}\n\n{body}"
         )));
-        self.status = Some("Copied.".into());
+        self.status = Some(lokalbot_i18n::tr("Copied.").into());
         cx.notify();
     }
 
@@ -209,11 +217,17 @@ impl FollowUpSheet {
                 match result {
                     Ok(()) => {
                         this.draft = Some(draft);
-                        this.status = Some("Saved with this meeting.".into());
+                        this.status = Some(lokalbot_i18n::tr("Saved with this meeting.").into());
                         this.error = None;
                     }
                     Err(err) => {
-                        this.error = Some(format!("The draft could not be saved. {err:#}").into())
+                        this.error = Some(
+                            lokalbot_i18n::format(
+                                "The draft could not be saved. {err}",
+                                &[("err", format!("{:#}", err))],
+                            )
+                            .into(),
+                        )
                     }
                 }
                 cx.notify();
@@ -227,13 +241,24 @@ impl Render for FollowUpSheet {
     fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let lb = cx.lb().clone();
         let writing = self.writing(cx);
-        let source = format!(
-            "From {} · {}",
-            self.meeting.display_title(),
-            self.meeting
-                .started_at
-                .with_timezone(&chrono::Local)
-                .format("%b %-d, %Y")
+        let source = lokalbot_i18n::format(
+            "From {0} · {1}",
+            &[
+                ("0", format!("{}", self.meeting.display_title())),
+                (
+                    "1",
+                    format!(
+                        "{}",
+                        self.meeting
+                            .started_at
+                            .with_timezone(&chrono::Local)
+                            .format_localized(
+                                lokalbot_i18n::date_pattern("%b %-d, %Y"),
+                                lokalbot_i18n::date_locale()
+                            )
+                    ),
+                ),
+            ],
         );
         let editor = self.draft.is_some().then(|| {
             v_flex()
@@ -242,7 +267,7 @@ impl Render for FollowUpSheet {
                     h_flex()
                         .gap(px(12.))
                         .items_center()
-                        .child(div().w(px(56.)).text_size(ty::BODY).text_color(lb.text).child("Subject"))
+                        .child(div().w(px(56.)).text_size(ty::BODY).text_color(lb.text).child(crate::ui::text::paragraph(lokalbot_i18n::tr("Subject"))))
                         .child(div().flex_1().child(Input::new(&self.subject))),
                 )
                 .child(ui::grouped_surface(cx).p(px(6.)).child(Textarea::new(&self.body).large().appearance(false).h(px(260.))))
@@ -254,26 +279,26 @@ impl Render for FollowUpSheet {
                             ui::controls::bordered_icon(
                                 "follow-up-write",
                                 Ico::Sparkles,
-                                if writing { "Writing…" } else { "Write with Think" },
+                                if writing { lokalbot_i18n::tr("Writing…") } else { lokalbot_i18n::tr("Write with Think") },
                             )
-                                .tooltip("Rewrite this outline from the meeting's recap and outcomes with your on-device Think model")
+                                .tooltip(lokalbot_i18n::tr("Rewrite this outline from the meeting's recap and outcomes with your on-device Think model"))
                                 .disabled(writing)
                                 .on_click(cx.listener(|this, _, _, cx| this.write(cx))),
                         )
                         .child(
-                            ui::controls::bordered("follow-up-reset", "Reset to Outline")
+                            ui::controls::bordered("follow-up-reset", lokalbot_i18n::tr("Reset to Outline"))
                                 .disabled(writing)
                                 .on_click(cx.listener(|this, _, window, cx| this.reset(window, cx))),
                         )
                         .child(div().flex_1())
                         .child(
-                            ui::controls::bordered("follow-up-copy", "Copy")
+                            ui::controls::bordered("follow-up-copy", lokalbot_i18n::tr("Copy"))
                                 .on_click(cx.listener(|this, _, _, cx| this.copy(cx))),
                         )
                         .child(
                             Button::new("follow-up-save")
                                 .primary()
-                                .label("Save Draft")
+                                .label(lokalbot_i18n::tr("Save Draft"))
                                 .on_click(cx.listener(|this, _, _, cx| this.save(cx))),
                         ),
                 )
@@ -295,7 +320,7 @@ impl Render for FollowUpSheet {
                     div()
                         .text_size(ty::SECONDARY)
                         .text_color(lb.text_secondary)
-                        .child("LokalBot never sends this. Copy it into your mail or chat app to send it yourself."),
+                        .child(crate::ui::text::paragraph(lokalbot_i18n::tr("LokalBot never sends this. Copy it into your mail or chat app to send it yourself."))),
                 )
         });
         v_flex()
@@ -308,7 +333,7 @@ impl Render for FollowUpSheet {
                             .text_size(ty::QUESTION)
                             .font_weight(FontWeight::BOLD)
                             .text_color(lb.text)
-                            .child("Follow-up"),
+                            .child(crate::ui::text::paragraph(lokalbot_i18n::tr("Follow-up"))),
                     )
                     .child(
                         div()
@@ -322,13 +347,15 @@ impl Render for FollowUpSheet {
                     div()
                         .text_size(ty::BODY)
                         .text_color(lb.text_secondary)
-                        .child("This meeting has no outcomes yet. Summarize it first."),
+                        .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                            "This meeting has no outcomes yet. Summarize it first.",
+                        ))),
                 )
             })
             .children(editor)
             .child(
                 h_flex().justify_end().child(
-                    ui::controls::bordered("follow-up-done", "Done")
+                    ui::controls::bordered("follow-up-done", lokalbot_i18n::tr("Done"))
                         .on_click(|_, window, cx| window.close_dialog(cx)),
                 ),
             )

@@ -3,7 +3,7 @@
 
 use std::rc::Rc;
 
-use gpui_kit::component::h_flex;
+use crate::i18n::h_flex;
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
     App, Div, ElementId, FontWeight, InteractiveElement as _, MouseButton, ParentElement as _,
@@ -68,7 +68,7 @@ pub fn segmented_tabs(
                         .font_weight(FontWeight::MEDIUM)
                         .hover(move |s| s.bg(hover))
                 })
-                .child(*label)
+                .child(crate::ui::text::paragraph(lokalbot_i18n::tr(label)))
                 .on_click(move |_, window, cx| on_select(ix, window, cx))
         }))
 }

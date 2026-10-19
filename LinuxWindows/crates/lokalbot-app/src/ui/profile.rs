@@ -1,8 +1,9 @@
 //! Pieces shared by People and Projects: section cards with a teal icon,
 //! name tints, monograms, relative days and open-work rows.
 
+use crate::i18n::h_flex;
 use chrono::{DateTime, Local, NaiveDate, Utc};
-use gpui_kit::component::{h_flex, v_flex};
+use gpui_kit::component::v_flex;
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
     AnyElement, App, Div, ElementId, FontWeight, Hsla, InteractiveElement as _, IntoElement,
@@ -99,35 +100,37 @@ pub fn monogram(name: &str, size: Pixels, cx: &App) -> Div {
 pub fn relative_day(at: DateTime<Utc>, now: DateTime<Local>) -> String {
     let days = (now.date_naive() - at.with_timezone(&Local).date_naive()).num_days();
     match days {
-        ..=0 => "today".into(),
-        1 => "yesterday".into(),
-        2..=6 => format!("{days} days ago"),
-        _ => at.with_timezone(&Local).format("%b %-d").to_string(),
+        ..=0 => lokalbot_i18n::tr("today").into(),
+        1 => lokalbot_i18n::tr("yesterday").into(),
+        2..=6 => lokalbot_i18n::format("{days} days ago", &[("days", format!("{}", days))]),
+        _ => at
+            .with_timezone(&Local)
+            .format_localized(
+                lokalbot_i18n::date_pattern("%b %-d"),
+                lokalbot_i18n::date_locale(),
+            )
+            .to_string(),
     }
 }
 
 /// "Oct 8, 2026".
 pub fn short_date(at: DateTime<Utc>) -> String {
-    at.with_timezone(&Local).format("%b %-d, %Y").to_string()
+    at.with_timezone(&Local)
+        .format_localized(
+            lokalbot_i18n::date_pattern("%b %-d, %Y"),
+            lokalbot_i18n::date_locale(),
+        )
+        .to_string()
 }
 
 /// "1 meeting" / "3 meetings".
 pub fn count(n: usize, noun: &str) -> String {
-    if n == 1 {
-        format!("1 {noun}")
-    } else {
-        format!("{n} {noun}s")
-    }
+    lokalbot_i18n::count(n, noun)
 }
 
 /// "3h 10m" or "48m" (`ProjectDetailView.duration`).
 pub fn duration(seconds: f64) -> String {
-    let minutes = (seconds / 60.0) as u64;
-    if minutes >= 60 {
-        format!("{}h {}m", minutes / 60, minutes % 60)
-    } else {
-        format!("{}m", minutes.max(1))
-    }
+    crate::i18n::compact_duration(seconds.max(60.0))
 }
 
 /// A link styled like `.workspaceLink`.
@@ -164,7 +167,10 @@ pub fn action_row(
         meta.push(owner.to_string());
     }
     if let Some(due) = thread.due.as_deref().filter(|d| !d.trim().is_empty()) {
-        meta.push(format!("due {due}"));
+        meta.push(lokalbot_i18n::format(
+            "due {due}",
+            &[("due", due.to_string())],
+        ));
     }
     meta.push(latest.meeting_title.clone());
     if thread.meeting_count() > 1 {
@@ -228,7 +234,13 @@ pub fn divided(rows: Vec<AnyElement>, cx: &App) -> Div {
 /// The day a project or person was last active, as a key like "Mon, Oct 12".
 pub fn day_key_label(key: &str) -> String {
     NaiveDate::parse_from_str(key, "%Y-%m-%d")
-        .map(|d| d.format("%a, %b %-d").to_string())
+        .map(|d| {
+            d.format_localized(
+                lokalbot_i18n::date_pattern("%a, %b %-d"),
+                lokalbot_i18n::date_locale(),
+            )
+            .to_string()
+        })
         .unwrap_or_else(|_| key.to_string())
 }
 

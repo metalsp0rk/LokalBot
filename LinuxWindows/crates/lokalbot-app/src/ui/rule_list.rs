@@ -1,9 +1,10 @@
 //! Editable exclusion lists (`ExclusionRulesEditor.swift`): apps or sites that
 //! LokalBot never captures or suggests in. Stored comma-separated in settings.
 
+use crate::i18n::h_flex;
 use gpui_kit::component::button::{Button, ButtonVariants as _};
 use gpui_kit::component::input::{Input, InputEvent, InputState};
-use gpui_kit::component::{Disableable as _, Icon, Sizable as _, h_flex, v_flex};
+use gpui_kit::component::{Disableable as _, Icon, Sizable as _, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
     AppContext as _, Context, Entity, EventEmitter, FontWeight, InteractiveElement as _,
@@ -48,9 +49,15 @@ impl RuleList {
     ) -> Self {
         let placeholder = match kind {
             RuleKind::Applications => "Application name",
-            RuleKind::Domains => "example.com or https://example.com/private",
+            RuleKind::Domains => "example.com",
         };
-        let input = cx.new(|cx| InputState::new(window, cx).placeholder(placeholder));
+        let input = cx.new(|cx| {
+            InputState::new(window, cx).placeholder(crate::i18n::placeholder(
+                placeholder,
+                window,
+                cx,
+            ))
+        });
         let subscription = cx.subscribe_in(
             &input,
             window,
@@ -115,16 +122,18 @@ impl RuleList {
 /// Why a rule cannot be added, if it cannot.
 pub fn validate(candidate: &str, kind: RuleKind, existing: &[String]) -> Option<&'static str> {
     if candidate.is_empty() || candidate.contains(',') {
-        return Some("Add one rule at a time.");
+        return Some(lokalbot_i18n::tr("Add one rule at a time."));
     }
     if kind == RuleKind::Domains && !is_domain_rule(candidate) {
-        return Some("Enter a domain or an HTTP(S) URL prefix. Existing rules remain unchanged.");
+        return Some(lokalbot_i18n::tr(
+            "Enter a domain or an HTTP(S) URL prefix. Existing rules remain unchanged.",
+        ));
     }
     if existing
         .iter()
         .any(|rule| rule.eq_ignore_ascii_case(candidate))
     {
-        return Some("This rule is already excluded.");
+        return Some(lokalbot_i18n::tr("This rule is already excluded."));
     }
     None
 }
@@ -151,8 +160,8 @@ impl Render for RuleList {
     fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let lb = cx.lb().clone();
         let (glyph, kind_label) = match self.kind {
-            RuleKind::Applications => (Ico::LayoutGrid, "App"),
-            RuleKind::Domains => (Ico::Globe, "Domain / URL"),
+            RuleKind::Applications => (Ico::LayoutGrid, lokalbot_i18n::tr("App")),
+            RuleKind::Domains => (Ico::Globe, lokalbot_i18n::tr("Domain / URL")),
         };
         let rows: Vec<_> = self
             .rules
@@ -199,7 +208,7 @@ impl Render for RuleList {
         v_flex()
             .w_full()
             .gap(px(8.))
-            .child(div().text_size(ty::SECONDARY).font_weight(FontWeight::SEMIBOLD).text_color(lb.text).child(self.title.clone()))
+            .child(div().text_size(ty::SECONDARY).font_weight(FontWeight::SEMIBOLD).text_color(lb.text).child(crate::ui::text::paragraph(lokalbot_i18n::tr(&self.title).to_string())))
             .child(
                 v_flex()
                     .w_full()
@@ -211,7 +220,7 @@ impl Render for RuleList {
                     .py(px(2.))
                     .children(rows)
                     .when(empty, |this| {
-                        this.child(div().px(px(10.)).py(px(6.)).text_size(ty::SECONDARY).text_color(lb.text_secondary).child("No exclusions"))
+                        this.child(div().px(px(10.)).py(px(6.)).text_size(ty::SECONDARY).text_color(lb.text_secondary).child(crate::ui::text::paragraph(lokalbot_i18n::tr("No exclusions"))))
                     }),
             )
             .child(
@@ -222,7 +231,7 @@ impl Render for RuleList {
                             .outline()
                             .xsmall()
                             .icon(Icon::new(Ico::Plus))
-                            .tooltip("Add Exclusion…")
+                            .tooltip(lokalbot_i18n::tr("Add Exclusion…"))
                             .on_click(cx.listener(|this, _, window, cx| {
                                 this.adding = true;
                                 this.error = None;
@@ -235,7 +244,7 @@ impl Render for RuleList {
                             .outline()
                             .xsmall()
                             .icon(Icon::new(Ico::Minus))
-                            .tooltip("Remove Selected Exclusion")
+                            .tooltip(lokalbot_i18n::tr("Remove Selected Exclusion"))
                             .disabled(self.selected.is_none())
                             .on_click(cx.listener(|this, _, _, cx| this.remove_selected(cx))),
                     ),
@@ -246,7 +255,7 @@ impl Render for RuleList {
                         .gap(px(6.))
                         .items_center()
                         .child(div().flex_1().min_w_0().child(Input::new(&self.input).small()))
-                        .child(Button::new("rule-cancel").outline().small().label("Cancel").on_click(cx.listener(
+                        .child(Button::new("rule-cancel").outline().small().label(lokalbot_i18n::tr("Cancel")).on_click(cx.listener(
                             |this, _, window, cx| {
                                 this.adding = false;
                                 this.error = None;
@@ -258,7 +267,7 @@ impl Render for RuleList {
                             Button::new("rule-confirm")
                                 .primary()
                                 .small()
-                                .label("Add")
+                                .label(lokalbot_i18n::tr("Add"))
                                 .on_click(cx.listener(|this, _, window, cx| this.add(window, cx))),
                         ),
                 )
@@ -271,7 +280,7 @@ impl Render for RuleList {
                     div()
                         .text_size(ty::SECONDARY)
                         .text_color(lb.text_secondary)
-                        .child("Matches this domain and its subdomains. A pasted URL applies to its whole domain."),
+                        .child(crate::ui::text::paragraph(lokalbot_i18n::tr("Matches this domain and its subdomains. A pasted URL applies to its whole domain."))),
                 )
             })
     }

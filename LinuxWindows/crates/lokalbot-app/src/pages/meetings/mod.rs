@@ -15,10 +15,11 @@ use std::cell::Cell;
 use std::rc::Rc;
 use std::time::Duration;
 
+use crate::i18n::h_flex;
+use gpui_kit::component::Icon;
 use gpui_kit::component::button::{Button, ButtonVariants as _};
 use gpui_kit::component::input::{InputEvent, InputState, TextareaState};
 use gpui_kit::component::menu::{DropdownMenu as _, PopupMenuItem};
-use gpui_kit::component::{Icon, h_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
     AnyElement, App, AppContext as _, Bounds, ClipboardItem, Context, Entity, FocusHandle,
@@ -138,17 +139,33 @@ pub struct MeetingsPage {
 impl MeetingsPage {
     pub fn new(window: &mut Window, cx: &mut Context<Self>) -> Self {
         let data = AppData::global(cx);
-        let search = cx.new(|cx| InputState::new(window, cx).placeholder("Search meetings"));
-        let find_input = cx.new(|cx| InputState::new(window, cx).placeholder("Search Transcript"));
+        let search = cx.new(|cx| {
+            InputState::new(window, cx).placeholder(crate::i18n::placeholder(
+                "Search meetings",
+                window,
+                cx,
+            ))
+        });
+        let find_input = cx.new(|cx| {
+            InputState::new(window, cx).placeholder(crate::i18n::placeholder(
+                "Search Transcript",
+                window,
+                cx,
+            ))
+        });
         let notes_input = cx.new(|cx| {
-            TextareaState::new(window, cx).rows(18).placeholder(
-                "Add context, reminders, or your own wording. Notes save automatically.",
-            )
+            TextareaState::new(window, cx)
+                .rows(18)
+                .placeholder(crate::i18n::placeholder(
+                    "Add context, reminders, or your own wording. Notes save automatically.",
+                    window,
+                    cx,
+                ))
         });
         let live_input = cx.new(|cx| {
             TextareaState::new(window, cx)
                 .rows(12)
-                .placeholder("Meeting notes")
+                .placeholder(crate::i18n::placeholder("Meeting notes", window, cx))
         });
 
         let mut subscriptions = vec![
@@ -673,7 +690,7 @@ impl MeetingsPage {
         self.data.update(cx, |data, cx| {
             data.ask(
                 AskRequest {
-                    question: "Help me understand this meeting".into(),
+                    question: lokalbot_i18n::tr("Help me understand this meeting").into(),
                     meeting_ids: vec![meeting_id],
                     submit: false,
                 },
@@ -707,8 +724,14 @@ impl MeetingsPage {
                 .background_spawn(async move { std::fs::write(&path, markdown) })
                 .await;
             data.update(cx, |data, cx| match result {
-                Ok(()) => data.show_message("Meeting exported as Markdown.", cx),
-                Err(err) => data.show_error(format!("Meeting export failed: {err}"), cx),
+                Ok(()) => data.show_message(lokalbot_i18n::tr("Meeting exported as Markdown."), cx),
+                Err(err) => data.show_error(
+                    lokalbot_i18n::format(
+                        "Meeting export failed: {err}",
+                        &[("err", format!("{}", err))],
+                    ),
+                    cx,
+                ),
             });
         })
         .detach();
@@ -798,7 +821,7 @@ fn directories_home() -> std::path::PathBuf {
 impl Page for MeetingsPage {
     fn title(&self, cx: &App) -> SharedString {
         let Some(meeting) = self.selected_meeting(cx) else {
-            return "Meetings".into();
+            return lokalbot_i18n::tr("Meetings").into();
         };
         let title = meeting.display_title();
         // Keep the title clear of the tabs.
@@ -822,10 +845,14 @@ impl Page for MeetingsPage {
             let data = self.data.clone();
             let red = crate::theme::LbThemeExt::lb(&**cx).recording_text;
             return Some(
-                ui::controls::bordered_icon("live-stop", Ico::CircleStop, "Stop Recording")
-                    .text_color(red)
-                    .on_click(move |_, _, cx| data.update(cx, |data, cx| data.stop_recording(cx)))
-                    .into_any_element(),
+                ui::controls::bordered_icon(
+                    "live-stop",
+                    Ico::CircleStop,
+                    lokalbot_i18n::tr("Stop Recording"),
+                )
+                .text_color(red)
+                .on_click(move |_, _, cx| data.update(cx, |data, cx| data.stop_recording(cx)))
+                .into_any_element(),
             );
         }
         let compact = self
@@ -860,62 +887,68 @@ impl Page for MeetingsPage {
                 Button::new("meeting-ask")
                     .ghost()
                     .icon(Icon::new(Ico::MessagesSquare))
-                    .tooltip("Ask This Meeting")
+                    .tooltip(lokalbot_i18n::tr("Ask This Meeting"))
                     .on_click(cx.listener(|this, _, _, cx| this.ask_meeting(cx)))
             } else {
-                ui::controls::bordered("meeting-ask", "Ask This Meeting")
+                ui::controls::bordered("meeting-ask", lokalbot_i18n::tr("Ask This Meeting"))
                     .on_click(cx.listener(|this, _, _, cx| this.ask_meeting(cx)))
             })
             .child(
                 Button::new("meeting-export")
                     .ghost()
                     .child(menu_glyph(Ico::Share, !compact, cx))
-                    .tooltip("Export meeting")
+                    .tooltip(lokalbot_i18n::tr("Export meeting"))
                     .dropdown_menu(move |menu, _, _| {
                         let p1 = export_page.clone();
                         let p2 = export_page.clone();
                         let p3 = export_page.clone();
                         let p4 = export_page.clone();
-                        menu.item(PopupMenuItem::new("Copy Meeting as Markdown").on_click(
-                            move |_, _, cx| {
-                                let _ = p1.update(cx, |this, cx| {
-                                    if let Some(doc) = this.doc.clone() {
-                                        this.copy_text(
-                                            model::meeting_markdown(&doc),
-                                            "Meeting copied as Markdown.",
-                                            cx,
-                                        );
-                                    }
-                                });
-                            },
-                        ))
-                        .item(PopupMenuItem::new("Export Meeting as Markdown…").on_click(
-                            move |_, _, cx| {
-                                let _ = p2.update(cx, |this, cx| this.export_markdown(cx));
-                            },
-                        ))
+                        menu.item(
+                            PopupMenuItem::new(lokalbot_i18n::tr("Copy Meeting as Markdown"))
+                                .on_click(move |_, _, cx| {
+                                    let _ = p1.update(cx, |this, cx| {
+                                        if let Some(doc) = this.doc.clone() {
+                                            this.copy_text(
+                                                model::meeting_markdown(&doc),
+                                                lokalbot_i18n::tr("Meeting copied as Markdown."),
+                                                cx,
+                                            );
+                                        }
+                                    });
+                                }),
+                        )
                         .item(
-                            PopupMenuItem::new("Copy Summary")
+                            PopupMenuItem::new(lokalbot_i18n::tr("Export Meeting as Markdown…"))
+                                .on_click(move |_, _, cx| {
+                                    let _ = p2.update(cx, |this, cx| this.export_markdown(cx));
+                                }),
+                        )
+                        .item(
+                            PopupMenuItem::new(lokalbot_i18n::tr("Copy Summary"))
                                 .disabled(!has_summary)
                                 .on_click(move |_, _, cx| {
                                     let _ = p3.update(cx, |this, cx| {
                                         if let Some(summary) =
                                             this.doc.as_ref().and_then(|d| d.summary.clone())
                                         {
-                                            this.copy_text(summary, "Summary copied.", cx);
+                                            this.copy_text(
+                                                summary,
+                                                lokalbot_i18n::tr("Summary copied."),
+                                                cx,
+                                            );
                                         }
                                     });
                                 }),
                         )
                         .item(
-                            PopupMenuItem::new("Copy Transcript")
+                            PopupMenuItem::new(lokalbot_i18n::tr("Copy Transcript"))
                                 .disabled(!has_transcript)
                                 .on_click(move |_, _, cx| {
                                     let _ = p4.update(cx, |this, cx| {
                                         if let Some(doc) = this.doc.clone() {
                                             this.copy_text(
                                                 model::transcript_text(&doc),
-                                                "Transcript copied.",
+                                                lokalbot_i18n::tr("Transcript copied."),
                                                 cx,
                                             );
                                         }
@@ -928,14 +961,14 @@ impl Page for MeetingsPage {
                 Button::new("meeting-find")
                     .ghost()
                     .icon(Icon::new(Ico::Search))
-                    .tooltip("Find on this meeting page (Ctrl+F)")
+                    .tooltip(lokalbot_i18n::tr("Find on this meeting page (Ctrl+F)"))
                     .on_click(cx.listener(|this, _, window, cx| this.open_find(window, cx))),
             )
             .child(
                 Button::new("meeting-more")
                     .ghost()
                     .child(menu_glyph(Ico::Ellipsis, !compact, cx))
-                    .tooltip("More meeting actions")
+                    .tooltip(lokalbot_i18n::tr("More meeting actions"))
                     .dropdown_menu(move |menu, _, _| {
                         let p = more_page.clone();
                         let item = |label: &'static str,
@@ -952,7 +985,7 @@ impl Page for MeetingsPage {
                         let follow_up = p.clone();
                         let menu = menu
                             .item(
-                                PopupMenuItem::new("Draft follow-up…")
+                                PopupMenuItem::new(lokalbot_i18n::tr("Draft follow-up…"))
                                     .disabled(!can_follow_up)
                                     .on_click(move |_, window, cx| {
                                         let _ = follow_up
@@ -960,34 +993,50 @@ impl Page for MeetingsPage {
                                     }),
                             )
                             .separator();
-                        menu.item(item("Transcribe & Summarize", |this, _, cx| {
-                            this.process(true, true, cx)
-                        }))
-                        .item(item("Transcribe only", |this, _, cx| {
+                        menu.item(item(
+                            lokalbot_i18n::tr("Transcribe & Summarize"),
+                            |this, _, cx| this.process(true, true, cx),
+                        ))
+                        .item(item(lokalbot_i18n::tr("Transcribe only"), |this, _, cx| {
                             this.process(true, false, cx)
                         }))
-                        .item(item("Summarize again", |this, _, cx| {
+                        .item(item(lokalbot_i18n::tr("Summarize again"), |this, _, cx| {
                             this.process(false, true, cx)
                         }))
                         .separator()
-                        .item(item("Show in Folder", |this, _, cx| {
+                        .item(item(lokalbot_i18n::tr("Show in Folder"), |this, _, cx| {
                             if let Some(doc) = this.doc.as_ref() {
                                 cx.reveal_path(&doc.folder);
                             }
                         }))
-                        .item(item("Copy Meeting Path", |this, _, cx| {
-                            if let Some(path) =
-                                this.doc.as_ref().map(|d| d.folder.display().to_string())
-                            {
-                                this.copy_text(path, "Meeting path copied.", cx);
-                            }
-                        }))
+                        .item(item(
+                            lokalbot_i18n::tr("Copy Meeting Path"),
+                            |this, _, cx| {
+                                if let Some(path) =
+                                    this.doc.as_ref().map(|d| d.folder.display().to_string())
+                                {
+                                    this.copy_text(
+                                        path,
+                                        lokalbot_i18n::tr("Meeting path copied."),
+                                        cx,
+                                    );
+                                }
+                            },
+                        ))
                         .separator()
-                        .item(item("Delete…", |this, window, cx| {
-                            if let Some(id) = this.selected {
-                                dialogs::confirm_delete(this.data.clone(), vec![id], window, cx);
-                            }
-                        }))
+                        .item(item(
+                            lokalbot_i18n::tr("Delete…"),
+                            |this, window, cx| {
+                                if let Some(id) = this.selected {
+                                    dialogs::confirm_delete(
+                                        this.data.clone(),
+                                        vec![id],
+                                        window,
+                                        cx,
+                                    );
+                                }
+                            },
+                        ))
                     }),
             );
         Some(toolbar.into_any_element())
@@ -1038,8 +1087,8 @@ pub(crate) fn speaker_color(index: usize, cx: &App) -> gpui_kit::Hsla {
 
 pub(crate) fn status_text(status: &NotesStatus) -> SharedString {
     match status {
-        NotesStatus::Saved => "Saved on this PC".into(),
-        NotesStatus::Saving => "Saving…".into(),
-        NotesStatus::Failed(_) => "Not saved".into(),
+        NotesStatus::Saved => lokalbot_i18n::tr("Saved on this PC").into(),
+        NotesStatus::Saving => lokalbot_i18n::tr("Saving…").into(),
+        NotesStatus::Failed(_) => lokalbot_i18n::tr("Not saved").into(),
     }
 }

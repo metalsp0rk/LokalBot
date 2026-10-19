@@ -2,8 +2,9 @@
 //! update checker on Linux and Windows yet, so "Check for updates" is not
 //! shown; the About section links to the releases instead.
 
+use crate::i18n::h_flex;
 use gpui_kit::component::button::Button;
-use gpui_kit::component::{Icon, Sizable as _, h_flex};
+use gpui_kit::component::{Icon, Sizable as _};
 use gpui_kit::{Context, IntoElement as _, ParentElement as _, SharedString, Styled as _, div, px};
 use lokalbot_core::settings::{AppTheme, TextSize};
 
@@ -34,13 +35,13 @@ impl SettingsPage {
             .position(|t| *t == settings.text_size)
             .unwrap_or(1);
 
-        let general = Section::new("General")
+        let general = Section::new(lokalbot_i18n::tr("General"))
             .row(
                 "settings.launchAtLogin",
                 self.toggle(
                     "settings.launchAtLogin",
-                    "Launch LokalBot at login",
-                    Some("Start automatically so it's ready to catch meetings."),
+                    lokalbot_i18n::tr("Launch LokalBot at login"),
+                    Some(lokalbot_i18n::tr("Start automatically so it's ready to catch meetings.")),
                     settings.launch_at_login,
                     |s, v| s.launch_at_login = v,
                     cx,
@@ -50,8 +51,8 @@ impl SettingsPage {
                 "settings.runInTray",
                 self.toggle(
                     "settings.runInTray",
-                    "Keep LokalBot running in the system tray",
-                    Some("Closing the window keeps LokalBot running in the system tray, ready to catch meetings. Quit from the tray menu."),
+                    lokalbot_i18n::tr("Keep LokalBot running in the system tray"),
+                    Some(lokalbot_i18n::tr("Closing the window keeps LokalBot running in the system tray, ready to catch meetings. Quit from the tray menu.")),
                     settings.run_in_tray,
                     |s, v| s.run_in_tray = v,
                     cx,
@@ -60,14 +61,25 @@ impl SettingsPage {
 
         let theme_data = data.clone();
         let size_data = data.clone();
-        let appearance = Section::new("Appearance")
+        let appearance = Section::new(lokalbot_i18n::tr("Appearance"))
+            .row(
+                "settings.appLanguage",
+                settings_row::row(
+                    "settings.appLanguage",
+                    lokalbot_i18n::tr("App language"),
+                    None,
+                    crate::i18n::language_picker("settings-language", cx),
+                    self.is_focused("settings.appLanguage"),
+                    cx,
+                ),
+            )
             .row(
                 "settings.appTheme",
                 settings_row::row(
                     "settings.appTheme",
-                    "Theme",
+                    lokalbot_i18n::tr("Theme"),
                     Some(
-                        "Use light or dark windows regardless of the system setting, or follow it."
+                        lokalbot_i18n::tr("Use light or dark windows regardless of the system setting, or follow it.")
                             .into(),
                     ),
                     settings_row::segmented(
@@ -90,8 +102,8 @@ impl SettingsPage {
                 "settings.textSize",
                 settings_row::row(
                     "settings.textSize",
-                    "Text size",
-                    Some("Scales text across LokalBot's windows.".into()),
+                    lokalbot_i18n::tr("Text size"),
+                    Some(lokalbot_i18n::tr("Scales text across LokalBot's windows.").into()),
                     settings_row::segmented(
                         "settings-text-size",
                         &SIZES.map(catalog::text_size_label),
@@ -115,24 +127,21 @@ impl SettingsPage {
                     div()
                         .text_size(ty::BODY)
                         .text_color(cx.lb().text_secondary)
-                        .child("Meeting notes, transcripts, and actions will look like this."),
+                        .child(crate::ui::text::paragraph(lokalbot_i18n::tr("Meeting notes, transcripts, and actions will look like this."))),
                     false,
                     cx,
                 ),
             );
 
-        let shortcut_help: SharedString = format!(
-            "Press {} in any app to search your work memory or ask a question. LokalBot registers only this shortcut and never reads other keystrokes.",
-            settings.quick_recall_shortcut
-        )
+        let shortcut_help: SharedString = lokalbot_i18n::format("Press {0} in any app to search your work memory or ask a question. LokalBot registers only this shortcut and never reads other keystrokes.", &[("0", format!("{}", settings.quick_recall_shortcut))])
         .into();
         let shortcut_data = data.clone();
-        let shortcut = Section::new("Shortcut")
+        let shortcut = Section::new(lokalbot_i18n::tr("Shortcut"))
             .row(
                 "settings.quickRecallEnabled",
                 settings_row::row(
                     "settings.quickRecallEnabled",
-                    "Enable the system-wide Ask shortcut",
+                    lokalbot_i18n::tr("Enable the system-wide Ask shortcut"),
                     Some(shortcut_help),
                     settings_row::switch(
                         "settings.quickRecallEnabled",
@@ -151,7 +160,7 @@ impl SettingsPage {
                 "settings.quickRecallShortcut",
                 settings_row::row(
                     "settings.quickRecallShortcut",
-                    "Ask shortcut",
+                    lokalbot_i18n::tr("Ask shortcut"),
                     None,
                     self.quick_recall_shortcut.clone(),
                     self.is_focused("settings.quickRecallShortcut"),
@@ -159,20 +168,20 @@ impl SettingsPage {
                 ),
             );
 
-        let about = Section::new("About")
+        let about = Section::new(lokalbot_i18n::tr("About"))
             .row(
                 "settings.currentVersion",
                 settings_row::row(
                     "settings.currentVersion",
-                    "Current version",
-                    Some("LokalBot doesn't check for updates on its own. New versions are listed on GitHub.".into()),
+                    lokalbot_i18n::tr("Current version"),
+                    Some(lokalbot_i18n::tr("LokalBot doesn't check for updates on its own. New versions are listed on GitHub.").into()),
                     h_flex()
                         .gap(px(10.))
                         .items_center()
                         .child(settings_row::value(env!("CARGO_PKG_VERSION"), cx))
                         .child(settings_row::link_button(
                             "settings-releases",
-                            "Releases",
+                            lokalbot_i18n::tr("Releases"),
                             |_, cx| cx.open_url(&format!("{REPOSITORY}/releases")),
                             cx,
                         )),
@@ -184,16 +193,16 @@ impl SettingsPage {
                 "settings.githubStar",
                 settings_row::row(
                     "settings.githubStar",
-                    "Open source",
+                    lokalbot_i18n::tr("Open source"),
                     Some(
-                        "LokalBot is free and built by one person. A GitHub star helps others find it."
+                        lokalbot_i18n::tr("LokalBot is free and built by one person. A GitHub star helps others find it.")
                             .into(),
                     ),
                     Button::new("settings-github-star")
                         .outline()
                         .small()
                         .icon(Icon::new(Ico::Star))
-                        .label("Star on GitHub")
+                        .label(lokalbot_i18n::tr("Star on GitHub"))
                         .on_click(|_, _, cx| cx.open_url(REPOSITORY))
                         .into_any_element(),
                     false,

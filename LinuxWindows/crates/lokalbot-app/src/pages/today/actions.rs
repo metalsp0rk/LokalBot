@@ -1,12 +1,13 @@
 //! The Actions workspace behind "Review Actions…" (`ActionsWorkspaceView.swift`):
 //! every action of yours with status, search and sort, and an inspector.
 
+use crate::i18n::h_flex;
 use chrono::Local;
 use gpui_kit::component::button::{Button, ButtonVariants as _};
 use gpui_kit::component::input::{Input, InputEvent, InputState};
 use gpui_kit::component::menu::{DropdownMenu as _, PopupMenuItem};
 use gpui_kit::component::scroll::ScrollableElement as _;
-use gpui_kit::component::{Icon, Sizable as _, h_flex, v_flex};
+use gpui_kit::component::{Icon, Sizable as _, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
     AnyElement, AppContext as _, Context, Entity, FontWeight, InteractiveElement as _, IntoElement,
@@ -33,9 +34,9 @@ enum Sort {
 impl Sort {
     fn label(self) -> &'static str {
         match self {
-            Sort::Due => "Due, then recent",
-            Sort::LatestDue => "Latest due first",
-            Sort::Recent => "Most recent",
+            Sort::Due => lokalbot_i18n::tr("Due, then recent"),
+            Sort::LatestDue => lokalbot_i18n::tr("Latest due first"),
+            Sort::Recent => lokalbot_i18n::tr("Most recent"),
         }
     }
 }
@@ -55,8 +56,13 @@ pub(crate) struct ActionsWorkspace {
 impl ActionsWorkspace {
     pub(crate) fn new(window: &mut Window, cx: &mut Context<Self>) -> Self {
         let data = AppData::global(cx);
-        let search =
-            cx.new(|cx| InputState::new(window, cx).placeholder("Search actions and meetings"));
+        let search = cx.new(|cx| {
+            InputState::new(window, cx).placeholder(crate::i18n::placeholder(
+                "Search actions and meetings",
+                window,
+                cx,
+            ))
+        });
         let subscriptions = vec![
             cx.subscribe_in(&search, window, |this, input, event: &InputEvent, _, cx| {
                 if let InputEvent::Change = event {
@@ -199,7 +205,7 @@ impl ActionsWorkspace {
                 Button::new("actions-back")
                     .ghost()
                     .icon(Icon::new(Ico::ChevronLeft))
-                    .label("Today")
+                    .label(lokalbot_i18n::tr("Today"))
                     .on_click(cx.listener(|this, _, _, cx| this.back(cx))),
             )
             .child(
@@ -207,13 +213,19 @@ impl ActionsWorkspace {
                     .text_size(ty::COLUMN_TITLE)
                     .font_weight(FontWeight::BOLD)
                     .text_color(lb.text)
-                    .child("Actions"),
+                    .child(crate::ui::text::paragraph(lokalbot_i18n::tr("Actions"))),
             )
             .child(
                 div()
                     .text_size(ty::BODY)
                     .text_color(lb.text_secondary)
-                    .child(format!("{visible} of {}", self.all.len())),
+                    .child(crate::ui::text::paragraph(lokalbot_i18n::format(
+                        "{visible} of {0}",
+                        &[
+                            ("visible", format!("{}", visible)),
+                            ("0", format!("{}", self.all.len())),
+                        ],
+                    ))),
             )
     }
 
@@ -259,14 +271,14 @@ impl ActionsWorkspace {
                     .outline()
                     .small()
                     .icon(Icon::new(Ico::ArrowUpDown))
-                    .label(sort.label())
+                    .label(lokalbot_i18n::tr(sort.label()))
                     .dropdown_caret(true)
                     .dropdown_menu(move |menu, _, _| {
                         let mut menu = menu;
                         for option in [Sort::Due, Sort::LatestDue, Sort::Recent] {
                             let page = page.clone();
                             menu = menu.item(
-                                PopupMenuItem::new(option.label())
+                                PopupMenuItem::new(lokalbot_i18n::tr(option.label()))
                                     .checked(option == sort)
                                     .on_click(move |_, _, cx| {
                                         let _ = page.update(cx, |this, cx| {
@@ -314,7 +326,7 @@ impl ActionsWorkspace {
             .owner
             .as_deref()
             .map(|o| meeting_model::display_label(o, reference.is_for_user))
-            .unwrap_or_else(|| "Owner unclear".into());
+            .unwrap_or_else(|| lokalbot_i18n::tr("Owner unclear").into());
         let overdue = reference.is_overdue(today);
         let due = reference
             .due
@@ -338,7 +350,7 @@ impl ActionsWorkspace {
                     let page = page.clone();
                     let reference = reference.clone();
                     menu = menu.item(
-                        PopupMenuItem::new(option.label())
+                        PopupMenuItem::new(lokalbot_i18n::tr(option.label()))
                             .checked(reference.status == option)
                             .on_click(move |_, _, cx| {
                                 let _ = page
@@ -354,26 +366,32 @@ impl ActionsWorkspace {
                 let meeting_id = reference.meeting_id;
                 menu.separator()
                     .item(
-                        PopupMenuItem::new("Correct Action…").on_click(move |_, window, cx| {
-                            let _ = correct_page.update(cx, |this, cx| {
-                                this.open_correction(&correct_ref, window, cx)
-                            });
-                        }),
+                        PopupMenuItem::new(lokalbot_i18n::tr("Correct Action…")).on_click(
+                            move |_, window, cx| {
+                                let _ = correct_page.update(cx, |this, cx| {
+                                    this.open_correction(&correct_ref, window, cx)
+                                });
+                            },
+                        ),
                     )
                     .item(
-                        PopupMenuItem::new("Show Details").on_click(move |_, _, cx| {
-                            let _ = details_page.update(cx, |this, cx| {
-                                this.selected = Some(details_id.clone());
-                                cx.notify();
-                            });
-                        }),
+                        PopupMenuItem::new(lokalbot_i18n::tr("Show Details")).on_click(
+                            move |_, _, cx| {
+                                let _ = details_page.update(cx, |this, cx| {
+                                    this.selected = Some(details_id.clone());
+                                    cx.notify();
+                                });
+                            },
+                        ),
                     )
                     .item(
-                        PopupMenuItem::new("Open Meeting").on_click(move |_, _, cx| {
-                            let _ = open_page.update(cx, |this, cx| {
-                                open_meeting(&this.data, meeting_id, None, cx)
-                            });
-                        }),
+                        PopupMenuItem::new(lokalbot_i18n::tr("Open Meeting")).on_click(
+                            move |_, _, cx| {
+                                let _ = open_page.update(cx, |this, cx| {
+                                    open_meeting(&this.data, meeting_id, None, cx)
+                                });
+                            },
+                        ),
                     )
             })
         };
@@ -489,7 +507,11 @@ impl ActionsWorkspace {
         });
         let status_buttons = segmented_tabs::segmented_tabs(
             "inspector-status",
-            &["Open", "Done", "Deferred"],
+            &[
+                lokalbot_i18n::tr("Open"),
+                lokalbot_i18n::tr("Done"),
+                lokalbot_i18n::tr("Deferred"),
+            ],
             match status {
                 ActionStatus::Open => 0,
                 ActionStatus::Done => 1,
@@ -503,7 +525,7 @@ impl ActionsWorkspace {
             .owner
             .as_deref()
             .map(|o| meeting_model::display_label(o, reference.is_for_user))
-            .unwrap_or_else(|| "Not stated".into());
+            .unwrap_or_else(|| lokalbot_i18n::tr("Not stated").into());
         let correct_ref = reference.clone();
         v_flex()
             .id("actions-inspector")
@@ -518,16 +540,16 @@ impl ActionsWorkspace {
                 v_flex()
                     .p(px(20.))
                     .gap(px(14.))
-                    .child(div().text_size(ty::COLUMN_TITLE).font_weight(FontWeight::BOLD).text_color(lb.text).child("Action Details"))
+                    .child(div().text_size(ty::COLUMN_TITLE).font_weight(FontWeight::BOLD).text_color(lb.text).child(crate::ui::text::paragraph(lokalbot_i18n::tr("Action Details"))))
                     .child(div().text_size(ty::BODY).font_weight(FontWeight::SEMIBOLD).text_color(lb.text).child(reference.text.clone()))
                     .child(action_row::meta_link("inspector-meeting", reference.meeting_title.clone(), None, move |_, cx| {
                         open_meeting(&data, meeting_id, None, cx)
                     }, cx))
-                    .child(v_flex().gap(px(6.)).child(label("Status")).child(status_buttons))
-                    .child(v_flex().gap(px(4.)).child(label("Owner")).child(div().text_size(ty::BODY).text_color(lb.text).child(owner)))
+                    .child(v_flex().gap(px(6.)).child(label(lokalbot_i18n::tr("Status"))).child(status_buttons))
+                    .child(v_flex().gap(px(4.)).child(label(lokalbot_i18n::tr("Owner"))).child(div().text_size(ty::BODY).text_color(lb.text).child(owner)))
                     .when_some(reference.due.as_deref(), |this, due| {
                         this.child(
-                            v_flex().gap(px(4.)).child(label("Due")).child(
+                            v_flex().gap(px(4.)).child(label(lokalbot_i18n::tr("Due"))).child(
                                 div()
                                     .text_size(ty::BODY)
                                     .text_color(lb.text)
@@ -540,17 +562,17 @@ impl ActionsWorkspace {
                             Button::new("inspector-correct")
                                 .outline()
                                 .small()
-                                .label("Correct Action or Resolve Date…")
+                                .label(lokalbot_i18n::tr("Correct Action or Resolve Date…"))
                                 .on_click(cx.listener(move |this, _, window, cx| {
                                     this.open_correction(&correct_ref, window, cx)
                                 })),
                         ),
                     )
                     .child(ui::divider(cx))
-                    .child(label("Original Wording"))
+                    .child(label(lokalbot_i18n::tr("Original Wording")))
                     .child(div().text_size(ty::BODY).text_color(lb.text).child(reference.original_text.clone()))
                     .when_some(reference.action.due.clone(), |this, due| {
-                        this.child(div().text_size(ty::SECONDARY).text_color(lb.text_secondary).child(format!("Original due phrase: {due}")))
+                        this.child(div().text_size(ty::SECONDARY).text_color(lb.text_secondary).child(crate::ui::text::paragraph(lokalbot_i18n::format("Original due phrase: {due}", &[("due", format!("{}", due))]))))
                     })
                     .children(reference.citations.iter().enumerate().map(|(ix, citation)| {
                         let data = self.data.clone();
@@ -568,16 +590,14 @@ impl ActionsWorkspace {
                                     .gap(px(10.))
                                     .items_center()
                                     .child(div().text_size(ty::SECONDARY).text_color(lb.text_secondary).child(lokalbot_core::time::stamp(start)))
-                                    .child(ui::link(("inspector-passage", ix), "Show Passage in Meeting", move |_, cx| {
+                                    .child(ui::link(("inspector-passage", ix), lokalbot_i18n::tr("Show Passage in Meeting"), move |_, cx| {
                                         open_meeting(&data, meeting_id, Some(start), cx)
                                     }, cx).text_size(ty::SECONDARY)),
                             )
                     }))
-                    .child(div().text_size(ty::SECONDARY).text_color(lb.text_secondary).child(
-                        "Saved corrections stay separate from the original action and its supporting passage.",
-                    ))
+                    .child(div().text_size(ty::SECONDARY).text_color(lb.text_secondary).child(crate::ui::text::paragraph(lokalbot_i18n::tr("Saved corrections stay separate from the original action and its supporting passage."))))
                     .when(reference.citations.is_empty(), |this| {
-                        this.child(div().text_size(ty::SECONDARY).text_color(lb.text_secondary).child("No supporting passage was stored."))
+                        this.child(div().text_size(ty::SECONDARY).text_color(lb.text_secondary).child(crate::ui::text::paragraph(lokalbot_i18n::tr("No supporting passage was stored."))))
                     }),
             )
             .into_any_element()
@@ -617,8 +637,10 @@ impl Render for ActionsWorkspace {
                 .justify_center()
                 .child(ui::empty_state(
                     Ico::ListChecks,
-                    "No matching actions",
-                    "Choose All statuses to review completed and deferred actions.",
+                    lokalbot_i18n::tr("No matching actions"),
+                    lokalbot_i18n::tr(
+                        "Choose All statuses to review completed and deferred actions.",
+                    ),
                     cx,
                 ))
                 .into_any_element()

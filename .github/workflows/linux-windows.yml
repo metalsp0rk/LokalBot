@@ -8,6 +8,8 @@ on:
       - "!LinuxWindows/docs/**"
       - "!LinuxWindows/**/*.md"
       - ".agents/skills/lokalbot-cli/**"
+      - "LokalBot/Resources/*.lproj/Localizable.strings"
+      - "LokalBot/Models/AppLanguage.swift"
       - ".github/workflows/linux-windows.yml"
   pull_request:
     branches: [master, dev]
@@ -16,6 +18,8 @@ on:
       - "!LinuxWindows/docs/**"
       - "!LinuxWindows/**/*.md"
       - ".agents/skills/lokalbot-cli/**"
+      - "LokalBot/Resources/*.lproj/Localizable.strings"
+      - "LokalBot/Models/AppLanguage.swift"
       - ".github/workflows/linux-windows.yml"
   workflow_dispatch:
 
@@ -58,6 +62,9 @@ jobs:
 
       - name: Format
         run: cargo fmt --all -- --check
+
+      - name: Check localization parity with macOS
+        run: python3 -m unittest discover -s scripts/tests
 
       - name: Test
         run: cargo test --workspace --locked

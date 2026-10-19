@@ -1,8 +1,9 @@
 //! Privacy & Data: where data lives, screen retention, external agent access
 //! and capture exclusions.
 
+use crate::i18n::h_flex;
 use gpui_kit::component::slider::Slider;
-use gpui_kit::component::{h_flex, v_flex};
+use gpui_kit::component::v_flex;
 use gpui_kit::{AppContext as _, Context, ParentElement as _, SharedString, Styled as _, px};
 use lokalbot_core::access::ScreenScope;
 use lokalbot_core::settings::SummarizerBackend;
@@ -19,19 +20,23 @@ const SCOPES: [ScreenScope; 3] = [
 
 fn scope_detail(scope: ScreenScope) -> &'static str {
     match scope {
-        ScreenScope::Today => "Agents can read only context captured since local midnight.",
-        ScreenScope::RecentWeek => "Agents can read context from the rolling last seven days.",
-        ScreenScope::RetainedHistory => {
-            "Agents can read everything still inside the configured retention window."
+        ScreenScope::Today => {
+            lokalbot_i18n::tr("Agents can read only context captured since local midnight.")
         }
+        ScreenScope::RecentWeek => {
+            lokalbot_i18n::tr("Agents can read context from the rolling last seven days.")
+        }
+        ScreenScope::RetainedHistory => lokalbot_i18n::tr(
+            "Agents can read everything still inside the configured retention window.",
+        ),
     }
 }
 
 fn days_label(days: u32) -> String {
     if days == 1 {
-        "1 day".into()
+        lokalbot_i18n::tr("1 day").into()
     } else {
-        format!("{days} days")
+        lokalbot_i18n::format("{days} days", &[("days", format!("{}", days))])
     }
 }
 
@@ -48,7 +53,13 @@ impl SettingsPage {
                 .await;
             if let Err(err) = result {
                 data.update(cx, |data, cx| {
-                    data.show_error(format!("Could not change agent access: {err}"), cx)
+                    data.show_error(
+                        lokalbot_i18n::format(
+                            "Could not change agent access: {err}",
+                            &[("err", format!("{}", err))],
+                        ),
+                        cx,
+                    )
                 });
             }
             let _ = this.update(cx, |this, cx| this.reload_access(cx));
@@ -69,7 +80,13 @@ impl SettingsPage {
                 .await;
             if let Err(err) = result {
                 data.update(cx, |data, cx| {
-                    data.show_error(format!("Could not change screen memory access: {err}"), cx)
+                    data.show_error(
+                        lokalbot_i18n::format(
+                            "Could not change screen memory access: {err}",
+                            &[("err", format!("{}", err))],
+                        ),
+                        cx,
+                    )
                 });
             }
             let _ = this.update(cx, |this, cx| this.reload_access(cx));
@@ -89,14 +106,15 @@ impl SettingsPage {
         let lb = cx.lb().clone();
 
         let where_text = if settings.think_is_local() {
-            "Audio, transcripts, and captured context stay on this PC. Network access is limited to model downloads and optional Agent Mode setup.".to_string()
+            lokalbot_i18n::tr("Audio, transcripts, and captured context stay on this PC. Network access is limited to model downloads and optional Agent Mode setup.").to_string()
         } else {
             let backend = match settings.summarizer_backend {
-                SummarizerBackend::Ollama => "Ollama",
-                _ => "OpenAI-compatible server",
+                SummarizerBackend::Ollama => lokalbot_i18n::tr("Ollama"),
+                _ => lokalbot_i18n::tr("OpenAI-compatible server"),
             };
-            format!(
-                "Audio stays on this PC. Transcripts and approved context may be sent to your remote Think model ({backend}). Other network access is for model downloads and optional Agent Mode setup."
+            lokalbot_i18n::format(
+                "Audio stays on this PC. Transcripts and approved context may be sent to your remote Think model ({backend}). Other network access is for model downloads and optional Agent Mode setup.",
+                &[("backend", format!("{}", backend))],
             )
         };
         let local = settings.think_is_local();
@@ -119,7 +137,7 @@ impl SettingsPage {
             ))
             .child(settings_row::help(where_text, cx).flex_1().min_w_0());
         let open_root = root.clone();
-        let data_section = Section::new("Where your data lives")
+        let data_section = Section::new(lokalbot_i18n::tr("Where your data lives"))
             .row(
                 "settings.whereData",
                 settings_row::content_row("settings.whereData", where_row, false, cx),
@@ -128,8 +146,8 @@ impl SettingsPage {
                 "settings.libraryLocation",
                 settings_row::row(
                     "settings.libraryLocation",
-                    "Library location",
-                    Some("Meetings, day memory, and the search index.".into()),
+                    lokalbot_i18n::tr("Library location"),
+                    Some(lokalbot_i18n::tr("Meetings, day memory, and the search index.").into()),
                     v_flex().items_end().max_w(px(320.)).child(
                         settings_row::link_button(
                             "settings-library-path",
@@ -145,13 +163,13 @@ impl SettingsPage {
             );
 
         let days = settings.retention_days.clamp(1, 90);
-        let retention = Section::new("Screen memory retention")
+        let retention = Section::new(lokalbot_i18n::tr("Screen memory retention"))
             .row(
                 "settings.retentionDays",
                 settings_row::stacked_row(
                     "settings.retentionDays",
-                    format!("Keep screen context {}", days_label(days)),
-                    Some("Old images, screen text, screen titles, URLs, document names, and activity titles expire. App names and durations remain, and meetings are never removed. Saved moments stay until unsaved or deleted.".into()),
+                    lokalbot_i18n::format("Keep screen context {0}", &[("0", format!("{}", days_label(days)))]),
+                    Some(lokalbot_i18n::tr("Old images, screen text, screen titles, URLs, document names, and activity titles expire. App names and durations remain, and meetings are never removed. Saved moments stay until unsaved or deleted.").into()),
                     Slider::new(&self.retention_slider).w_full(),
                     self.is_focused("settings.retentionDays"),
                     cx,
@@ -161,8 +179,8 @@ impl SettingsPage {
                 "settings.keepOCRTextForever",
                 self.toggle(
                     "settings.keepOCRTextForever",
-                    "Keep screen text forever",
-                    Some("Images and activity titles still expire. Screen text, titles, URLs, and document names stay searchable."),
+                    lokalbot_i18n::tr("Keep screen text forever"),
+                    Some(lokalbot_i18n::tr("Images and activity titles still expire. Screen text, titles, URLs, and document names stay searchable.")),
                     settings.keep_ocr_text_forever,
                     |s, v| s.keep_ocr_text_forever = v,
                     cx,
@@ -172,7 +190,7 @@ impl SettingsPage {
                 "settings.retentionNote",
                 settings_row::content_row(
                     "settings.retentionNote",
-                    settings_row::help("Retention doesn't change day digests, saved Ask conversations, or files you export. Delete conversations in Ask, and remove exported files from their folders.", cx),
+                    settings_row::help(lokalbot_i18n::tr("Retention doesn't change day digests, saved Ask conversations, or files you export. Delete conversations in Ask, and remove exported files from their folders."), cx),
                     false,
                     cx,
                 ),
@@ -183,13 +201,13 @@ impl SettingsPage {
         let screen_page = page.clone();
         let meetings_on = self.meetings_access.unwrap_or(false);
         let screen_scope = self.screen_access.flatten();
-        let mut agents = Section::new("External agents")
+        let mut agents = Section::new(lokalbot_i18n::tr("External agents"))
             .row(
                 "settings.agentAccess",
                 settings_row::row(
                     "settings.agentAccess",
-                    "Allow external agents to read your meeting library",
-                    Some("Lets MCP clients and the lokalbot-cli skill (Claude, Cursor, …) list, read, search, and ask about your meetings — read-only and on this PC only. Off by default.".into()),
+                    lokalbot_i18n::tr("Allow external agents to read your meeting library"),
+                    Some(lokalbot_i18n::tr("Lets MCP clients and the lokalbot-cli skill (Claude, Cursor, …) list, read, search, and ask about your meetings — read-only and on this PC only. Off by default.").into()),
                     settings_row::switch("settings.agentAccess", meetings_on, move |on, _, cx| {
                         meetings_page.update(cx, |page, cx| page.set_meetings_access(on, cx))
                     }),
@@ -201,8 +219,8 @@ impl SettingsPage {
                 "settings.screenMemoryAccess",
                 settings_row::row(
                     "settings.screenMemoryAccess",
-                    "Allow external agents to read screen memory",
-                    Some("Separate, scoped, read-only access to captured text and metadata. Screenshot pixels are never returned.".into()),
+                    lokalbot_i18n::tr("Allow external agents to read screen memory"),
+                    Some(lokalbot_i18n::tr("Separate, scoped, read-only access to captured text and metadata. Screenshot pixels are never returned.").into()),
                     settings_row::switch("settings.screenMemoryAccess", screen_scope.is_some(), move |on, _, cx| {
                         screen_page.update(cx, |page, cx| page.set_screen_access(on.then_some(ScreenScope::RecentWeek), cx))
                     }),
@@ -216,14 +234,19 @@ impl SettingsPage {
                 "settings.screenMemoryScope",
                 settings_row::row(
                     "settings.screenMemoryScope",
-                    "Granted history",
+                    lokalbot_i18n::tr("Granted history"),
                     Some(scope_detail(scope).into()),
                     settings_row::picker(
                         "settings-screen-scope",
-                        scope.label(),
+                        lokalbot_i18n::tr(scope.label()),
                         SCOPES
                             .iter()
-                            .map(|s| (SharedString::from(s.label()), *s == scope))
+                            .map(|s| {
+                                (
+                                    SharedString::from(lokalbot_i18n::tr(s.label())),
+                                    *s == scope,
+                                )
+                            })
                             .collect(),
                         move |index, _, cx| {
                             let scope = SCOPES[index];
@@ -237,7 +260,7 @@ impl SettingsPage {
             );
         }
 
-        let exclusions = Section::new("Capture exclusions")
+        let exclusions = Section::new(lokalbot_i18n::tr("Capture exclusions"))
             .row(
                 "settings.excludedApps",
                 settings_row::content_row("settings.excludedApps", self.excluded_apps.clone(), self.is_focused("settings.excludedApps"), cx),
@@ -255,7 +278,7 @@ impl SettingsPage {
                 "settings.exclusionsHelp",
                 settings_row::content_row(
                     "settings.exclusionsHelp",
-                    settings_row::help("Every app and window is tracked, including browsers. Add apps or sites here to keep them out: they are logged as “Private”, with the time only. Password managers (1Password, Bitwarden, KeePassXC, and others), focused password fields, private browser windows, and detected credentials are never captured. While any site is listed, a browser window whose address LokalBot cannot read keeps no title and no screen context.", cx),
+                    settings_row::help(lokalbot_i18n::tr("Every app and window is tracked, including browsers. Add apps or sites here to keep them out: they are logged as “Private”, with the time only. Password managers (1Password, Bitwarden, KeePassXC, and others), focused password fields, private browser windows, and detected credentials are never captured. While any site is listed, a browser window whose address LokalBot cannot read keeps no title and no screen context."), cx),
                     false,
                     cx,
                 ),
@@ -269,13 +292,13 @@ impl SettingsPage {
                     .gap(px(16.))
                     .child(settings_row::link_button(
                         "settings-privacy-policy",
-                        "Privacy Policy",
+                        lokalbot_i18n::tr("Privacy Policy"),
                         |_, cx| cx.open_url("https://www.lokalbot.com/privacy"),
                         cx,
                     ))
                     .child(settings_row::link_button(
                         "settings-support",
-                        "Support",
+                        lokalbot_i18n::tr("Support"),
                         |_, cx| cx.open_url("https://www.lokalbot.com/support"),
                         cx,
                     )),

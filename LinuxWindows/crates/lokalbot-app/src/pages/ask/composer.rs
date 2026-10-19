@@ -1,12 +1,13 @@
 //! The composer dock (`AskView.composerDock`): filter chips, the evidence
 //! boundary, answer sources, the input box and the inference status.
 
+use crate::i18n::h_flex;
 use gpui_kit::component::button::{Button, ButtonVariants as _};
-use gpui_kit::component::date_picker::DatePicker;
+use gpui_kit::component::calendar::Calendar;
 use gpui_kit::component::input::Textarea;
 use gpui_kit::component::menu::{DropdownMenu as _, PopupMenu, PopupMenuItem};
 use gpui_kit::component::popover::Popover;
-use gpui_kit::component::{Disableable as _, Icon, Sizable as _, h_flex, v_flex};
+use gpui_kit::component::{Disableable as _, Icon, Sizable as _, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
     AnyElement, App, Context, Div, Focusable as _, FontWeight, InteractiveElement as _,
@@ -40,7 +41,7 @@ pub fn inference(cx: &App) -> Inference {
     let Some(url) = url.filter(|url| !lokalbot_core::access::is_loopback_url(url)) else {
         return Inference {
             icon: Ico::Monitor,
-            label: "On this PC".into(),
+            label: lokalbot_i18n::tr("On this PC").into(),
             remote: false,
             blocked: false,
         };
@@ -50,7 +51,7 @@ pub fn inference(cx: &App) -> Inference {
     {
         return Inference {
             icon: Ico::TriangleAlert,
-            label: "Model connection blocked".into(),
+            label: lokalbot_i18n::tr("Model connection blocked").into(),
             remote: false,
             blocked: true,
         };
@@ -60,7 +61,7 @@ pub fn inference(cx: &App) -> Inference {
         .unwrap_or(url);
     Inference {
         icon: Ico::Network,
-        label: format!("Remote · {host}").into(),
+        label: lokalbot_i18n::format("Remote · {host}", &[("host", format!("{}", host))]).into(),
         remote: true,
         blocked: false,
     }
@@ -79,9 +80,12 @@ impl AskPage {
             rows.push(filters.into_any_element());
         }
         if let Some(scope) = &self.meeting_scope {
-            let label = format!(
-                "{} · All screens",
-                super::history::count_label(scope.len(), "meeting")
+            let label = lokalbot_i18n::format(
+                "{0} · All screens",
+                &[(
+                    "0",
+                    format!("{}", super::history::count_label(scope.len(), "meeting")),
+                )],
             );
             rows.push(
                 h_flex()
@@ -91,7 +95,7 @@ impl AskPage {
                             .small()
                             .icon(Icon::new(Ico::CircleX))
                             .label(label)
-                            .tooltip("Clear the selected evidence boundary")
+                            .tooltip(lokalbot_i18n::tr("Clear the selected evidence boundary"))
                             .on_click(cx.listener(|this, _, window, cx| {
                                 this.meeting_scope = None;
                                 this.scope_changed(window, cx);
@@ -147,8 +151,11 @@ impl AskPage {
                     .outline()
                     .small()
                     .icon(Icon::new(Ico::CircleX))
-                    .label(format!("Results: {}", self.facet.label()))
-                    .tooltip("Clear the result-type filter")
+                    .label(lokalbot_i18n::format(
+                        "Results: {0}",
+                        &[("0", format!("{}", lokalbot_i18n::tr(self.facet.label())))],
+                    ))
+                    .tooltip(lokalbot_i18n::tr("Clear the result-type filter"))
                     .on_click(cx.listener(|this, _, window, cx| {
                         this.facet = Facet::All;
                         this.scope_changed(window, cx);
@@ -163,18 +170,28 @@ impl AskPage {
         let count = self.results.meetings.len();
         let screens = self.results.screens.len();
         let label = if self.results.running {
-            "Finding sources…".to_string()
+            lokalbot_i18n::tr("Finding sources…").to_string()
         } else if count + screens > 0 {
-            format!(
-                "Answer sources: {} · {}",
-                super::history::count_label(count, "meeting"),
-                super::history::count_label(screens, "screen moment")
+            lokalbot_i18n::format(
+                "Answer sources: {0} · {1}",
+                &[
+                    (
+                        "0",
+                        format!("{}", super::history::count_label(count, "meeting")),
+                    ),
+                    (
+                        "1",
+                        format!("{}", super::history::count_label(screens, "screen moment")),
+                    ),
+                ],
             )
         } else {
-            format!(
-                "Answer sources: {} · {}",
-                self.sources.summary(),
-                self.date_scope.label()
+            lokalbot_i18n::format(
+                "Answer sources: {0} · {1}",
+                &[
+                    ("0", format!("{}", self.sources.summary())),
+                    ("1", format!("{}", self.date_scope.label())),
+                ],
             )
         };
         let expanded = self.sources_expanded;
@@ -184,7 +201,7 @@ impl AskPage {
                 details.push(
                     div()
                         .text_color(lb.supporting)
-                        .child("The answer can retrieve passages from these meetings and screen moments, including collapsed matches. It may use only the passages relevant to your question.")
+                        .child(crate::ui::text::paragraph(lokalbot_i18n::tr("The answer can retrieve passages from these meetings and screen moments, including collapsed matches. It may use only the passages relevant to your question.")))
                         .into_any_element(),
                 );
                 for group in &self.results.meetings {
@@ -192,15 +209,21 @@ impl AskPage {
                         .meeting
                         .started_at
                         .with_timezone(&chrono::Local)
-                        .format("%b %-d, %Y");
+                        .format_localized(
+                            lokalbot_i18n::date_pattern("%b %-d, %Y"),
+                            lokalbot_i18n::date_locale(),
+                        );
                     details.push(
                         div()
                             .truncate()
                             .text_color(lb.text_secondary)
-                            .child(format!(
-                                "Meeting · {} · {date}",
-                                group.meeting.display_title()
-                            ))
+                            .child(crate::ui::text::paragraph(lokalbot_i18n::format(
+                                "Meeting · {0} · {date}",
+                                &[
+                                    ("0", format!("{}", group.meeting.display_title())),
+                                    ("date", format!("{}", date)),
+                                ],
+                            )))
                             .into_any_element(),
                     );
                 }
@@ -209,26 +232,38 @@ impl AskPage {
                         .moment
                         .ts
                         .with_timezone(&chrono::Local)
-                        .format("%b %-d, %Y at %-I:%M %p");
+                        .format_localized(
+                            lokalbot_i18n::date_pattern("%b %-d, %Y at %-I:%M %p"),
+                            lokalbot_i18n::date_locale(),
+                        );
                     details.push(
                         div()
                             .truncate()
                             .text_color(lb.text_secondary)
-                            .child(format!(
-                                "Screen · {} · {when} · {}",
-                                screen.moment.app,
-                                super::history::count_label(screen.captures, "moment")
-                            ))
+                            .child(crate::ui::text::paragraph(lokalbot_i18n::format(
+                                "Screen · {0} · {when} · {1}",
+                                &[
+                                    ("0", format!("{}", screen.moment.app)),
+                                    ("when", format!("{}", when)),
+                                    (
+                                        "1",
+                                        format!(
+                                            "{}",
+                                            super::history::count_label(screen.captures, "moment")
+                                        ),
+                                    ),
+                                ],
+                            )))
                             .into_any_element(),
                     );
                 }
             } else {
                 let text = if self.meeting_scope.is_some() {
-                    "Ask stays within the selected evidence shown above, even when this search has no matches.".to_string()
+                    lokalbot_i18n::tr("Ask stays within the selected evidence shown above, even when this search has no matches.").to_string()
                 } else {
-                    format!(
-                        "Ask can search the selected sources within {}. Result-type and screen-app filters apply to search results only.",
-                        self.date_scope.label().to_lowercase()
+                    lokalbot_i18n::format(
+                        "Ask can search the selected sources within {0}. Result-type and screen-app filters apply to search results only.",
+                        &[("0", format!("{}", self.date_scope.label().to_lowercase()))],
                     )
                 };
                 details.push(
@@ -289,11 +324,11 @@ impl AskPage {
         let can_submit = !self.query.trim().is_empty() && !responding;
         let waiting = self.pending_question.is_some();
         let label = if waiting {
-            "Waiting for sources…"
+            lokalbot_i18n::tr("Waiting for sources…")
         } else if self.results.count() > 0 && !self.query.trim().is_empty() {
-            "Ask about results"
+            lokalbot_i18n::tr("Ask about results")
         } else {
-            "Ask"
+            lokalbot_i18n::tr("Ask")
         };
 
         v_flex()
@@ -336,7 +371,7 @@ impl AskPage {
                                     Button::new("ask-stop")
                                         .ghost()
                                         .icon(Icon::new(Ico::CircleStop))
-                                        .tooltip("Stop answering (Esc)")
+                                        .tooltip(lokalbot_i18n::tr("Stop answering (Esc)"))
                                         .on_click(
                                             cx.listener(|this, _, _, cx| this.stop_answer(cx)),
                                         ),
@@ -349,7 +384,9 @@ impl AskPage {
                                     .label(label)
                                     .font_weight(FontWeight::SEMIBOLD)
                                     .disabled(!can_submit || waiting)
-                                    .tooltip("Ask using the displayed results (Ctrl+Return)")
+                                    .tooltip(lokalbot_i18n::tr(
+                                        "Ask using the displayed results (Ctrl+Return)",
+                                    ))
                                     .on_click(cx.listener(|this, _, window, cx| {
                                         this.submit(true, window, cx)
                                     })),
@@ -368,14 +405,14 @@ impl AskPage {
             .label(sources.summary())
             .font_weight(FontWeight::SEMIBOLD)
             .dropdown_caret(true)
-            .tooltip("Choose sources and result filters")
+            .tooltip(lokalbot_i18n::tr("Choose sources and result filters"))
             .dropdown_menu(move |menu, window, cx| {
                 let mut menu = menu.min_w(px(220.));
                 for source in Source::ALL {
                     let page = page.clone();
                     let checked = sources.contains(source);
                     menu = menu.item(
-                        PopupMenuItem::new(source.label())
+                        PopupMenuItem::new(lokalbot_i18n::tr(source.label()))
                             .checked(checked)
                             .disabled(checked && sources.count() == 1)
                             .on_click(move |_, window, cx| {
@@ -391,7 +428,7 @@ impl AskPage {
                     for option in Facet::ALL {
                         let page = facet_page.clone();
                         menu = menu.item(
-                            PopupMenuItem::new(option.label())
+                            PopupMenuItem::new(lokalbot_i18n::tr(option.label()))
                                 .checked(option == facet)
                                 .on_click(move |_, window, cx| {
                                     page.update(cx, |page, cx| {
@@ -405,16 +442,20 @@ impl AskPage {
                 });
                 let settings_page = page.clone();
                 menu.separator()
-                    .item(PopupMenuItem::submenu("Result type", facets))
-                    .separator()
-                    .item(PopupMenuItem::new("Manage source permissions…").on_click(
-                        move |_, _, cx| {
-                            let data = settings_page.read(cx).data.clone();
-                            data.update(cx, |data, cx| {
-                                data.open_settings(SettingsCategory::Privacy, cx)
-                            });
-                        },
+                    .item(PopupMenuItem::submenu(
+                        lokalbot_i18n::tr("Result type"),
+                        facets,
                     ))
+                    .separator()
+                    .item(
+                        PopupMenuItem::new(lokalbot_i18n::tr("Manage source permissions…"))
+                            .on_click(move |_, _, cx| {
+                                let data = settings_page.read(cx).data.clone();
+                                data.update(cx, |data, cx| {
+                                    data.open_settings(SettingsCategory::Privacy, cx)
+                                });
+                            }),
+                    )
             })
     }
 
@@ -435,7 +476,7 @@ impl AskPage {
                             .icon(Icon::new(Ico::Calendar))
                             .label(current.label())
                             .font_weight(FontWeight::SEMIBOLD)
-                            .tooltip("One date scope for meeting and screen search and answers"),
+                            .tooltip(lokalbot_i18n::tr("One date scope for meeting and screen search and answers")),
                     )
                     .content(move |_, _, cx| {
                         let lb = cx.lb().clone();
@@ -445,7 +486,7 @@ impl AskPage {
                             let popover = popover.clone();
                             let selected = scope == current;
                             let _ = cx;
-                            Button::new(SharedString::from(format!("ask-date-{label}")))
+                            Button::new(SharedString::from(format!("ask-date-{scope:?}")))
                                 .outline()
                                 .small()
                                 .flex_1()
@@ -462,6 +503,10 @@ impl AskPage {
                         };
                         let use_page = page.clone();
                         let use_popover = popover.clone();
+                        let calendar = picker.clone();
+                        let picked_label = page.read(cx).picked_day.map(|day| {
+                            day.format_localized(lokalbot_i18n::date_pattern("%b %-d, %Y"), lokalbot_i18n::date_locale()).to_string()
+                        }).unwrap_or_else(|| lokalbot_i18n::tr("Select date").into());
                         v_flex()
                             .w(px(340.))
                             .gap(px(12.))
@@ -471,25 +516,25 @@ impl AskPage {
                                     .text_size(ty::SECTION)
                                     .font_weight(FontWeight::BOLD)
                                     .text_color(lb.text)
-                                    .child("Date scope"),
+                                    .child(crate::ui::text::paragraph(lokalbot_i18n::tr("Date scope"))),
                             )
                             .child(
                                 div()
                                     .text_size(ty::SECONDARY)
                                     .text_color(lb.supporting)
-                                    .child("Applies to search results and answers across all selected sources."),
+                                    .child(crate::ui::text::paragraph(lokalbot_i18n::tr("Applies to search results and answers across all selected sources."))),
                             )
                             .child(
                                 h_flex()
                                     .gap(px(8.))
-                                    .child(preset("Any time", DateScope::AnyTime, cx))
-                                    .child(preset("Today", DateScope::Today, cx)),
+                                    .child(preset(lokalbot_i18n::tr("Any time"), DateScope::AnyTime, cx))
+                                    .child(preset(lokalbot_i18n::tr("Today"), DateScope::Today, cx)),
                             )
                             .child(
                                 h_flex()
                                     .gap(px(8.))
-                                    .child(preset("Yesterday", DateScope::Yesterday, cx))
-                                    .child(preset("Last 7 days", DateScope::LastSevenDays, cx)),
+                                    .child(preset(lokalbot_i18n::tr("Yesterday"), DateScope::Yesterday, cx))
+                                    .child(preset(lokalbot_i18n::tr("Last 7 days"), DateScope::LastSevenDays, cx)),
                             )
                             .child(ui::divider(cx))
                             .child(
@@ -501,19 +546,23 @@ impl AskPage {
                                             .flex_none()
                                             .text_size(ty::SECONDARY)
                                             .text_color(lb.text)
-                                            .child("Specific date"),
+                                            .child(crate::ui::text::paragraph(lokalbot_i18n::tr("Specific date"))),
                                     )
                                     .child(
                                         div()
                                             .flex_1()
                                             .min_w_0()
-                                            .child(DatePicker::new(&picker).small()),
+                                            .child(
+                                                Popover::new("ask-specific-date")
+                                                    .trigger(Button::new("ask-specific-date-button").outline().small().icon(Icon::new(Ico::Calendar)).label(picked_label))
+                                                    .content(move |_, _, _| Calendar::new(&calendar).small().first_day_of_week(lokalbot_i18n::first_weekday())),
+                                            ),
                                     )
                                     .child(
                                         Button::new("ask-date-use")
                                             .outline()
                                             .small()
-                                            .label("Use date")
+                                            .label(lokalbot_i18n::tr("Use date"))
                                             .on_click(move |_, window, cx| {
                                                 use_page.update(cx, |page, cx| {
                                                     if let Some(day) = page.picked_day {
@@ -535,7 +584,7 @@ impl AskPage {
                         .ghost()
                         .xsmall()
                         .icon(Icon::new(Ico::CircleX))
-                        .tooltip("Clear date filter")
+                        .tooltip(lokalbot_i18n::tr("Clear date filter"))
                         .on_click(cx.listener(|this, _, window, cx| {
                             this.date_scope = DateScope::AnyTime;
                             this.scope_changed(window, cx);
@@ -555,9 +604,13 @@ impl AskPage {
             lb.text_secondary
         };
         let help = if inference.remote {
-            "Answers send your question and selected evidence to the configured server. Open model settings."
+            lokalbot_i18n::tr(
+                "Answers send your question and selected evidence to the configured server. Open model settings.",
+            )
         } else {
-            "Answers and selected evidence are processed on this PC. Open model settings."
+            lokalbot_i18n::tr(
+                "Answers and selected evidence are processed on this PC. Open model settings.",
+            )
         };
         h_flex().child(
             h_flex()

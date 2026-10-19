@@ -4,8 +4,9 @@
 
 use std::path::PathBuf;
 
+use crate::i18n::h_flex;
 use gpui_kit::component::button::{Button, ButtonVariants as _};
-use gpui_kit::component::{Icon, Sizable as _, h_flex, v_flex};
+use gpui_kit::component::{Icon, Sizable as _, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
     AnyElement, Context, Div, FontWeight, Hsla, InteractiveElement as _, IntoElement,
@@ -56,7 +57,7 @@ impl AgentPage {
 
         let mut list = v_flex().gap(px(8.));
         if !sources.is_empty() {
-            list = list.child(caption("Sources used", cx));
+            list = list.child(caption(lokalbot_i18n::tr("Sources used"), cx));
             for source in &sources {
                 let source_click = source.clone();
                 list = list.child(
@@ -77,7 +78,7 @@ impl AgentPage {
             }
         }
         if !results.is_empty() {
-            list = list.child(caption("Activity results", cx));
+            list = list.child(caption(lokalbot_i18n::tr("Activity results"), cx));
             for result in &results {
                 let chosen = selected_id.as_deref() == Some(result.id.as_str());
                 let click = result.clone();
@@ -126,23 +127,30 @@ impl AgentPage {
                     .text_size(ty::SECTION)
                     .font_weight(FontWeight::BOLD)
                     .text_color(lb.text)
-                    .child("Results & sources"),
+                    .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                        "Results & sources",
+                    ))),
             )
             .child(
-                super::small_icon_button("agent-results-close", Ico::X, "Hide results").on_click(
-                    cx.listener(|this, _, _, cx| {
-                        this.results_visible = false;
-                        cx.notify();
-                    }),
-                ),
+                super::small_icon_button(
+                    "agent-results-close",
+                    Ico::X,
+                    lokalbot_i18n::tr("Hide results"),
+                )
+                .on_click(cx.listener(|this, _, _, cx| {
+                    this.results_visible = false;
+                    cx.notify();
+                })),
             );
 
         let body: AnyElement = match selected {
             Some(preview) => self.render_preview(preview, cx).into_any_element(),
             None => ui::empty_state(
                 Ico::FileSearch,
-                "Your results will appear here",
-                "Open a response, activity, or attached source to inspect it beside your task.",
+                lokalbot_i18n::tr("Your results will appear here"),
+                lokalbot_i18n::tr(
+                    "Open a response, activity, or attached source to inspect it beside your task.",
+                ),
                 cx,
             )
             .into_any_element(),
@@ -194,8 +202,13 @@ impl AgentPage {
         );
         if let (Some(original), Some(proposed)) = (&preview.original, &preview.proposed) {
             column = column
-                .child(change("Before", original, lb.recording, cx))
-                .child(change("After", proposed, lb.success, cx));
+                .child(change(
+                    lokalbot_i18n::tr("Before"),
+                    original,
+                    lb.recording,
+                    cx,
+                ))
+                .child(change(lokalbot_i18n::tr("After"), proposed, lb.success, cx));
         }
         column = column
             .child(ui::markdown_view::markdown(
@@ -206,7 +219,7 @@ impl AgentPage {
                 div()
                     .text_size(ty::CAPTION)
                     .text_color(lb.text_secondary)
-                    .child("Preview of recorded output or selected source. Opening a preview does not run a tool."),
+                    .child(crate::ui::text::paragraph(lokalbot_i18n::tr("Preview of recorded output or selected source. Opening a preview does not run a tool."))),
             );
         v_flex()
             .size_full()
@@ -231,7 +244,7 @@ impl AgentPage {
                             .ghost()
                             .xsmall()
                             .icon(Icon::new(if copied { Ico::Check } else { Ico::Copy }))
-                            .tooltip("Copy result")
+                            .tooltip(lokalbot_i18n::tr("Copy result"))
                             .on_click(cx.listener(move |this, _, _, cx| {
                                 this.copy(copy_key.clone(), copy_text.clone(), cx)
                             })),
@@ -241,7 +254,7 @@ impl AgentPage {
                             .ghost()
                             .xsmall()
                             .icon(Icon::new(Ico::Download))
-                            .tooltip("Export result")
+                            .tooltip(lokalbot_i18n::tr("Export result"))
                             .on_click(cx.listener(move |this, _, _, cx| {
                                 this.export(export_text.clone(), cx)
                             })),
@@ -270,7 +283,10 @@ impl AgentPage {
             let result = match picked {
                 Ok(Ok(Some(path))) => std::fs::write(&path, text).map_err(|e| e.to_string()),
                 Ok(Ok(None)) | Err(_) => Ok(()),
-                Ok(Err(err)) => Err(format!("No save dialog is available: {err:#}")),
+                Ok(Err(err)) => Err(lokalbot_i18n::format(
+                    "No save dialog is available: {err}",
+                    &[("err", format!("{:#}", err))],
+                )),
             };
             let _ = this.update(cx, |this, cx| {
                 this.preview_error = result.err();
@@ -311,7 +327,7 @@ fn change(label: &'static str, text: &str, tint: Hsla, cx: &Context<AgentPage>) 
                 .text_size(ty::CAPTION)
                 .text_color(lb.text)
                 .child(if text.is_empty() {
-                    "(empty)".to_string()
+                    lokalbot_i18n::tr("(empty)").to_string()
                 } else {
                     text.to_string()
                 }),

@@ -7,10 +7,11 @@
 //! models, `lokalbot_speech::models` for speech, `lokalbot_ai::runtime` for
 //! the llama.cpp binaries.
 
+use crate::i18n::h_flex;
 use gpui_kit::component::button::{Button, ButtonVariant, ButtonVariants as _};
 use gpui_kit::component::input::{Input, InputEvent, InputState};
 use gpui_kit::component::menu::{DropdownMenu as _, PopupMenuItem};
-use gpui_kit::component::{Disableable as _, Icon, Sizable as _, WindowExt as _, h_flex, v_flex};
+use gpui_kit::component::{Disableable as _, Icon, Sizable as _, WindowExt as _, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
     AnyElement, App, AppContext as _, Context, Div, Entity, FontWeight, InteractiveElement as _,
@@ -119,26 +120,30 @@ pub fn unused_models(settings: &Settings, installed: &[String]) -> Vec<String> {
 /// What a downloaded model is for, for the storage list.
 fn model_purpose(id: &str) -> &'static str {
     if id == RUNTIME_ID {
-        return "Runs Think, Autocomplete and search models";
+        return lokalbot_i18n::tr("Runs Think, Autocomplete and search models");
     }
     if id == lokalbot_ai::catalog::EMBEDDING_MODEL_ID {
-        return "Search by meaning";
+        return lokalbot_i18n::tr("Search by meaning");
     }
     if id == lokalbot_ai::ocr::OCR_MODEL_ID {
-        return "Reads screen text";
+        return lokalbot_i18n::tr("Reads screen text");
     }
     if let Some(entry) = lokalbot_ai::catalog::entry(id) {
         return if entry.think {
-            "Think model"
+            lokalbot_i18n::tr("Think model")
         } else {
-            "Autocomplete model"
+            lokalbot_i18n::tr("Autocomplete model")
         };
     }
     match lokalbot_speech::models::find(id).map(|m| m.kind) {
-        Some(lokalbot_speech::models::ModelKind::Transcription(_)) => "Transcribe model",
-        Some(lokalbot_speech::models::ModelKind::VoiceActivity) => "Finds speech in recordings",
-        Some(_) => "Separates speakers",
-        None => "Model",
+        Some(lokalbot_speech::models::ModelKind::Transcription(_)) => {
+            lokalbot_i18n::tr("Transcribe model")
+        }
+        Some(lokalbot_speech::models::ModelKind::VoiceActivity) => {
+            lokalbot_i18n::tr("Finds speech in recordings")
+        }
+        Some(_) => lokalbot_i18n::tr("Separates speakers"),
+        None => lokalbot_i18n::tr("Model"),
     }
 }
 
@@ -146,9 +151,12 @@ fn model_purpose(id: &str) -> &'static str {
 pub fn size_label(bytes: u64) -> String {
     let gb = bytes as f64 / 1_000_000_000.0;
     if gb >= 1.0 {
-        format!("{gb:.1} GB")
+        lokalbot_i18n::format("{gb} GB", &[("gb", format!("{:.1}", gb))])
     } else {
-        format!("{} MB", (bytes as f64 / 1_000_000.0).round())
+        lokalbot_i18n::format(
+            "{0} MB",
+            &[("0", format!("{}", (bytes as f64 / 1_000_000.0).round()))],
+        )
     }
 }
 
@@ -191,10 +199,12 @@ impl Preset {
 
     fn summary(self) -> String {
         let (speech, think) = self.models();
-        format!(
-            "Transcribe: {}, Think: {}",
-            model_name(speech),
-            model_name(think)
+        lokalbot_i18n::format(
+            "Transcribe: {0}, Think: {1}",
+            &[
+                ("0", format!("{}", model_name(speech))),
+                ("1", format!("{}", model_name(think))),
+            ],
         )
     }
 
@@ -215,25 +225,27 @@ impl Preset {
 
 fn budget_label(budget: GenerationBudget) -> &'static str {
     match budget {
-        GenerationBudget::Conservative => "Conservative",
-        GenerationBudget::Standard => "Default",
-        GenerationBudget::Generous => "Generous",
-        GenerationBudget::Unlimited => "Unlimited",
+        GenerationBudget::Conservative => lokalbot_i18n::tr("Conservative"),
+        GenerationBudget::Standard => lokalbot_i18n::tr("Default"),
+        GenerationBudget::Generous => lokalbot_i18n::tr("Generous"),
+        GenerationBudget::Unlimited => lokalbot_i18n::tr("Unlimited"),
     }
 }
 
 fn budget_detail(budget: GenerationBudget) -> &'static str {
     match budget {
-        GenerationBudget::Conservative => {
-            "Half the normal time and tokens. Long meetings may need a second pass."
+        GenerationBudget::Conservative => lokalbot_i18n::tr(
+            "Half the normal time and tokens. Long meetings may need a second pass.",
+        ),
+        GenerationBudget::Standard => lokalbot_i18n::tr(
+            "Balanced limits that grow with meeting length, so most meetings finish in one pass.",
+        ),
+        GenerationBudget::Generous => lokalbot_i18n::tr(
+            "Three times the normal limits for very long meetings or slower servers.",
+        ),
+        GenerationBudget::Unlimited => {
+            lokalbot_i18n::tr("Runs until finished, with a 6-hour safety stop.")
         }
-        GenerationBudget::Standard => {
-            "Balanced limits that grow with meeting length, so most meetings finish in one pass."
-        }
-        GenerationBudget::Generous => {
-            "Three times the normal limits for very long meetings or slower servers."
-        }
-        GenerationBudget::Unlimited => "Runs until finished, with a 6-hour safety stop.",
     }
 }
 
@@ -291,7 +303,7 @@ impl ModelsState {
             let value = value.to_string();
             cx.new(|cx| {
                 InputState::new(window, cx)
-                    .placeholder(placeholder)
+                    .placeholder(crate::i18n::placeholder(placeholder, window, cx))
                     .default_value(value)
             })
         };
@@ -316,7 +328,7 @@ impl ModelsState {
             ),
             api_key: cx.new(|cx| {
                 InputState::new(window, cx)
-                    .placeholder("API key (optional)")
+                    .placeholder(crate::i18n::placeholder("API key (optional)", window, cx))
                     .masked(true)
             }),
             ollama_url: field(
@@ -423,11 +435,11 @@ impl SettingsPage {
             .iter()
             .find(|p| p.matches(&settings))
             .map(|p| p.title())
-            .unwrap_or("Custom");
+            .unwrap_or(lokalbot_i18n::tr("Custom"));
         let location = if local {
-            "On this PC"
+            lokalbot_i18n::tr("On this PC")
         } else {
-            "Local + remote"
+            lokalbot_i18n::tr("Local + remote")
         };
 
         let summary = Section::new(None).row(
@@ -442,13 +454,21 @@ impl SettingsPage {
                             .text_size(ty::BODY)
                             .font_weight(FontWeight::SEMIBOLD)
                             .text_color(lb.text)
-                            .child("Current setup"),
+                            .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                                "Current setup",
+                            ))),
                     )
                     .child(
                         div()
                             .text_size(ty::BODY)
                             .text_color(lb.text_secondary)
-                            .child(format!("{setup} · {location}")),
+                            .child(crate::ui::text::paragraph(lokalbot_i18n::format(
+                                "{setup} · {location}",
+                                &[
+                                    ("setup", format!("{}", setup)),
+                                    ("location", format!("{}", location)),
+                                ],
+                            ))),
                     ),
                 self.is_focused("settings.models"),
                 cx,
@@ -460,14 +480,14 @@ impl SettingsPage {
             SummarizerBackend::BuiltIn => model_name(&settings.built_in_model_id),
             SummarizerBackend::Ollama => {
                 if settings.ollama_model.is_empty() {
-                    "Ollama".into()
+                    lokalbot_i18n::tr("Ollama").into()
                 } else {
                     settings.ollama_model.clone()
                 }
             }
             SummarizerBackend::OpenAICompatible => {
                 if settings.openai_model.is_empty() {
-                    "OpenAI-compatible server".into()
+                    lokalbot_i18n::tr("OpenAI-compatible server").into()
                 } else {
                     settings.openai_model.clone()
                 }
@@ -495,15 +515,15 @@ impl SettingsPage {
                 .find_map(|id| downloads.get(id))
                 .map(|d| d.fraction())
         };
-        let mut roles = Section::new("Core Roles");
+        let mut roles = Section::new(lokalbot_i18n::tr("Core Roles"));
         roles = roles.row(
             "settings.transcriptionModel",
             self.role_row(
                 RoleRow {
                     id: "settings.transcriptionModel",
                     icon: Ico::AudioLines,
-                    title: "Transcribe",
-                    detail: "Meeting audio to text",
+                    title: lokalbot_i18n::tr("Transcribe"),
+                    detail: lokalbot_i18n::tr("Meeting audio to text"),
                     model: model_name(&settings.transcription_model),
                     remote: None,
                     ready: status.transcription_ready,
@@ -521,8 +541,8 @@ impl SettingsPage {
                 RoleRow {
                     id: "settings.builtInModelID",
                     icon: Ico::Brain,
-                    title: "Think",
-                    detail: "Summaries, Ask, and Compose",
+                    title: lokalbot_i18n::tr("Think"),
+                    detail: lokalbot_i18n::tr("Summaries, Ask, and Compose"),
                     model: think_name,
                     remote: think_location
                         .filter(|url| !lokalbot_core::access::is_loopback_url(url)),
@@ -543,8 +563,8 @@ impl SettingsPage {
                 RoleRow {
                     id: "settings.cotypingBuiltInModelID",
                     icon: Ico::TextCursorInput,
-                    title: "Autocomplete",
-                    detail: "Suggestions as you type",
+                    title: lokalbot_i18n::tr("Autocomplete"),
+                    detail: lokalbot_i18n::tr("Suggestions as you type"),
                     model: model_name(&settings.cotyping_built_in_model_id),
                     remote: None,
                     ready: status.autocomplete_ready,
@@ -567,9 +587,9 @@ impl SettingsPage {
                     .items_center()
                     .child(settings_row::help(
                         if downloads.is_empty() {
-                            "Downloads come from the model provider and never include your meeting content."
+                            lokalbot_i18n::tr("Downloads come from the model provider and never include your meeting content.")
                         } else {
-                            "Downloading models. You can keep using LokalBot meanwhile."
+                            lokalbot_i18n::tr("Downloading models. You can keep using LokalBot meanwhile.")
                         },
                         cx,
                     ).flex_1().min_w_0())
@@ -578,7 +598,7 @@ impl SettingsPage {
                             .outline()
                             .small()
                             .icon(Icon::new(Ico::CircleArrowDown))
-                            .label("Prepare Selected Models")
+                            .label(lokalbot_i18n::tr("Prepare Selected Models"))
                             .disabled(!any_missing || !downloads.is_empty())
                             .on_click(move |_, _, cx| prepare_data.update(cx, |data, cx| data.request(AppEvent::PrepareModels, cx))),
                     ),
@@ -588,7 +608,7 @@ impl SettingsPage {
         );
 
         // Presets.
-        let mut presets = Section::new("Presets");
+        let mut presets = Section::new(lokalbot_i18n::tr("Presets"));
         for preset in Preset::ALL {
             let current = preset.matches(&settings);
             let (speech, think) = preset.models();
@@ -643,7 +663,9 @@ impl SettingsPage {
                                 div()
                                     .text_size(ty::SECONDARY)
                                     .text_color(lb.accent_text)
-                                    .child("Current"),
+                                    .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                                        "Current",
+                                    ))),
                             )
                         })
                         .child(
@@ -654,7 +676,7 @@ impl SettingsPage {
                             })
                             .outline()
                             .small()
-                            .label("Apply…")
+                            .label(lokalbot_i18n::tr("Apply…"))
                             .disabled(current)
                             .on_click(move |_, window, cx| {
                                 confirm_preset(data.clone(), preset, download, window, cx)
@@ -669,7 +691,7 @@ impl SettingsPage {
             "settings.presetsHelp",
             settings_row::content_row(
                 "settings.presetsHelp",
-                settings_row::help("Review model changes and download sizes before applying. Existing models are kept.", cx),
+                settings_row::help(lokalbot_i18n::tr("Review model changes and download sizes before applying. Existing models are kept."), cx),
                 false,
                 cx,
             ),
@@ -677,7 +699,7 @@ impl SettingsPage {
 
         // Remote servers.
         let page = cx.entity();
-        let mut remote = Section::new("Remote Server").row(
+        let mut remote = Section::new(lokalbot_i18n::tr("Remote Server")).row(
             "settings.summarizerBackend",
             settings_row::content_row(
                 "settings.summarizerBackend",
@@ -696,16 +718,16 @@ impl SettingsPage {
                                     .text_color(lb.text_secondary)
                                     .child(
                                         if settings.approved_remote_inference_origins.is_empty() {
-                                            "No remote servers approved"
+                                            lokalbot_i18n::tr("No remote servers approved")
                                         } else {
-                                            "Approved remote servers"
+                                            lokalbot_i18n::tr("Approved remote servers")
                                         },
                                     ),
                             ),
                     )
                     .child(settings_row::link_button(
                         "settings-manage-connections",
-                        "Manage Connections…",
+                        lokalbot_i18n::tr("Manage Connections…"),
                         move |_, cx| {
                             page.update(cx, |page, cx| {
                                 page.models.page = ModelsPage::Connections;
@@ -723,7 +745,7 @@ impl SettingsPage {
                 "settings.remoteHelp",
                 settings_row::content_row(
                     "settings.remoteHelp",
-                    settings_row::help("Local models process on this PC. Each remote server requires its own approval before context can leave this PC.", cx),
+                    settings_row::help(lokalbot_i18n::tr("Local models process on this PC. Each remote server requires its own approval before context can leave this PC."), cx),
                     false,
                     cx,
                 ),
@@ -744,11 +766,11 @@ impl SettingsPage {
                                 .items_center()
                                 .child(ui::icon(Ico::Network, px(15.), lb.attention_text))
                                 .child(div().flex_1().min_w_0().text_size(ty::BODY).text_color(lb.text).child(origin.clone()))
-                                .child(Button::new(SharedString::from(format!("revoke-{origin}"))).outline().small().label("Revoke…").on_click(
+                                .child(Button::new(SharedString::from(format!("revoke-{origin}"))).outline().small().label(lokalbot_i18n::tr("Revoke…")).on_click(
                                     move |_, window, cx| confirm_revoke(data.clone(), revoke.clone(), window, cx),
                                 )),
                         )
-                        .child(settings_row::help("Includes scheduled daily summaries, which can send activity titles and meeting evidence to this origin without a prompt each time.", cx)),
+                        .child(settings_row::help(lokalbot_i18n::tr("Includes scheduled daily summaries, which can send activity titles and meeting evidence to this origin without a prompt each time."), cx)),
                     false,
                     cx,
                 ),
@@ -765,7 +787,7 @@ impl SettingsPage {
             .filter(|id| id.as_str() != RUNTIME_ID)
             .count();
         let unused = unused_models(&settings, &status.installed);
-        let mut storage = Section::new("Model Storage").row(
+        let mut storage = Section::new(lokalbot_i18n::tr("Model Storage")).row(
             "settings.modelStorage",
             settings_row::content_row(
                 "settings.modelStorage",
@@ -780,9 +802,12 @@ impl SettingsPage {
                             .gap(px(3.))
                             .child(div().text_size(ty::BODY).text_color(lb.text).child(
                                 match stored {
-                                    0 => "No models downloaded yet".to_string(),
-                                    1 => "1 model on this PC".to_string(),
-                                    n => format!("{n} models on this PC"),
+                                    0 => lokalbot_i18n::tr("No models downloaded yet").to_string(),
+                                    1 => lokalbot_i18n::tr("1 model on this PC").to_string(),
+                                    n => lokalbot_i18n::format(
+                                        "{n} models on this PC",
+                                        &[("n", format!("{}", n))],
+                                    ),
                                 },
                             ))
                             .child(
@@ -797,7 +822,7 @@ impl SettingsPage {
                         Button::new("settings-open-models")
                             .outline()
                             .small()
-                            .label("Show in Folder")
+                            .label(lokalbot_i18n::tr("Show in Folder"))
                             .on_click(move |_, _, cx| {
                                 let target = if open_dir.is_dir() {
                                     open_dir.clone()
@@ -846,7 +871,7 @@ impl SettingsPage {
                         Button::new(SharedString::from(format!("settings-remove-{id}")))
                             .outline()
                             .small()
-                            .label("Remove…")
+                            .label(lokalbot_i18n::tr("Remove…"))
                             .on_click(move |_, window, cx| {
                                 confirm_remove(data.clone(), remove.clone(), window, cx)
                             }),
@@ -866,13 +891,10 @@ impl SettingsPage {
                                         .text_size(ty::BODY)
                                         .font_weight(FontWeight::SEMIBOLD)
                                         .text_color(lb.text)
-                                        .child("Not used by your current settings"),
+                                        .child(crate::ui::text::paragraph(lokalbot_i18n::tr("Not used by your current settings"))),
                                 )
                                 .child(settings_row::help(
-                                    format!(
-                                        "Removing all of them frees about {}. You can download any of them again later.",
-                                        size_label(total)
-                                    ),
+                                    lokalbot_i18n::format("Removing all of them frees about {0}. You can download any of them again later.", &[("0", format!("{}", size_label(total)))]),
                                     cx,
                                 )),
                         )
@@ -896,7 +918,9 @@ impl SettingsPage {
                     .text_size(ty::SECTION)
                     .font_weight(FontWeight::BOLD)
                     .text_color(lb.text)
-                    .child("Think processing budget"),
+                    .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                        "Think processing budget",
+                    ))),
             )
             .child(settings_row::segmented(
                 "settings-budget",
@@ -911,17 +935,18 @@ impl SettingsPage {
                 cx,
             ))
             .child(settings_row::help(
-                format!(
-                    "Applies to every Think model — built-in and servers. {}",
-                    budget_detail(settings.generation_budget_preset)
+                lokalbot_i18n::format(
+                    "Applies to every Think model — built-in and servers. {0}",
+                    &[(
+                        "0",
+                        format!("{}", budget_detail(settings.generation_budget_preset)),
+                    )],
                 ),
                 cx,
             ));
         if settings.generation_budget_preset == GenerationBudget::Unlimited {
             budget_column = budget_column.child(
-                div().text_size(ty::SECONDARY).text_color(lb.attention_text).child(
-                    "Unlimited removes practical caps: a single meeting can process for up to 6 hours. On a paid API this can run up significant token costs; on a local model it can keep this PC busy and hot for a long time.",
-                ),
+                div().text_size(ty::SECONDARY).text_color(lb.attention_text).child(crate::ui::text::paragraph(lokalbot_i18n::tr("Unlimited removes practical caps: a single meeting can process for up to 6 hours. On a paid API this can run up significant token costs; on a local model it can keep this PC busy and hot for a long time."))),
             );
         }
         let budget = Section::new(None).row(
@@ -935,16 +960,16 @@ impl SettingsPage {
         );
 
         let semantic_data = self.data.clone();
-        let also = Section::new("Also used by LokalBot").row(
+        let also = Section::new(lokalbot_i18n::tr("Also used by LokalBot")).row(
             "settings.semanticSearchEnabled",
             settings_row::row(
                 "settings.semanticSearchEnabled",
-                "Search by meaning",
+                lokalbot_i18n::tr("Search by meaning"),
                 Some(
                     if settings.semantic_search_enabled {
-                        "Managed automatically · On this PC"
+                        lokalbot_i18n::tr("Managed automatically · On this PC")
                     } else {
-                        "Off · On this PC"
+                        lokalbot_i18n::tr("Off · On this PC")
                     }
                     .into(),
                 ),
@@ -977,10 +1002,10 @@ impl SettingsPage {
         let location: SharedString = match (&remote, row.ready) {
             (Some(url), _) => {
                 let host = lokalbot_core::access::origin_of(url).unwrap_or_else(|| url.clone());
-                format!("Remote · {host}").into()
+                lokalbot_i18n::format("Remote · {host}", &[("host", format!("{}", host))]).into()
             }
-            (None, true) => "On this PC · Downloaded".into(),
-            (None, false) => "On this PC".into(),
+            (None, true) => lokalbot_i18n::tr("On this PC · Downloaded").into(),
+            (None, false) => lokalbot_i18n::tr("On this PC").into(),
         };
         // What this role still has to download.
         let missing: Vec<String> = row
@@ -993,14 +1018,25 @@ impl SettingsPage {
         let status: Option<(SharedString, gpui_kit::Hsla)> =
             match (row.downloading, row.ready, &remote) {
                 (Some(fraction), _, _) => Some((
-                    format!("Downloading · {}%", (fraction * 100.).round()).into(),
+                    lokalbot_i18n::format(
+                        "Downloading · {0}%",
+                        &[("0", format!("{}", (fraction * 100.).round()))],
+                    )
+                    .into(),
                     lb.text_secondary,
                 )),
                 (None, false, None) if missing_bytes > 0 => Some((
-                    format!("Download required · {}", size_label(missing_bytes)).into(),
+                    lokalbot_i18n::format(
+                        "Download required · {0}",
+                        &[("0", format!("{}", size_label(missing_bytes)))],
+                    )
+                    .into(),
                     lb.attention_text,
                 )),
-                (None, false, None) => Some(("Download required".into(), lb.attention_text)),
+                (None, false, None) => Some((
+                    lokalbot_i18n::tr("Download required").into(),
+                    lb.attention_text,
+                )),
                 _ => None,
             };
         let data = self.data.clone();
@@ -1041,12 +1077,12 @@ impl SettingsPage {
                     })
                     .collect();
                 items.push((
-                    "Ollama server".into(),
+                    lokalbot_i18n::tr("Ollama server").into(),
                     settings.summarizer_backend == SummarizerBackend::Ollama,
                     Box::new(|s: &mut Settings| s.summarizer_backend = SummarizerBackend::Ollama),
                 ));
                 items.push((
-                    "OpenAI-compatible server".into(),
+                    lokalbot_i18n::tr("OpenAI-compatible server").into(),
                     settings.summarizer_backend == SummarizerBackend::OpenAICompatible,
                     Box::new(|s: &mut Settings| {
                         s.summarizer_backend = SummarizerBackend::OpenAICompatible
@@ -1076,7 +1112,7 @@ impl SettingsPage {
         let change = Button::new(SharedString::from(format!("{}-change", row.id)))
             .outline()
             .small()
-            .label("Change…")
+            .label(lokalbot_i18n::tr("Change…"))
             .dropdown_menu(move |mut menu, _, _| {
                 for (index, (label, checked, _)) in options.iter().enumerate() {
                     let data = data.clone();
@@ -1102,7 +1138,7 @@ impl SettingsPage {
                 .iter()
                 .find(|(level, _)| *level == settings.think_reasoning_level)
                 .map(|(_, l)| *l)
-                .unwrap_or("Automatic");
+                .unwrap_or(lokalbot_i18n::tr("Automatic"));
             h_flex()
                 .gap(px(6.))
                 .items_center()
@@ -1110,7 +1146,7 @@ impl SettingsPage {
                     div()
                         .text_size(ty::SECONDARY)
                         .text_color(lb.text_secondary)
-                        .child("Reasoning"),
+                        .child(crate::ui::text::paragraph(lokalbot_i18n::tr("Reasoning"))),
                 )
                 .child(settings_row::picker(
                     "settings-reasoning",
@@ -1197,7 +1233,7 @@ impl SettingsPage {
                                     .cursor_pointer()
                                     .text_color(lb.accent_text)
                                     .hover(|s| s.underline())
-                                    .child("Cancel")
+                                    .child(crate::ui::text::paragraph(lokalbot_i18n::tr("Cancel")))
                                     .on_click(move |_, _, cx| {
                                         data.update(cx, |data, cx| {
                                             for id in &ids {
@@ -1219,7 +1255,9 @@ impl SettingsPage {
                                         .cursor_pointer()
                                         .text_color(lb.accent_text)
                                         .hover(|s| s.underline())
-                                        .child("Download")
+                                        .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                                            "Download",
+                                        )))
                                         .on_click(move |_, _, cx| {
                                             data.update(cx, |data, cx| {
                                                 for id in &missing {
@@ -1272,7 +1310,7 @@ impl SettingsPage {
                         .ghost()
                         .small()
                         .icon(Icon::new(Ico::ChevronLeft))
-                        .label("Models")
+                        .label(lokalbot_i18n::tr("Models"))
                         .on_click(move |_, _, cx| {
                             back_page.update(cx, |page, cx| {
                                 page.models.page = ModelsPage::Active;
@@ -1281,13 +1319,16 @@ impl SettingsPage {
                         }),
                 ),
             )
-            .child(div().text_size(ty::SECTION).font_weight(FontWeight::BOLD).text_color(lb.text).child("Model connections"))
-            .child(settings_row::help("Manage servers and credentials. Choose which provider Think uses under Core Roles.", cx));
+            .child(div().text_size(ty::SECTION).font_weight(FontWeight::BOLD).text_color(lb.text).child(crate::ui::text::paragraph(lokalbot_i18n::tr("Model connections"))))
+            .child(settings_row::help(lokalbot_i18n::tr("Manage servers and credentials. Choose which provider Think uses under Core Roles."), cx));
 
         let tab_page = page.clone();
         let tabs = settings_row::segmented(
             "settings-connection",
-            &["OpenAI-compatible", "Ollama"],
+            &[
+                lokalbot_i18n::tr("OpenAI-compatible"),
+                lokalbot_i18n::tr("Ollama"),
+            ],
             usize::from(is_ollama),
             move |index, _, cx| {
                 tab_page.update(cx, |page, cx| {
@@ -1316,9 +1357,9 @@ impl SettingsPage {
                     .text_size(ty::BODY)
                     .text_color(lb.text_secondary)
                     .child(if used {
-                        "Used by Think"
+                        lokalbot_i18n::tr("Used by Think")
                     } else {
-                        "Available for Think"
+                        lokalbot_i18n::tr("Available for Think")
                     }),
             )
             .when(!used, |this| {
@@ -1326,7 +1367,7 @@ impl SettingsPage {
                     Button::new("settings-use-connection")
                         .outline()
                         .xsmall()
-                        .label("Use for Think")
+                        .label(lokalbot_i18n::tr("Use for Think"))
                         .on_click(move |_, _, cx| {
                             use_data.update(cx, |data, cx| {
                                 data.update_settings(|s| s.summarizer_backend = connection, cx)
@@ -1349,23 +1390,31 @@ impl SettingsPage {
         let mut form = v_flex().w_full().gap(px(14.)).child(tabs).child(used_row);
         if is_ollama {
             form = form
-                .child(field("Server URL", &self.models.ollama_url, cx))
-                .child(field("Model ID", &self.models.ollama_model, cx));
+                .child(field(
+                    lokalbot_i18n::tr("Server URL"),
+                    &self.models.ollama_url,
+                    cx,
+                ))
+                .child(field(
+                    lokalbot_i18n::tr("Model ID"),
+                    &self.models.ollama_model,
+                    cx,
+                ));
         } else {
             let key_data = self.data.clone();
             let key_input = self.models.api_key.clone();
             form = form
-                .child(field("Server URL", &self.models.openai_url, cx))
-                .child(field("Model ID", &self.models.openai_model, cx))
+                .child(field(lokalbot_i18n::tr("Server URL"), &self.models.openai_url, cx))
+                .child(field(lokalbot_i18n::tr("Model ID"), &self.models.openai_model, cx))
                 .child(
                     v_flex()
                         .gap(px(5.))
-                        .child(div().text_size(ty::BODY).text_color(lb.text).child("API key"))
+                        .child(div().text_size(ty::BODY).text_color(lb.text).child(crate::ui::text::paragraph(lokalbot_i18n::tr("API key"))))
                         .child(
                             h_flex()
                                 .gap(px(8.))
                                 .child(div().flex_1().min_w_0().child(Input::new(&self.models.api_key).mask_toggle()))
-                                .child(Button::new("settings-save-key").outline().small().label("Save key").on_click(move |_, window, cx| {
+                                .child(Button::new("settings-save-key").outline().small().label(lokalbot_i18n::tr("Save key")).on_click(move |_, window, cx| {
                                     let key = key_input.read(cx).value().trim().to_string();
                                     if key.is_empty() {
                                         return;
@@ -1374,7 +1423,7 @@ impl SettingsPage {
                                     key_input.update(cx, |input, cx| input.set_value("", window, cx));
                                 })),
                         )
-                        .child(settings_row::help("Kept in the system credential store only when you choose Save key. Leave empty for a server that needs no key.", cx)),
+                        .child(settings_row::help(lokalbot_i18n::tr("Kept in the system credential store only when you choose Save key. Leave empty for a server that needs no key."), cx)),
                 );
         }
         form = form.child(self.endpoint_disclosure(&draft_url, cx));
@@ -1388,7 +1437,7 @@ impl SettingsPage {
                     Button::new("settings-save-connection")
                         .primary()
                         .small()
-                        .label("Save connection")
+                        .label(lokalbot_i18n::tr("Save connection"))
                         .disabled(!has_changes)
                         .on_click(move |_, _, cx| {
                             save_page.update(cx, |page, cx| page.save_connection(cx))
@@ -1431,12 +1480,15 @@ impl SettingsPage {
                 .items_center()
                 .child(ui::icon(Ico::ShieldCheck, px(14.), lb.success_text))
                 .child(settings_row::help(
-                    "Loopback server: inference context stays on this PC.",
+                    lokalbot_i18n::tr("Loopback server: inference context stays on this PC."),
                     cx,
                 ));
         }
         let Some(origin) = lokalbot_core::access::origin_of(raw_url) else {
-            return h_flex().child(settings_row::help("The server URL is not valid.", cx));
+            return h_flex().child(settings_row::help(
+                lokalbot_i18n::tr("The server URL is not valid."),
+                cx,
+            ));
         };
         if !origin.starts_with("https://")
             && !lokalbot_core::access::is_private_network_url(raw_url)
@@ -1449,7 +1501,7 @@ impl SettingsPage {
                     div()
                         .text_size(ty::SECONDARY)
                         .text_color(lb.attention_text)
-                        .child("Blocked: remote inference must use HTTPS so transcripts and activity are encrypted in transit."),
+                        .child(crate::ui::text::paragraph(lokalbot_i18n::tr("Blocked: remote inference must use HTTPS so transcripts and activity are encrypted in transit."))),
                 );
         }
         let approved = settings
@@ -1474,14 +1526,14 @@ impl SettingsPage {
                     .gap(px(8.))
                     .items_center()
                     .child(ui::icon(Ico::Network, px(14.), lb.attention_text))
-                    .child(div().text_size(ty::BODY).font_weight(FontWeight::SEMIBOLD).text_color(lb.text).child(format!("Remote processing · {host}"))),
+                    .child(div().text_size(ty::BODY).font_weight(FontWeight::SEMIBOLD).text_color(lb.text).child(crate::ui::text::paragraph(lokalbot_i18n::format("Remote processing · {host}", &[("host", format!("{}", host))])))),
             )
-            .child(settings_row::help("Think may send meeting transcripts, Ask questions with their sources, and dictation requests to this server when you use those features. Scheduled daily summaries also run here and can send activity titles and meeting evidence without a prompt each time.", cx))
+            .child(settings_row::help(lokalbot_i18n::tr("Think may send meeting transcripts, Ask questions with their sources, and dictation requests to this server when you use those features. Scheduled daily summaries also run here and can send activity titles and meeting evidence without a prompt each time."), cx))
             .child(
                 h_flex()
                     .gap(px(10.))
                     .items_center()
-                    .child(div().flex_1().min_w_0().text_size(ty::BODY).text_color(lb.text).child(format!("Allow sending context to {origin}")))
+                    .child(div().flex_1().min_w_0().text_size(ty::BODY).text_color(lb.text).child(crate::ui::text::paragraph(lokalbot_i18n::format("Allow sending context to {origin}", &[("origin", format!("{}", origin))]))))
                     .child(settings_row::switch("settings-remote-consent", approved, move |on, _, cx| {
                         let origin = toggle_origin.clone();
                         data.update(cx, |data, cx| {
@@ -1514,7 +1566,7 @@ impl SettingsPage {
             },
             cx,
         );
-        self.models.saved = Some("Saved".into());
+        self.models.saved = Some(lokalbot_i18n::tr("Saved").into());
         cx.notify();
     }
 }
@@ -1577,26 +1629,34 @@ fn confirm_preset(
     cx: &mut App,
 ) {
     let detail = if download > 0 {
-        format!(
-            "{} Estimated new download: {}. Existing models are kept.",
-            preset.summary(),
-            size_label(download)
+        lokalbot_i18n::format(
+            "{0} Estimated new download: {1}. Existing models are kept.",
+            &[
+                ("0", format!("{}", preset.summary())),
+                ("1", format!("{}", size_label(download))),
+            ],
         )
     } else {
-        format!("{} Every model is already on this PC.", preset.summary())
+        lokalbot_i18n::format(
+            "{0} Every model is already on this PC.",
+            &[("0", format!("{}", preset.summary()))],
+        )
     };
     window.open_alert_dialog(cx, move |alert, _, _| {
         let data = data.clone();
         alert
-            .title(format!("Use {}?", preset.title()))
+            .title(lokalbot_i18n::format(
+                "Use {0}?",
+                &[("0", format!("{}", preset.title()))],
+            ))
             .description(detail.clone())
             .confirm()
             .ok_text(if download > 0 {
-                "Download and apply"
+                lokalbot_i18n::tr("Download and apply")
             } else {
-                "Apply preset"
+                lokalbot_i18n::tr("Apply preset")
             })
-            .cancel_text("Cancel")
+            .cancel_text(lokalbot_i18n::tr("Cancel"))
             .on_ok(move |_, _, cx| {
                 data.update(cx, |data, cx| {
                     data.update_settings(|s| preset.apply(s), cx);
@@ -1617,14 +1677,12 @@ fn confirm_remove(data: Entity<AppData>, id: String, window: &mut Window, cx: &m
         let data = data.clone();
         let id = id.clone();
         alert
-            .title(format!("Remove {name}?"))
-            .description(format!(
-                "This deletes {name} ({size}) from this PC. Your current settings don't use it, and you can download it again later."
-            ))
+            .title(lokalbot_i18n::format("Remove {name}?", &[("name", format!("{}", name))]))
+            .description(lokalbot_i18n::format("This deletes {name} ({size}) from this PC. Your current settings don't use it, and you can download it again later.", &[("name", format!("{}", name)), ("size", format!("{}", size))]))
             .confirm()
-            .ok_text("Remove")
+            .ok_text(lokalbot_i18n::tr("Remove"))
             .ok_variant(ButtonVariant::Danger)
-            .cancel_text("Cancel")
+            .cancel_text(lokalbot_i18n::tr("Cancel"))
             .on_ok(move |_, _, cx| {
                 let id = id.clone();
                 data.update(cx, |data, cx| {
@@ -1643,12 +1701,12 @@ fn confirm_revoke(data: Entity<AppData>, origin: String, window: &mut Window, cx
         let data = data.clone();
         let origin = origin.clone();
         alert
-            .title(format!("Revoke access to {origin}?"))
-            .description("This also revokes scheduled processing for this origin. Any model using it will require approval again.")
+            .title(lokalbot_i18n::format("Revoke access to {origin}?", &[("origin", format!("{}", origin))]))
+            .description(lokalbot_i18n::tr("This also revokes scheduled processing for this origin. Any model using it will require approval again."))
             .confirm()
-            .ok_text("Revoke Access")
+            .ok_text(lokalbot_i18n::tr("Revoke Access"))
             .ok_variant(ButtonVariant::Danger)
-            .cancel_text("Cancel")
+            .cancel_text(lokalbot_i18n::tr("Cancel"))
             .on_ok(move |_, _, cx| {
                 let origin = origin.clone();
                 data.update(cx, |data, cx| {

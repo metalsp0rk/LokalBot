@@ -19,6 +19,7 @@ lokalbot-speech = { path = "crates/lokalbot-speech" }
 lokalbot-platform = { path = "crates/lokalbot-platform" }
 lokalbot-engine = { path = "crates/lokalbot-engine" }
 lokalbot-agent = { path = "crates/lokalbot-agent" }
+lokalbot-i18n = { path = "crates/lokalbot-i18n" }
 
 # UI. GPUI Kit pins the exact GPUI snapshot it was released against; see
 # docs/dependency-provenance.md before changing either version.
@@ -28,7 +29,7 @@ anyhow = "1"
 thiserror = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-chrono = { version = "0.4", default-features = false, features = ["clock", "serde", "std"] }
+chrono = { version = "0.4", default-features = false, features = ["clock", "serde", "std", "unstable-locales"] }
 uuid = { version = "1", features = ["v4", "serde"] }
 directories = "6"
 log = "0.4"

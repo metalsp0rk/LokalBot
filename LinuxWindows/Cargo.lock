@@ -980,6 +980,7 @@ dependencies = [
  "iana-time-zone",
  "js-sys",
  "num-traits",
+ "pure-rust-locales",
  "serde",
  "wasm-bindgen",
  "windows-link 0.2.1",
@@ -4304,13 +4305,17 @@ dependencies = [
  "lokalbot-audio",
  "lokalbot-core",
  "lokalbot-engine",
+ "lokalbot-i18n",
  "lokalbot-platform",
  "lokalbot-speech",
  "parking_lot",
  "raw-window-handle",
+ "rust-i18n",
  "serde",
  "serde_json",
  "smol",
+ "unicode-linebreak",
+ "unicode-segmentation",
  "uuid",
  "windows 0.62.2",
  "winresource",
@@ -4361,6 +4366,7 @@ dependencies = [
  "directories",
  "hex",
  "log",
+ "lokalbot-i18n",
  "parking_lot",
  "regex",
  "rusqlite",
@@ -4399,6 +4405,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "lokalbot-i18n"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "pure-rust-locales",
+ "sys-locale",
+ "unicode-bidi",
+]
+
+[[package]]
 name = "lokalbot-platform"
 version = "0.1.0"
 dependencies = [
@@ -4418,6 +4434,7 @@ dependencies = [
  "ksni",
  "log",
  "lokalbot-core",
+ "lokalbot-i18n",
  "notify-rust",
  "open",
  "parking_lot",
@@ -5999,6 +6016,12 @@ dependencies = [
  "num-traits",
  "thiserror 1.0.69",
 ]
+
+[[package]]
+name = "pure-rust-locales"
+version = "0.8.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "869675ad2d7541aea90c6d88c81f46a7f4ea9af8cd0395d38f11a95126998a0d"
 
 [[package]]
 name = "pxfm"

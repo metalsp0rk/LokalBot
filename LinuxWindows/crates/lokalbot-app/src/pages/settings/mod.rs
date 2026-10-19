@@ -15,9 +15,10 @@ pub use day_memory::mode_detail as day_memory_mode_detail;
 
 use std::collections::HashSet;
 
+use crate::i18n::h_flex;
 use gpui_kit::component::input::{Input, InputEvent, InputState, TextareaState};
 use gpui_kit::component::slider::{SliderEvent, SliderState};
-use gpui_kit::component::{h_flex, v_flex};
+use gpui_kit::component::v_flex;
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
     AnyElement, App, AppContext as _, Context, Entity, Focusable as _, FontWeight,
@@ -60,16 +61,28 @@ fn category_icon(category: SettingsCategory) -> Ico {
 
 fn category_subtitle(category: SettingsCategory) -> &'static str {
     match category {
-        SettingsCategory::General => "Startup, appearance, the Ask shortcut, and the version.",
-        SettingsCategory::Meetings => "Meeting capture, detection, processing, and summaries.",
-        SettingsCategory::DayMemory => "Activity, captured screen context, and daily digests.",
-        SettingsCategory::Writing => "Autocomplete and your writing profile.",
-        SettingsCategory::Dictation => {
-            "The dictation shortcut, Transcribe or Compose, and where the text goes."
+        SettingsCategory::General => {
+            lokalbot_i18n::tr("Startup, appearance, the Ask shortcut, and the version.")
         }
-        SettingsCategory::Models => "Choose the models behind Transcribe, Think, and Autocomplete.",
-        SettingsCategory::Privacy => "Control retention, exclusions, and remote processing.",
-        SettingsCategory::Advanced => "Setup, the Agent CLI, logs, and details about this build.",
+        SettingsCategory::Meetings => {
+            lokalbot_i18n::tr("Meeting capture, detection, processing, and summaries.")
+        }
+        SettingsCategory::DayMemory => {
+            lokalbot_i18n::tr("Activity, captured screen context, and daily digests.")
+        }
+        SettingsCategory::Writing => lokalbot_i18n::tr("Autocomplete and your writing profile."),
+        SettingsCategory::Dictation => lokalbot_i18n::tr(
+            "The dictation shortcut, Transcribe or Compose, and where the text goes.",
+        ),
+        SettingsCategory::Models => {
+            lokalbot_i18n::tr("Choose the models behind Transcribe, Think, and Autocomplete.")
+        }
+        SettingsCategory::Privacy => {
+            lokalbot_i18n::tr("Control retention, exclusions, and remote processing.")
+        }
+        SettingsCategory::Advanced => {
+            lokalbot_i18n::tr("Setup, the Agent CLI, logs, and details about this build.")
+        }
     }
 }
 
@@ -135,7 +148,13 @@ impl SettingsPage {
     pub fn new(window: &mut Window, cx: &mut Context<Self>) -> Self {
         let data = AppData::global(cx);
         let settings = data.read(cx).settings.clone();
-        let search = cx.new(|cx| InputState::new(window, cx).placeholder("Search settings…"));
+        let search = cx.new(|cx| {
+            InputState::new(window, cx).placeholder(crate::i18n::placeholder(
+                "Search settings…",
+                window,
+                cx,
+            ))
+        });
         let quick_recall_shortcut = cx.new(|cx| {
             ShortcutField::new(
                 settings.quick_recall_shortcut.clone(),
@@ -143,7 +162,8 @@ impl SettingsPage {
                 |candidate, cx| {
                     let settings = &AppData::global(cx).read(cx).settings;
                     (candidate == settings.dictation_shortcut).then(|| {
-                        "Dictation already uses this shortcut. Choose another.".to_string()
+                        lokalbot_i18n::tr("Dictation already uses this shortcut. Choose another.")
+                            .to_string()
                     })
                 },
                 window,
@@ -157,7 +177,10 @@ impl SettingsPage {
                 |candidate, cx| {
                     let settings = &AppData::global(cx).read(cx).settings;
                     (candidate == settings.quick_recall_shortcut).then(|| {
-                        "The Ask shortcut already uses this shortcut. Choose another.".to_string()
+                        lokalbot_i18n::tr(
+                            "The Ask shortcut already uses this shortcut. Choose another.",
+                        )
+                        .to_string()
                     })
                 },
                 window,
@@ -167,17 +190,25 @@ impl SettingsPage {
         let digest_prompt = cx.new(|cx| {
             TextareaState::new(window, cx)
                 .rows(3)
-                .placeholder("Example: Emphasize decisions, blockers, and next steps.")
+                .placeholder(crate::i18n::placeholder(
+                    "Example: Emphasize decisions, blockers, and next steps.",
+                    window,
+                    cx,
+                ))
                 .default_value(settings.day_digest_custom_prompt.clone())
         });
         let cotyping_name = cx.new(|cx| {
             InputState::new(window, cx)
-                .placeholder("Optional")
+                .placeholder(crate::i18n::placeholder("Optional", window, cx))
                 .default_value(settings.cotyping_user_name.clone())
         });
         let cotyping_style = cx.new(|cx| {
             InputState::new(window, cx)
-                .placeholder("Optional, e.g. concise and friendly")
+                .placeholder(crate::i18n::placeholder(
+                    "Optional, e.g. concise and friendly",
+                    window,
+                    cx,
+                ))
                 .default_value(settings.cotyping_style_note.clone())
         });
         let excluded_apps = cx.new(|cx| {
@@ -700,10 +731,7 @@ impl SettingsPage {
                 let item = *item;
                 let selected = item == category && !searching;
                 h_flex()
-                    .id(SharedString::from(format!(
-                        "settings-category-{}",
-                        catalog::category_title(item)
-                    )))
+                    .id(SharedString::from(format!("settings-category-{item:?}")))
                     .mx(px(8.))
                     .px(px(10.))
                     .h(px(34.))
@@ -743,13 +771,16 @@ impl SettingsPage {
                             .text_size(ty::COLUMN_TITLE)
                             .font_weight(FontWeight::BOLD)
                             .text_color(lb.text)
-                            .child("Settings"),
+                            .child(crate::ui::text::paragraph(lokalbot_i18n::tr("Settings"))),
                     )
                     .child(
                         div()
                             .text_size(ty::SECONDARY)
                             .text_color(lb.text_secondary)
-                            .child(format!("LokalBot {}", env!("CARGO_PKG_VERSION"))),
+                            .child(crate::ui::text::paragraph(lokalbot_i18n::format(
+                                "LokalBot {0}",
+                                &[("0", format!("{}", env!("CARGO_PKG_VERSION")))],
+                            ))),
                     ),
             )
             .child(div().px(px(14.)).pt(px(12.)).pb(px(10.)).child(
@@ -769,8 +800,11 @@ impl SettingsPage {
         if results.is_empty() {
             return ui::empty_state(
                 Ico::Search,
-                format!("No Results for “{}”", self.query.trim()),
-                "Check the spelling or try a different setting name.",
+                lokalbot_i18n::format(
+                    "No Results for “{0}”",
+                    &[("0", format!("{}", self.query.trim()))],
+                ),
+                lokalbot_i18n::tr("Check the spelling or try a different setting name."),
                 cx,
             )
             .size_full()
@@ -796,7 +830,9 @@ impl SettingsPage {
                                     .text_size(ty::BODY)
                                     .font_weight(FontWeight::SEMIBOLD)
                                     .text_color(lb.text)
-                                    .child(entry.title),
+                                    .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                                        entry.title,
+                                    ))),
                             )
                             .child(
                                 div()
@@ -861,7 +897,7 @@ fn sync_slider(slider: &Entity<SliderState>, value: f32, window: &mut Window, cx
 
 impl Page for SettingsPage {
     fn title(&self, _cx: &App) -> SharedString {
-        "Settings".into()
+        lokalbot_i18n::tr("Settings").into()
     }
 }
 
@@ -872,8 +908,10 @@ impl Render for SettingsPage {
         let searching = !self.query.trim().is_empty();
         let (title, subtitle) = if searching {
             (
-                "Search settings",
-                "Results across all categories. Choose a setting to edit its value.",
+                lokalbot_i18n::tr("Search settings"),
+                lokalbot_i18n::tr(
+                    "Results across all categories. Choose a setting to edit its value.",
+                ),
             )
         } else {
             (
@@ -900,7 +938,9 @@ impl Render for SettingsPage {
                         .px(metric::DETAIL_PADDING)
                         .pb(metric::SECTION_SPACING)
                         .child(settings_row::section(
-                            section.title.map(SharedString::from),
+                            section
+                                .title
+                                .map(|key| SharedString::from(lokalbot_i18n::tr(key))),
                             section.rows,
                             cx,
                         ))
@@ -908,10 +948,7 @@ impl Render for SettingsPage {
                 })
                 .collect();
             v_flex()
-                .id(SharedString::from(format!(
-                    "settings-body-{}",
-                    catalog::category_title(category)
-                )))
+                .id(SharedString::from(format!("settings-body-{category:?}")))
                 .size_full()
                 .items_center()
                 .overflow_y_scroll()

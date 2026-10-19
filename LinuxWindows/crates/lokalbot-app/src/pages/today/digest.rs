@@ -5,10 +5,11 @@
 use std::collections::HashSet;
 use std::rc::Rc;
 
+use crate::i18n::h_flex;
 use chrono::NaiveDate;
 use gpui_kit::component::button::{Button, ButtonVariants as _};
 use gpui_kit::component::menu::{DropdownMenu as _, PopupMenuItem};
-use gpui_kit::component::{Disableable as _, Icon, h_flex, v_flex};
+use gpui_kit::component::{Disableable as _, Icon, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
     AnyElement, App, AppContext as _, ClipboardItem, Entity, FontWeight, Hsla,
@@ -35,9 +36,9 @@ pub(crate) type TaskToggle = Rc<dyn Fn(usize, &mut Window, &mut App)>;
 /// `CaptureStyle.hm`: "3h 50m", "48m", "<1m" (and "0m" for nothing).
 pub(crate) fn hm(seconds: f64) -> String {
     if seconds <= 0. {
-        "0m".into()
+        lokalbot_i18n::tr("0m").into()
     } else {
-        lokalbot_core::time::compact_duration(seconds)
+        crate::i18n::compact_duration(seconds)
     }
 }
 
@@ -69,7 +70,7 @@ pub(crate) fn app_shares(activity: &DayActivity) -> Vec<AppShare> {
     }
     if other > 0. {
         shares.push(AppShare {
-            label: "Other".into(),
+            label: lokalbot_i18n::tr("Other").into(),
             seconds: other,
             is_other: true,
         });
@@ -108,21 +109,21 @@ pub(crate) fn day_overview(
         ui::stat_chip(
             Ico::Clock,
             crate::pages::today::digest::hm(activity.tracked_seconds),
-            "tracked",
+            lokalbot_i18n::tr("tracked"),
             cx,
         )
         .into_any_element(),
         ui::stat_chip(
             Ico::LayoutGrid,
             apps.to_string(),
-            if apps == 1 { "app" } else { "apps" },
+            lokalbot_i18n::tr(if apps == 1 { "app" } else { "apps" }),
             cx,
         )
         .into_any_element(),
         ui::stat_chip(
             Ico::ScanText,
             activity.moment_count.to_string(),
-            "moments",
+            lokalbot_i18n::tr("moments"),
             cx,
         )
         .into_any_element(),
@@ -132,11 +133,11 @@ pub(crate) fn day_overview(
             ui::stat_chip(
                 Ico::AudioLines,
                 activity.meeting_count.to_string(),
-                if activity.meeting_count == 1 {
+                lokalbot_i18n::tr(if activity.meeting_count == 1 {
                     "meeting"
                 } else {
                     "meetings"
-                },
+                }),
                 cx,
             )
             .into_any_element(),
@@ -204,11 +205,11 @@ pub(crate) fn digest_controls(
 ) -> AnyElement {
     let busy = data.read(cx).digest_running == Some(day);
     let label = if busy {
-        "Writing Digest…"
+        lokalbot_i18n::tr("Writing Digest…")
     } else if digest.is_none() {
-        "Write Digest"
+        lokalbot_i18n::tr("Write Digest")
     } else {
-        "Regenerate"
+        lokalbot_i18n::tr("Regenerate")
     };
     let generate = {
         let data = data.clone();
@@ -233,7 +234,7 @@ pub(crate) fn digest_controls(
         Button::new("digest-actions")
             .ghost()
             .icon(Icon::new(Ico::CircleEllipsis))
-            .label("Digest actions")
+            .label(lokalbot_i18n::tr("Digest actions"))
             .dropdown_caret(true)
             .dropdown_menu(move |menu, _, _| {
                 let copy = markdown.clone();
@@ -241,16 +242,17 @@ pub(crate) fn digest_controls(
                 let copy_data = data.clone();
                 let export_data = data.clone();
                 menu.item(
-                    PopupMenuItem::new("Copy Digest")
+                    PopupMenuItem::new(lokalbot_i18n::tr("Copy Digest"))
                         .icon(Icon::new(Ico::Copy))
                         .on_click(move |_, _, cx| {
                             cx.write_to_clipboard(ClipboardItem::new_string(copy.clone()));
-                            copy_data
-                                .update(cx, |data, cx| data.show_message("Digest copied.", cx));
+                            copy_data.update(cx, |data, cx| {
+                                data.show_message(lokalbot_i18n::tr("Digest copied."), cx)
+                            });
                         }),
                 )
                 .item(
-                    PopupMenuItem::new("Export Markdown")
+                    PopupMenuItem::new(lokalbot_i18n::tr("Export Markdown"))
                         .icon(Icon::new(Ico::Share))
                         .on_click(move |_, _, cx| {
                             export_markdown(export_data.clone(), day, export.clone(), cx)
@@ -260,21 +262,36 @@ pub(crate) fn digest_controls(
     });
     let ask = show_ask.then(|| {
         let data = data.clone();
-        ui::controls::bordered_icon("digest-ask", Ico::TextSearch, "Ask About This Day").on_click(
-            move |_, _, cx| {
-                let question = format!("What happened on {}?", day.format("%A, %B %-d"));
-                data.update(cx, |data, cx| {
-                    data.ask(
-                        crate::state::AskRequest {
-                            question,
-                            meeting_ids: Vec::new(),
-                            submit: false,
-                        },
-                        cx,
-                    )
-                })
-            },
+        ui::controls::bordered_icon(
+            "digest-ask",
+            Ico::TextSearch,
+            lokalbot_i18n::tr("Ask About This Day"),
         )
+        .on_click(move |_, _, cx| {
+            let question = lokalbot_i18n::format(
+                "What happened on {0}?",
+                &[(
+                    "0",
+                    format!(
+                        "{}",
+                        day.format_localized(
+                            lokalbot_i18n::date_pattern("%A, %B %-d"),
+                            lokalbot_i18n::date_locale()
+                        )
+                    ),
+                )],
+            );
+            data.update(cx, |data, cx| {
+                data.ask(
+                    crate::state::AskRequest {
+                        question,
+                        meeting_ids: Vec::new(),
+                        submit: false,
+                    },
+                    cx,
+                )
+            })
+        })
     });
     h_flex()
         .gap(px(8.))
@@ -300,8 +317,14 @@ fn export_markdown(data: Entity<AppData>, day: NaiveDate, markdown: String, cx: 
             .background_spawn(async move { std::fs::write(&path, markdown) })
             .await;
         data.update(cx, |data, cx| match result {
-            Ok(()) => data.show_message("Digest exported as Markdown.", cx),
-            Err(err) => data.show_error(format!("Digest export failed: {err}"), cx),
+            Ok(()) => data.show_message(lokalbot_i18n::tr("Digest exported as Markdown."), cx),
+            Err(err) => data.show_error(
+                lokalbot_i18n::format(
+                    "Digest export failed: {err}",
+                    &[("err", format!("{}", err))],
+                ),
+                cx,
+            ),
         });
     })
     .detach();
@@ -323,7 +346,9 @@ pub(crate) fn digest_card(
         return div()
             .text_size(ty::BODY)
             .text_color(lb.text_secondary)
-            .child("Your digest brings together this day's meetings and captured activity.")
+            .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                "Your digest brings together this day's meetings and captured activity.",
+            )))
             .into_any_element();
     };
     let updated = digest
@@ -342,10 +367,15 @@ pub(crate) fn digest_card(
                     .text_size(ty::SECONDARY)
                     .text_color(lb.text_secondary)
                     .when_some(updated, |this, at| {
-                        this.child(format!("Updated {}", lokalbot_core::time::clock_time(at)))
+                        this.child(crate::ui::text::paragraph(lokalbot_i18n::format(
+                            "Updated {0}",
+                            &[("0", format!("{}", lokalbot_core::time::clock_time(at)))],
+                        )))
                     })
                     .when(digest.is_stale, |this| {
-                        this.child("New activity available · Update digest to include it")
+                        this.child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                            "New activity available · Update digest to include it",
+                        )))
                     }),
             )
         })
@@ -400,9 +430,9 @@ fn digest_view(
     let mut parts: Vec<AnyElement> = Vec::new();
     if !digest.blockers.is_empty() {
         let title = if digest.blockers.len() == 1 {
-            "Blocker"
+            lokalbot_i18n::tr("Blocker")
         } else {
-            "Blockers"
+            lokalbot_i18n::tr("Blockers")
         };
         parts.push(
             ui::status_surface(lb.attention, cx)
@@ -428,7 +458,7 @@ fn digest_view(
     if !digest.at_a_glance_markdown.trim().is_empty() {
         parts.push(digest_section(
             Ico::Sparkles,
-            "Highlights",
+            lokalbot_i18n::tr("Highlights"),
             div()
                 .max_w(metric::READING_MAX_WIDTH)
                 .text_size(ty::BODY)
@@ -446,7 +476,7 @@ fn digest_view(
     if !digest.decisions.is_empty() {
         parts.push(digest_section(
             Ico::BadgeCheck,
-            "Decisions",
+            lokalbot_i18n::tr("Decisions"),
             div()
                 .max_w(metric::READING_MAX_WIDTH)
                 .child(bullet_list(&digest.decisions, cx)),
@@ -455,9 +485,9 @@ fn digest_view(
     }
     if !digest.tasks.is_empty() {
         let title = if mode == DigestMode::Today {
-            "Tasks"
+            lokalbot_i18n::tr("Tasks")
         } else {
-            "Work Summary"
+            lokalbot_i18n::tr("Work Summary")
         };
         let body = match mode {
             DigestMode::Today => task_grid(&digest.tasks, width, expanded, on_toggle.clone(), cx),
@@ -484,14 +514,14 @@ fn digest_view(
         let offset = 10_000;
         parts.push(digest_section(
             Ico::CornerDownRight,
-            "Follow-ups",
+            lokalbot_i18n::tr("Follow-ups"),
             task_rows(&digest.follow_up_tasks, offset, expanded, on_toggle, cx),
             cx,
         ));
     } else if !digest.follow_ups.is_empty() {
         parts.push(digest_section(
             Ico::CornerDownRight,
-            "Follow-ups",
+            lokalbot_i18n::tr("Follow-ups"),
             bullet_list(&digest.follow_ups, cx),
             cx,
         ));
@@ -585,7 +615,13 @@ fn task_groups(
                             .text_size(ty::SECONDARY)
                             .font_weight(FontWeight::SEMIBOLD)
                             .text_color(lb.text_secondary)
-                            .child(format!("{} · {count}", status.group_title())),
+                            .child(crate::ui::text::paragraph(lokalbot_i18n::format(
+                                "{0} · {count}",
+                                &[
+                                    ("0", format!("{}", status.group_title())),
+                                    ("count", format!("{}", count)),
+                                ],
+                            ))),
                     )
                 })
                 .children(items.into_iter().enumerate().map(|(pos, (ix, task))| {
@@ -721,7 +757,7 @@ fn task_row(
                                     .flex_none()
                                     .font_weight(FontWeight::SEMIBOLD)
                                     .text_color(lb.accent_text)
-                                    .child("Next"),
+                                    .child(crate::ui::text::paragraph(lokalbot_i18n::tr("Next"))),
                             )
                             .child(
                                 div()
@@ -749,7 +785,11 @@ fn task_row(
                             .text_color(lb.accent_text)
                             .cursor_pointer()
                             .hover(|s| s.underline())
-                            .child(if expanded { "Show less" } else { "Show more" })
+                            .child(if expanded {
+                                lokalbot_i18n::tr("Show less")
+                            } else {
+                                lokalbot_i18n::tr("Show more")
+                            })
                             .on_click(move |_, window, cx| toggle(ix, window, cx)),
                     )
                 }),

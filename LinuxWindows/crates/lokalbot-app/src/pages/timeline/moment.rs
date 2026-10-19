@@ -3,10 +3,11 @@
 //! captured text, Save Moment and Ask About This, the saved note, capture
 //! details, and Delete Moment.
 
+use crate::i18n::h_flex;
 use gpui_kit::component::button::{Button, ButtonVariant};
 use gpui_kit::component::input::Input;
 use gpui_kit::component::spinner::Spinner;
-use gpui_kit::component::{Disableable as _, Icon, Sizable as _, WindowExt as _, h_flex, v_flex};
+use gpui_kit::component::{Disableable as _, Icon, Sizable as _, WindowExt as _, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
     AnyElement, AppContext as _, Context, FontWeight, InteractiveElement as _, IntoElement as _,
@@ -92,7 +93,7 @@ impl TimelinePage {
                 .gap(px(14.))
                 .child(self.panel_header(
                     Ico::ScanText,
-                    "Screen moment".into(),
+                    lokalbot_i18n::tr("Screen moment").into(),
                     String::new(),
                     drawer,
                     cx,
@@ -101,16 +102,19 @@ impl TimelinePage {
                     div()
                         .text_size(ty::BODY)
                         .text_color(lb.text_secondary)
-                        .child(
+                        .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
                             "This moment is no longer kept. It may have been deleted or expired.",
-                        ),
+                        ))),
                 )
                 .into_any_element();
         };
         let when = moment
             .ts
             .with_timezone(&chrono::Local)
-            .format("%b %-d, %Y at %-I:%M %p")
+            .format_localized(
+                lokalbot_i18n::date_pattern("%b %-d, %Y at %-I:%M %p"),
+                lokalbot_i18n::date_locale(),
+            )
             .to_string();
         let has_pixels = !moment.path.is_empty();
         let header = self.panel_header(
@@ -178,7 +182,7 @@ impl TimelinePage {
                                 .outline()
                                 .small()
                                 .icon(Icon::new(Ico::Expand))
-                                .label("View Full Size")
+                                .label(lokalbot_i18n::tr("View Full Size"))
                                 .on_click(move |_, _, cx| screen_image::open(full.clone(), cx)),
                         ),
                     )
@@ -196,7 +200,9 @@ impl TimelinePage {
                     div()
                         .text_size(ty::SECONDARY)
                         .text_color(lb.text_secondary)
-                        .child("This moment retained text context without screen pixels."),
+                        .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                            "This moment retained text context without screen pixels.",
+                        ))),
                 )
                 .into_any_element()
         };
@@ -231,7 +237,9 @@ impl TimelinePage {
                                 .text_size(ty::SECTION)
                                 .font_weight(FontWeight::SEMIBOLD)
                                 .text_color(lb.text)
-                                .child("Text Context"),
+                                .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                                    "Text Context",
+                                ))),
                         ),
                 )
                 .child(div().text_size(ty::BODY).text_color(lb.text).child(shown))
@@ -245,9 +253,9 @@ impl TimelinePage {
                             .font_weight(FontWeight::SEMIBOLD)
                             .text_color(lb.accent_text)
                             .child(if expanded {
-                                "Show Less"
+                                lokalbot_i18n::tr("Show Less")
                             } else {
-                                "Show Full Captured Text"
+                                lokalbot_i18n::tr("Show Full Captured Text")
                             })
                             .on_click(cx.listener(|this, _, _, cx| {
                                 this.moment_text_expanded = !this.moment_text_expanded;
@@ -262,14 +270,25 @@ impl TimelinePage {
         let save_data = self.data.clone();
         let note_input = self.moment_note.clone();
         let ask_data = self.data.clone();
-        let ask_question = format!(
-            "What was I looking at in “{}” at {}?",
-            if moment.window_title.is_empty() {
-                moment.app.as_str()
-            } else {
-                moment.window_title.as_str()
-            },
-            lokalbot_core::time::clock_time(moment.ts)
+        let ask_question = lokalbot_i18n::format(
+            "What was I looking at in “{0}” at {1}?",
+            &[
+                (
+                    "0",
+                    format!(
+                        "{}",
+                        if moment.window_title.is_empty() {
+                            moment.app.as_str()
+                        } else {
+                            moment.window_title.as_str()
+                        }
+                    ),
+                ),
+                (
+                    "1",
+                    format!("{}", lokalbot_core::time::clock_time(moment.ts)),
+                ),
+            ],
         );
         let actions = h_flex()
             .gap(px(8.))
@@ -283,7 +302,11 @@ impl TimelinePage {
                     } else {
                         Ico::Bookmark
                     }))
-                    .label(if saved { "Saved" } else { "Save Moment" })
+                    .label(if saved {
+                        lokalbot_i18n::tr("Saved")
+                    } else {
+                        lokalbot_i18n::tr("Save Moment")
+                    })
                     .on_click(move |_, _, cx| {
                         let note = note_input.read(cx).value().to_string();
                         save_data.update(cx, |data, cx| {
@@ -300,7 +323,7 @@ impl TimelinePage {
                     .outline()
                     .small()
                     .icon(Icon::new(Ico::Sparkles))
-                    .label("Ask About This…")
+                    .label(lokalbot_i18n::tr("Ask About This…"))
                     .on_click(move |_, _, cx| {
                         let question = ask_question.clone();
                         ask_data.update(cx, |data, cx| {
@@ -327,14 +350,18 @@ impl TimelinePage {
                     div()
                         .text_size(ty::SECONDARY)
                         .text_color(lb.supporting)
-                        .child("Saved until you unsave or delete it."),
+                        .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                            "Saved until you unsave or delete it.",
+                        ))),
                 )
                 .child(
                     div()
                         .text_size(ty::SECTION)
                         .font_weight(FontWeight::SEMIBOLD)
                         .text_color(lb.text)
-                        .child("Saved Moment Note"),
+                        .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                            "Saved Moment Note",
+                        ))),
                 )
                 .child(Input::new(&self.moment_note))
                 .child(
@@ -342,7 +369,7 @@ impl TimelinePage {
                         Button::new("moment-save-note")
                             .outline()
                             .small()
-                            .label("Save Note")
+                            .label(lokalbot_i18n::tr("Save Note"))
                             .disabled(unchanged)
                             .on_click(move |_, _, cx| {
                                 let note = input.read(cx).value().to_string();
@@ -359,7 +386,7 @@ impl TimelinePage {
                 .outline()
                 .small()
                 .icon(Icon::new(Ico::Trash))
-                .label("Delete Moment…")
+                .label(lokalbot_i18n::tr("Delete Moment…"))
                 .on_click(cx.listener(move |_, _, window, cx| {
                     confirm_delete(delete_data.clone(), id, window, cx)
                 })),
@@ -393,34 +420,37 @@ impl TimelinePage {
         let open = self.moment_details_open;
         let mut rows: Vec<(&'static str, String)> = Vec::new();
         if !moment.window_title.is_empty() {
-            rows.push(("Window", moment.window_title.clone()));
+            rows.push((lokalbot_i18n::tr("Window"), moment.window_title.clone()));
         }
-        rows.push(("Captured", trigger_label(&moment.capture_trigger)));
         rows.push((
-            "Context",
+            lokalbot_i18n::tr("Captured"),
+            trigger_label(&moment.capture_trigger),
+        ));
+        rows.push((
+            lokalbot_i18n::tr("Context"),
             if moment.path.is_empty() {
-                "Accessible text only".into()
+                lokalbot_i18n::tr("Accessible text only").into()
             } else {
-                "Accessible text + pixels".into()
+                lokalbot_i18n::tr("Accessible text + pixels").into()
             },
         ));
         if !moment.document_name.is_empty() {
-            rows.push(("Document", moment.document_name.clone()));
+            rows.push((lokalbot_i18n::tr("Document"), moment.document_name.clone()));
         }
         if !moment.source_url.is_empty() {
-            rows.push(("Source", moment.source_url.clone()));
+            rows.push((lokalbot_i18n::tr("Source"), moment.source_url.clone()));
         }
         if moment.meeting_id.is_some() {
-            rows.push(("Meeting", "Linked recording".into()));
+            rows.push((
+                lokalbot_i18n::tr("Meeting"),
+                lokalbot_i18n::tr("Linked recording").into(),
+            ));
         }
         if moment.privacy_redactions > 0 {
             let count = moment.privacy_redactions;
             rows.push((
-                "Privacy",
-                format!(
-                    "{count} secret{} redacted",
-                    if count == 1 { "" } else { "s" }
-                ),
+                lokalbot_i18n::tr("Privacy"),
+                lokalbot_i18n::format("Secrets redacted: {count}", &[("count", count.to_string())]),
             ));
         }
         v_flex()
@@ -446,7 +476,9 @@ impl TimelinePage {
                             .text_size(ty::SECTION)
                             .font_weight(FontWeight::SEMIBOLD)
                             .text_color(lb.text)
-                            .child("Capture Details"),
+                            .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                                "Capture Details",
+                            ))),
                     )
                     .on_click(cx.listener(|this, _, _, cx| {
                         this.moment_details_open = !this.moment_details_open;
@@ -512,12 +544,14 @@ fn confirm_delete(
         let data = data.clone();
         let timeline = timeline.clone();
         alert
-            .title("Delete this context moment?")
-            .description("This permanently removes its pixels, captured text, and metadata.")
+            .title(lokalbot_i18n::tr("Delete this context moment?"))
+            .description(lokalbot_i18n::tr(
+                "This permanently removes its pixels, captured text, and metadata.",
+            ))
             .confirm()
-            .ok_text("Delete context moment")
+            .ok_text(lokalbot_i18n::tr("Delete context moment"))
             .ok_variant(ButtonVariant::Danger)
-            .cancel_text("Cancel")
+            .cancel_text(lokalbot_i18n::tr("Cancel"))
             .on_ok(move |_, _, cx| {
                 data.update(cx, |data, cx| data.delete_screen_moment(id, cx));
                 let _ = timeline.update(cx, |page, cx| {

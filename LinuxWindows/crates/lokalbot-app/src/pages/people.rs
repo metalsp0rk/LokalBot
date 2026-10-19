@@ -4,12 +4,13 @@
 
 use std::collections::{BTreeMap, HashSet};
 
+use crate::i18n::h_flex;
 use chrono::{Duration, Local, Utc};
 use gpui_kit::component::button::{Button, ButtonVariants as _};
 use gpui_kit::component::input::{Input, InputEvent, InputState};
 use gpui_kit::component::menu::{ContextMenuExt as _, DropdownMenu as _, PopupMenuItem};
 use gpui_kit::component::popover::Popover;
-use gpui_kit::component::{Disableable as _, Icon, Sizable as _, WindowExt as _, h_flex, v_flex};
+use gpui_kit::component::{Disableable as _, Icon, Sizable as _, WindowExt as _, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
     AnyElement, App, AppContext as _, Context, Entity, FontWeight, InteractiveElement as _,
@@ -46,8 +47,16 @@ pub struct PeoplePage {
 impl PeoplePage {
     pub fn new(window: &mut Window, cx: &mut Context<Self>) -> Self {
         let data = AppData::global(cx);
-        let search = cx.new(|cx| InputState::new(window, cx).placeholder("Search people"));
-        let rename_input = cx.new(|cx| InputState::new(window, cx).placeholder("Name"));
+        let search = cx.new(|cx| {
+            InputState::new(window, cx).placeholder(crate::i18n::placeholder(
+                "Search people",
+                window,
+                cx,
+            ))
+        });
+        let rename_input = cx.new(|cx| {
+            InputState::new(window, cx).placeholder(crate::i18n::placeholder("Name", window, cx))
+        });
         let subscriptions = vec![
             cx.observe(&data, |this, data, cx| {
                 if this.loaded_revision != Some(data.read(cx).revision) {
@@ -115,7 +124,13 @@ impl PeoplePage {
                 .await;
             if let Err(err) = result {
                 data.update(cx, |data, cx| {
-                    data.show_error(format!("Could not save People changes: {err:#}"), cx)
+                    data.show_error(
+                        lokalbot_i18n::format(
+                            "Could not save People changes: {err}",
+                            &[("err", format!("{:#}", err))],
+                        ),
+                        cx,
+                    )
                 });
             }
             let _ = this.update(cx, |this, cx| this.reload(cx));
@@ -179,7 +194,7 @@ impl PeoplePage {
             let save_input = input.clone();
             let (save_id, reset_id) = (person_id.clone(), person_id.clone());
             let (save_members, reset_members) = (members.clone(), members.clone());
-            dialog.title(format!("Rename {name}")).w(px(440.)).child(
+            dialog.title(lokalbot_i18n::format("Rename {name}", &[("name", format!("{}", name))])).w(px(440.)).child(
                 v_flex()
                     .gap(px(12.))
                     .child(Input::new(&input))
@@ -187,23 +202,23 @@ impl PeoplePage {
                         div()
                             .text_size(ty::SECONDARY)
                             .text_color(lb.text_secondary)
-                            .child("People shows this name, and LokalBot also recognizes it in meeting notes and action owners. Names from your meetings stay listed as other names."),
+                            .child(crate::ui::text::paragraph(lokalbot_i18n::tr("People shows this name, and LokalBot also recognizes it in meeting notes and action owners. Names from your meetings stay listed as other names."))),
                     )
                     .child(
                         h_flex()
                             .gap(px(8.))
                             .pt(px(4.))
-                            .child(Button::new("people-rename-reset").outline().label("Use Name from Meetings").on_click(
+                            .child(Button::new("people-rename-reset").outline().label(lokalbot_i18n::tr("Use Name from Meetings")).on_click(
                                 move |_, window, cx| {
                                     reset_page.update(cx, |page, cx| page.rename(&reset_id, &reset_members, "", cx));
                                     window.close_dialog(cx);
                                 },
                             ))
                             .child(div().flex_1().min_w_0())
-                            .child(Button::new("people-rename-cancel").outline().label("Cancel").on_click(|_, window, cx| {
+                            .child(Button::new("people-rename-cancel").outline().label(lokalbot_i18n::tr("Cancel")).on_click(|_, window, cx| {
                                 window.close_dialog(cx)
                             }))
-                            .child(Button::new("people-rename-save").primary().label("Save").on_click(move |_, window, cx| {
+                            .child(Button::new("people-rename-save").primary().label(lokalbot_i18n::tr("Save")).on_click(move |_, window, cx| {
                                 let value = save_input.read(cx).value().to_string();
                                 save_page.update(cx, |page, cx| page.rename(&save_id, &save_members, &value, cx));
                                 window.close_dialog(cx);
@@ -277,9 +292,9 @@ impl PeoplePage {
             .collect();
         earlier.sort_by_key(|p| std::cmp::Reverse(p.last_met()));
         [
-            ("Open Work", open),
-            ("Last 2 Weeks", recent),
-            ("Earlier", earlier),
+            (lokalbot_i18n::tr("Open Work"), open),
+            (lokalbot_i18n::tr("Last 2 Weeks"), recent),
+            (lokalbot_i18n::tr("Earlier"), earlier),
         ]
         .into_iter()
         .filter(|(_, items)| !items.is_empty())
@@ -322,16 +337,12 @@ impl PeoplePage {
         let lb = cx.lb().clone();
         let count = self.filtered().len();
         let summary = if self.loaded {
-            format!(
-                "{} from your meetings",
-                if count == 1 {
-                    "1 person".to_string()
-                } else {
-                    format!("{count} people")
-                }
+            lokalbot_i18n::format(
+                "{people} from your meetings",
+                &[("people", lokalbot_i18n::count(count, "person"))],
             )
         } else {
-            "Loading…".into()
+            lokalbot_i18n::tr("Loading…").into()
         };
         let selected_id = self.selected_person().map(|p| p.id.clone());
         let mut rows: Vec<AnyElement> = Vec::new();
@@ -357,9 +368,9 @@ impl PeoplePage {
         }
         if !self.curation.hidden.is_empty() {
             let hidden = self.curation.hidden.len();
-            let label = format!(
-                "Show {hidden} hidden {} again",
-                if hidden == 1 { "entry" } else { "entries" }
+            let label = lokalbot_i18n::format(
+                "Show hidden entries ({count})",
+                &[("count", hidden.to_string())],
             );
             let page = cx.entity();
             rows.push(
@@ -382,7 +393,7 @@ impl PeoplePage {
                     .text_center()
                     .text_size(ty::SECONDARY)
                     .text_color(lb.text_secondary)
-                    .child("People appear after meetings with calendar attendees, named speakers, or named action owners.")
+                    .child(crate::ui::text::paragraph(lokalbot_i18n::tr("People appear after meetings with calendar attendees, named speakers, or named action owners.")))
                     .into_any_element(),
             );
         }
@@ -413,14 +424,16 @@ impl PeoplePage {
                                             .ghost()
                                             .xsmall()
                                             .icon(Icon::new(Ico::Info))
-                                            .tooltip("Where People comes from"),
+                                            .tooltip(lokalbot_i18n::tr("Where People comes from")),
                                     )
                                     .content(|_, _, cx| {
                                         div()
                                             .w(px(300.))
                                             .text_size(ty::SECONDARY)
                                             .text_color(cx.lb().text)
-                                            .child(PROVENANCE)
+                                            .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                                                PROVENANCE,
+                                            )))
                                     }),
                             ),
                     )
@@ -526,18 +539,20 @@ impl PeoplePage {
                 let hide_page = page.clone();
                 let rename_person = menu_person.clone();
                 let hide_person = menu_person.clone();
-                menu.item(
-                    PopupMenuItem::new("Rename…").on_click(move |_, window, cx| {
+                menu.item(PopupMenuItem::new(lokalbot_i18n::tr("Rename…")).on_click(
+                    move |_, window, cx| {
                         let person = rename_person.clone();
                         rename_page.update(cx, |page, cx| page.open_rename(&person, window, cx));
-                    }),
-                )
+                    },
+                ))
                 .separator()
                 .item(
-                    PopupMenuItem::new("Not a Person").on_click(move |_, _, cx| {
-                        let person = hide_person.clone();
-                        hide_page.update(cx, |page, cx| page.hide(&person, cx));
-                    }),
+                    PopupMenuItem::new(lokalbot_i18n::tr("Not a Person")).on_click(
+                        move |_, _, cx| {
+                            let person = hide_person.clone();
+                            hide_page.update(cx, |page, cx| page.hide(&person, cx));
+                        },
+                    ),
                 )
             })
             .into_any_element()
@@ -551,9 +566,9 @@ impl PeoplePage {
 
         // Header.
         let ask_data = self.data.clone();
-        let question = format!(
-            "What has {} been working on lately, and what is open between us?",
-            person.name
+        let question = lokalbot_i18n::format(
+            "What has {0} been working on lately, and what is open between us?",
+            &[("0", format!("{}", person.name))],
         );
         let meeting_ids: Vec<Uuid> = person.meetings.iter().map(|m| m.id).collect();
         let page = cx.entity();
@@ -589,9 +604,17 @@ impl PeoplePage {
                                         div()
                                             .text_size(ty::SECONDARY)
                                             .text_color(lb.text_secondary)
-                                            .child(format!(
-                                                "Also appears as {}",
-                                                person.other_names.join(", ")
+                                            .child(crate::ui::text::paragraph(
+                                                lokalbot_i18n::format(
+                                                    "Also appears as {0}",
+                                                    &[(
+                                                        "0",
+                                                        format!(
+                                                            "{}",
+                                                            person.other_names.join(", ")
+                                                        ),
+                                                    )],
+                                                ),
                                             )),
                                     )
                                 }),
@@ -604,7 +627,10 @@ impl PeoplePage {
                             Button::new("person-ask")
                                 .outline()
                                 .icon(Icon::new(Ico::TextSearch))
-                                .label(format!("Ask About {first}"))
+                                .label(lokalbot_i18n::format(
+                                    "Ask About {first}",
+                                    &[("first", format!("{}", first))],
+                                ))
                                 .disabled(person.meetings.is_empty())
                                 .on_click(move |_, _, cx| {
                                     let request = AskRequest {
@@ -619,29 +645,30 @@ impl PeoplePage {
                             Button::new("person-more")
                                 .ghost()
                                 .icon(Icon::new(Ico::Ellipsis))
-                                .label("More")
+                                .label(lokalbot_i18n::tr("More"))
                                 .dropdown_menu(move |menu, _, _| {
                                     let rename_page = page.clone();
                                     let hide_page = page.clone();
                                     let rename_person = menu_person.clone();
                                     let hide_person = menu_person.clone();
-                                    menu.item(PopupMenuItem::new("Rename…").on_click(
-                                        move |_, window, cx| {
-                                            let person = rename_person.clone();
-                                            rename_page.update(cx, |page, cx| {
-                                                page.open_rename(&person, window, cx)
-                                            });
-                                        },
-                                    ))
+                                    menu.item(
+                                        PopupMenuItem::new(lokalbot_i18n::tr("Rename…")).on_click(
+                                            move |_, window, cx| {
+                                                let person = rename_person.clone();
+                                                rename_page.update(cx, |page, cx| {
+                                                    page.open_rename(&person, window, cx)
+                                                });
+                                            },
+                                        ),
+                                    )
                                     .separator()
                                     .item(
-                                        PopupMenuItem::new("Not a Person").on_click(
-                                            move |_, _, cx| {
+                                        PopupMenuItem::new(lokalbot_i18n::tr("Not a Person"))
+                                            .on_click(move |_, _, cx| {
                                                 let person = hide_person.clone();
                                                 hide_page
                                                     .update(cx, |page, cx| page.hide(&person, cx));
-                                            },
-                                        ),
+                                            }),
                                     )
                                 }),
                         ),
@@ -673,8 +700,14 @@ impl PeoplePage {
             sections.push(
                 profile::section(
                     Ico::ListChecks,
-                    "Open Work",
-                    profile::empty_row(format!("Nothing open between you and {first}."), cx),
+                    lokalbot_i18n::tr("Open Work"),
+                    profile::empty_row(
+                        lokalbot_i18n::format(
+                            "Nothing open between you and {first}.",
+                            &[("first", format!("{}", first))],
+                        ),
+                        cx,
+                    ),
                     cx,
                 )
                 .into_any_element(),
@@ -683,15 +716,28 @@ impl PeoplePage {
             if !person.my_actions.is_empty() {
                 let rows = thread_rows(&person.my_actions, "mine", cx);
                 sections.push(
-                    profile::section(Ico::ArrowUpRight, "Waiting on You", rows, cx)
-                        .into_any_element(),
+                    profile::section(
+                        Ico::ArrowUpRight,
+                        lokalbot_i18n::tr("Waiting on You"),
+                        rows,
+                        cx,
+                    )
+                    .into_any_element(),
                 );
             }
             if !person.their_actions.is_empty() {
                 let rows = thread_rows(&person.their_actions, "theirs", cx);
                 sections.push(
-                    profile::section(Ico::ArrowDownLeft, format!("Waiting on {first}"), rows, cx)
-                        .into_any_element(),
+                    profile::section(
+                        Ico::ArrowDownLeft,
+                        lokalbot_i18n::format(
+                            "Waiting on {first}",
+                            &[("first", format!("{}", first))],
+                        ),
+                        rows,
+                        cx,
+                    )
+                    .into_any_element(),
                 );
             }
         }
@@ -700,9 +746,11 @@ impl PeoplePage {
         if !person.recent_notes.is_empty() {
             let latest = person.meetings.iter().map(|m| m.id).next();
             let title = match (&person.notes_meeting, latest) {
-                (Some(meeting), Some(latest)) if meeting.id == latest => "Last Time",
-                (Some(_), _) => "Last Mentioned",
-                _ => "Last Time",
+                (Some(meeting), Some(latest)) if meeting.id == latest => {
+                    lokalbot_i18n::tr("Last Time")
+                }
+                (Some(_), _) => lokalbot_i18n::tr("Last Mentioned"),
+                _ => lokalbot_i18n::tr("Last Time"),
             };
             let mut content = v_flex().gap(px(8.));
             if let Some(meeting) = person.notes_meeting.clone() {
@@ -749,7 +797,10 @@ impl PeoplePage {
                         let label = if link.is_tracked {
                             link.name.clone()
                         } else {
-                            format!("{} (suggested)", link.name)
+                            lokalbot_i18n::format(
+                                "{0} (suggested)",
+                                &[("0", format!("{}", link.name))],
+                            )
                         };
                         let target = link.id.clone();
                         let data = self.data.clone();
@@ -764,7 +815,10 @@ impl PeoplePage {
                         )
                         .text_size(ty::BODY)
                     }));
-            sections.push(profile::section(Ico::Folder, "Projects", links, cx).into_any_element());
+            sections.push(
+                profile::section(Ico::Folder, lokalbot_i18n::tr("Projects"), links, cx)
+                    .into_any_element(),
+            );
         }
 
         // Decisions.
@@ -804,7 +858,7 @@ impl PeoplePage {
             sections.push(
                 profile::section(
                     Ico::BadgeCheck,
-                    "Decisions Together",
+                    lokalbot_i18n::tr("Decisions Together"),
                     profile::divided(rows, cx),
                     cx,
                 )
@@ -815,8 +869,14 @@ impl PeoplePage {
         // Meetings together, as series by title.
         let series = series(&person.meetings);
         let meetings_content: AnyElement = if series.is_empty() {
-            profile::empty_row(format!("{first} appears only as an action owner."), cx)
-                .into_any_element()
+            profile::empty_row(
+                lokalbot_i18n::format(
+                    "{first} appears only as an action owner.",
+                    &[("first", format!("{}", first))],
+                ),
+                cx,
+            )
+            .into_any_element()
         } else {
             let mut rows: Vec<AnyElement> = Vec::new();
             for (title, meetings) in series.iter().take(VISIBLE_SERIES) {
@@ -831,19 +891,25 @@ impl PeoplePage {
                         .pt(px(8.))
                         .text_size(ty::SECONDARY)
                         .text_color(lb.text_secondary)
-                        .child(format!(
-                            "And {} under {} other title{}.",
-                            profile::count(count, "more meeting"),
-                            rest.len(),
-                            if rest.len() == 1 { "" } else { "s" }
-                        )),
+                        .child(crate::ui::text::paragraph(lokalbot_i18n::format(
+                            "{meetings}; other titles: {titles}.",
+                            &[
+                                ("meetings", profile::count(count, "more meeting")),
+                                ("titles", rest.len().to_string()),
+                            ],
+                        ))),
                 );
             }
             column.into_any_element()
         };
         sections.push(
-            profile::section(Ico::AudioLines, "Meetings Together", meetings_content, cx)
-                .into_any_element(),
+            profile::section(
+                Ico::AudioLines,
+                lokalbot_i18n::tr("Meetings Together"),
+                meetings_content,
+                cx,
+            )
+            .into_any_element(),
         );
 
         div()
@@ -952,7 +1018,10 @@ impl PeoplePage {
                                 meeting
                                     .started_at
                                     .with_timezone(&Local)
-                                    .format("%A, %B %-d")
+                                    .format_localized(
+                                        lokalbot_i18n::date_pattern("%A, %B %-d"),
+                                        lokalbot_i18n::date_locale(),
+                                    )
                                     .to_string(),
                             ),
                     )
@@ -984,7 +1053,7 @@ fn row_context(person: &PersonProfile) -> String {
         return titles.join(", ");
     }
     match person.meeting_count() {
-        0 => "Named in actions".into(),
+        0 => lokalbot_i18n::tr("Named in actions").into(),
         n => profile::count(n, "meeting"),
     }
 }
@@ -996,20 +1065,32 @@ fn stats(person: &PersonProfile) -> String {
     if count > 1
         && let Some(earliest) = person.meetings.iter().map(|m| m.started_at).min()
     {
-        first.push_str(&format!(
-            " since {}",
-            earliest.with_timezone(&Local).format("%b %-d")
-        ));
+        first = lokalbot_i18n::format(
+            "{meetings} since {date}",
+            &[
+                ("meetings", first),
+                (
+                    "date",
+                    earliest
+                        .with_timezone(&Local)
+                        .format_localized("%x", lokalbot_i18n::date_locale())
+                        .to_string(),
+                ),
+            ],
+        );
     }
     let mut parts = vec![first];
     if let Some(last) = person.last_met() {
-        parts.push(format!(
-            "last met {}",
-            profile::relative_day(last, Local::now())
+        parts.push(lokalbot_i18n::format(
+            "last met {date}",
+            &[("date", profile::relative_day(last, Local::now()))],
         ));
     }
     if person.open_count() > 0 {
-        parts.push(format!("{} open", person.open_count()));
+        parts.push(lokalbot_i18n::format(
+            "{0} open",
+            &[("0", format!("{}", person.open_count()))],
+        ));
     }
     parts.join(" · ")
 }
@@ -1036,7 +1117,7 @@ fn series(meetings: &[MeetingRef]) -> Vec<(String, Vec<MeetingRef>)> {
 
 impl Page for PeoplePage {
     fn title(&self, _cx: &App) -> SharedString {
-        "People".into()
+        lokalbot_i18n::tr("People").into()
     }
 }
 
@@ -1053,9 +1134,9 @@ impl Render for PeoplePage {
                 .text_size(ty::BODY)
                 .text_color(lb.text_secondary)
                 .child(if self.loaded {
-                    "Select a person."
+                    lokalbot_i18n::tr("Select a person.")
                 } else {
-                    "Loading people…"
+                    lokalbot_i18n::tr("Loading people…")
                 })
                 .into_any_element(),
         };

@@ -293,7 +293,13 @@ pub fn compact_duration(seconds: f64) -> String {
 
 /// A time of day in the user's locale style, e.g. "10:57 AM".
 pub fn clock_time(value: DateTime<Utc>) -> String {
-    value.with_timezone(&Local).format("%-I:%M %p").to_string()
+    value
+        .with_timezone(&Local)
+        .format_localized(
+            lokalbot_i18n::date_pattern("%-I:%M %p"),
+            lokalbot_i18n::date_locale(),
+        )
+        .to_string()
 }
 
 #[cfg(test)]

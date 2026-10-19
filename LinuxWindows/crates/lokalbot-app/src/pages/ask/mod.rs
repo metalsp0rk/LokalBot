@@ -15,9 +15,10 @@ use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 use std::time::Duration;
 
-use gpui_kit::component::date_picker::{DatePickerEvent, DatePickerState};
+use crate::i18n::h_flex;
+use gpui_kit::component::calendar::{CalendarEvent, CalendarState, Date};
 use gpui_kit::component::input::{InputEvent, InputState, TextareaState};
-use gpui_kit::component::{h_flex, v_flex};
+use gpui_kit::component::v_flex;
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
     App, AppContext as _, Context, Entity, InteractiveElement as _, IntoElement, KeyBinding,
@@ -110,7 +111,7 @@ pub struct AskPage {
     pending_question: Option<String>,
     /// The "Answer sources" disclosure above the composer.
     sources_expanded: bool,
-    date_picker: Entity<DatePickerState>,
+    date_picker: Entity<CalendarState>,
     picked_day: Option<chrono::NaiveDate>,
     results: Results,
     search_task: Option<Task<()>>,
@@ -140,23 +141,30 @@ impl AskPage {
     pub fn new(window: &mut Window, cx: &mut Context<Self>) -> Self {
         bind_keys(cx);
         let data = AppData::global(cx);
-        let history_input =
-            cx.new(|cx| InputState::new(window, cx).placeholder("Search questions"));
+        let history_input = cx.new(|cx| {
+            InputState::new(window, cx).placeholder(crate::i18n::placeholder(
+                "Search questions",
+                window,
+                cx,
+            ))
+        });
         let composer = cx.new(|cx| {
             TextareaState::new(window, cx)
                 .auto_grow(1, 4)
                 .submit_on_enter(true)
-                .placeholder("Ask your work memory")
+                .placeholder(crate::i18n::placeholder("Ask your work memory", window, cx))
         });
-        let date_picker = cx.new(|cx| DatePickerState::new(window, cx).date_format("%b %-d, %Y"));
+        let date_picker = cx.new(|cx| CalendarState::new(window, cx));
         let subscriptions = vec![
             cx.observe_in(&data, window, Self::on_data_changed),
             cx.subscribe_in(
                 &date_picker,
                 window,
-                |this, _, event: &DatePickerEvent, _, cx| {
-                    let DatePickerEvent::Change(value) = event;
-                    this.picked_day = value.start().map(|start| start.date());
+                |this, _, event: &CalendarEvent, _, cx| {
+                    let CalendarEvent::Selected(Date::Single(day)) = event else {
+                        return;
+                    };
+                    this.picked_day = *day;
                     cx.notify();
                 },
             ),
@@ -304,7 +312,13 @@ impl AskPage {
                 .await;
             if let Err(err) = result {
                 data.update(cx, |data, cx| {
-                    data.show_error(format!("Could not delete the question: {err:#}"), cx)
+                    data.show_error(
+                        lokalbot_i18n::format(
+                            "Could not delete the question: {err}",
+                            &[("err", format!("{:#}", err))],
+                        ),
+                        cx,
+                    )
                 });
                 let _ = this.update(cx, |this, cx| this.reload_conversations(cx));
             }
@@ -642,7 +656,7 @@ impl AskPage {
 
 impl Page for AskPage {
     fn title(&self, _cx: &App) -> SharedString {
-        "Ask".into()
+        lokalbot_i18n::tr("Ask").into()
     }
 }
 

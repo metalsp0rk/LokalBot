@@ -7,11 +7,12 @@ use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash as _, Hasher as _};
 use std::rc::Rc;
 
+use crate::i18n::h_flex;
 use gpui_kit::component::button::{Button, ButtonVariants as _};
 use gpui_kit::component::input::Input;
 use gpui_kit::component::menu::{DropdownMenu as _, PopupMenuItem};
 use gpui_kit::component::spinner::Spinner;
-use gpui_kit::component::{Icon, Sizable as _, h_flex, v_flex};
+use gpui_kit::component::{Icon, Sizable as _, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
     AnyElement, App, Context, Div, FontWeight, Hsla, InteractiveElement as _, IntoElement,
@@ -217,9 +218,15 @@ impl AgentPage {
         let lb = cx.lb().clone();
         let count = self.matches(&snapshot.items).len();
         let label = if count == 0 {
-            "0 matches".to_string()
+            lokalbot_i18n::tr("0 matches").to_string()
         } else {
-            format!("{} of {count}", self.match_index.min(count - 1) + 1)
+            lokalbot_i18n::format(
+                "{0} of {count}",
+                &[
+                    ("0", format!("{}", self.match_index.min(count - 1) + 1)),
+                    ("count", format!("{}", count)),
+                ],
+            )
         };
         h_flex()
             .w_full()
@@ -247,23 +254,34 @@ impl AgentPage {
                             .child(label),
                     )
                     .child(
-                        small_icon_button("agent-find-previous", Ico::ChevronUp, "Previous match")
-                            .on_click(cx.listener(|this, _, _, cx| this.next_match(-1, cx))),
+                        small_icon_button(
+                            "agent-find-previous",
+                            Ico::ChevronUp,
+                            lokalbot_i18n::tr("Previous match"),
+                        )
+                        .on_click(cx.listener(|this, _, _, cx| this.next_match(-1, cx))),
                     )
                     .child(
-                        small_icon_button("agent-find-next", Ico::ChevronDown, "Next match")
-                            .on_click(cx.listener(|this, _, _, cx| this.next_match(1, cx))),
+                        small_icon_button(
+                            "agent-find-next",
+                            Ico::ChevronDown,
+                            lokalbot_i18n::tr("Next match"),
+                        )
+                        .on_click(cx.listener(|this, _, _, cx| this.next_match(1, cx))),
                     )
                     .child(
-                        small_icon_button("agent-find-close", Ico::X, "Close find").on_click(
-                            cx.listener(|this, _, window, cx| {
-                                this.find_visible = false;
-                                this.find_query.clear();
-                                this.find_input
-                                    .update(cx, |state, cx| state.set_value("", window, cx));
-                                cx.notify();
-                            }),
-                        ),
+                        small_icon_button(
+                            "agent-find-close",
+                            Ico::X,
+                            lokalbot_i18n::tr("Close find"),
+                        )
+                        .on_click(cx.listener(|this, _, window, cx| {
+                            this.find_visible = false;
+                            this.find_query.clear();
+                            this.find_input
+                                .update(cx, |state, cx| state.set_value("", window, cx));
+                            cx.notify();
+                        })),
                     ),
             )
     }
@@ -353,7 +371,7 @@ impl AgentPage {
                             .outline()
                             .small()
                             .icon(Icon::new(Ico::ArrowDown))
-                            .label("Jump to latest")
+                            .label(lokalbot_i18n::tr("Jump to latest"))
                             .bg(lb.elevated)
                             .shadow_md()
                             .on_click(cx.listener(|this, _, _, cx| {
@@ -376,7 +394,7 @@ impl AgentPage {
                 Button::new(("agent-starter", index as u64))
                     .outline()
                     .icon(Icon::new(*icon))
-                    .label(*title)
+                    .label(lokalbot_i18n::tr(title))
                     .on_click(cx.listener(move |this, _, window, cx| {
                         let prompt = prompt.clone();
                         this.with_session(cx, |session| session.draft = prompt);
@@ -394,15 +412,17 @@ impl AgentPage {
                     .text_size(px(22.))
                     .font_weight(FontWeight::SEMIBOLD)
                     .text_color(lb.text)
-                    .child("What would you like to work on?"),
+                    .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                        "What would you like to work on?",
+                    ))),
             )
             .child(
                 div()
                     .text_size(ty::BODY)
                     .text_color(lb.text_secondary)
-                    .child(
+                    .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
                         "Start with your work memory or a file. The agent starts when you send.",
-                    ),
+                    ))),
             )
             .child(starters)
     }
@@ -432,7 +452,9 @@ impl AgentPage {
                                     .text_size(ty::SECTION)
                                     .font_weight(FontWeight::SEMIBOLD)
                                     .text_color(lb.text)
-                                    .child("Task needs attention"),
+                                    .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                                        "Task needs attention",
+                                    ))),
                             ),
                     )
                     .child(
@@ -451,7 +473,7 @@ impl AgentPage {
                                         Button::new("agent-open-models")
                                             .outline()
                                             .small()
-                                            .label("Open Models")
+                                            .label(lokalbot_i18n::tr("Open Models"))
                                             .on_click(move |_, _, cx| {
                                                 data.update(cx, |data, cx| {
                                                     data.open_settings(SettingsCategory::Models, cx)
@@ -464,7 +486,7 @@ impl AgentPage {
                                 Button::new("agent-restart")
                                     .outline()
                                     .small()
-                                    .label("Reconnect")
+                                    .label(lokalbot_i18n::tr("Reconnect"))
                                     .on_click(cx.listener(move |this, _, _, cx| {
                                         this.with_tasks(cx, |tasks| {
                                             tasks.start(task);
@@ -476,7 +498,7 @@ impl AgentPage {
                                     Button::new("agent-review-retry")
                                         .outline()
                                         .small()
-                                        .label("Review & retry")
+                                        .label(lokalbot_i18n::tr("Review & retry"))
                                         .on_click(cx.listener(|this, _, window, cx| {
                                             this.with_session(cx, |s| s.review_retry());
                                             this.sync_composer(window, cx);
@@ -542,7 +564,11 @@ impl AgentPage {
                                     .ghost()
                                     .xsmall()
                                     .icon(Icon::new(if copied { Ico::Check } else { Ico::Copy }))
-                                    .label(if copied { "Copied" } else { "Copy" })
+                                    .label(if copied {
+                                        lokalbot_i18n::tr("Copied")
+                                    } else {
+                                        lokalbot_i18n::tr("Copy")
+                                    })
                                     .on_click(cx.listener(move |this, _, _, cx| {
                                         this.copy(copy_key.clone(), text_for_copy.clone(), cx)
                                     })),
@@ -552,14 +578,17 @@ impl AgentPage {
                                     .ghost()
                                     .xsmall()
                                     .icon(Icon::new(Ico::Ellipsis))
-                                    .tooltip("More message actions")
+                                    .tooltip(lokalbot_i18n::tr("More message actions"))
                                     .dropdown_menu(move |menu, _, _| {
                                         let edit = page.clone();
                                         let branch = page.clone();
                                         let item_id = item_id.clone();
                                         let branch_id = branch_id.clone();
-                                        menu.item(PopupMenuItem::new("Edit as follow-up").on_click(
-                                            move |_, window, cx| {
+                                        menu.item(
+                                            PopupMenuItem::new(lokalbot_i18n::tr(
+                                                "Edit as follow-up",
+                                            ))
+                                            .on_click(move |_, window, cx| {
                                                 let item_id = item_id.clone();
                                                 edit.update(cx, |page, cx| {
                                                     page.with_session(cx, |s| {
@@ -568,19 +597,21 @@ impl AgentPage {
                                                     page.sync_composer(window, cx);
                                                     page.focus_composer(window, cx);
                                                 })
-                                            },
-                                        ))
+                                            }),
+                                        )
                                         .item(
-                                            PopupMenuItem::new("Branch from here")
-                                                .disabled(!can_branch)
-                                                .on_click(move |_, _, cx| {
-                                                    let branch_id = branch_id.clone();
-                                                    branch.update(cx, |page, cx| {
-                                                        page.with_tasks(cx, |tasks| {
-                                                            tasks.fork(task, &branch_id)
-                                                        })
+                                            PopupMenuItem::new(lokalbot_i18n::tr(
+                                                "Branch from here",
+                                            ))
+                                            .disabled(!can_branch)
+                                            .on_click(move |_, _, cx| {
+                                                let branch_id = branch_id.clone();
+                                                branch.update(cx, |page, cx| {
+                                                    page.with_tasks(cx, |tasks| {
+                                                        tasks.fork(task, &branch_id)
                                                     })
-                                                }),
+                                                })
+                                            }),
                                         )
                                     }),
                             ),
@@ -641,7 +672,11 @@ impl AgentPage {
                                     .ghost()
                                     .xsmall()
                                     .icon(Icon::new(if copied { Ico::Check } else { Ico::Copy }))
-                                    .label(if copied { "Copied" } else { "Copy" })
+                                    .label(if copied {
+                                        lokalbot_i18n::tr("Copied")
+                                    } else {
+                                        lokalbot_i18n::tr("Copy")
+                                    })
                                     .on_click(cx.listener(move |this, _, _, cx| {
                                         this.copy(copy_key.clone(), text_for_copy.clone(), cx)
                                     })),
@@ -651,7 +686,7 @@ impl AgentPage {
                                     .ghost()
                                     .xsmall()
                                     .icon(Icon::new(Ico::RotateCcw))
-                                    .label("Retry response")
+                                    .label(lokalbot_i18n::tr("Retry response"))
                                     .on_click(cx.listener(move |this, _, window, cx| {
                                         let retry_id = retry_id.clone();
                                         this.with_session(cx, |s| {
@@ -666,19 +701,26 @@ impl AgentPage {
                                     .ghost()
                                     .xsmall()
                                     .icon(Icon::new(Ico::Ellipsis))
-                                    .tooltip("More response actions")
+                                    .tooltip(lokalbot_i18n::tr("More response actions"))
                                     .dropdown_menu(move |menu, _, _| {
                                         let open = page.clone();
                                         let branch = page.clone();
                                         let text = text_for_results.clone();
                                         let more_id = more_id.clone();
                                         let branch_id = more_id.clone();
-                                        menu.item(PopupMenuItem::new("Open in results").on_click(
-                                            move |_, _, cx| {
+                                        menu.item(
+                                            PopupMenuItem::new(lokalbot_i18n::tr(
+                                                "Open in results",
+                                            ))
+                                            .on_click(move |_, _, cx| {
                                                 let preview = ResultPreview {
                                                     id: more_id.clone(),
-                                                    title: "Agent response".into(),
-                                                    detail: "Conversation result".into(),
+                                                    title: lokalbot_i18n::tr("Agent response")
+                                                        .into(),
+                                                    detail: lokalbot_i18n::tr(
+                                                        "Conversation result",
+                                                    )
+                                                    .into(),
                                                     text: text.clone(),
                                                     original: None,
                                                     proposed: None,
@@ -687,19 +729,21 @@ impl AgentPage {
                                                 open.update(cx, |page, cx| {
                                                     page.show_preview(preview, cx)
                                                 })
-                                            },
-                                        ))
+                                            }),
+                                        )
                                         .item(
-                                            PopupMenuItem::new("Branch from here")
-                                                .disabled(!can_branch)
-                                                .on_click(move |_, _, cx| {
-                                                    let branch_id = branch_id.clone();
-                                                    branch.update(cx, |page, cx| {
-                                                        page.with_tasks(cx, |tasks| {
-                                                            tasks.fork(task, &branch_id)
-                                                        })
+                                            PopupMenuItem::new(lokalbot_i18n::tr(
+                                                "Branch from here",
+                                            ))
+                                            .disabled(!can_branch)
+                                            .on_click(move |_, _, cx| {
+                                                let branch_id = branch_id.clone();
+                                                branch.update(cx, |page, cx| {
+                                                    page.with_tasks(cx, |tasks| {
+                                                        tasks.fork(task, &branch_id)
                                                     })
-                                                }),
+                                                })
+                                            }),
                                         )
                                     }),
                             ),
@@ -828,7 +872,7 @@ impl AgentPage {
                     div()
                         .text_size(ty::CAPTION)
                         .text_color(lb.text_secondary)
-                        .child("In progress"),
+                        .child(crate::ui::text::paragraph(lokalbot_i18n::tr("In progress"))),
                 )
             })
             .child(div().flex_1())
@@ -925,7 +969,7 @@ impl AgentPage {
                                 px(10.),
                                 lb.text_secondary,
                             ))
-                            .child("Details")
+                            .child(crate::ui::text::paragraph(lokalbot_i18n::tr("Details")))
                             .on_click(cx.listener(move |this, _, _, cx| {
                                 if !this.expanded_details.remove(&detail_id) {
                                     this.expanded_details.insert(detail_id.clone());
@@ -954,8 +998,11 @@ impl AgentPage {
                     Button::new(SharedString::from(format!("agent-tool-open-{id}")))
                         .ghost()
                         .xsmall()
-                        .label("Open")
-                        .tooltip(format!("Open {name} result"))
+                        .label(lokalbot_i18n::tr("Open"))
+                        .tooltip(lokalbot_i18n::format(
+                            "Open {name} result",
+                            &[("name", format!("{}", name))],
+                        ))
                         .on_click(cx.listener(move |this, _, _, cx| {
                             this.show_preview(preview.clone(), cx)
                         })),
@@ -1048,7 +1095,13 @@ fn source_reference(tail: &str) -> Option<(usize, String)> {
         let replacement = if label.is_empty() || source_marker(label).is_some() {
             marker
         } else {
-            format!("{label} {marker}")
+            lokalbot_i18n::format(
+                "{label} {marker}",
+                &[
+                    ("label", format!("{}", label)),
+                    ("marker", format!("{}", marker)),
+                ],
+            )
         };
         return Some((close + 2 + end + 1, replacement));
     }

@@ -1,12 +1,13 @@
 //! The meeting workspace: header, audio bar, status lines and the Summary,
 //! Notes and Review tabs (the Transcript tab is in `transcript.rs`).
 
+use crate::i18n::h_flex;
 use gpui_kit::component::button::{Button, ButtonVariants as _};
 use gpui_kit::component::input::Textarea;
 use gpui_kit::component::menu::{DropdownMenu as _, PopupMenuItem};
 use gpui_kit::component::scroll::ScrollableElement as _;
 use gpui_kit::component::spinner::Spinner;
-use gpui_kit::component::{Disableable as _, Icon, Sizable as _, h_flex, v_flex};
+use gpui_kit::component::{Disableable as _, Icon, Sizable as _, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
     AnyElement, Context, FontWeight, InteractiveElement as _, IntoElement, ParentElement as _,
@@ -43,7 +44,9 @@ impl MeetingsPage {
                         div()
                             .text_size(ty::BODY)
                             .text_color(cx.lb().text_secondary)
-                            .child("Loading meeting…"),
+                            .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                                "Loading meeting…",
+                            ))),
                     )
                     .into_any_element()
             } else {
@@ -54,8 +57,8 @@ impl MeetingsPage {
                     .justify_center()
                     .child(ui::empty_state(
                         Ico::AudioLines,
-                        "No meeting selected",
-                        "Select a meeting to review its outcomes and evidence.",
+                        lokalbot_i18n::tr("No meeting selected"),
+                        lokalbot_i18n::tr("Select a meeting to review its outcomes and evidence."),
                         cx,
                     ))
                     .into_any_element()
@@ -139,14 +142,21 @@ impl MeetingsPage {
                 .push(chip(Ico::Video, meeting.app_name.clone(), lb.supporting).into_any_element());
         }
         if meeting.has_system_track {
-            chips.push(chip(Ico::Volume2, "Mic + system".into(), lb.supporting).into_any_element());
+            chips.push(
+                chip(
+                    Ico::Volume2,
+                    lokalbot_i18n::tr("Mic + system").into(),
+                    lb.supporting,
+                )
+                .into_any_element(),
+            );
         } else {
             chips.push(
-                chip(Ico::TriangleAlert, "Mic only".into(), lb.attention_text)
+                chip(Ico::TriangleAlert, lokalbot_i18n::tr("Mic only").into(), lb.attention_text)
                     .id("mic-only")
                     .tooltip(|window, cx| {
                         gpui_kit::component::tooltip::Tooltip::new(
-                            "Only your microphone was recorded. Other participants are captured only if your mic picked them up.",
+                            lokalbot_i18n::tr("Only your microphone was recorded. Other participants are captured only if your mic picked them up."),
                         )
                         .build(window, cx)
                     })
@@ -196,15 +206,17 @@ impl MeetingsPage {
                 .child(
                     div()
                         .text_size(ty::SECONDARY)
-                        .child("No recording available"),
+                        .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                            "No recording available",
+                        ))),
                 )
                 .into_any_element();
         }
         if self.player.is_none() {
             let label = if self.player_loading {
-                "Loading recording…"
+                lokalbot_i18n::tr("Loading recording…")
             } else {
-                "No recording available"
+                lokalbot_i18n::tr("No recording available")
             };
             return ui::grouped_surface(cx)
                 .h(px(64.))
@@ -259,8 +271,10 @@ impl MeetingsPage {
                         crate::ui::waveform::play_glyph(px(12.), white()).into_any_element()
                     })
                     .tooltip(|window, cx| {
-                        gpui_kit::component::tooltip::Tooltip::new("Play / pause (Space)")
-                            .build(window, cx)
+                        gpui_kit::component::tooltip::Tooltip::new(lokalbot_i18n::tr(
+                            "Play / pause (Space)",
+                        ))
+                        .build(window, cx)
                     })
                     .on_click(cx.listener(|this, _, _, cx| this.toggle_playback(cx))),
             )
@@ -314,10 +328,13 @@ impl MeetingsPage {
                             );
                         }
                         let target = speed_target.clone();
-                        menu.separator()
-                            .item(PopupMenuItem::new("Reset to 1x").on_click(move |_, _, cx| {
-                                let _ = target.update(cx, |this, cx| this.set_speed(1., cx));
-                            }))
+                        menu.separator().item(
+                            PopupMenuItem::new(lokalbot_i18n::tr("Reset to 1x")).on_click(
+                                move |_, _, cx| {
+                                    let _ = target.update(cx, |this, cx| this.set_speed(1., cx));
+                                },
+                            ),
+                        )
                     }),
             )
             .into_any_element()
@@ -338,9 +355,9 @@ impl MeetingsPage {
                 _ => (Ico::Sparkles, lb.text_secondary),
             };
             let button = match &stage {
-                ProcessingStage::Failed(_) => Some(("Retry", "status-retry")),
+                ProcessingStage::Failed(_) => Some((lokalbot_i18n::tr("Retry"), "status-retry")),
                 ProcessingStage::WaitingForModels => {
-                    Some(("Download & process", "status-download"))
+                    Some((lokalbot_i18n::tr("Download & process"), "status-download"))
                 }
                 _ => None,
             };
@@ -378,16 +395,20 @@ impl MeetingsPage {
                 div()
                     .text_size(ty::BODY)
                     .text_color(lb.text_secondary)
-                    .child("No speech detected. Saved audio remains available for playback and export.")
+                    .child(crate::ui::text::paragraph(lokalbot_i18n::tr("No speech detected. Saved audio remains available for playback and export.")))
                     .into_any_element(),
             );
         }
         let unnamed = doc.unnamed_remote;
         if self.tab == MeetingTab::Summary && unnamed > 0 {
             let text = if unnamed == 1 {
-                "1 speaker needs a name. Review action-linked voices first.".to_string()
+                lokalbot_i18n::tr("1 speaker needs a name. Review action-linked voices first.")
+                    .to_string()
             } else {
-                format!("{unnamed} speakers need names. Review action-linked voices first.")
+                lokalbot_i18n::format(
+                    "{unnamed} speakers need names. Review action-linked voices first.",
+                    &[("unnamed", format!("{}", unnamed))],
+                )
             };
             out.push(
                 ui::status_surface(lb.attention, cx)
@@ -409,7 +430,7 @@ impl MeetingsPage {
                         Button::new("review-speakers")
                             .outline()
                             .small()
-                            .label("Review Speakers…")
+                            .label(lokalbot_i18n::tr("Review Speakers…"))
                             .on_click(
                                 cx.listener(|this, _, _, cx| this.set_tab(MeetingTab::Review, cx)),
                             ),
@@ -442,9 +463,12 @@ impl MeetingsPage {
             });
             let toggle = (total > 5).then(|| {
                 let label = if self.recap_expanded {
-                    "Show Less".to_string()
+                    lokalbot_i18n::tr("Show Less").to_string()
                 } else {
-                    format!("Show {} More Points", total - 5)
+                    lokalbot_i18n::format(
+                        "Show {0} More Points",
+                        &[("0", format!("{}", total - 5))],
+                    )
                 };
                 div()
                     .id("recap-more")
@@ -461,7 +485,7 @@ impl MeetingsPage {
                     .into_any_element()
             });
             sections.push(card(
-                "Recap",
+                lokalbot_i18n::tr("Recap"),
                 v_flex().gap(px(10.)).children(points).children(toggle),
                 cx,
             ));
@@ -474,7 +498,7 @@ impl MeetingsPage {
         });
         if has_outcomes {
             let decisions: AnyElement = if doc.decisions.is_empty() {
-                empty_row("No cited decisions were extracted.", cx)
+                empty_row(lokalbot_i18n::tr("No cited decisions were extracted."), cx)
             } else {
                 v_flex()
                     .gap(px(12.))
@@ -515,7 +539,7 @@ impl MeetingsPage {
                     }))
                     .into_any_element()
             };
-            sections.push(card("Decisions", decisions, cx));
+            sections.push(card(lokalbot_i18n::tr("Decisions"), decisions, cx));
             if !doc.questions.is_empty() {
                 let rows = doc.questions.iter().map(|question| {
                     h_flex()
@@ -538,7 +562,7 @@ impl MeetingsPage {
                         .into_any_element()
                 });
                 sections.push(card(
-                    "Open Questions",
+                    lokalbot_i18n::tr("Open Questions"),
                     v_flex().gap(px(10.)).children(rows),
                     cx,
                 ));
@@ -558,7 +582,10 @@ impl MeetingsPage {
     ) -> AnyElement {
         let lb = cx.lb().clone();
         let content: AnyElement = if doc.actions.is_empty() {
-            empty_row("No action items were extracted from this meeting.", cx)
+            empty_row(
+                lokalbot_i18n::tr("No action items were extracted from this meeting."),
+                cx,
+            )
         } else {
             let count = doc.actions.len();
             v_flex()
@@ -573,7 +600,7 @@ impl MeetingsPage {
                 }))
                 .into_any_element()
         };
-        card("Action Items", content, cx)
+        card(lokalbot_i18n::tr("Action Items"), content, cx)
     }
 
     fn render_action(
@@ -613,7 +640,7 @@ impl MeetingsPage {
         let owner_text = action
             .owner_label
             .clone()
-            .unwrap_or_else(|| "Owner unclear".into());
+            .unwrap_or_else(|| lokalbot_i18n::tr("Owner unclear").into());
         let owner_color = if action.owner_label.is_some() {
             lb.text_secondary
         } else {
@@ -680,7 +707,7 @@ impl MeetingsPage {
                 let page = menu_page.clone();
                 let id = menu_action.id.clone();
                 menu = menu.item(
-                    PopupMenuItem::new(option.label())
+                    PopupMenuItem::new(lokalbot_i18n::tr(option.label()))
                         .checked(option == status)
                         .on_click(move |_, _, cx| {
                             let id = id.clone();
@@ -691,14 +718,15 @@ impl MeetingsPage {
             }
             let page = menu_page.clone();
             let action = menu_action.clone();
-            menu.separator()
-                .item(PopupMenuItem::new("Correct owner or due date").on_click(
+            menu.separator().item(
+                PopupMenuItem::new(lokalbot_i18n::tr("Correct owner or due date")).on_click(
                     move |_, window, cx| {
                         let action = action.clone();
                         let _ =
                             page.update(cx, |this, cx| this.open_correction(action, window, cx));
                     },
-                ))
+                ),
+            )
         });
         let _ = doc;
         action_row::action_row(toggle, action.text.clone(), done, meta, None, menu, cx)
@@ -741,7 +769,9 @@ impl MeetingsPage {
                 px(14.),
                 lb.text_secondary,
             ))
-            .child("Show Full Notes")
+            .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                "Show Full Notes",
+            )))
             .on_click(cx.listener(|this, _, _, cx| {
                 this.full_notes_expanded = !this.full_notes_expanded;
                 cx.notify();
@@ -751,7 +781,7 @@ impl MeetingsPage {
         }
         let notes = self.notes.saved.trim().to_string();
         let body: AnyElement = if notes.is_empty() && !doc.has_summary() {
-            empty_row("No summary yet.", cx)
+            empty_row(lokalbot_i18n::tr("No summary yet."), cx)
         } else {
             v_flex()
                 .max_w(metric::READING_MAX_WIDTH)
@@ -771,7 +801,9 @@ impl MeetingsPage {
                                     .font_weight(FontWeight::SEMIBOLD)
                                     .text_color(lb.text_secondary)
                                     .child(ui::icon(Ico::SquarePen, px(14.), lb.text_secondary))
-                                    .child("Your notes"),
+                                    .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                                        "Your notes",
+                                    ))),
                             )
                             .child(
                                 div()
@@ -805,7 +837,7 @@ impl MeetingsPage {
         v_flex()
             .gap(px(12.))
             .child(disclosure)
-            .child(card("Summary", body, cx))
+            .child(card(lokalbot_i18n::tr("Summary"), body, cx))
             .into_any_element()
     }
 
@@ -825,7 +857,7 @@ impl MeetingsPage {
                             .text_size(ty::SECTION)
                             .font_weight(FontWeight::BOLD)
                             .text_color(lb.text)
-                            .child("Your notes"),
+                            .child(crate::ui::text::paragraph(lokalbot_i18n::tr("Your notes"))),
                     )
                     .child(
                         div()
@@ -859,7 +891,7 @@ impl MeetingsPage {
                             Button::new("notes-retry")
                                 .outline()
                                 .small()
-                                .label("Retry saving")
+                                .label(lokalbot_i18n::tr("Retry saving"))
                                 .on_click(cx.listener(|this, _, _, cx| this.save_notes(false, cx))),
                         ),
                     )
@@ -890,7 +922,9 @@ impl MeetingsPage {
                 div()
                     .text_size(ty::BODY)
                     .text_color(lb.text_secondary)
-                    .child("No transcript speakers are available yet.")
+                    .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                        "No transcript speakers are available yet.",
+                    )))
                     .into_any_element(),
             );
         }
@@ -925,11 +959,7 @@ impl MeetingsPage {
                                 )
                                 .child(div().text_size(ty::SECONDARY).text_color(lb.text_secondary).child(speaker.status()))
                                 .when(speaker.action_count > 0, |this| {
-                                    this.child(div().text_size(ty::SECONDARY).text_color(lb.text_secondary).child(format!(
-                                        "Linked to {} action{}",
-                                        speaker.action_count,
-                                        if speaker.action_count == 1 { "" } else { "s" }
-                                    )))
+                                    this.child(div().text_size(ty::SECONDARY).text_color(lb.text_secondary).child(crate::ui::text::paragraph(lokalbot_i18n::format("Linked actions: {count}", &[("count", speaker.action_count.to_string())]))))
                                 }),
                         )
                         .child(
@@ -942,7 +972,7 @@ impl MeetingsPage {
                                             .outline()
                                             .small()
                                             .icon(Icon::new(Ico::Play))
-                                            .label("Listen")
+                                            .label(lokalbot_i18n::tr("Listen"))
                                             .disabled(self.player.is_none())
                                             .on_click({
                                                 let sample = speaker.sample.as_ref().map(|(start, _)| *start).unwrap_or(0.);
@@ -954,7 +984,7 @@ impl MeetingsPage {
                                     Button::new(("speaker-name", ix))
                                         .outline()
                                         .small()
-                                        .label(if named { "Review Name…" } else { "Name Speaker…" })
+                                        .label(if named { lokalbot_i18n::tr("Review Name…") } else { lokalbot_i18n::tr("Name Speaker…") })
                                         .on_click(move |_, window, cx| {
                                             let speaker = review_speaker.clone();
                                             let _ = page.update(cx, |this, cx| this.open_name_speaker(speaker, window, cx));
@@ -972,7 +1002,7 @@ impl MeetingsPage {
                     None => div()
                         .text_size(ty::BODY)
                         .text_color(lb.text_secondary)
-                        .child("No clear voice excerpt available. Review the transcript before assigning a name.")
+                        .child(crate::ui::text::paragraph(lokalbot_i18n::tr("No clear voice excerpt available. Review the transcript before assigning a name.")))
                         .into_any_element(),
                 });
             if ix > 0 {
@@ -982,9 +1012,9 @@ impl MeetingsPage {
         }
         if total > 5 {
             let label = if self.speakers_expanded {
-                "Show Fewer Speakers".to_string()
+                lokalbot_i18n::tr("Show Fewer Speakers").to_string()
             } else {
-                format!("Show {} More Speakers", total - 5)
+                lokalbot_i18n::format("Show {0} More Speakers", &[("0", format!("{}", total - 5))])
             };
             speaker_rows.push(
                 ui::link(
@@ -1016,11 +1046,11 @@ impl MeetingsPage {
         let has_summary = doc.has_summary();
         let (freshness, freshness_icon) = if has_summary {
             (
-                "Notes use the latest saved speaker details",
+                lokalbot_i18n::tr("Notes use the latest saved speaker details"),
                 Ico::CircleCheck,
             )
         } else {
-            ("No derived notes yet", Ico::FileText)
+            (lokalbot_i18n::tr("No derived notes yet"), Ico::FileText)
         };
         let refresh = v_flex()
             .gap(px(8.))
@@ -1034,9 +1064,7 @@ impl MeetingsPage {
                     .child(ui::icon(freshness_icon, px(15.), lb.text_secondary))
                     .child(freshness),
             )
-            .child(div().text_size(ty::BODY).text_color(lb.text_secondary).child(
-                "Refresh the summary and extracted owners after reviewing speakers. Saved action corrections stay separate; unmatched edits remain available for review.",
-            ))
+            .child(div().text_size(ty::BODY).text_color(lb.text_secondary).child(crate::ui::text::paragraph(lokalbot_i18n::tr("Refresh the summary and extracted owners after reviewing speakers. Saved action corrections stay separate; unmatched edits remain available for review."))))
             .child(
                 h_flex()
                     .gap(px(6.))
@@ -1045,16 +1073,16 @@ impl MeetingsPage {
                     .text_color(lb.text_secondary)
                     .child(ui::icon(Ico::ShieldCheck, px(14.), lb.accent_text))
                     .child(if think_local {
-                        "Refreshing processes the transcript on this PC."
+                        lokalbot_i18n::tr("Refreshing processes the transcript on this PC.")
                     } else {
-                        "Refreshing sends the transcript and confirmed names to your approved model server."
+                        lokalbot_i18n::tr("Refreshing sends the transcript and confirmed names to your approved model server.")
                     }),
             )
             .child(
                 h_flex().pt(px(4.)).child(
                     Button::new("refresh-notes")
                         .primary()
-                        .label(if processing { "Processing…" } else { "Refresh Notes and Owners" })
+                        .label(if processing { lokalbot_i18n::tr("Processing…") } else { lokalbot_i18n::tr("Refresh Notes and Owners") })
                         .disabled(processing || !doc.has_transcript())
                         .on_click(cx.listener(|this, _, _, cx| this.process(false, true, cx))),
                 ),
@@ -1062,7 +1090,7 @@ impl MeetingsPage {
 
         v_flex()
             .gap(metric::SECTION_SPACING)
-            .child(card("Review Speakers", v_flex().gap(px(8.)).children(speaker_rows), cx))
+            .child(card(lokalbot_i18n::tr("Review Speakers"), v_flex().gap(px(8.)).children(speaker_rows), cx))
             .child(
                 v_flex()
                     .gap(px(8.))
@@ -1074,14 +1102,12 @@ impl MeetingsPage {
                             .font_weight(FontWeight::BOLD)
                             .text_color(lb.text)
                             .child(ui::icon(Ico::UserRoundCheck, px(16.), lb.accent_text))
-                            .child("2. Review action owners"),
+                            .child(crate::ui::text::paragraph(lokalbot_i18n::tr("2. Review action owners"))),
                     )
-                    .child(div().text_size(ty::BODY).text_color(lb.text_secondary).child(
-                        "All actions from this meeting. Only yours appear in My actions. Choose an owner to correct it, or a timestamp to check the source.",
-                    ))
+                    .child(div().text_size(ty::BODY).text_color(lb.text_secondary).child(crate::ui::text::paragraph(lokalbot_i18n::tr("All actions from this meeting. Only yours appear in My actions. Choose an owner to correct it, or a timestamp to check the source."))))
                     .child(self.render_action_items(doc, cx)),
             )
-            .child(card("Refresh Notes", refresh, cx))
+            .child(card(lokalbot_i18n::tr("Refresh Notes"), refresh, cx))
             .into_any_element()
     }
 
@@ -1120,13 +1146,13 @@ fn speed_label(speed: f32) -> String {
 
 fn stage_label(stage: &ProcessingStage) -> String {
     match stage {
-        ProcessingStage::Queued => "Queued…".into(),
-        ProcessingStage::WaitingForModels => "Waiting for models — the recording is saved. Download the selected models in Settings → Models, or use Download & process to fetch them now.".into(),
-        ProcessingStage::PreparingModel(name) => format!("Preparing {name}…"),
-        ProcessingStage::Transcribing => "Transcribing…".into(),
-        ProcessingStage::IdentifyingSpeakers => "Identifying speakers…".into(),
-        ProcessingStage::Summarizing => "Summarizing…".into(),
-        ProcessingStage::Failed(reason) => format!("Failed: {reason}"),
+        ProcessingStage::Queued => lokalbot_i18n::tr("Queued…").into(),
+        ProcessingStage::WaitingForModels => lokalbot_i18n::tr("Waiting for models — the recording is saved. Download the selected models in Settings → Models, or use Download & process to fetch them now.").into(),
+        ProcessingStage::PreparingModel(name) => lokalbot_i18n::format("Preparing {name}…", &[("name", format!("{}", name))]),
+        ProcessingStage::Transcribing => lokalbot_i18n::tr("Transcribing…").into(),
+        ProcessingStage::IdentifyingSpeakers => lokalbot_i18n::tr("Identifying speakers…").into(),
+        ProcessingStage::Summarizing => lokalbot_i18n::tr("Summarizing…").into(),
+        ProcessingStage::Failed(reason) => lokalbot_i18n::format("Failed: {reason}", &[("reason", format!("{}", reason))]),
     }
 }
 

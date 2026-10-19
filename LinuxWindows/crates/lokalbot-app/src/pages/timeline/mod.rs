@@ -11,13 +11,14 @@ use std::collections::HashSet;
 use std::rc::Rc;
 use std::sync::Arc;
 
+use crate::i18n::h_flex;
 use chrono::{Days, Local, NaiveDate};
 use gpui_kit::component::button::Button;
 use gpui_kit::component::calendar::{Calendar, CalendarEvent, CalendarState, Date, Matcher};
 use gpui_kit::component::input::InputState;
 use gpui_kit::component::popover::Popover;
 use gpui_kit::component::scroll::ScrollableElement as _;
-use gpui_kit::component::{Disableable as _, Icon, h_flex, v_flex};
+use gpui_kit::component::{Disableable as _, Icon, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
     AnyElement, App, AppContext as _, Bounds, Context, Entity, FontWeight, Hsla,
@@ -110,8 +111,13 @@ impl TimelinePage {
                 this.set_day(*day, cx);
             }),
         ];
-        let moment_note =
-            cx.new(|cx| InputState::new(window, cx).placeholder("Why does this moment matter?"));
+        let moment_note = cx.new(|cx| {
+            InputState::new(window, cx).placeholder(crate::i18n::placeholder(
+                "Why does this moment matter?",
+                window,
+                cx,
+            ))
+        });
         let mut this = Self {
             data,
             day: today,
@@ -276,7 +282,13 @@ impl TimelinePage {
         let today = Local::now().date_naive();
         let is_today = self.day >= today;
         let compact = self.page_width() < px(1000.);
-        let day_label = self.day.format("%a, %b %-d").to_string();
+        let day_label = self
+            .day
+            .format_localized(
+                lokalbot_i18n::date_pattern("%a, %b %-d"),
+                lokalbot_i18n::date_locale(),
+            )
+            .to_string();
         let calendar = self.calendar.clone();
         let page = cx.entity().downgrade();
         let date_button = Popover::new("timeline-calendar")
@@ -292,7 +304,11 @@ impl TimelinePage {
                 Ico::Calendar,
                 day_label,
             ))
-            .content(move |_, _, _| div().p(px(4.)).child(Calendar::new(&calendar)));
+            .content(move |_, _, _| {
+                div().p(px(4.)).child(
+                    Calendar::new(&calendar).first_day_of_week(lokalbot_i18n::first_weekday()),
+                )
+            });
         let controls = h_flex()
             .gap(px(7.))
             .items_center()
@@ -300,7 +316,7 @@ impl TimelinePage {
                 Button::new("timeline-previous")
                     .outline()
                     .icon(Icon::new(Ico::ChevronLeft))
-                    .tooltip("Previous day")
+                    .tooltip(lokalbot_i18n::tr("Previous day"))
                     .on_click(cx.listener(|this, _, _, cx| {
                         let day = this.day - Days::new(1);
                         this.set_day(day, cx)
@@ -308,7 +324,7 @@ impl TimelinePage {
             )
             .child(date_button)
             .child(
-                ui::controls::bordered("timeline-today", "Today")
+                ui::controls::bordered("timeline-today", lokalbot_i18n::tr("Today"))
                     .disabled(is_today)
                     .on_click(
                         cx.listener(|this, _, _, cx| this.set_day(Local::now().date_naive(), cx)),
@@ -318,7 +334,7 @@ impl TimelinePage {
                 Button::new("timeline-next")
                     .outline()
                     .icon(Icon::new(Ico::ChevronRight))
-                    .tooltip("Next day")
+                    .tooltip(lokalbot_i18n::tr("Next day"))
                     .disabled(is_today)
                     .on_click(cx.listener(|this, _, _, cx| {
                         let day = this.day + Days::new(1);
@@ -377,7 +393,7 @@ impl TimelinePage {
                 .text_size(ty::SECTION)
                 .font_weight(FontWeight::BOLD)
                 .text_color(lb.text)
-                .child("Day Digest"),
+                .child(crate::ui::text::paragraph(lokalbot_i18n::tr("Day Digest"))),
         );
         let digest_panel = digest_panel.child(digest::digest_card(
             model.digest.as_ref(),
@@ -404,12 +420,18 @@ impl TimelinePage {
             });
             let data = self.data.clone();
             ui::section(
-                "Needs Attention",
-                v_flex().children(rows).child(h_flex().pt(px(8.)).child(
-                    ui::controls::bordered("timeline-review-actions", "Review Actions…").on_click(
-                        move |_, _, cx| data.update(cx, |data, cx| data.open_actions(cx)),
+                lokalbot_i18n::tr("Needs Attention"),
+                v_flex().children(rows).child(
+                    h_flex().pt(px(8.)).child(
+                        ui::controls::bordered(
+                            "timeline-review-actions",
+                            lokalbot_i18n::tr("Review Actions…"),
+                        )
+                        .on_click(move |_, _, cx| {
+                            data.update(cx, |data, cx| data.open_actions(cx))
+                        }),
                     ),
-                )),
+                ),
                 cx,
             )
         });
@@ -442,11 +464,13 @@ impl TimelinePage {
         let sessions_block: AnyElement = if nothing {
             ui::empty_state(
                 Ico::Clock,
-                "No activity recorded",
+                lokalbot_i18n::tr("No activity recorded"),
                 if tracking {
-                    "Blocks appear as you use your PC (sampled every 5 s, idle-aware)."
+                    lokalbot_i18n::tr(
+                        "Blocks appear as you use your PC (sampled every 5 s, idle-aware).",
+                    )
                 } else {
-                    "Day tracking is off — enable it in Settings."
+                    lokalbot_i18n::tr("Day tracking is off — enable it in Settings.")
                 },
                 cx,
             )
@@ -459,12 +483,12 @@ impl TimelinePage {
                 .collect();
             v_flex()
                 .gap(px(10.))
-                .child(div().text_size(ty::SECTION).font_weight(FontWeight::BOLD).text_color(lb.text).child("Work Sessions"))
+                .child(div().text_size(ty::SECTION).font_weight(FontWeight::BOLD).text_color(lb.text).child(crate::ui::text::paragraph(lokalbot_i18n::tr("Work Sessions"))))
                 .when(rows.is_empty(), |this| {
                     this.child(ui::empty_state(
                         Ico::Layers,
-                        "No meaningful sessions",
-                        "Only system activity or raw context was captured. You can still inspect it below.",
+                        lokalbot_i18n::tr("No meaningful sessions"),
+                        lokalbot_i18n::tr("Only system activity or raw context was captured. You can still inspect it below."),
                         cx,
                     ))
                 })
@@ -476,7 +500,7 @@ impl TimelinePage {
             .gap(metric::SECTION_SPACING)
             .when(!nothing, |this| {
                 this.child(digest::day_overview(
-                    "Day Overview",
+                    lokalbot_i18n::tr("Day Overview"),
                     &model.activity,
                     true,
                     true,
@@ -524,7 +548,9 @@ impl TimelinePage {
                             .text_size(ty::BODY)
                             .font_weight(FontWeight::MEDIUM)
                             .text_color(lb.text)
-                            .child("Browse Raw Capture"),
+                            .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                                "Browse Raw Capture",
+                            ))),
                     )
                     .child(
                         div()
@@ -574,16 +600,22 @@ impl TimelinePage {
             let visible: Vec<&str> = session.apps.iter().take(3).map(String::as_str).collect();
             let rest = session.apps.len().saturating_sub(3);
             if rest > 0 {
-                format!("{} · +{rest}", visible.join(" · "))
+                lokalbot_i18n::format(
+                    "{0} · +{rest}",
+                    &[
+                        ("0", format!("{}", visible.join(" · "))),
+                        ("rest", format!("{}", rest)),
+                    ],
+                )
             } else {
                 visible.join(" · ")
             }
         };
         let detail = if meeting.is_some() {
             if live {
-                "Meeting · Recording".to_string()
+                lokalbot_i18n::tr("Meeting · Recording").to_string()
             } else {
-                "Meeting".to_string()
+                lokalbot_i18n::tr("Meeting").to_string()
             }
         } else {
             apps
@@ -715,7 +747,7 @@ impl TimelinePage {
 
 impl Page for TimelinePage {
     fn title(&self, _cx: &App) -> SharedString {
-        "Timeline".into()
+        lokalbot_i18n::tr("Timeline").into()
     }
 
     fn toolbar(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> Option<AnyElement> {
@@ -738,7 +770,9 @@ impl Page for TimelinePage {
                         ui::controls::toolbar_icon(
                             "timeline-capture",
                             Ico::Camera,
-                            "Capture Screen Now: captures the next window you switch to",
+                            lokalbot_i18n::tr(
+                                "Capture Screen Now: captures the next window you switch to",
+                            ),
                         )
                         .on_click(move |_, _, cx| {
                             capture_data
@@ -751,9 +785,9 @@ impl Page for TimelinePage {
                         "timeline-pause",
                         if paused { Ico::Play } else { Ico::Pause },
                         if paused {
-                            "Resume day memory"
+                            lokalbot_i18n::tr("Resume day memory")
                         } else {
-                            "Pause day memory"
+                            lokalbot_i18n::tr("Pause day memory")
                         },
                     )
                     .on_click(move |_, _, cx| {
@@ -766,7 +800,7 @@ impl Page for TimelinePage {
                     ui::controls::toolbar_icon(
                         "timeline-refresh",
                         Ico::RefreshCw,
-                        "Reload the selected day's local activity",
+                        lokalbot_i18n::tr("Reload the selected day's local activity"),
                     )
                     .on_click(cx.listener(|this, _, _, cx| this.reload(cx))),
                 )

@@ -433,6 +433,7 @@ pub fn render(
         );
         let element = match block {
             Block::Paragraph(inline) => div()
+                .text_align(crate::i18n::content_alignment(&inline.text))
                 .w_full()
                 .text_size(style.size)
                 .line_height(style.line_height)
@@ -445,6 +446,7 @@ pub fn render(
                     _ => style.size + px(1.),
                 };
                 div()
+                    .text_align(crate::i18n::content_alignment(&inline.text))
                     .w_full()
                     .pt(px(4.))
                     .text_size(size)
@@ -458,6 +460,7 @@ pub fn render(
                 depth,
                 inline,
             } => h_flex()
+                .text_align(crate::i18n::content_alignment(&inline.text))
                 .w_full()
                 .items_start()
                 .pl(px(*depth as f32 * 18.))
@@ -480,6 +483,7 @@ pub fn render(
                     cx,
                 ))),
             Block::Quote(inline) => div()
+                .text_align(crate::i18n::content_alignment(&inline.text))
                 .w_full()
                 .pl(px(12.))
                 .border_l_2()
@@ -489,6 +493,7 @@ pub fn render(
                 .text_color(lb.text_secondary)
                 .child(styled(block_id, inline, &answer.links, on_cite.clone(), cx)),
             Block::Code(code) => div()
+                .text_align(gpui_kit::TextAlign::Left)
                 .w_full()
                 .p(px(10.))
                 .rounded(px(8.))
