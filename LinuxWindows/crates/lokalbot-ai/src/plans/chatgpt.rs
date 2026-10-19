@@ -548,6 +548,89 @@ impl Store for MemoryStore {
     }
 }
 
+/// Splits long values across several items, for stores with a small item
+/// size: Windows Credential Manager keeps at most 1,280 characters, less than
+/// one session's tokens. The first item names how many parts follow.
+pub struct Chunked<S> {
+    inner: S,
+    chunk_chars: usize,
+}
+
+const CHUNK_HEADER: &str = "lokalbot-chunks:";
+
+impl<S> Chunked<S> {
+    pub fn new(inner: S) -> Self {
+        Self {
+            inner,
+            chunk_chars: 1_000,
+        }
+    }
+
+    fn part(account: &str, index: usize) -> String {
+        format!("{account}.{index}")
+    }
+}
+
+impl<S: Store> Chunked<S> {
+    fn parts(&self, account: &str) -> Result<usize> {
+        Ok(self
+            .inner
+            .get(account)?
+            .and_then(|head| head.strip_prefix(CHUNK_HEADER)?.parse().ok())
+            .unwrap_or(0))
+    }
+}
+
+impl<S: Store> Store for Chunked<S> {
+    fn get(&self, account: &str) -> Result<Option<String>> {
+        let Some(head) = self.inner.get(account)? else {
+            return Ok(None);
+        };
+        let Some(count) = head
+            .strip_prefix(CHUNK_HEADER)
+            .and_then(|n| n.parse::<usize>().ok())
+        else {
+            return Ok(Some(head));
+        };
+        let mut value = String::new();
+        for index in 1..=count {
+            match self.inner.get(&Self::part(account, index))? {
+                Some(part) => value.push_str(&part),
+                // An interrupted write: as good as nothing stored.
+                None => return Ok(None),
+            }
+        }
+        Ok(Some(value))
+    }
+
+    fn set(&self, account: &str, value: Option<&str>) -> Result<()> {
+        let previous = self.parts(account)?;
+        let written = match value {
+            Some(value) if value.chars().count() > self.chunk_chars => {
+                let characters: Vec<char> = value.chars().collect();
+                let parts: Vec<String> = characters
+                    .chunks(self.chunk_chars)
+                    .map(|chunk| chunk.iter().collect())
+                    .collect();
+                for (index, part) in parts.iter().enumerate() {
+                    self.inner.set(&Self::part(account, index + 1), Some(part))?;
+                }
+                self.inner
+                    .set(account, Some(&format!("{CHUNK_HEADER}{}", parts.len())))?;
+                parts.len()
+            }
+            other => {
+                self.inner.set(account, other)?;
+                0
+            }
+        };
+        for index in written + 1..=previous {
+            self.inner.set(&Self::part(account, index), None)?;
+        }
+        Ok(())
+    }
+}
+
 /// This PC's registration with OpenAI. It survives sign-out so the next
 /// sign-in reuses the issued client id instead of registering again.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

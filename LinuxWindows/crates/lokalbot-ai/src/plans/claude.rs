@@ -183,9 +183,15 @@ impl Launch {
             })
             .map(|relative| folder.join(relative.replace('\\', "/")))
             .find(|path| {
-                path.extension().is_some_and(|ext| {
-                    ext.eq_ignore_ascii_case("js") || ext.eq_ignore_ascii_case("exe")
-                }) && path.is_file()
+                // The shim also names the `node.exe` it may run the script with.
+                let is_node = path
+                    .file_stem()
+                    .is_some_and(|stem| stem.eq_ignore_ascii_case("node"));
+                !is_node
+                    && path.extension().is_some_and(|ext| {
+                        ext.eq_ignore_ascii_case("js") || ext.eq_ignore_ascii_case("exe")
+                    })
+                    && path.is_file()
             })?;
         if target
             .extension()

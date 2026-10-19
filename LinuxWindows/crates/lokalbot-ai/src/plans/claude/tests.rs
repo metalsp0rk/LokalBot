@@ -137,10 +137,22 @@ fn npm_shims_resolve_to_their_script() {
     assert_eq!(launch.prefix, vec![script.clone().into_os_string()]);
     assert_eq!(launch.folder, dir.path());
     std::fs::write(dir.path().join("node.exe"), "").unwrap();
-    assert_eq!(
-        Launch::for_executable(&shim).program,
-        dir.path().join("node.exe")
-    );
+    let bundled = Launch::for_executable(&shim);
+    assert_eq!(bundled.program, dir.path().join("node.exe"));
+    assert_eq!(bundled.prefix, vec![script.clone().into_os_string()]);
+    // A package that ships a native binary behind the shim.
+    let native_target = dir.path().join("node_modules/@anthropic-ai/claude-code/bin/claude.exe");
+    std::fs::create_dir_all(native_target.parent().unwrap()).unwrap();
+    std::fs::write(&native_target, "").unwrap();
+    let native_shim = dir.path().join("claude-native.cmd");
+    std::fs::write(
+        &native_shim,
+        "@ECHO off\r\n\"%dp0%\\node_modules\\@anthropic-ai\\claude-code\\bin\\claude.exe\"   %*\r\n",
+    )
+    .unwrap();
+    let launch = Launch::for_executable(&native_shim);
+    assert_eq!(launch.program, native_target);
+    assert!(launch.prefix.is_empty());
     // A native install runs as it is.
     let native = dir.path().join("claude");
     assert_eq!(Launch::for_executable(&native).program, native);

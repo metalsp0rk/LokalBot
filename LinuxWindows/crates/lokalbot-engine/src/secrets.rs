@@ -61,8 +61,12 @@ impl lokalbot_ai::plans::chatgpt::Store for PlanStore {
 }
 
 /// Lets Think and Settings keep the ChatGPT plan in the credential store.
+/// Tokens are split across items: Credential Manager keeps at most 1,280
+/// characters in one.
 pub fn install_plan_store() {
-    lokalbot_ai::plans::chatgpt::install_store(std::sync::Arc::new(PlanStore));
+    lokalbot_ai::plans::chatgpt::install_store(std::sync::Arc::new(
+        lokalbot_ai::plans::chatgpt::Chunked::new(PlanStore),
+    ));
 }
 
 const SCREENSHOT_KEY: &str = "screenshot-key";
