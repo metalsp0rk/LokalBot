@@ -78,9 +78,21 @@ impl ToolCall {
         self.string(key).and_then(|v| v.parse().ok())
     }
 
-    /// One canonical call back into the running transcript.
+    /// One canonical call back into the running transcript, written out by
+    /// hand like macOS so key order never depends on serde_json's
+    /// `preserve_order` feature (which GPUI turns on).
     pub fn json(&self) -> String {
-        json!({"tool": self.name, "arguments": self.arguments}).to_string()
+        let encode = |text: &str| Value::from(text).to_string();
+        let pairs: Vec<String> = self
+            .arguments
+            .iter()
+            .map(|(key, value)| format!("{}: {}", encode(key), encode(value)))
+            .collect();
+        format!(
+            "{{\"tool\": {}, \"arguments\": {{{}}}}}",
+            encode(&self.name),
+            pairs.join(", ")
+        )
     }
 }
 
@@ -1925,7 +1937,7 @@ mod tests {
         assert!(prompts[0].starts_with("User: What does Northwind need before rollout?"));
         assert!(
             prompts[1].contains(
-                r#"Assistant: {"arguments":{"query":"SSO rollout"},"tool":"search_meetings"}"#
+                r#"Assistant: {"tool": "search_meetings", "arguments": {"query": "SSO rollout"}}"#
             ),
             "{}",
             prompts[1]

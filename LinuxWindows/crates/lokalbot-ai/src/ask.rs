@@ -453,6 +453,36 @@ static LABEL: LazyLock<Regex> = LazyLock::new(|| {
 
 /// Small models often cite a source by its label ("[M1]", "[M1@00:00:43]")
 /// rather than its marker; turns labels into the markers they stand for.
+/// `[meetings:A, B]` or `[meeting:A; B@00:01:10]`: several meetings in one
+/// marker, which small models write despite the prompt.
+static GROUPED: LazyLock<Regex> = LazyLock::new(|| {
+    let one = r"(?:meeting:)?[A-Za-z0-9_-]{1,64}(?:@\d{1,2}(?::\d{2}){1,2})?";
+    Regex::new(&format!(
+        r"\[meetings?:\s*({one}(?:\s*[,;]\s*{one})+|{one})\]"
+    ))
+    .expect("valid regex")
+});
+
+/// Splits grouped meeting markers into one `[meeting:…]` per meeting, so each
+/// is verified on its own.
+fn split_grouped(text: &str) -> String {
+    GROUPED
+        .replace_all(text, |caps: &regex::Captures| {
+            caps[1]
+                .split([',', ';'])
+                .map(|part| {
+                    let part = part.trim();
+                    format!(
+                        "[meeting:{}]",
+                        part.strip_prefix("meeting:").unwrap_or(part)
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join(" ")
+        })
+        .into_owned()
+}
+
 fn expand_labels(text: &str, sources: &Sources) -> String {
     LABEL
         .replace_all(text, |caps: &regex::Captures| {
@@ -485,9 +515,10 @@ pub(crate) fn verified_partial(text: &str, sources: &Sources) -> String {
         && !text[bracket..].contains(']')
     {
         let suffix = &text[bracket..];
-        if "[meeting:".starts_with(suffix)
+        if "[meetings:".starts_with(suffix)
             || "[screen:".starts_with(suffix)
             || suffix.starts_with("[meeting:")
+            || suffix.starts_with("[meetings:")
             || suffix.starts_with("[screen:")
         {
             text = &text[..bracket];
@@ -499,7 +530,7 @@ pub(crate) fn verified_partial(text: &str, sources: &Sources) -> String {
 /// Rewrites markers to the canonical `[meeting:<UUID>@HH:MM:SS]` form, keeping
 /// only those the answer was given (`ChatEvidence`).
 pub(crate) fn verified(text: &str, sources: &Sources) -> String {
-    let text = expand_labels(text, sources);
+    let text = expand_labels(&split_grouped(text), sources);
     CITATION
         .replace_all(&text, |caps: &regex::Captures| {
             let id = &caps[2];
@@ -1021,6 +1052,27 @@ mod tests {
                 "Friday [meeting:{marker}]. The demo [meeting:{marker}@00:00:43]. Both [meeting:{marker}] [screen:7]. Other (source not verified)."
             )
         );
+    }
+
+    #[test]
+    fn grouped_meeting_markers_are_verified_one_by_one() {
+        let first = Uuid::parse_str("00000024-0000-4000-8000-000000000024").unwrap();
+        let second = Uuid::parse_str("00000026-0000-4000-8000-000000000026").unwrap();
+        let mut sources = Sources::default();
+        sources.meetings.push((first, "Client call".into()));
+        sources.meetings.push((second, "Delivery check".into()));
+        sources.moments.entry(second).or_default().insert(70);
+        let (a, b) = (ids::uuid_upper(&first), ids::uuid_upper(&second));
+        assert_eq!(
+            verified(
+                "Cut [meetings:00000024, 00000026]. Mix [meeting:00000026@00:01:10; 99999999].",
+                &sources
+            ),
+            format!(
+                "Cut [meeting:{a}] [meeting:{b}]. Mix [meeting:{b}@00:01:10] (source not verified)."
+            )
+        );
+        assert_eq!(verified_partial("Cut [meetings:0000", &sources), "Cut ");
     }
 
     #[test]
