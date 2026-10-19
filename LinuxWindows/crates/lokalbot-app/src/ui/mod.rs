@@ -18,10 +18,12 @@ pub mod rule_list;
 pub mod segmented_tabs;
 pub mod settings_row;
 pub mod shortcut_field;
+pub mod text;
 pub mod waveform;
 
+use crate::i18n::h_flex;
 pub use gpui_kit::assets::IconName as Ico;
-use gpui_kit::component::{Icon, h_flex, v_flex};
+use gpui_kit::component::{Icon, v_flex};
 use gpui_kit::{
     App, Div, ElementId, FontWeight, Hsla, InteractiveElement as _, IntoElement,
     ParentElement as _, Pixels, SharedString, Stateful, StatefulInteractiveElement as _,
@@ -148,7 +150,7 @@ pub fn empty_state(
                 .max_w(px(420.))
                 .text_size(ty::BODY)
                 .text_color(lb.text_secondary)
-                .child(message.into()),
+                .child(text::paragraph(message)),
         )
 }
 

@@ -4,10 +4,11 @@ use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash as _, Hasher as _};
 use std::rc::Rc;
 
+use crate::i18n::h_flex;
 use chrono::{DateTime, Local, Utc};
 use gpui_kit::component::button::Button;
 use gpui_kit::component::spinner::Spinner;
-use gpui_kit::component::{Disableable as _, Icon, Sizable as _, h_flex, v_flex};
+use gpui_kit::component::{Disableable as _, Icon, Sizable as _, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
     AnyElement, App, AppContext as _, Context, Div, FontWeight, InteractiveElement as _,
@@ -218,7 +219,7 @@ impl AskPage {
                                 .outline()
                                 .small()
                                 .icon(Icon::new(Ico::ArrowDown))
-                                .label("Jump to latest")
+                                .label(lokalbot_i18n::tr("Jump to latest"))
                                 .bg(lb.elevated)
                                 .shadow_md()
                                 .on_click(cx.listener(|this, _, _, cx| {
@@ -255,7 +256,12 @@ impl AskPage {
             .child(
                 v_flex()
                     .gap(px(7.))
-                    .child(turn_meta(Ico::CircleUser, "You", created_at, cx))
+                    .child(turn_meta(
+                        Ico::CircleUser,
+                        lokalbot_i18n::tr("You"),
+                        created_at,
+                        cx,
+                    ))
                     .child(
                         div()
                             .text_size(ty::QUESTION)
@@ -267,9 +273,9 @@ impl AskPage {
                     )
                     .when(long && !latest, |this| {
                         let label = if expanded {
-                            "Show less"
+                            lokalbot_i18n::tr("Show less")
                         } else {
-                            "Show full question"
+                            lokalbot_i18n::tr("Show full question")
                         };
                         this.child(
                             div()
@@ -315,15 +321,15 @@ impl AskPage {
 
         if stopped {
             column = column.child(status_row(
-                "Response stopped",
-                "The response was interrupted. You can try the question again.",
+                lokalbot_i18n::tr("Response stopped"),
+                lokalbot_i18n::tr("The response was interrupted. You can try the question again."),
                 Ico::CircleStop,
                 lb.text_secondary,
                 cx,
             ));
         } else if let Some(error) = error.clone() {
             column = column.child(status_row(
-                "Answer unavailable",
+                lokalbot_i18n::tr("Answer unavailable"),
                 &error,
                 Ico::TriangleAlert,
                 lb.attention_text,
@@ -331,7 +337,7 @@ impl AskPage {
             ));
         } else {
             let title = if pending {
-                "LokalBot is answering"
+                lokalbot_i18n::tr("LokalBot is answering")
             } else {
                 "LokalBot"
             };
@@ -374,9 +380,13 @@ impl AskPage {
                             .outline()
                             .small()
                             .icon(Icon::new(if copied { Ico::Check } else { Ico::Copy }))
-                            .label(if copied { "Copied" } else { "Copy" })
+                            .label(if copied {
+                                lokalbot_i18n::tr("Copied")
+                            } else {
+                                lokalbot_i18n::tr("Copy")
+                            })
                             .disabled(copied)
-                            .tooltip("Copy this answer")
+                            .tooltip(lokalbot_i18n::tr("Copy this answer"))
                             .on_click(cx.listener(move |this, _, _, cx| {
                                 this.copy_answer(id, copy_text.clone(), cx)
                             })),
@@ -388,8 +398,8 @@ impl AskPage {
                             .outline()
                             .small()
                             .icon(Icon::new(Ico::RotateCw))
-                            .label("Retry")
-                            .tooltip("Try this question again")
+                            .label(lokalbot_i18n::tr("Retry"))
+                            .tooltip(lokalbot_i18n::tr("Try this question again"))
                             .on_click(cx.listener(move |this, _, _, cx| this.retry(id, cx))),
                     )
                 })
@@ -399,8 +409,8 @@ impl AskPage {
                             .outline()
                             .small()
                             .icon(Icon::new(Ico::Square))
-                            .label("Stop")
-                            .tooltip("Stop answering (Esc)")
+                            .label(lokalbot_i18n::tr("Stop"))
+                            .tooltip(lokalbot_i18n::tr("Stop answering (Esc)"))
                             .on_click(cx.listener(|this, _, _, cx| this.stop_answer(cx))),
                     )
                 }),
@@ -564,26 +574,26 @@ impl AskPage {
             .cloned();
         let (title, detail) = match (&download, status) {
             (Some(progress), _) => (
-                SharedString::from("Preparing the on-device model"),
-                SharedString::from(format!(
-                    "Downloading the on-device model — {}%",
-                    (progress.fraction() * 100.0).round()
+                SharedString::from(lokalbot_i18n::tr("Preparing the on-device model")),
+                SharedString::from(lokalbot_i18n::format(
+                    "Downloading the on-device model — {0}%",
+                    &[("0", format!("{}", (progress.fraction() * 100.0).round()))],
                 )),
             ),
             (None, Some(status)) => (
                 status,
                 SharedString::from(if built_in {
-                    "Loading the model into memory…"
+                    lokalbot_i18n::tr("Loading the model into memory…")
                 } else {
-                    "Waiting for the first response…"
+                    lokalbot_i18n::tr("Waiting for the first response…")
                 }),
             ),
             (None, None) => (
-                SharedString::from("Preparing the assistant"),
+                SharedString::from(lokalbot_i18n::tr("Preparing the assistant")),
                 SharedString::from(if built_in {
-                    "Checking the selected on-device model…"
+                    lokalbot_i18n::tr("Checking the selected on-device model…")
                 } else {
-                    "Connecting to the selected model…"
+                    lokalbot_i18n::tr("Connecting to the selected model…")
                 }),
             ),
         };
@@ -714,7 +724,7 @@ impl AskPage {
                         div()
                             .text_size(ty::SECONDARY)
                             .text_color(lb.text_secondary)
-                            .child("Unavailable")
+                            .child(crate::ui::text::paragraph(lokalbot_i18n::tr("Unavailable")))
                             .into_any_element()
                     })
                     .on_click(cx.listener(move |this, _, _, cx| {
@@ -740,7 +750,7 @@ impl AskPage {
                     .cursor_pointer()
                     .child(ui::icon(if expanded { Ico::ChevronDown } else { Ico::ChevronRight }, px(12.), lb.text_secondary))
                     .child(ui::icon(Ico::ShieldCheck, px(14.), lb.accent_text))
-                    .child(div().text_size(ty::BODY).text_color(lb.text).child("Evidence"))
+                    .child(div().text_size(ty::BODY).text_color(lb.text).child(crate::ui::text::paragraph(lokalbot_i18n::tr("Evidence"))))
                     .child(div().min_w_0().truncate().text_size(ty::SECONDARY).text_color(lb.text_secondary).child(summary))
                     .on_click(cx.listener(move |this, _, _, cx| {
                         this.turns.evidence.insert(id, !expanded);
@@ -759,7 +769,7 @@ impl AskPage {
                                 .pt(px(2.))
                                 .text_size(ty::SECONDARY)
                                 .text_color(lb.text_secondary)
-                                .child("LokalBot used only the sources enabled for this question. Citation numbers remain stable even when a local source is later removed."),
+                                .child(crate::ui::text::paragraph(lokalbot_i18n::tr("LokalBot used only the sources enabled for this question. Citation numbers remain stable even when a local source is later removed."))),
                         ),
                 )
             })
@@ -789,11 +799,11 @@ impl AskPage {
                             .min_w_0()
                             .text_size(ty::BODY)
                             .text_color(lb.text)
-                            .child(*suggestion),
+                            .child(crate::ui::text::paragraph(lokalbot_i18n::tr(suggestion))),
                     )
                     .child(ui::icon(Ico::CircleArrowUp, px(16.), lb.accent_text))
                     .on_click(cx.listener(move |this, _, window, cx| {
-                        this.ask_suggestion(suggestion, window, cx)
+                        this.ask_suggestion(lokalbot_i18n::tr(suggestion), window, cx)
                     }))
                     .into_any_element()
             })
@@ -805,7 +815,7 @@ impl AskPage {
             .p(px(24.))
             .gap(px(12.))
             .child(crate::ui::glyphs::ask_glyph(px(34.), lb.text))
-            .child(div().text_size(ty::PAGE_TITLE).font_weight(FontWeight::BOLD).text_color(lb.text).child("Ask your work memory"))
+            .child(div().text_size(ty::PAGE_TITLE).font_weight(FontWeight::BOLD).text_color(lb.text).child(crate::ui::text::paragraph(lokalbot_i18n::tr("Ask your work memory"))))
             .child(
                 div()
                     .max_w(px(400.))
@@ -813,7 +823,7 @@ impl AskPage {
                     .text_size(ty::BODY)
                     .line_height(px(21.))
                     .text_color(lb.text)
-                    .child("Type keywords to find meetings and screen moments, or ask a question. Return opens a keyword result or asks a question; Ctrl+Return always asks."),
+                    .child(crate::ui::text::paragraph(lokalbot_i18n::tr("Type keywords to find meetings and screen moments, or ask a question. Return opens a keyword result or asks a question; Ctrl+Return always asks."))),
             )
             .child(v_flex().w_full().items_center().gap(px(8.)).pt(px(4.)).children(suggestions))
     }
@@ -852,7 +862,14 @@ fn turn_meta(icon: Ico, title: &str, created_at: Option<DateTime<Utc>>, cx: &App
         )
         .when_some(created_at, |this, at| {
             this.child(div().text_color(lb.text_tertiary).child("·"))
-                .child(at.with_timezone(&Local).format("%-I:%M %p").to_string())
+                .child(
+                    at.with_timezone(&Local)
+                        .format_localized(
+                            lokalbot_i18n::date_pattern("%-I:%M %p"),
+                            lokalbot_i18n::date_locale(),
+                        )
+                        .to_string(),
+                )
         })
 }
 
@@ -912,7 +929,7 @@ pub fn date_divider(
     let Some(at) = created_at else {
         return match previous {
             Some(None) => None,
-            _ => Some("Earlier conversation".into()),
+            _ => Some(lokalbot_i18n::tr("Earlier conversation").into()),
         };
     };
     let day = at.with_timezone(&Local).date_naive();
@@ -923,11 +940,17 @@ pub fn date_divider(
     }
     let today = now.date_naive();
     if day == today {
-        Some("Today".into())
+        Some(lokalbot_i18n::tr("Today").into())
     } else if Some(day) == today.pred_opt() {
-        Some("Yesterday".into())
+        Some(lokalbot_i18n::tr("Yesterday").into())
     } else {
-        Some(day.format("%B %-d, %Y").to_string())
+        Some(
+            day.format_localized(
+                lokalbot_i18n::date_pattern("%B %-d, %Y"),
+                lokalbot_i18n::date_locale(),
+            )
+            .to_string(),
+        )
     }
 }
 

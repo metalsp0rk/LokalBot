@@ -3,10 +3,11 @@
 
 use std::path::PathBuf;
 
+use crate::i18n::h_flex;
 use chrono::{DateTime, Local, Utc};
 use gpui_kit::component::button::{Button, ButtonVariants as _};
 use gpui_kit::component::input::{Input, InputEvent, InputState};
-use gpui_kit::component::{Disableable as _, Icon, Sizable as _, WindowExt as _, h_flex, v_flex};
+use gpui_kit::component::{Disableable as _, Icon, Sizable as _, WindowExt as _, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
     AnyElement, App, AppContext as _, Context, Entity, FontWeight, InteractiveElement as _,
@@ -27,7 +28,10 @@ use crate::ui::{self, Ico};
 
 fn formatted(at: DateTime<Utc>) -> String {
     at.with_timezone(&Local)
-        .format("%b %-d, %Y, %-I:%M %p")
+        .format_localized(
+            lokalbot_i18n::date_pattern("%b %-d, %Y, %-I:%M %p"),
+            lokalbot_i18n::date_locale(),
+        )
         .to_string()
 }
 
@@ -73,7 +77,13 @@ impl AgentPage {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        let input = cx.new(|cx| InputState::new(window, cx).placeholder("Task name"));
+        let input = cx.new(|cx| {
+            InputState::new(window, cx).placeholder(crate::i18n::placeholder(
+                "Task name",
+                window,
+                cx,
+            ))
+        });
         input.update(cx, |state, cx| state.set_value(title, window, cx));
         let page = cx.entity();
         window.open_dialog(cx, move |dialog, _, cx| {
@@ -87,7 +97,7 @@ impl AgentPage {
                         .text_size(ty::COLUMN_TITLE)
                         .font_weight(FontWeight::BOLD)
                         .text_color(lb.text)
-                        .child("Rename task"),
+                        .child(crate::ui::text::paragraph(lokalbot_i18n::tr("Rename task"))),
                 )
                 .child(Input::new(&input))
                 .footer(
@@ -96,13 +106,16 @@ impl AgentPage {
                         .gap_2()
                         .justify_end()
                         .child(
-                            crate::ui::controls::bordered("agent-rename-cancel", "Cancel")
-                                .on_click(|_, window, cx| window.close_dialog(cx)),
+                            crate::ui::controls::bordered(
+                                "agent-rename-cancel",
+                                lokalbot_i18n::tr("Cancel"),
+                            )
+                            .on_click(|_, window, cx| window.close_dialog(cx)),
                         )
                         .child(
                             Button::new("agent-rename-save")
                                 .primary()
-                                .label("Save")
+                                .label(lokalbot_i18n::tr("Save"))
                                 .on_click(move |_, window, cx| {
                                     let name = save_input.read(cx).value().to_string();
                                     page.update(cx, |page, cx| {
@@ -142,8 +155,13 @@ impl ContextPicker {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> Self {
-        let input = cx
-            .new(|cx| InputState::new(window, cx).placeholder("Search meetings and saved moments"));
+        let input = cx.new(|cx| {
+            InputState::new(window, cx).placeholder(crate::i18n::placeholder(
+                "Search meetings and saved moments",
+                window,
+                cx,
+            ))
+        });
         let subscriptions = vec![
             cx.subscribe(&input, |this, input, event: &InputEvent, cx| {
                 if matches!(event, InputEvent::Change) {
@@ -246,16 +264,16 @@ impl Render for ContextPicker {
             .take(50)
             .cloned()
             .collect();
-        let mut list: Vec<AnyElement> = vec![section("Meetings", cx)];
+        let mut list: Vec<AnyElement> = vec![section(lokalbot_i18n::tr("Meetings"), cx)];
         if meetings.is_empty() {
-            list.push(note("No meetings match.", cx));
+            list.push(note(lokalbot_i18n::tr("No meetings match."), cx));
         }
         for meeting in meetings {
             let title = meeting.display_title();
             let source = Attachment::meeting(meeting.id, &title);
             list.push(self.row(source, formatted(meeting.started_at), Ico::AudioLines, cx));
         }
-        list.push(section("Saved moments", cx));
+        list.push(section(lokalbot_i18n::tr("Saved moments"), cx));
         if let Some(error) = self.moment_error.clone() {
             let data = self.data.clone();
             list.push(note(&error, cx));
@@ -266,7 +284,7 @@ impl Render for ContextPicker {
                         Button::new("agent-context-privacy")
                             .outline()
                             .small()
-                            .label("Open Privacy settings")
+                            .label(lokalbot_i18n::tr("Open Privacy settings"))
                             .on_click(move |_, window, cx| {
                                 window.close_dialog(cx);
                                 data.update(cx, |data, cx| {
@@ -278,7 +296,7 @@ impl Render for ContextPicker {
             );
         } else if self.moments.is_empty() {
             list.push(note(
-                "No saved moments in the current screen-memory grant.",
+                lokalbot_i18n::tr("No saved moments in the current screen-memory grant."),
                 cx,
             ));
         }
@@ -324,13 +342,13 @@ impl Render for ContextPicker {
                             .text_size(ty::COLUMN_TITLE)
                             .font_weight(FontWeight::BOLD)
                             .text_color(lb.text)
-                            .child("Attach context"),
+                            .child(crate::ui::text::paragraph(lokalbot_i18n::tr("Attach context"))),
                     )
                     .child(
                         Button::new("agent-context-done")
                             .primary()
                             .small()
-                            .label("Done")
+                            .label(lokalbot_i18n::tr("Done"))
                             .on_click(|_, window, cx| window.close_dialog(cx)),
                     ),
             )
@@ -343,7 +361,7 @@ impl Render for ContextPicker {
                 div()
                     .text_size(ty::SECONDARY)
                     .text_color(lb.text_secondary)
-                    .child("Choose sources to include with your next message. Screen pixels are never attached."),
+                    .child(crate::ui::text::paragraph(lokalbot_i18n::tr("Choose sources to include with your next message. Screen pixels are never attached."))),
             )
             .child(
                 div()
@@ -401,7 +419,13 @@ impl SavedSessions {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> Self {
-        let input = cx.new(|cx| InputState::new(window, cx).placeholder("Search sessions"));
+        let input = cx.new(|cx| {
+            InputState::new(window, cx).placeholder(crate::i18n::placeholder(
+                "Search sessions",
+                window,
+                cx,
+            ))
+        });
         let subscriptions = vec![cx.subscribe(&input, |this, input, event: &InputEvent, cx| {
             if matches!(event, InputEvent::Change) {
                 this.query = input.read(cx).value().to_string();
@@ -502,15 +526,25 @@ impl Render for SavedSessions {
 
         let mut rows: Vec<AnyElement> = Vec::new();
         if self.loading && self.sessions.is_empty() {
-            rows.push(note("Loading saved sessions…", cx));
+            rows.push(note(lokalbot_i18n::tr("Loading saved sessions…"), cx));
         } else if let Some(error) = self.load_error.clone() {
-            rows.push(note(&format!("Couldn’t load sessions: {error}"), cx));
+            rows.push(note(
+                &lokalbot_i18n::format(
+                    "Couldn’t load sessions: {error}",
+                    &[("error", format!("{}", error))],
+                ),
+                cx,
+            ));
         } else if filtered.is_empty() {
             rows.push(note(
                 if self.query.trim().is_empty() {
-                    "Sessions appear here after Agent Mode has created local history."
+                    lokalbot_i18n::tr(
+                        "Sessions appear here after Agent Mode has created local history.",
+                    )
                 } else {
-                    "No matching sessions. Try a session title or workspace name."
+                    lokalbot_i18n::tr(
+                        "No matching sessions. Try a session title or workspace name.",
+                    )
                 },
                 cx,
             ));
@@ -631,21 +665,22 @@ impl Render for SavedSessions {
                     .child(
                         v_flex()
                             .gap(px(10.))
-                            .child(row("Last active", formatted(session.modified_at)))
-                            .child(row("Created", formatted(session.created_at)))
                             .child(row(
-                                "Messages",
-                                format!(
-                                    "{} {}",
-                                    session.message_count,
-                                    if session.message_count == 1 {
-                                        "message"
-                                    } else {
-                                        "messages"
-                                    }
-                                ),
+                                lokalbot_i18n::tr("Last active"),
+                                formatted(session.modified_at),
                             ))
-                            .child(row("Workspace", session.workspace.display().to_string())),
+                            .child(row(
+                                lokalbot_i18n::tr("Created"),
+                                formatted(session.created_at),
+                            ))
+                            .child(row(
+                                lokalbot_i18n::tr("Messages"),
+                                lokalbot_i18n::count(session.message_count, "message"),
+                            ))
+                            .child(row(
+                                lokalbot_i18n::tr("Workspace"),
+                                session.workspace.display().to_string(),
+                            )),
                     )
                     .child(ui::divider(cx))
                     .when(!session.preview.is_empty(), |this| {
@@ -654,7 +689,9 @@ impl Render for SavedSessions {
                                 .text_size(ty::SECTION)
                                 .font_weight(FontWeight::SEMIBOLD)
                                 .text_color(lb.text)
-                                .child("Last message preview"),
+                                .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                                    "Last message preview",
+                                ))),
                         )
                         .child(
                             div()
@@ -666,7 +703,9 @@ impl Render for SavedSessions {
                             div()
                                 .text_size(ty::CAPTION)
                                 .text_color(lb.text_secondary)
-                                .child("Preview only. The session starts when you send a message."),
+                                .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                                    "Preview only. The session starts when you send a message.",
+                                ))),
                         )
                     })
                     .into_any_element();
@@ -681,7 +720,7 @@ impl Render for SavedSessions {
                                 } else {
                                     Ico::SquareArrowOutUpRight
                                 }))
-                                .label(if open { "Already Open" } else { "Open Session" })
+                                .label(if open { lokalbot_i18n::tr("Already Open") } else { lokalbot_i18n::tr("Open Session") })
                                 .disabled(open)
                                 .on_click(cx.listener(move |this, _, window, cx| {
                                     let session = opening.clone();
@@ -707,9 +746,9 @@ impl Render for SavedSessions {
                             .text_size(ty::CAPTION)
                             .text_color(lb.text_secondary)
                             .child(if open {
-                                "This session is already open as a task."
+                                lokalbot_i18n::tr("This session is already open as a task.")
                             } else {
-                                "The full conversation will reopen in its original working folder."
+                                lokalbot_i18n::tr("The full conversation will reopen in its original working folder.")
                             }),
                     )
                     .when_some(self.open_error.clone(), |this, error| {
@@ -726,8 +765,8 @@ impl Render for SavedSessions {
             None => (
                 ui::empty_state(
                     Ico::Clock,
-                    "Select a Session",
-                    "Choose a saved session to see its workspace and reopen it.",
+                    lokalbot_i18n::tr("Select a Session"),
+                    lokalbot_i18n::tr("Choose a saved session to see its workspace and reopen it."),
                     cx,
                 )
                 .into_any_element(),
@@ -748,14 +787,16 @@ impl Render for SavedSessions {
                             .text_size(ty::COLUMN_TITLE)
                             .font_weight(FontWeight::BOLD)
                             .text_color(lb.text)
-                            .child("Saved Sessions"),
+                            .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                                "Saved Sessions",
+                            ))),
                     )
                     .child(
                         Button::new("agent-saved-refresh")
                             .ghost()
                             .small()
                             .icon(Icon::new(Ico::RefreshCw))
-                            .tooltip("Refresh")
+                            .tooltip(lokalbot_i18n::tr("Refresh"))
                             .disabled(self.loading)
                             .on_click(cx.listener(|this, _, _, cx| this.reload(cx))),
                     )
@@ -763,7 +804,7 @@ impl Render for SavedSessions {
                         Button::new("agent-saved-close")
                             .outline()
                             .small()
-                            .label("Close")
+                            .label(lokalbot_i18n::tr("Close"))
                             .on_click(|_, window, cx| window.close_dialog(cx)),
                     ),
             )

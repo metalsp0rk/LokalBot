@@ -2,11 +2,12 @@
 //! that keep coming up, with each project's note, actions, decisions,
 //! time, people and meetings.
 
+use crate::i18n::h_flex;
 use chrono::{Local, Utc};
 use gpui_kit::component::button::{Button, ButtonVariants as _};
 use gpui_kit::component::input::{Input, InputState};
 use gpui_kit::component::menu::{ContextMenuExt as _, DropdownMenu as _, PopupMenuItem};
-use gpui_kit::component::{Disableable as _, Icon, Sizable as _, WindowExt as _, h_flex, v_flex};
+use gpui_kit::component::{Disableable as _, Icon, Sizable as _, WindowExt as _, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
     AnyElement, App, AppContext as _, Context, Entity, FontWeight, InteractiveElement as _,
@@ -43,9 +44,15 @@ pub struct ProjectsPage {
 impl ProjectsPage {
     pub fn new(window: &mut Window, cx: &mut Context<Self>) -> Self {
         let data = AppData::global(cx);
-        let name_input = cx.new(|cx| InputState::new(window, cx).placeholder("Name"));
+        let name_input = cx.new(|cx| {
+            InputState::new(window, cx).placeholder(crate::i18n::placeholder("Name", window, cx))
+        });
         let other_names_input = cx.new(|cx| {
-            InputState::new(window, cx).placeholder("Codenames or clients, separated by commas")
+            InputState::new(window, cx).placeholder(crate::i18n::placeholder(
+                "Codenames or clients, separated by commas",
+                window,
+                cx,
+            ))
         });
         let subscriptions = vec![cx.observe(&data, |this, data, cx| {
             if this.loaded_revision != Some(data.read(cx).revision) {
@@ -115,7 +122,13 @@ impl ProjectsPage {
                 .await;
             if let Err(err) = result {
                 data.update(cx, |data, cx| {
-                    data.show_error(format!("Could not save project changes: {err:#}"), cx)
+                    data.show_error(
+                        lokalbot_i18n::format(
+                            "Could not save project changes: {err}",
+                            &[("err", format!("{:#}", err))],
+                        ),
+                        cx,
+                    )
                 });
             }
             let _ = this.update(cx, |this, cx| this.reload(cx));
@@ -217,9 +230,15 @@ impl ProjectsPage {
         let page = cx.entity();
         let (name_input, others_input) = (self.name_input.clone(), self.other_names_input.clone());
         let (title, action) = if editing.is_some() {
-            ("Rename Project", "Save")
+            (
+                lokalbot_i18n::tr("Rename Project"),
+                lokalbot_i18n::tr("Save"),
+            )
         } else {
-            ("Track a Project", "Track")
+            (
+                lokalbot_i18n::tr("Track a Project"),
+                lokalbot_i18n::tr("Track"),
+            )
         };
         let target = editing.map(|(id, _, _)| id);
         window.open_dialog(cx, move |dialog, _, cx| {
@@ -233,20 +252,20 @@ impl ProjectsPage {
             dialog.title(title).w(px(440.)).child(
                 v_flex()
                     .gap(px(12.))
-                    .child(field("Name", &name_input))
-                    .child(field("Other names", &others_input))
+                    .child(field(lokalbot_i18n::tr("Name"), &name_input))
+                    .child(field(lokalbot_i18n::tr("Other names"), &others_input))
                     .child(
                         div()
                             .text_size(ty::SECONDARY)
                             .text_color(lb.text_secondary)
-                            .child("Meetings, actions, and window titles that use any of these names are linked to the project."),
+                            .child(crate::ui::text::paragraph(lokalbot_i18n::tr("Meetings, actions, and window titles that use any of these names are linked to the project."))),
                     )
                     .child(
                         h_flex()
                             .gap(px(8.))
                             .pt(px(4.))
                             .child(div().flex_1().min_w_0())
-                            .child(Button::new("project-sheet-cancel").outline().label("Cancel").on_click(|_, window, cx| window.close_dialog(cx)))
+                            .child(Button::new("project-sheet-cancel").outline().label(lokalbot_i18n::tr("Cancel")).on_click(|_, window, cx| window.close_dialog(cx)))
                             .child(Button::new("project-sheet-save").primary().label(action).on_click(move |_, window, cx| {
                                 let name = save_name.read(cx).value().to_string();
                                 let others: Vec<String> =
@@ -305,17 +324,23 @@ impl ProjectsPage {
         let tracked = self.tracked();
         let suggested = self.suggested();
         let summary = if !self.loaded {
-            "Loading…".to_string()
+            lokalbot_i18n::tr("Loading…").to_string()
         } else {
             let mut parts = Vec::new();
             if !tracked.is_empty() {
-                parts.push(format!("{} tracked", tracked.len()));
+                parts.push(lokalbot_i18n::format(
+                    "{0} tracked",
+                    &[("0", format!("{}", tracked.len()))],
+                ));
             }
             if !suggested.is_empty() {
-                parts.push(format!("{} suggested", suggested.len()));
+                parts.push(lokalbot_i18n::format(
+                    "{0} suggested",
+                    &[("0", format!("{}", suggested.len()))],
+                ));
             }
             if parts.is_empty() {
-                "None yet".into()
+                lokalbot_i18n::tr("None yet").into()
             } else {
                 parts.join(" · ")
             }
@@ -341,17 +366,15 @@ impl ProjectsPage {
                     .gap(px(12.))
                     .p(px(24.))
                     .child(
-                        div().text_center().text_size(ty::SECONDARY).text_color(lb.text_secondary).child(format!(
-                            "Add the projects you work on, and LokalBot gathers their meetings, actions, and decisions. It also suggests names that come up in {MINIMUM_MEETINGS} or more meetings."
-                        )),
+                        div().text_center().text_size(ty::SECONDARY).text_color(lb.text_secondary).child(crate::ui::text::paragraph(lokalbot_i18n::format("Add the projects you work on, and LokalBot gathers their meetings, actions, and decisions. It also suggests names that come up in {MINIMUM_MEETINGS} or more meetings.", &[("MINIMUM_MEETINGS", format!("{}", MINIMUM_MEETINGS))]))),
                     )
-                    .child(Button::new("projects-track-empty").outline().label("Track a Project").on_click(move |_, window, cx| {
+                    .child(Button::new("projects-track-empty").outline().label(lokalbot_i18n::tr("Track a Project")).on_click(move |_, window, cx| {
                         page.update(cx, |page, cx| page.open_name_sheet(None, window, cx))
                     }))
                     .into_any_element(),
             );
         } else {
-            rows.push(header("Tracked"));
+            rows.push(header(lokalbot_i18n::tr("Tracked")));
             if tracked.is_empty() {
                 rows.push(
                     div()
@@ -359,7 +382,9 @@ impl ProjectsPage {
                         .py(px(4.))
                         .text_size(ty::SECONDARY)
                         .text_color(lb.text_secondary)
-                        .child("Track a suggestion below, or add a project with +.")
+                        .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                            "Track a suggestion below, or add a project with +.",
+                        )))
                         .into_any_element(),
                 );
             }
@@ -371,7 +396,7 @@ impl ProjectsPage {
                 ));
             }
             if !suggested.is_empty() {
-                rows.push(header("Suggested"));
+                rows.push(header(lokalbot_i18n::tr("Suggested")));
                 for project in &suggested {
                     rows.push(self.render_row(
                         project,
@@ -389,9 +414,9 @@ impl ProjectsPage {
                         .py(px(8.))
                         .child(profile::link(
                             "projects-restore-hidden",
-                            format!(
-                                "Show {count} hidden suggestion{} again",
-                                if count == 1 { "" } else { "s" }
+                            lokalbot_i18n::format(
+                                "Show hidden suggestions ({count})",
+                                &[("count", count.to_string())],
                             ),
                             move |_, cx| page.update(cx, |page, cx| page.restore_hidden(cx)),
                             cx,
@@ -424,7 +449,9 @@ impl ProjectsPage {
                                     .text_size(ty::COLUMN_TITLE)
                                     .font_weight(FontWeight::BOLD)
                                     .text_color(lb.text)
-                                    .child("Projects"),
+                                    .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                                        "Projects",
+                                    ))),
                             )
                             .child(
                                 div()
@@ -438,7 +465,7 @@ impl ProjectsPage {
                             .outline()
                             .small()
                             .icon(Icon::new(Ico::Plus))
-                            .tooltip("Track a project")
+                            .tooltip(lokalbot_i18n::tr("Track a project"))
                             .on_click(move |_, window, cx| {
                                 page.update(cx, |page, cx| page.open_name_sheet(None, window, cx))
                             }),
@@ -516,7 +543,10 @@ impl ProjectsPage {
 
         // Header.
         let ask_data = self.data.clone();
-        let question = format!("What is the latest on {}?", project.name);
+        let question = lokalbot_i18n::format(
+            "What is the latest on {0}?",
+            &[("0", format!("{}", project.name))],
+        );
         let meeting_ids: Vec<Uuid> = project.meetings.iter().map(|m| m.id).collect();
         let menu_page = page.clone();
         let menu_project = project.clone();
@@ -561,7 +591,9 @@ impl ProjectsPage {
                                                         px(11.),
                                                         lb.accent_text,
                                                     ))
-                                                    .child("Suggested"),
+                                                    .child(crate::ui::text::paragraph(
+                                                        lokalbot_i18n::tr("Suggested"),
+                                                    )),
                                             )
                                         }),
                                 )
@@ -576,9 +608,17 @@ impl ProjectsPage {
                                         div()
                                             .text_size(ty::SECONDARY)
                                             .text_color(lb.text_secondary)
-                                            .child(format!(
-                                                "Also: {}",
-                                                project.other_names.join(", ")
+                                            .child(crate::ui::text::paragraph(
+                                                lokalbot_i18n::format(
+                                                    "Also: {0}",
+                                                    &[(
+                                                        "0",
+                                                        format!(
+                                                            "{}",
+                                                            project.other_names.join(", ")
+                                                        ),
+                                                    )],
+                                                ),
                                             )),
                                     )
                                 }),
@@ -591,7 +631,10 @@ impl ProjectsPage {
                             Button::new("project-ask")
                                 .outline()
                                 .icon(Icon::new(Ico::TextSearch))
-                                .label(format!("Ask About {}", project.name))
+                                .label(lokalbot_i18n::format(
+                                    "Ask About {0}",
+                                    &[("0", format!("{}", project.name))],
+                                ))
                                 .on_click(move |_, _, cx| {
                                     let request = AskRequest {
                                         question: question.clone(),
@@ -606,7 +649,7 @@ impl ProjectsPage {
                                 Button::new("project-more")
                                     .ghost()
                                     .icon(Icon::new(Ico::Ellipsis))
-                                    .label("More")
+                                    .label(lokalbot_i18n::tr("More"))
                                     .dropdown_menu(move |menu, _, _| {
                                         project_menu(menu, &menu_page, &menu_project)
                                     }),
@@ -628,21 +671,17 @@ impl ProjectsPage {
                     .child(
                         v_flex()
                             .gap(px(10.))
-                            .child(div().text_size(ty::BODY).text_color(lb.text).child(format!(
-                                "{} came up in {}. Track it to keep a note on where it stands, or hide it if it is not a project.",
-                                project.name,
-                                profile::count(count, "meeting")
-                            )))
+                            .child(div().text_size(ty::BODY).text_color(lb.text).child(crate::ui::text::paragraph(lokalbot_i18n::format("{0} came up in {1}. Track it to keep a note on where it stands, or hide it if it is not a project.", &[("0", format!("{}", project.name)), ("1", format!("{}", profile::count(count, "meeting")))]))))
                             .child(
                                 h_flex()
                                     .gap(px(8.))
-                                    .child(Button::new("project-track").primary().icon(Icon::new(Ico::Plus)).label(format!("Track {}", project.name)).on_click(
+                                    .child(Button::new("project-track").primary().icon(Icon::new(Ico::Plus)).label(lokalbot_i18n::format("Track {0}", &[("0", format!("{}", project.name))])).on_click(
                                         move |_, _, cx| {
                                             let name = track_name.clone();
                                             track_page.update(cx, |page, cx| page.track(&name, Vec::new(), cx))
                                         },
                                     ))
-                                    .child(Button::new("project-hide").outline().label("Not a Project").on_click(move |_, _, cx| {
+                                    .child(Button::new("project-hide").outline().label(lokalbot_i18n::tr("Not a Project")).on_click(move |_, _, cx| {
                                         let name = hide_name.clone();
                                         hide_page.update(cx, |page, cx| page.hide_suggestion(&name, cx))
                                     })),
@@ -673,14 +712,18 @@ impl ProjectsPage {
         if !project.my_actions.is_empty() {
             let rows = action_rows(&project.my_actions, "project-mine", cx);
             sections.push(
-                profile::section(Ico::ListChecks, "Your Actions", rows, cx).into_any_element(),
+                profile::section(Ico::ListChecks, lokalbot_i18n::tr("Your Actions"), rows, cx)
+                    .into_any_element(),
             );
         }
         if !project.others_actions.is_empty() || !project.older_others_actions.is_empty() {
             let mut content = v_flex();
             if project.others_actions.is_empty() {
                 content = content.child(profile::empty_row(
-                    format!("Nothing from others in the last {LOOKBACK_DAYS} days."),
+                    lokalbot_i18n::format(
+                        "Nothing from others in the last {LOOKBACK_DAYS} days.",
+                        &[("LOOKBACK_DAYS", format!("{}", LOOKBACK_DAYS))],
+                    ),
                     cx,
                 ));
             } else {
@@ -696,11 +739,14 @@ impl ProjectsPage {
                 }
                 let count = project.older_others_actions.len();
                 let label = if self.show_older {
-                    "Hide older".to_string()
+                    lokalbot_i18n::tr("Hide older").to_string()
                 } else {
-                    format!(
-                        "Show {} last mentioned over {LOOKBACK_DAYS} days ago",
-                        profile::count(count, "older action")
+                    lokalbot_i18n::format(
+                        "Show {0} last mentioned over {LOOKBACK_DAYS} days ago",
+                        &[
+                            ("0", format!("{}", profile::count(count, "older action"))),
+                            ("LOOKBACK_DAYS", format!("{}", LOOKBACK_DAYS)),
+                        ],
                     )
                 };
                 let toggle_page = page.clone();
@@ -717,7 +763,13 @@ impl ProjectsPage {
                 )));
             }
             sections.push(
-                profile::section(Ico::Users, "Waiting on Others", content, cx).into_any_element(),
+                profile::section(
+                    Ico::Users,
+                    lokalbot_i18n::tr("Waiting on Others"),
+                    content,
+                    cx,
+                )
+                .into_any_element(),
             );
         }
         if !project.decisions.is_empty() {
@@ -754,13 +806,18 @@ impl ProjectsPage {
                 })
                 .collect();
             sections.push(
-                profile::section(Ico::BadgeCheck, "Decisions", profile::divided(rows, cx), cx)
-                    .into_any_element(),
+                profile::section(
+                    Ico::BadgeCheck,
+                    lokalbot_i18n::tr("Decisions"),
+                    profile::divided(rows, cx),
+                    cx,
+                )
+                .into_any_element(),
             );
         }
         if project.week_seconds >= 60. {
             let mut content = v_flex().gap(px(6.)).child(value_row(
-                "Total",
+                lokalbot_i18n::tr("Total"),
                 profile::duration(project.week_seconds),
                 lb.text,
                 cx,
@@ -809,7 +866,8 @@ impl ProjectsPage {
                 }
             }
             sections.push(
-                profile::section(Ico::Clock, "Time This Week", content, cx).into_any_element(),
+                profile::section(Ico::Clock, lokalbot_i18n::tr("Time This Week"), content, cx)
+                    .into_any_element(),
             );
         }
         if !project.people.is_empty() {
@@ -830,11 +888,17 @@ impl ProjectsPage {
                     )
                     .text_size(ty::BODY)
                 }));
-            sections.push(profile::section(Ico::Users, "People", people, cx).into_any_element());
+            sections.push(
+                profile::section(Ico::Users, lokalbot_i18n::tr("People"), people, cx)
+                    .into_any_element(),
+            );
         }
         let meetings: AnyElement = if project.meetings.is_empty() {
             profile::empty_row(
-                format!("No meeting in the last {LOOKBACK_DAYS} days names this project."),
+                lokalbot_i18n::format(
+                    "No meeting in the last {LOOKBACK_DAYS} days names this project.",
+                    &[("LOOKBACK_DAYS", format!("{}", LOOKBACK_DAYS))],
+                ),
                 cx,
             )
             .into_any_element()
@@ -895,16 +959,18 @@ impl ProjectsPage {
                 .collect();
             profile::divided(rows, cx).into_any_element()
         };
-        sections
-            .push(profile::section(Ico::AudioLines, "Meetings", meetings, cx).into_any_element());
+        sections.push(
+            profile::section(Ico::AudioLines, lokalbot_i18n::tr("Meetings"), meetings, cx)
+                .into_any_element(),
+        );
         sections.push(
             div()
                 .text_size(ty::SECONDARY)
                 .text_color(lb.text_secondary)
                 .child(if project.is_tracked() {
-                    "Linked on this PC wherever one of the project's names appears in meeting titles, summaries, transcripts, actions, decisions, and window titles."
+                    lokalbot_i18n::tr("Linked on this PC wherever one of the project's names appears in meeting titles, summaries, transcripts, actions, decisions, and window titles.")
                 } else {
-                    "Suggested because the name recurs in meeting titles, summaries, actions, and decisions. People, apps, and generic terms are left out."
+                    lokalbot_i18n::tr("Suggested because the name recurs in meeting titles, summaries, actions, and decisions. People, apps, and generic terms are left out.")
                 })
                 .into_any_element(),
         );
@@ -935,21 +1001,21 @@ impl ProjectsPage {
             .contains(&project.id);
         let mut content = v_flex().gap(px(10.));
         match &project.summary {
-            _ if running => content = content.child(profile::empty_row("Writing a note from the latest meetings and review notes…", cx)),
+            _ if running => content = content.child(profile::empty_row(lokalbot_i18n::tr("Writing a note from the latest meetings and review notes…"), cx)),
             None if project.meetings.is_empty() => {
                 content = content.child(profile::empty_row(
-                    "Nothing names this project yet. A note can be written once meetings or overnight reviews mention it.",
+                    lokalbot_i18n::tr("Nothing names this project yet. A note can be written once meetings or overnight reviews mention it."),
                     cx,
                 ))
             }
-            None => content = content.child(profile::empty_row("No note yet. LokalBot can write one from the meetings and review notes below.", cx)),
+            None => content = content.child(profile::empty_row(lokalbot_i18n::tr("No note yet. LokalBot can write one from the meetings and review notes below."), cx)),
             Some(summary) => {
                 content = content.child(div().text_size(ty::BODY).line_height(px(21.)).text_color(lb.text).child(summary.overview.clone()));
                 for (index, point) in summary.points.iter().enumerate() {
                     let page = cx.entity();
                     let meeting = point.meeting_id.as_deref().and_then(|id| Uuid::parse_str(id).ok());
                     let source = match (&point.meeting_title, &point.meeting_date) {
-                        (Some(title), Some(date)) => Some(format!("{title} · {date}")),
+                        (Some(title), Some(date)) => Some(lokalbot_i18n::format("{title} · {date}", &[("title", format!("{}", title)), ("date", format!("{}", date))])),
                         (Some(title), None) => Some(title.clone()),
                         _ => None,
                     };
@@ -973,7 +1039,7 @@ impl ProjectsPage {
                     );
                 }
                 if !summary.open_questions.is_empty() {
-                    content = content.child(div().pt(px(2.)).text_size(ty::SECONDARY).font_weight(FontWeight::SEMIBOLD).text_color(lb.text).child("Open questions"));
+                    content = content.child(div().pt(px(2.)).text_size(ty::SECONDARY).font_weight(FontWeight::SEMIBOLD).text_color(lb.text).child(crate::ui::text::paragraph(lokalbot_i18n::tr("Open questions"))));
                     for question in &summary.open_questions {
                         content = content.child(
                             h_flex()
@@ -987,18 +1053,14 @@ impl ProjectsPage {
                 let stale = project.meetings.iter().any(|m| m.started_at > summary.generated_at);
                 let location = summary.location.trim();
                 let place = if location.is_empty() {
-                    "on this PC".to_string()
-                } else if location.starts_with("on ") {
-                    location.to_string()
+                    lokalbot_i18n::tr("on this PC").to_string()
                 } else {
-                    format!("on {location}")
+                    lokalbot_i18n::format("on {location}", &[("location", location.strip_prefix("on ").unwrap_or(location).to_string())])
                 };
-                let written = format!(
-                    "{}Written {} by {} {place}. Check the meetings before relying on it.",
-                    if stale { "Newer evidence since this was written. " } else { "" },
-                    written_when(summary.generated_at),
-                    if summary.engine_name.is_empty() { "the Think model" } else { summary.engine_name.as_str() },
-                );
+                if stale {
+                    content = content.child(div().text_size(ty::SECONDARY).text_color(lb.text_secondary).child(crate::ui::text::paragraph(lokalbot_i18n::tr("Newer evidence since this was written."))));
+                }
+                let written = lokalbot_i18n::format("Written {date} by {model} {place}. Check the meetings before relying on it.", &[("date", written_when(summary.generated_at)), ("model", if summary.engine_name.is_empty() { lokalbot_i18n::tr("the Think model").to_string() } else { summary.engine_name.clone() }), ("place", place)]);
                 content = content.child(div().text_size(ty::SECONDARY).text_color(lb.text_secondary).child(written));
             }
         }
@@ -1010,9 +1072,9 @@ impl ProjectsPage {
                     .outline()
                     .small()
                     .label(if project.summary.is_none() {
-                        "Write Note"
+                        lokalbot_i18n::tr("Write Note")
                     } else {
-                        "Update"
+                        lokalbot_i18n::tr("Update")
                     })
                     .disabled(running || project.meetings.is_empty())
                     .on_click(move |_, _, cx| {
@@ -1022,7 +1084,13 @@ impl ProjectsPage {
                     }),
             ),
         );
-        profile::section(Ico::FileText, "Where It Stands", content, cx).into_any_element()
+        profile::section(
+            Ico::FileText,
+            lokalbot_i18n::tr("Where It Stands"),
+            content,
+            cx,
+        )
+        .into_any_element()
     }
 }
 
@@ -1036,15 +1104,15 @@ fn project_menu(
         let rename_page = page.clone();
         let stop_page = page.clone();
         let (name, others) = (project.name.clone(), project.other_names.clone());
-        menu.item(
-            PopupMenuItem::new("Rename…").on_click(move |_, window, cx| {
+        menu.item(PopupMenuItem::new(lokalbot_i18n::tr("Rename…")).on_click(
+            move |_, window, cx| {
                 let editing = Some((id, name.clone(), others.clone()));
                 rename_page.update(cx, |page, cx| page.open_name_sheet(editing, window, cx))
-            }),
-        )
+            },
+        ))
         .separator()
         .item(
-            PopupMenuItem::new("Stop Tracking").on_click(move |_, _, cx| {
+            PopupMenuItem::new(lokalbot_i18n::tr("Stop Tracking")).on_click(move |_, _, cx| {
                 stop_page.update(cx, |page, cx| page.stop_tracking(id, cx))
             }),
         )
@@ -1053,14 +1121,18 @@ fn project_menu(
         let hide_page = page.clone();
         let (track_name, hide_name) = (project.name.clone(), project.name.clone());
         menu.item(
-            PopupMenuItem::new(format!("Track {}", project.name)).on_click(move |_, _, cx| {
+            PopupMenuItem::new(lokalbot_i18n::format(
+                "Track {0}",
+                &[("0", format!("{}", project.name))],
+            ))
+            .on_click(move |_, _, cx| {
                 let name = track_name.clone();
                 track_page.update(cx, |page, cx| page.track(&name, Vec::new(), cx))
             }),
         )
         .separator()
         .item(
-            PopupMenuItem::new("Not a Project").on_click(move |_, _, cx| {
+            PopupMenuItem::new(lokalbot_i18n::tr("Not a Project")).on_click(move |_, _, cx| {
                 let name = hide_name.clone();
                 hide_page.update(cx, |page, cx| page.hide_suggestion(&name, cx))
             }),
@@ -1097,34 +1169,40 @@ fn summary(project: &ProjectProfile, long: bool) -> String {
             parts.push(meetings);
         }
     } else {
-        parts.push(format!("Came up in {meetings}"));
+        parts.push(lokalbot_i18n::format(
+            "Came up in {meetings}",
+            &[("meetings", format!("{}", meetings))],
+        ));
     }
     if !project.my_actions.is_empty() {
-        parts.push(format!("{} yours", project.my_actions.len()));
+        parts.push(lokalbot_i18n::format(
+            "{0} yours",
+            &[("0", format!("{}", project.my_actions.len()))],
+        ));
     }
     if long && !project.others_actions.is_empty() {
-        parts.push(format!(
-            "{} waiting on others",
-            project.others_actions.len()
+        parts.push(lokalbot_i18n::format(
+            "{0} waiting on others",
+            &[("0", format!("{}", project.others_actions.len()))],
         ));
     }
     if long && !project.decisions.is_empty() {
         parts.push(profile::count(project.decisions.len(), "decision"));
     }
     if project.week_seconds >= 60. {
-        parts.push(format!(
-            "{} this week",
-            profile::duration(project.week_seconds)
+        parts.push(lokalbot_i18n::format(
+            "{0} this week",
+            &[("0", format!("{}", profile::duration(project.week_seconds)))],
         ));
     }
     if let Some(last) = project.last_active {
-        parts.push(format!(
-            "last {}",
-            profile::relative_day(last, Local::now())
+        parts.push(lokalbot_i18n::format(
+            "last {date}",
+            &[("date", profile::relative_day(last, Local::now()))],
         ));
     }
     if parts.is_empty() {
-        "Nothing linked yet".into()
+        lokalbot_i18n::tr("Nothing linked yet").into()
     } else {
         parts.join(" · ")
     }
@@ -1133,11 +1211,14 @@ fn summary(project: &ProjectProfile, long: bool) -> String {
 fn written_when(at: chrono::DateTime<Utc>) -> String {
     let minutes = (Utc::now() - at).num_minutes();
     if minutes < 2 {
-        "just now".into()
+        lokalbot_i18n::tr("just now").into()
     } else if minutes < 60 {
-        format!("{minutes} minutes ago")
+        lokalbot_i18n::format(
+            "{minutes} minutes ago",
+            &[("minutes", format!("{}", minutes))],
+        )
     } else {
-        format!("on {}", profile::short_date(at))
+        lokalbot_i18n::format("on {date}", &[("date", profile::short_date(at))])
     }
 }
 
@@ -1157,7 +1238,7 @@ fn clean_other_names(names: &[String], excluding: &str) -> Vec<String> {
 
 impl Page for ProjectsPage {
     fn title(&self, _cx: &App) -> SharedString {
-        "Projects".into()
+        lokalbot_i18n::tr("Projects").into()
     }
 }
 
@@ -1174,9 +1255,9 @@ impl Render for ProjectsPage {
                 .text_size(ty::BODY)
                 .text_color(lb.text_secondary)
                 .child(if self.loaded {
-                    "Select a project."
+                    lokalbot_i18n::tr("Select a project.")
                 } else {
-                    "Loading projects…"
+                    lokalbot_i18n::tr("Loading projects…")
                 })
                 .into_any_element(),
         };

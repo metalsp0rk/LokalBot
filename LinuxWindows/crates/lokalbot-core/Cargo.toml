@@ -8,6 +8,7 @@ publish.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+lokalbot-i18n.workspace = true
 anyhow.workspace = true
 thiserror.workspace = true
 serde.workspace = true

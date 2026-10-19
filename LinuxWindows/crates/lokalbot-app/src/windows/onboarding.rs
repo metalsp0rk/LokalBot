@@ -7,10 +7,11 @@
 
 use std::time::Duration;
 
+use crate::i18n::h_flex;
 use gpui_kit::component::button::{Button, ButtonVariants as _};
 use gpui_kit::component::menu::{DropdownMenu as _, PopupMenuItem};
 use gpui_kit::component::switch::Switch;
-use gpui_kit::component::{Disableable as _, Icon, Sizable as _, TitleBar, h_flex, v_flex};
+use gpui_kit::component::{Disableable as _, Icon, Sizable as _, TitleBar, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
     Animation, AnimationExt as _, AnyElement, App, AppContext as _, Bounds, Context, Div, Entity,
@@ -50,7 +51,7 @@ pub fn open(cx: &mut App) {
         ..TitleBar::window_options()
     };
     match gpui_kit::open_window(options, cx, |window, cx| {
-        window.set_window_title("Welcome to LokalBot");
+        window.set_window_title(lokalbot_i18n::tr("Welcome to LokalBot"));
         cx.new(|cx| Onboarding::new(window, cx))
     }) {
         Ok((handle, _)) => super::secondary(cx).onboarding = Some(handle),
@@ -75,10 +76,10 @@ impl Step {
 
     fn title(self) -> &'static str {
         match self {
-            Step::Capture => "Choose What to Remember",
-            Step::Access => "Enable the Access You Need",
-            Step::Models => "Prepare Your Workflows",
-            Step::Review => "Review and Start",
+            Step::Capture => lokalbot_i18n::tr("Choose What to Remember"),
+            Step::Access => lokalbot_i18n::tr("Enable the Access You Need"),
+            Step::Models => lokalbot_i18n::tr("Prepare Your Workflows"),
+            Step::Review => lokalbot_i18n::tr("Review and Start"),
         }
     }
 }
@@ -186,19 +187,19 @@ impl Onboarding {
         let detail_page = page.clone();
         let memory_page = page.clone();
         let retention = match self.data.read(cx).settings.retention_days {
-            1 => "1 day".to_string(),
-            days => format!("{days} days"),
+            1 => lokalbot_i18n::tr("1 day").to_string(),
+            days => lokalbot_i18n::format("{days} days", &[("days", format!("{}", days))]),
         };
         let meeting_picker = Button::new("onboarding-meeting-mode")
             .outline()
             .small()
-            .label(draft.meeting_mode.label())
+            .label(lokalbot_i18n::tr(draft.meeting_mode.label()))
             .dropdown_caret(true)
             .dropdown_menu(move |mut menu, _, _| {
                 for mode in AutoRecordMode::ALL {
                     let page = mode_page.clone();
                     menu = menu.item(
-                        PopupMenuItem::new(mode.label())
+                        PopupMenuItem::new(lokalbot_i18n::tr(mode.label()))
                             .checked(mode == draft.meeting_mode)
                             .on_click(move |_, _, cx| {
                                 page.update(cx, |this, cx| {
@@ -213,14 +214,14 @@ impl Onboarding {
         let detail_picker = Button::new("onboarding-context-mode")
             .outline()
             .small()
-            .label(draft.context_mode.label())
+            .label(lokalbot_i18n::tr(draft.context_mode.label()))
             .dropdown_caret(true)
             .disabled(!draft.day_memory)
             .dropdown_menu(move |mut menu, _, _| {
                 for mode in ScreenContextMode::ALL {
                     let page = detail_page.clone();
                     menu = menu.item(
-                        PopupMenuItem::new(mode.label())
+                        PopupMenuItem::new(lokalbot_i18n::tr(mode.label()))
                             .checked(mode == draft.context_mode)
                             .on_click(move |_, _, cx| {
                                 page.update(cx, |this, cx| {
@@ -236,7 +237,7 @@ impl Onboarding {
         v_flex()
             .gap(px(16.))
             .child(text(
-                "Keep meeting evidence and a useful memory of your day. You can change each choice later in Settings.",
+                lokalbot_i18n::tr("Keep meeting evidence and a useful memory of your day. You can change each choice later in Settings."),
                 lb.text_secondary,
             ))
             .child(
@@ -251,11 +252,11 @@ impl Onboarding {
                                         h_flex()
                                             .gap(px(12.))
                                             .items_center()
-                                            .child(div().flex_1().min_w_0().text_size(ty::BODY).text_color(lb.text).child("Detected Meetings"))
+                                            .child(div().flex_1().min_w_0().text_size(ty::BODY).text_color(lb.text).child(crate::ui::text::paragraph(lokalbot_i18n::tr("Detected Meetings"))))
                                             .child(meeting_picker),
                                     )
                                     .child(text(
-                                        "Ask via notification waits for you to start recording. Manual mode keeps Record Now available.",
+                                        lokalbot_i18n::tr("Ask via notification waits for you to start recording. Manual mode keeps Record Now available."),
                                         lb.text_secondary,
                                     )),
                             )
@@ -268,8 +269,8 @@ impl Onboarding {
                                         v_flex()
                                             .flex_1().min_w_0()
                                             .gap(px(4.))
-                                            .child(div().text_size(ty::BODY).text_color(lb.text).child("Day Memory"))
-                                            .child(text("Remember app and window activity.", lb.text_secondary)),
+                                            .child(div().text_size(ty::BODY).text_color(lb.text).child(crate::ui::text::paragraph(lokalbot_i18n::tr("Day Memory"))))
+                                            .child(text(lokalbot_i18n::tr("Remember app and window activity."), lb.text_secondary)),
                                     )
                                     .child(Switch::new("onboarding-day-memory").checked(draft.day_memory).on_click(
                                         move |on, _, cx| {
@@ -289,7 +290,7 @@ impl Onboarding {
                                         h_flex()
                                             .gap(px(12.))
                                             .items_center()
-                                            .child(div().flex_1().min_w_0().text_size(ty::BODY).text_color(lb.text).child("Day-Memory Detail"))
+                                            .child(div().flex_1().min_w_0().text_size(ty::BODY).text_color(lb.text).child(crate::ui::text::paragraph(lokalbot_i18n::tr("Day-Memory Detail"))))
                                             .child(detail_picker),
                                     )
                                     .child(text(
@@ -301,13 +302,9 @@ impl Onboarding {
             )
             .child(text(
                 if screen_context {
-                    format!(
-                        "Text and images build on app activity. Images are encrypted on disk; captured text remains searchable under your retention policy ({retention}), and passwords, excluded apps and private windows are never captured."
-                    )
+                    lokalbot_i18n::format("Text and images build on app activity. Images are encrypted on disk; captured text remains searchable under your retention policy ({retention}), and passwords, excluded apps and private windows are never captured.", &[("retention", format!("{}", retention))])
                 } else {
-                    format!(
-                        "Day Memory notes the app in front and its window title, never what you type or what is on screen. Window titles are cleared after {retention}; you can change this in Settings → Privacy & Data."
-                    )
+                    lokalbot_i18n::format("Day Memory notes the app in front and its window title, never what you type or what is on screen. Window titles are cleared after {retention}; you can change this in Settings → Privacy & Data.", &[("retention", format!("{}", retention))])
                 },
                 lb.text_secondary,
             ))
@@ -316,7 +313,7 @@ impl Onboarding {
                     .gap(px(8.))
                     .items_center()
                     .child(ui::icon(Ico::ListChecks, px(14.), lb.text_secondary))
-                    .child(text("These choices are applied on the final Review step.", lb.text_secondary)),
+                    .child(text(lokalbot_i18n::tr("These choices are applied on the final Review step."), lb.text_secondary)),
             )
     }
 
@@ -327,55 +324,71 @@ impl Onboarding {
             (data.audio_inputs.clone(), data.settings.record_system_audio)
         };
         let microphone_status = match microphones.first() {
-            Some(name) => (format!("Found: {name}"), true),
-            None => ("Checked when you first record".to_string(), false),
+            Some(name) => (
+                lokalbot_i18n::format("Found: {name}", &[("name", format!("{}", name))]),
+                true,
+            ),
+            None => (
+                lokalbot_i18n::tr("Checked when you first record").to_string(),
+                false,
+            ),
         };
         let wayland = cfg!(target_os = "linux")
             && std::env::var("XDG_SESSION_TYPE").is_ok_and(|t| t.eq_ignore_ascii_case("wayland"));
         let activity_detail = if cfg!(target_os = "windows") {
-            "Reads the focused app and window title. Windows needs no extra permission for this."
+            lokalbot_i18n::tr(
+                "Reads the focused app and window title. Windows needs no extra permission for this.",
+            )
         } else if wayland {
-            "Wayland keeps window titles private on many desktops; LokalBot records the app names it can see and fills in titles where the desktop shares them."
+            lokalbot_i18n::tr(
+                "Wayland keeps window titles private on many desktops; LokalBot records the app names it can see and fills in titles where the desktop shares them.",
+            )
         } else {
-            "Reads the focused app and window title from the X11 session. No extra permission is needed."
+            lokalbot_i18n::tr(
+                "Reads the focused app and window title from the X11 session. No extra permission is needed.",
+            )
         };
         let system_detail = if cfg!(target_os = "windows") {
-            "Records the other side of calls from your speakers or headset through Windows loopback capture."
+            lokalbot_i18n::tr(
+                "Records the other side of calls from your speakers or headset through Windows loopback capture.",
+            )
         } else {
-            "Records the other side of calls from your speakers or headset through a PipeWire or PulseAudio monitor."
+            lokalbot_i18n::tr(
+                "Records the other side of calls from your speakers or headset through a PipeWire or PulseAudio monitor.",
+            )
         };
         v_flex()
             .gap(px(14.))
             .child(text(
-                "LokalBot checks what it needs on this PC. Nothing here changes system settings, and you can finish setup and turn features on later.",
+                lokalbot_i18n::tr("LokalBot checks what it needs on this PC. Nothing here changes system settings, and you can finish setup and turn features on later."),
                 lb.text_secondary,
             ))
             .child(access_row(
                 Ico::Mic,
-                "Microphone",
-                "Records your side of meetings and dictation.",
+                lokalbot_i18n::tr("Microphone"),
+                lokalbot_i18n::tr("Records your side of meetings and dictation."),
                 microphone_status.0,
                 microphone_status.1,
                 cx,
             ))
             .child(access_row(
                 Ico::Volume2,
-                "System audio",
+                lokalbot_i18n::tr("System audio"),
                 system_detail,
-                if system_audio { "On".into() } else { "Off — microphone only".into() },
+                if system_audio { lokalbot_i18n::tr("On").into() } else { lokalbot_i18n::tr("Off — microphone only").into() },
                 system_audio,
                 cx,
             ))
             .child(access_row(
                 Ico::Activity,
-                "App and window activity",
+                lokalbot_i18n::tr("App and window activity"),
                 activity_detail,
-                if self.draft.day_memory { "Used by Day Memory".into() } else { "Off".into() },
+                if self.draft.day_memory { lokalbot_i18n::tr("Used by Day Memory").into() } else { lokalbot_i18n::tr("Off").into() },
                 self.draft.day_memory,
                 cx,
             ))
             .child(text(
-                "Autocomplete and the dictation shortcut can be turned on later in Settings → Writing and Dictation.",
+                lokalbot_i18n::tr("Autocomplete and the dictation shortcut can be turned on later in Settings → Writing and Dictation."),
                 lb.text_secondary,
             ))
     }
@@ -392,13 +405,18 @@ impl Onboarding {
         };
         let model_status = |id: &str, ready: bool| -> (String, bool) {
             match downloads.get(id) {
-                Some(progress) if progress.error.is_some() => ("Download failed".into(), false),
+                Some(progress) if progress.error.is_some() => {
+                    (lokalbot_i18n::tr("Download failed").into(), false)
+                }
                 Some(progress) => (
-                    format!("Downloading · {}%", (progress.fraction() * 100.).round()),
+                    lokalbot_i18n::format(
+                        "Downloading · {0}%",
+                        &[("0", format!("{}", (progress.fraction() * 100.).round()))],
+                    ),
                     false,
                 ),
-                None if ready => ("Ready".into(), true),
-                None => ("Download required".into(), false),
+                None if ready => (lokalbot_i18n::tr("Ready").into(), true),
+                None => (lokalbot_i18n::tr("Download required").into(), false),
             }
         };
         let with_size = |id: &str| format!("{} · {}", model_name(id), size_label(model_bytes(id)));
@@ -407,7 +425,7 @@ impl Onboarding {
         let think_name = if built_in {
             with_size(&settings.built_in_model_id)
         } else {
-            "Your model server".into()
+            lokalbot_i18n::tr("Your model server").into()
         };
         let speech = model_status(&settings.transcription_model, status.transcription_ready);
         let think = model_status(&settings.built_in_model_id, status.think_ready || !built_in);
@@ -447,16 +465,16 @@ impl Onboarding {
         v_flex()
             .gap(px(14.))
             .child(text(
-                "Meeting processing needs a Transcribe model and a Think model, and search by meaning adds a small embedding model. Downloads can be deferred; captured meetings wait for their selected models.",
+                lokalbot_i18n::tr("Meeting processing needs a Transcribe model and a Think model, and search by meaning adds a small embedding model. Downloads can be deferred; captured meetings wait for their selected models."),
                 lb.text_secondary,
             ))
-            .child(model_row("Speech recognition", with_size(&settings.transcription_model), speech, downloads.get(&settings.transcription_model).map(|d| d.fraction()), cx))
-            .child(model_row("Summaries and Ask", think_name, think, downloads.get(&settings.built_in_model_id).map(|d| d.fraction()), cx))
+            .child(model_row(lokalbot_i18n::tr("Speech recognition"), with_size(&settings.transcription_model), speech, downloads.get(&settings.transcription_model).map(|d| d.fraction()), cx))
+            .child(model_row(lokalbot_i18n::tr("Summaries and Ask"), think_name, think, downloads.get(&settings.built_in_model_id).map(|d| d.fraction()), cx))
             .when_some(search, |this, search| {
-                this.child(model_row("Search by meaning", with_size(embedding_id), search, downloads.get(embedding_id).map(|d| d.fraction()), cx))
+                this.child(model_row(lokalbot_i18n::tr("Search by meaning"), with_size(embedding_id), search, downloads.get(embedding_id).map(|d| d.fraction()), cx))
             })
             .when_some(screen_text, |this, screen_text| {
-                this.child(model_row("Screen text", with_size(ocr_id), screen_text, downloads.get(ocr_id).map(|d| d.fraction()), cx))
+                this.child(model_row(lokalbot_i18n::tr("Screen text"), with_size(ocr_id), screen_text, downloads.get(ocr_id).map(|d| d.fraction()), cx))
             })
             .child(
                 h_flex()
@@ -465,9 +483,9 @@ impl Onboarding {
                     .child(ui::icon(if think_local { Ico::ShieldCheck } else { Ico::Network }, px(14.), lb.text_secondary))
                     .child(text(
                         if think_local {
-                            "The configured Think model processes selected context on this PC."
+                            lokalbot_i18n::tr("The configured Think model processes selected context on this PC.")
                         } else {
-                            "Selected transcript and work context is sent to the approved model server."
+                            lokalbot_i18n::tr("Selected transcript and work context is sent to the approved model server.")
                         },
                         lb.text_secondary,
                     )),
@@ -476,7 +494,7 @@ impl Onboarding {
                 h_flex()
                     .gap(px(12.))
                     .items_center()
-                    .child(div().flex_1().min_w_0().text_size(ty::BODY).text_color(lb.text).child("Also prepare Autocomplete (optional)"))
+                    .child(div().flex_1().min_w_0().text_size(ty::BODY).text_color(lb.text).child(crate::ui::text::paragraph(lokalbot_i18n::tr("Also prepare Autocomplete (optional)"))))
                     .child(Switch::new("onboarding-autocomplete").checked(self.include_autocomplete).on_click(move |on, _, cx| {
                         let on = *on;
                         toggle_page.update(cx, |this, cx| {
@@ -487,14 +505,14 @@ impl Onboarding {
             )
             .when(self.include_autocomplete, |this| {
                 this.child(model_row(
-                    "Autocomplete",
+                    lokalbot_i18n::tr("Autocomplete"),
                     with_size(&settings.cotyping_built_in_model_id),
                     autocomplete,
                     downloads.get(&settings.cotyping_built_in_model_id).map(|d| d.fraction()),
                     cx,
                 ))
                 .child(text(
-                    "Autocomplete also reads the text just above the field you are typing in, such as the conversation you are answering, to fit its suggestions. It stays on this PC and is never saved; turn it off in Settings → Writing.",
+                    lokalbot_i18n::tr("Autocomplete also reads the text just above the field you are typing in, such as the conversation you are answering, to fit its suggestions. It stays on this PC and is never saved; turn it off in Settings → Writing."),
                     lb.text_secondary,
                 ))
             })
@@ -506,7 +524,7 @@ impl Onboarding {
                         Button::new("onboarding-prepare")
                             .outline()
                             .icon(Icon::new(Ico::CircleArrowDown))
-                            .label(if preparing { "Preparing…" } else { "Prepare Selected Models" })
+                            .label(if preparing { lokalbot_i18n::tr("Preparing…") } else { lokalbot_i18n::tr("Prepare Selected Models") })
                             .disabled(preparing || download == 0)
                             .on_click(move |_, _, cx| page.update(cx, |this, cx| this.prepare_models(cx))),
                     )
@@ -517,14 +535,14 @@ impl Onboarding {
                             .text_size(ty::SECONDARY)
                             .text_color(lb.text_secondary)
                             .child(if download == 0 {
-                                "Everything is already on this PC.".to_string()
+                                lokalbot_i18n::tr("Everything is already on this PC.").to_string()
                             } else {
-                                format!("About {} to download", size_label(download))
+                                lokalbot_i18n::format("About {0} to download", &[("0", format!("{}", size_label(download)))])
                             }),
                     ),
             )
             .child(text(
-                "Downloads use the model provider. They do not send your meeting content. Existing downloaded models are kept.",
+                lokalbot_i18n::tr("Downloads use the model provider. They do not send your meeting content. Existing downloaded models are kept."),
                 lb.text_secondary,
             ))
     }
@@ -534,14 +552,14 @@ impl Onboarding {
         let status = self.data.read(cx).models.clone();
         let draft = self.draft;
         let day_memory: SharedString = if draft.day_memory {
-            draft.context_mode.label().into()
+            lokalbot_i18n::tr(draft.context_mode.label()).into()
         } else {
-            "Off".into()
+            lokalbot_i18n::tr("Off").into()
         };
         let meeting_models = if status.transcription_ready && status.think_ready {
-            "Ready to use · not a test result"
+            lokalbot_i18n::tr("Ready to use · not a test result")
         } else {
-            "Preparation can continue later"
+            lokalbot_i18n::tr("Preparation can continue later")
         };
         let row = |label: &'static str, value: SharedString| {
             h_flex()
@@ -568,24 +586,25 @@ impl Onboarding {
                 ui::panel(cx).child(
                     v_flex()
                         .gap(px(12.))
-                        .child(row("Meeting recording", draft.meeting_mode.label().into()))
+                        .child(row(lokalbot_i18n::tr("Meeting recording"), lokalbot_i18n::tr(draft.meeting_mode.label()).into()))
                         .child(ui::divider(cx))
-                        .child(row("Day memory", day_memory))
+                        .child(row(lokalbot_i18n::tr("Day memory"), day_memory))
                         .child(ui::divider(cx))
-                        .child(row("Think model", composer_inference(cx).label))
+                        .child(row(lokalbot_i18n::tr("Think model"), composer_inference(cx).label))
                         .child(ui::divider(cx))
-                        .child(row("Meeting models", meeting_models.into())),
+                        .child(row(lokalbot_i18n::tr("Meeting models"), meeting_models.into())),
                 ),
             )
             .child(text(
-                "You can browse, search and edit your existing local library immediately. Setup does not delete any content or change existing remote-server approvals.",
+                lokalbot_i18n::tr("You can browse, search and edit your existing local library immediately. Setup does not delete any content or change existing remote-server approvals."),
                 lb.text_secondary,
             ))
     }
 }
 
 impl Render for Onboarding {
-    fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        window.set_window_title(lokalbot_i18n::tr("Welcome to LokalBot"));
         let lb = cx.lb().clone();
         let step = self.step;
         let body = match step {
@@ -603,13 +622,14 @@ impl Render for Onboarding {
             })
         });
         let primary_label = match step {
-            Step::Access => "Continue with Current Access",
-            Step::Review => "Apply Choices and Start",
-            _ => "Continue",
+            Step::Access => lokalbot_i18n::tr("Continue with Current Access"),
+            Step::Review => lokalbot_i18n::tr("Apply Choices and Start"),
+            _ => lokalbot_i18n::tr("Continue"),
         };
         v_flex()
             .size_full()
             .font_family(FONT_FAMILY)
+            .text_align(crate::i18n::interface_alignment())
             .bg(lb.window)
             .text_color(lb.text)
             .child(
@@ -625,7 +645,9 @@ impl Render for Onboarding {
                             .text_size(ty::SECONDARY)
                             .font_weight(FontWeight::SEMIBOLD)
                             .text_color(lb.text_secondary)
-                            .child("Welcome to LokalBot"),
+                            .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                                "Welcome to LokalBot",
+                            ))),
                     ),
             )
             .child(
@@ -635,6 +657,7 @@ impl Render for Onboarding {
                     .px(metric::DETAIL_PADDING)
                     .pt(px(24.))
                     .pb(px(8.))
+                    .child(crate::i18n::language_picker("onboarding-language", cx))
                     .child(img("brand/lokalbot.svg").size(px(64.)))
                     .child(h_flex().gap(px(8.)).children(dots))
                     .child(
@@ -670,13 +693,16 @@ impl Render for Onboarding {
                         div()
                             .text_size(ty::SECONDARY)
                             .text_color(lb.text_secondary)
-                            .child(format!("Step {} of 4", step.index() + 1)),
+                            .child(crate::ui::text::paragraph(lokalbot_i18n::format(
+                                "Step {0} of 4",
+                                &[("0", format!("{}", step.index() + 1))],
+                            ))),
                     )
                     .child(div().flex_1().min_w_0())
                     .child(
                         Button::new("onboarding-back")
                             .outline()
-                            .label("Back")
+                            .label(lokalbot_i18n::tr("Back"))
                             .disabled(step == Step::Capture)
                             .on_click(cx.listener(move |this, _, _, cx| {
                                 let previous = Step::ALL[step.index().saturating_sub(1)];
@@ -704,7 +730,7 @@ fn text(content: impl Into<SharedString>, color: gpui_kit::Hsla) -> Div {
         .text_size(ty::BODY)
         .line_height(px(20.))
         .text_color(color)
-        .child(content.into())
+        .child(crate::ui::text::paragraph(content))
 }
 
 fn access_row(

@@ -2,8 +2,9 @@
 
 use std::path::PathBuf;
 
+use crate::i18n::h_flex;
 use gpui_kit::component::button::Button;
-use gpui_kit::component::{Icon, Sizable as _, h_flex, v_flex};
+use gpui_kit::component::{Icon, Sizable as _, v_flex};
 use gpui_kit::{Context, ParentElement as _, SharedString, Styled as _, px};
 
 use super::{Section, SettingsPage};
@@ -53,17 +54,17 @@ fn mcp_commands(
     let entries = [
         (
             "claude",
-            "Claude Code",
+            lokalbot_i18n::tr("Claude Code"),
             format!("claude mcp add lokalbot -- {command} mcp"),
         ),
         (
             "codex",
-            "Codex",
+            lokalbot_i18n::tr("Codex"),
             format!("codex mcp add lokalbot -- {command} mcp"),
         ),
         (
             "json",
-            "Other MCP clients",
+            lokalbot_i18n::tr("Other MCP clients"),
             format!(
                 "{{\"mcpServers\": {{\"lokalbot\": {{\"command\": \"{}\", \"args\": [\"mcp\"]}}}}}}",
                 path_text.replace('\\', "\\\\")
@@ -80,7 +81,9 @@ fn mcp_commands(
             .text_size(ty::BODY)
             .font_weight(FontWeight::MEDIUM)
             .text_color(lb.text)
-            .child("Connect a coding agent over MCP"),
+            .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                "Connect a coding agent over MCP",
+            ))),
     );
     for (key, label, text) in entries {
         let copy = text.clone();
@@ -116,17 +119,19 @@ fn mcp_commands(
                                 .ghost()
                                 .xsmall()
                                 .icon(Icon::new(Ico::Copy))
-                                .label("Copy")
+                                .label(lokalbot_i18n::tr("Copy"))
                                 .on_click(move |_, _, cx| {
                                     cx.write_to_clipboard(ClipboardItem::new_string(copy.clone()));
-                                    data.update(cx, |data, cx| data.show_message("Copied.", cx));
+                                    data.update(cx, |data, cx| {
+                                        data.show_message(lokalbot_i18n::tr("Copied."), cx)
+                                    });
                                 }),
                         ),
                 ),
         );
     }
     column.child(settings_row::help(
-        "Agents also need \"Allow external agents to read your meeting library\" in Privacy & Data. Try it in a terminal with: lokalbot-cli brief",
+        lokalbot_i18n::tr("Agents also need \"Allow external agents to read your meeting library\" in Privacy & Data. Try it in a terminal with: lokalbot-cli brief"),
         cx,
     ))
 }
@@ -134,8 +139,8 @@ fn mcp_commands(
 /// "Linux · x86_64" / "Windows · x86_64".
 pub fn platform_line() -> String {
     let os = match std::env::consts::OS {
-        "linux" => "Linux",
-        "windows" => "Windows",
+        "linux" => lokalbot_i18n::tr("Linux"),
+        "windows" => lokalbot_i18n::tr("Windows"),
         "macos" => "macOS",
         other => other,
     };
@@ -151,21 +156,21 @@ impl SettingsPage {
         let path = cli_install_path();
         let installed = self.cli_installed;
         let status = match installed {
-            Some(true) => settings_row::value("Installed", cx),
-            Some(false) => settings_row::value("Not installed", cx),
-            None => settings_row::value("Checking…", cx),
+            Some(true) => settings_row::value(lokalbot_i18n::tr("Installed"), cx),
+            Some(false) => settings_row::value(lokalbot_i18n::tr("Not installed"), cx),
+            None => settings_row::value(lokalbot_i18n::tr("Checking…"), cx),
         };
         let setup_data = data.clone();
-        let setup = Section::new("Setup").row(
+        let setup = Section::new(lokalbot_i18n::tr("Setup")).row(
             "settings.setupAgain",
             settings_row::row(
                 "settings.setupAgain",
-                "Setup assistant",
-                Some("Walk through meeting recording, day memory, and models again. Nothing changes until you apply your choices at the end.".into()),
+                lokalbot_i18n::tr("Setup assistant"),
+                Some(lokalbot_i18n::tr("Walk through meeting recording, day memory, and models again. Nothing changes until you apply your choices at the end.").into()),
                 Button::new("settings-setup-again")
                     .outline()
                     .small()
-                    .label("Set Up LokalBot Again…")
+                    .label(lokalbot_i18n::tr("Set Up LokalBot Again…"))
                     .on_click(move |_, _, cx| {
                         setup_data.update(cx, |data, cx| data.request(AppEvent::OpenOnboarding, cx))
                     }),
@@ -175,8 +180,8 @@ impl SettingsPage {
         );
 
         let install_data = data.clone();
-        let cli = Section::new("Agent CLI")
-            .row("settings.agentCLI", settings_row::row("settings.agentCLI", "Status", None, status, self.is_focused("settings.agentCLI"), cx))
+        let cli = Section::new(lokalbot_i18n::tr("Agent CLI"))
+            .row("settings.agentCLI", settings_row::row("settings.agentCLI", lokalbot_i18n::tr("Status"), None, status, self.is_focused("settings.agentCLI"), cx))
             .row(
                 "settings.agentCLIInstall",
                 settings_row::content_row(
@@ -189,17 +194,14 @@ impl SettingsPage {
                                     .outline()
                                     .small()
                                     .icon(Icon::new(Ico::Terminal))
-                                    .label(if installed == Some(true) { "Reinstall…" } else { "Install for your coding agent…" })
+                                    .label(if installed == Some(true) { lokalbot_i18n::tr("Reinstall…") } else { lokalbot_i18n::tr("Install for your coding agent…") })
                                     .on_click(move |_, _, cx| {
                                         install_data.update(cx, |data, cx| data.request(AppEvent::InstallCli, cx))
                                     }),
                             ),
                         )
                         .child(settings_row::help(
-                            format!(
-                                "Installs lokalbot-cli at {} and the LokalBot skill into ~/.agents/skills and ~/.claude/skills. Read-only by design.",
-                                path.display()
-                            ),
+                            lokalbot_i18n::format("Installs lokalbot-cli at {0} and the LokalBot skill into ~/.agents/skills and ~/.claude/skills. Read-only by design.", &[("0", format!("{}", path.display()))]),
                             cx,
                         )),
                     false,
@@ -219,16 +221,16 @@ impl SettingsPage {
         let logs = paths.logs_dir();
         let open_logs = logs.clone();
         let root = paths.root().to_path_buf();
-        let diagnostics = Section::new("Logs").row(
+        let diagnostics = Section::new(lokalbot_i18n::tr("Logs")).row(
             "settings.logs",
             settings_row::row(
                 "settings.logs",
-                "Logs folder",
+                lokalbot_i18n::tr("Logs folder"),
                 Some(SharedString::from(logs.display().to_string())),
                 Button::new("settings-open-logs")
                     .outline()
                     .small()
-                    .label("Open Folder")
+                    .label(lokalbot_i18n::tr("Open Folder"))
                     .on_click(move |_, _, cx| {
                         let target = if open_logs.is_dir() {
                             open_logs.clone()
@@ -243,19 +245,25 @@ impl SettingsPage {
         );
 
         let build = if cfg!(debug_assertions) {
-            "Debug build"
+            lokalbot_i18n::tr("Debug build")
         } else {
-            "Release build"
+            lokalbot_i18n::tr("Release build")
         };
-        let system = Section::new("System")
+        let system = Section::new(lokalbot_i18n::tr("System"))
             .row(
                 "settings.version",
                 settings_row::row(
                     "settings.version",
-                    "Version",
+                    lokalbot_i18n::tr("Version"),
                     None,
                     settings_row::value(
-                        format!("LokalBot {} · {build}", env!("CARGO_PKG_VERSION")),
+                        lokalbot_i18n::format(
+                            "LokalBot {0} · {build}",
+                            &[
+                                ("0", format!("{}", env!("CARGO_PKG_VERSION"))),
+                                ("build", format!("{}", build)),
+                            ],
+                        ),
                         cx,
                     ),
                     self.is_focused("settings.version"),
@@ -266,7 +274,7 @@ impl SettingsPage {
                 "settings.thisPC",
                 settings_row::row(
                     "settings.thisPC",
-                    "This PC",
+                    lokalbot_i18n::tr("This PC"),
                     None,
                     settings_row::value(platform_line(), cx),
                     false,
@@ -277,12 +285,12 @@ impl SettingsPage {
                 "settings.processors",
                 settings_row::row(
                     "settings.processors",
-                    "Processor threads",
+                    lokalbot_i18n::tr("Processor threads"),
                     None,
                     settings_row::value(
                         std::thread::available_parallelism()
                             .map(|n| n.get().to_string())
-                            .unwrap_or_else(|_| "Unknown".into()),
+                            .unwrap_or_else(|_| lokalbot_i18n::tr("Unknown").into()),
                         cx,
                     ),
                     false,

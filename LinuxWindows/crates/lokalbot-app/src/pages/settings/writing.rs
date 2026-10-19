@@ -6,10 +6,11 @@
 //! another app: its text is sent as a field context, the suggestion is drawn
 //! after its caret, Tab takes the next word or phrase and Esc dismisses.
 
+use crate::i18n::h_flex;
 use gpui_kit::component::button::{Button, ButtonVariants as _};
 use gpui_kit::component::input::{Escape as InputEscape, IndentInline, Input, Textarea};
 use gpui_kit::component::slider::Slider;
-use gpui_kit::component::{Disableable as _, Icon, Sizable as _, h_flex, v_flex};
+use gpui_kit::component::{Disableable as _, Icon, Sizable as _, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
     AnyElement, App, Context, FontWeight, InteractiveElement as _, IntoElement, ParentElement as _,
@@ -29,8 +30,8 @@ pub const PRACTICE_OPENING: &str = "Hi Sarah, thanks for the update. I wanted to
 
 pub fn granularity_label(granularity: AcceptGranularity) -> &'static str {
     match granularity {
-        AcceptGranularity::Word => "One word",
-        AcceptGranularity::Phrase => "One phrase",
+        AcceptGranularity::Word => lokalbot_i18n::tr("One word"),
+        AcceptGranularity::Phrase => lokalbot_i18n::tr("One phrase"),
     }
 }
 
@@ -134,18 +135,27 @@ impl SettingsPage {
 
         // Summary: what autocomplete is doing, its readiness and the switch.
         let summary_detail = if settings.cotyping_enabled && other_apps {
-            format!("{model_name} · suggestions appear as you type in other apps.")
+            lokalbot_i18n::format(
+                "{model_name} · suggestions appear as you type in other apps.",
+                &[("model_name", format!("{}", model_name))],
+            )
         } else if settings.cotyping_enabled {
-            format!("{model_name} · suggestions appear in the practice editor below.")
+            lokalbot_i18n::format(
+                "{model_name} · suggestions appear in the practice editor below.",
+                &[("model_name", format!("{}", model_name))],
+            )
         } else if model_ready {
-            "The model is ready. Turn on autocomplete to start.".into()
+            lokalbot_i18n::tr("The model is ready. Turn on autocomplete to start.").into()
         } else {
-            "Download the Autocomplete model to try it.".into()
+            lokalbot_i18n::tr("Download the Autocomplete model to try it.").into()
         };
         let readiness: AnyElement = match (model_ready, downloading) {
-            (true, _) => status_pill("Model ready", true, cx).into_any_element(),
+            (true, _) => status_pill(lokalbot_i18n::tr("Model ready"), true, cx).into_any_element(),
             (false, Some(fraction)) => status_pill_text(
-                format!("Downloading · {}%", (fraction * 100.).round()),
+                lokalbot_i18n::format(
+                    "Downloading · {0}%",
+                    &[("0", format!("{}", (fraction * 100.).round()))],
+                ),
                 false,
                 cx,
             )
@@ -158,13 +168,16 @@ impl SettingsPage {
                 h_flex()
                     .gap(px(8.))
                     .items_center()
-                    .child(status_pill("Model needed", false, cx))
+                    .child(status_pill(lokalbot_i18n::tr("Model needed"), false, cx))
                     .child(
                         Button::new("settings-cotyping-download")
                             .outline()
                             .small()
                             .icon(Icon::new(Ico::CircleArrowDown))
-                            .label(format!("Download · {size}"))
+                            .label(lokalbot_i18n::format(
+                                "Download · {size}",
+                                &[("size", format!("{}", size))],
+                            ))
                             .on_click(move |_, _, cx| {
                                 download_data.update(cx, |data, cx| {
                                     for id in &ids {
@@ -201,9 +214,9 @@ impl SettingsPage {
                             .font_weight(FontWeight::SEMIBOLD)
                             .text_color(lb.text)
                             .child(if settings.cotyping_enabled {
-                                "Autocomplete on"
+                                lokalbot_i18n::tr("Autocomplete on")
                             } else {
-                                "Autocomplete off"
+                                lokalbot_i18n::tr("Autocomplete off")
                             }),
                     )
                     .child(
@@ -266,7 +279,9 @@ impl SettingsPage {
                         .text_size(ty::SECONDARY)
                         .font_weight(FontWeight::SEMIBOLD)
                         .text_color(lb.text_secondary)
-                        .child("Sample conversation"),
+                        .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                            "Sample conversation",
+                        ))),
                 )
                 .children(crate::autocomplete::PRACTICE_CONVERSATION.iter().map(
                     |(sender, text)| {
@@ -286,13 +301,12 @@ impl SettingsPage {
                             .child(div().text_color(lb.text).child(*text))
                     },
                 ));
-        let hint = format!(
-            "Tab accepts the next {} · Esc dismisses",
+        let hint = lokalbot_i18n::tr(
             if settings.cotyping_accept_granularity == AcceptGranularity::Word {
-                "word"
+                "Tab accepts the next word · Esc dismisses"
             } else {
-                "phrase"
-            }
+                "Tab accepts the next phrase · Esc dismisses"
+            },
         );
         let editor = div()
             .relative()
@@ -349,7 +363,7 @@ impl SettingsPage {
                         Button::new("settings-insert-suggestion")
                             .primary()
                             .small()
-                            .label("Insert suggestion")
+                            .label(lokalbot_i18n::tr("Insert suggestion"))
                             .disabled(!has_ghost)
                             .on_click(cx.listener(|this, _, window, cx| {
                                 this.practice_accept(true, window, cx);
@@ -358,15 +372,15 @@ impl SettingsPage {
             )
             .child(settings_row::help(
                 if !settings.cotyping_enabled {
-                    "Turn on autocomplete to see suggestions while you type."
+                    lokalbot_i18n::tr("Turn on autocomplete to see suggestions while you type.")
                 } else if !model_ready {
-                    "Suggestions appear here as grey text once the Autocomplete model is downloaded."
+                    lokalbot_i18n::tr("Suggestions appear here as grey text once the Autocomplete model is downloaded.")
                 } else {
-                    "Type in the reply, or put the cursor at the end of the text. Suggestions come from the Autocomplete model on this PC."
+                    lokalbot_i18n::tr("Type in the reply, or put the cursor at the end of the text. Suggestions come from the Autocomplete model on this PC.")
                 },
                 cx,
             ));
-        let try_it = Section::new("Try the real autocomplete").row(
+        let try_it = Section::new(lokalbot_i18n::tr("Try the real autocomplete")).row(
             "settings.autocompletePreview",
             settings_row::content_row(
                 "settings.autocompletePreview",
@@ -379,12 +393,12 @@ impl SettingsPage {
         let words = settings.cotyping_max_words.clamp(2, 50);
         let words_data = data.clone();
         let change_data = data.clone();
-        let autocomplete = Section::new("Autocomplete")
+        let autocomplete = Section::new(lokalbot_i18n::tr("Autocomplete"))
             .row(
                 "settings.cotypingModel",
                 settings_row::row(
                     "settings.cotypingModel",
-                    "Autocomplete model",
+                    lokalbot_i18n::tr("Autocomplete model"),
                     None,
                     h_flex()
                         .gap(px(10.))
@@ -399,7 +413,7 @@ impl SettingsPage {
                             Button::new("settings-cotyping-model")
                                 .outline()
                                 .small()
-                                .label("Change…")
+                                .label(lokalbot_i18n::tr("Change…"))
                                 .on_click(move |_, _, cx| {
                                     change_data.update(cx, |data, cx| {
                                         data.open_settings(SettingsCategory::Models, cx)
@@ -414,7 +428,10 @@ impl SettingsPage {
                 "settings.cotypingMaxWords",
                 settings_row::row(
                     "settings.cotypingMaxWords",
-                    format!("Suggestion length: up to {words} words"),
+                    lokalbot_i18n::format(
+                        "Suggestion length: up to {words} words",
+                        &[("words", format!("{}", words))],
+                    ),
                     None,
                     settings_row::stepper(
                         "settings-cotyping-words",
@@ -437,7 +454,7 @@ impl SettingsPage {
                 "settings.cotypingMultiLine",
                 self.toggle(
                     "settings.cotypingMultiLine",
-                    "Allow multi-line suggestions",
+                    lokalbot_i18n::tr("Allow multi-line suggestions"),
                     None,
                     settings.cotyping_multi_line,
                     |s, v| s.cotyping_multi_line = v,
@@ -448,7 +465,7 @@ impl SettingsPage {
                 "settings.cotypingDebounceMs",
                 settings_row::row(
                     "settings.cotypingDebounceMs",
-                    "Pause before suggesting",
+                    lokalbot_i18n::tr("Pause before suggesting"),
                     None,
                     h_flex()
                         .gap(px(10.))
@@ -461,7 +478,10 @@ impl SettingsPage {
                                 .text_color(lb.text_secondary)
                                 .flex()
                                 .justify_end()
-                                .child(format!("{} ms", settings.cotyping_debounce_ms)),
+                                .child(crate::ui::text::paragraph(lokalbot_i18n::format(
+                                    "{0} ms",
+                                    &[("0", format!("{}", settings.cotyping_debounce_ms))],
+                                ))),
                         ),
                     self.is_focused("settings.cotypingDebounceMs"),
                     cx,
@@ -471,7 +491,7 @@ impl SettingsPage {
                 "settings.cotypingAcceptGranularity",
                 self.choice(
                     "settings.cotypingAcceptGranularity",
-                    "Each accept takes",
+                    lokalbot_i18n::tr("Each accept takes"),
                     None,
                     vec![
                         (
@@ -489,14 +509,14 @@ impl SettingsPage {
                 ),
             );
 
-        let context = Section::new("Context")
+        let context = Section::new(lokalbot_i18n::tr("Context"))
             .row(
                 "settings.cotypingUseVisibleContext",
                 self.toggle(
                     "settings.cotypingUseVisibleContext",
-                    "Use visible text above the field",
+                    lokalbot_i18n::tr("Use visible text above the field"),
                     Some(
-                        "Use nearby messages and labels to suggest relevant replies. Processed on this PC, never saved; capture exclusions apply and private browser windows are skipped.",
+                        lokalbot_i18n::tr("Use nearby messages and labels to suggest relevant replies. Processed on this PC, never saved; capture exclusions apply and private browser windows are skipped."),
                     ),
                     settings.cotyping_use_visible_context,
                     |s, v| s.cotyping_use_visible_context = v,
@@ -507,9 +527,9 @@ impl SettingsPage {
                 "settings.cotypingUseMeetingMemory",
                 self.toggle(
                     "settings.cotypingUseMeetingMemory",
-                    "Use meeting and work memory",
+                    lokalbot_i18n::tr("Use meeting and work memory"),
                     Some(
-                        "Use up to two relevant facts from recent meeting notes, decisions, and work memory to help with names and details. Processed on this PC.",
+                        lokalbot_i18n::tr("Use up to two relevant facts from recent meeting notes, decisions, and work memory to help with names and details. Processed on this PC."),
                     ),
                     settings.cotyping_use_meeting_memory,
                     |s, v| s.cotyping_use_meeting_memory = v,
@@ -517,13 +537,13 @@ impl SettingsPage {
                 ),
             );
 
-        let profile = Section::new("Writing profile")
+        let profile = Section::new(lokalbot_i18n::tr("Writing profile"))
             .row(
                 "settings.cotypingUserName",
                 settings_row::row(
                     "settings.cotypingUserName",
-                    "Your name",
-                    Some("Also keeps you out of People.".into()),
+                    lokalbot_i18n::tr("Your name"),
+                    Some(lokalbot_i18n::tr("Also keeps you out of People.").into()),
                     div()
                         .w(px(280.))
                         .child(Input::new(&self.cotyping_name).small()),
@@ -535,7 +555,7 @@ impl SettingsPage {
                 "settings.cotypingStyleNote",
                 settings_row::row(
                     "settings.cotypingStyleNote",
-                    "Writing style",
+                    lokalbot_i18n::tr("Writing style"),
                     None,
                     div()
                         .w(px(280.))
@@ -549,7 +569,7 @@ impl SettingsPage {
                 settings_row::content_row(
                     "settings.writingProfileHelp",
                     settings_row::help(
-                        "Autocomplete and Compose dictation write as you, in this style. Both are optional and stay on this PC unless your Think model runs on a server.",
+                        lokalbot_i18n::tr("Autocomplete and Compose dictation write as you, in this style. Both are optional and stay on this PC unless your Think model runs on a server."),
                         cx,
                     ),
                     false,
@@ -557,7 +577,7 @@ impl SettingsPage {
                 ),
             );
 
-        let exclusions = Section::new("Exclusions")
+        let exclusions = Section::new(lokalbot_i18n::tr("Exclusions"))
             .row(
                 "settings.cotypingExcludedApps",
                 settings_row::content_row(
@@ -581,7 +601,7 @@ impl SettingsPage {
                 settings_row::content_row(
                     "settings.cotypingExclusionsHelp",
                     settings_row::help(
-                        "Password managers, password fields and terminals are always skipped. Autocomplete never reads an excluded app or site.",
+                        lokalbot_i18n::tr("Password managers, password fields and terminals are always skipped. Autocomplete never reads an excluded app or site."),
                         cx,
                     ),
                     false,

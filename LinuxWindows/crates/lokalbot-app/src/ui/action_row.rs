@@ -2,10 +2,11 @@
 //! (`OutcomeActionRow`, `ActionThreadRow` and `EvidencePill` on macOS): an
 //! 18px status toggle, the action text, a metadata line and an options menu.
 
+use crate::i18n::h_flex;
 use gpui_kit::component::button::{Button, ButtonVariants as _};
 use gpui_kit::component::menu::{DropdownMenu as _, PopupMenu};
 use gpui_kit::component::tooltip::Tooltip;
-use gpui_kit::component::{Sizable as _, h_flex, v_flex};
+use gpui_kit::component::{Sizable as _, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
     AnyElement, App, Context, Div, ElementId, FontWeight, InteractiveElement as _, IntoElement,
@@ -30,9 +31,9 @@ pub fn status_toggle(
     let size = metric::ACTION_TOGGLE;
     let done = status == ActionStatus::Done && !mixed;
     let tooltip: SharedString = if done {
-        "Reopen action".into()
+        lokalbot_i18n::tr("Reopen action").into()
     } else {
-        "Mark action done".into()
+        lokalbot_i18n::tr("Mark action done").into()
     };
     let hover_ring = lb.accent_text;
     div()
@@ -81,7 +82,13 @@ pub fn evidence_pill(
     let tooltip: SharedString = excerpt
         .filter(|e| !e.trim().is_empty())
         .map(|e| SharedString::from(format!("“{}”", e.trim())))
-        .unwrap_or_else(|| format!("Jump to evidence at {stamp}").into());
+        .unwrap_or_else(|| {
+            lokalbot_i18n::format(
+                "Jump to evidence at {stamp}",
+                &[("stamp", format!("{}", stamp))],
+            )
+            .into()
+        });
     h_flex()
         .id(id)
         .flex_none()
@@ -164,7 +171,7 @@ pub fn options_menu(
         .ghost()
         .small()
         .icon(Ico::Ellipsis)
-        .tooltip("Options")
+        .tooltip(lokalbot_i18n::tr("Options"))
         .dropdown_menu(build)
 }
 

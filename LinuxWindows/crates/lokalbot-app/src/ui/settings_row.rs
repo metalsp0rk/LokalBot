@@ -4,10 +4,11 @@
 //! A section is a bold title over a rounded panel; each row puts the label and
 //! its help text on the left and the control on the right.
 
+use crate::i18n::h_flex;
 use gpui_kit::component::button::Button;
 use gpui_kit::component::menu::{DropdownMenu as _, PopupMenuItem};
 use gpui_kit::component::switch::Switch;
-use gpui_kit::component::{Sizable as _, h_flex, v_flex};
+use gpui_kit::component::{Sizable as _, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
     AnyElement, App, Div, ElementId, FontWeight, InteractiveElement as _, IntoElement,
@@ -60,7 +61,7 @@ pub fn label(title: impl Into<SharedString>, help: Option<SharedString>, cx: &Ap
             div()
                 .text_size(ty::BODY)
                 .text_color(lb.text)
-                .child(title.into()),
+                .child(super::text::paragraph(title)),
         )
         .when_some(help, |this, help| {
             this.child(
@@ -68,7 +69,7 @@ pub fn label(title: impl Into<SharedString>, help: Option<SharedString>, cx: &Ap
                     .text_size(ty::SECONDARY)
                     .line_height(px(18.))
                     .text_color(lb.text_secondary)
-                    .child(help),
+                    .child(super::text::paragraph(help)),
             )
         })
 }
@@ -140,7 +141,7 @@ pub fn help(text: impl Into<SharedString>, cx: &App) -> Div {
         .text_size(ty::SECONDARY)
         .line_height(px(18.))
         .text_color(cx.lb().text_secondary)
-        .child(text.into())
+        .child(super::text::paragraph(text))
 }
 
 /// Secondary value text on the right of a row ("0.1.0", "Granted").
@@ -205,7 +206,7 @@ pub fn segmented(
                 .when(!is_selected, |this| {
                     this.cursor_pointer().hover(|s| s.bg(lb.hover))
                 })
-                .child(*label)
+                .child(crate::ui::text::paragraph(lokalbot_i18n::tr(label)))
                 .on_click(move |_, window, cx| on_select(index, window, cx))
         }))
 }
@@ -224,6 +225,9 @@ pub fn picker(
         .label(current)
         .dropdown_caret(true)
         .dropdown_menu(move |mut menu, _, _| {
+            // The language list is taller than onboarding's window. GPUI
+            // only enables scrolling automatically for with_menu_items().
+            menu = menu.scrollable(options.len() > 12);
             for (index, (label, checked)) in options.iter().enumerate() {
                 let on_select = on_select.clone();
                 menu = menu.item(

@@ -4,10 +4,11 @@
 
 use std::sync::Arc;
 
+use crate::i18n::h_flex;
 use gpui_kit::component::button::{Button, ButtonVariants as _};
 use gpui_kit::component::scroll::ScrollableElement as _;
 use gpui_kit::component::spinner::Spinner;
-use gpui_kit::component::{Icon, Sizable as _, TitleBar, h_flex, v_flex};
+use gpui_kit::component::{Icon, Sizable as _, TitleBar, v_flex};
 use gpui_kit::{
     AppContext as _, Bounds, Context, FontWeight, InteractiveElement as _, IntoElement, ObjectFit,
     ParentElement as _, Render, RenderImage, SharedString, Styled as _, StyledImage as _, Window,
@@ -166,7 +167,7 @@ impl Render for ScreenImageViewer {
                 Button::new("screen-image-fit")
                     .outline()
                     .small()
-                    .label("Fit")
+                    .label(lokalbot_i18n::tr("Fit"))
                     .on_click(cx.listener(|this, _, _, cx| {
                         this.fit = true;
                         cx.notify();
@@ -176,7 +177,7 @@ impl Render for ScreenImageViewer {
                 Button::new("screen-image-actual")
                     .outline()
                     .small()
-                    .label("Actual size")
+                    .label(lokalbot_i18n::tr("Actual size"))
                     .on_click(cx.listener(|this, _, _, cx| this.set_zoom(1.0, cx))),
             )
             .child(
@@ -184,7 +185,7 @@ impl Render for ScreenImageViewer {
                     .ghost()
                     .small()
                     .icon(Icon::new(Ico::ZoomOut))
-                    .tooltip("Zoom out")
+                    .tooltip(lokalbot_i18n::tr("Zoom out"))
                     .on_click(cx.listener(move |this, _, _, cx| this.set_zoom(zoom / 1.25, cx))),
             )
             .child(
@@ -192,14 +193,14 @@ impl Render for ScreenImageViewer {
                     .ghost()
                     .small()
                     .icon(Icon::new(Ico::ZoomIn))
-                    .tooltip("Zoom in")
+                    .tooltip(lokalbot_i18n::tr("Zoom in"))
                     .on_click(cx.listener(move |this, _, _, cx| this.set_zoom(zoom * 1.25, cx))),
             )
             .child(
                 Button::new("screen-image-done")
                     .primary()
                     .small()
-                    .label("Done")
+                    .label(lokalbot_i18n::tr("Done"))
                     .on_click(cx.listener(|this, _, window, cx| this.close(window, cx))),
             );
         let body = match &self.image {
@@ -213,7 +214,9 @@ impl Render for ScreenImageViewer {
                     div()
                         .text_size(ty::SECONDARY)
                         .text_color(lb.text_secondary)
-                        .child("Opening image…"),
+                        .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                            "Opening image…",
+                        ))),
                 )
                 .into_any_element(),
             Some(ScreenImage::Unavailable(reason)) => v_flex()
@@ -228,7 +231,9 @@ impl Render for ScreenImageViewer {
                         .text_size(ty::SECTION)
                         .font_weight(FontWeight::BOLD)
                         .text_color(lb.text)
-                        .child("Image unavailable"),
+                        .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                            "Image unavailable",
+                        ))),
                 )
                 .child(
                     div()
@@ -236,7 +241,7 @@ impl Render for ScreenImageViewer {
                         .text_center()
                         .text_size(ty::SECONDARY)
                         .text_color(lb.text_secondary)
-                        .child(*reason),
+                        .child(crate::ui::text::paragraph(lokalbot_i18n::tr(reason))),
                 )
                 .into_any_element(),
             Some(ScreenImage::Ready(image)) if self.fit => div()
@@ -280,7 +285,9 @@ impl Render for ScreenImageViewer {
                             .text_size(ty::SECONDARY)
                             .font_weight(FontWeight::SEMIBOLD)
                             .text_color(lb.text_secondary)
-                            .child("Captured screen"),
+                            .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                                "Captured screen",
+                            ))),
                     ),
             )
             .child(toolbar)

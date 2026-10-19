@@ -143,18 +143,30 @@ pub fn evidence_summary(
     screens: &ScreenCitations,
 ) -> String {
     let Some(first) = citations.first() else {
-        return "No sources".into();
+        return lokalbot_i18n::tr("No sources").into();
     };
     let mut keys: Vec<String> = citations.iter().map(CitationSource::source_key).collect();
     keys.sort();
     keys.dedup();
     let title = resolve(first, meetings, screens).title;
     if citations.len() == 1 {
-        format!("1 source · {title}")
+        lokalbot_i18n::format("1 source · {title}", &[("title", format!("{}", title))])
     } else if keys.len() == 1 {
-        format!("{} citations · {title}", citations.len())
+        lokalbot_i18n::format(
+            "{0} citations · {title}",
+            &[
+                ("0", format!("{}", citations.len())),
+                ("title", format!("{}", title)),
+            ],
+        )
     } else {
-        format!("{} citations · {} sources", citations.len(), keys.len())
+        lokalbot_i18n::format(
+            "{0} citations · {1} sources",
+            &[
+                ("0", format!("{}", citations.len())),
+                ("1", format!("{}", keys.len())),
+            ],
+        )
     }
 }
 
@@ -180,14 +192,20 @@ pub fn resolve(
                     .unwrap_or_default();
                 ResolvedCitation {
                     title: meeting.display_title(),
-                    detail: format!("Meeting · {}{stamp}", date_and_time(meeting.started_at)),
+                    detail: lokalbot_i18n::format(
+                        "Meeting · {0}{stamp}",
+                        &[
+                            ("0", format!("{}", date_and_time(meeting.started_at))),
+                            ("stamp", format!("{}", stamp)),
+                        ],
+                    ),
                     available: true,
                     is_screen: false,
                 }
             }
             None => ResolvedCitation {
-                title: format!("Meeting {id}"),
-                detail: "Local source missing".into(),
+                title: lokalbot_i18n::format("Meeting {id}", &[("id", format!("{}", id))]),
+                detail: lokalbot_i18n::tr("Local source missing").into(),
                 available: false,
                 is_screen: false,
             },
@@ -201,17 +219,23 @@ pub fn resolve(
                     .unwrap_or_else(|| moment.app.clone());
                 ResolvedCitation {
                     title,
-                    detail: format!("Screen · {} · {}", moment.app, date_and_time(moment.ts)),
+                    detail: lokalbot_i18n::format(
+                        "Screen · {0} · {1}",
+                        &[
+                            ("0", format!("{}", moment.app)),
+                            ("1", format!("{}", date_and_time(moment.ts))),
+                        ],
+                    ),
                     available: true,
                     is_screen: true,
                 }
             }
             known => ResolvedCitation {
-                title: "Screen moment".into(),
+                title: lokalbot_i18n::tr("Screen moment").into(),
                 detail: if known.is_some() {
-                    "Local source missing".into()
+                    lokalbot_i18n::tr("Local source missing").into()
                 } else {
-                    "Screen · Loading…".into()
+                    lokalbot_i18n::tr("Screen · Loading…").into()
                 },
                 available: false,
                 is_screen: true,
@@ -223,7 +247,10 @@ pub fn resolve(
 /// "Oct 8, 2026 at 11:57 AM" (Swift's abbreviated date + shortened time).
 pub fn date_and_time(at: DateTime<Utc>) -> String {
     at.with_timezone(&Local)
-        .format("%b %-d, %Y at %-I:%M %p")
+        .format_localized(
+            lokalbot_i18n::date_pattern("%b %-d, %Y at %-I:%M %p"),
+            lokalbot_i18n::date_locale(),
+        )
         .to_string()
 }
 

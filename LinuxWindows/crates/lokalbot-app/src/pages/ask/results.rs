@@ -1,7 +1,8 @@
 //! Keyword results while typing (`AskView.results`).
 
+use crate::i18n::h_flex;
 use gpui_kit::component::spinner::Spinner;
-use gpui_kit::component::{Sizable as _, h_flex, v_flex};
+use gpui_kit::component::{Sizable as _, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
     AnyElement, Context, FontWeight, InteractiveElement as _, IntoElement, ParentElement as _,
@@ -25,14 +26,20 @@ impl AskPage {
         let count_text = {
             let base = history::count_label(count, "result");
             let base = if self.results.truncated {
-                format!("More than {base}")
+                lokalbot_i18n::format("More than {base}", &[("base", format!("{}", base))])
             } else {
                 base
             };
             if asks {
-                format!("{base} · Return asks · ↓ to pick a result")
+                lokalbot_i18n::format(
+                    "{base} · Return asks · ↓ to pick a result",
+                    &[("base", format!("{}", base))],
+                )
             } else {
-                format!("{base} · Return opens · Ctrl+Return asks")
+                lokalbot_i18n::format(
+                    "{base} · Return opens · Ctrl+Return asks",
+                    &[("base", format!("{}", base))],
+                )
             }
         };
         let column = |element: AnyElement| {
@@ -57,7 +64,9 @@ impl AskPage {
                             .text_size(ty::SECONDARY)
                             .text_color(lb.text_secondary)
                             .child(Spinner::new().xsmall().color(lb.text_secondary))
-                            .child("Searching local sources…"),
+                            .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                                "Searching local sources…",
+                            ))),
                     )
                 })
                 .into_any_element(),
@@ -74,11 +83,13 @@ impl AskPage {
         ));
 
         if count == 0 && !self.results.running {
-            let message = format!(
-                "No results for “{}” in {} · {}.",
-                self.query.trim(),
-                self.sources.summary(),
-                self.date_scope.label()
+            let message = lokalbot_i18n::format(
+                "No results for “{0}” in {1} · {2}.",
+                &[
+                    ("0", format!("{}", self.query.trim())),
+                    ("1", format!("{}", self.sources.summary())),
+                    ("2", format!("{}", self.date_scope.label())),
+                ],
             );
             let filtered = self.facet != Facet::All || self.date_scope != DateScope::AnyTime;
             rows.push(column(
@@ -95,7 +106,7 @@ impl AskPage {
                         let page = cx.entity();
                         this.child(div().text_size(ty::SECONDARY).child(ui::link(
                             "ask-clear-filters",
-                            "Clear search filters",
+                            lokalbot_i18n::tr("Clear search filters"),
                             move |window, cx| {
                                 page.update(cx, |page, cx| page.clear_filters(window, cx))
                             },
@@ -146,7 +157,10 @@ impl AskPage {
             .meeting
             .started_at
             .with_timezone(&chrono::Local)
-            .format("%b %-d, %Y")
+            .format_localized(
+                lokalbot_i18n::date_pattern("%b %-d, %Y"),
+                lokalbot_i18n::date_locale(),
+            )
             .to_string();
         let expanded = self.results.expanded.contains(&meeting_id);
         let primary = group.hits[0].clone();
@@ -182,9 +196,9 @@ impl AskPage {
             .child(hit_row(("ask-result", key), &primary, cx))
             .when(more > 0, |this| {
                 let label = if more == 1 {
-                    "1 more match".to_string()
+                    lokalbot_i18n::tr("1 more match").to_string()
                 } else {
-                    format!("{more} more matches")
+                    lokalbot_i18n::format("{more} more matches", &[("more", format!("{}", more))])
                 };
                 this.child(
                     h_flex()
@@ -248,11 +262,23 @@ impl AskPage {
         let when = moment
             .ts
             .with_timezone(&chrono::Local)
-            .format("%b %-d, %Y at %-I:%M %p")
+            .format_localized(
+                lokalbot_i18n::date_pattern("%b %-d, %Y at %-I:%M %p"),
+                lokalbot_i18n::date_locale(),
+            )
             .to_string();
-        let mut meta = format!("{} · {when}", moment.app);
+        let mut meta = lokalbot_i18n::format(
+            "{0} · {when}",
+            &[
+                ("0", format!("{}", moment.app)),
+                ("when", format!("{}", when)),
+            ],
+        );
         if screen.captures > 1 {
-            meta.push_str(&format!(" · {} captures", screen.captures));
+            meta.push_str(&lokalbot_i18n::format(
+                " · {0} captures",
+                &[("0", format!("{}", screen.captures))],
+            ));
         }
         let data = self.data.clone();
         h_flex()
@@ -286,7 +312,7 @@ impl AskPage {
                                     .text_color(lb.text)
                                     .child(title),
                             )
-                            .child(result_row::kind_chip("Screen", cx)),
+                            .child(result_row::kind_chip(lokalbot_i18n::tr("Screen"), cx)),
                     )
                     .child(
                         div()

@@ -25,10 +25,10 @@ impl Hit {
     /// "Title", "Summary", "Your notes", "Outcome" or "▶ 00:12:04 · Maya".
     pub fn kind_label(&self) -> String {
         match self.kind {
-            DocKind::Title => "Title".into(),
-            DocKind::Summary => "Summary".into(),
-            DocKind::Notes => "Your notes".into(),
-            DocKind::Outcome => "Outcome".into(),
+            DocKind::Title => lokalbot_i18n::tr("Title").into(),
+            DocKind::Summary => lokalbot_i18n::tr("Summary").into(),
+            DocKind::Notes => lokalbot_i18n::tr("Your notes").into(),
+            DocKind::Outcome => lokalbot_i18n::tr("Outcome").into(),
             DocKind::Segment => {
                 let stamp = lokalbot_core::time::stamp(self.start.unwrap_or(0.0));
                 match self
@@ -37,7 +37,13 @@ impl Hit {
                     .map(speaker_label)
                     .filter(|s| !s.is_empty())
                 {
-                    Some(speaker) => format!("▶ {stamp} · {speaker}"),
+                    Some(speaker) => lokalbot_i18n::format(
+                        "▶ {stamp} · {speaker}",
+                        &[
+                            ("stamp", format!("{}", stamp)),
+                            ("speaker", format!("{}", speaker)),
+                        ],
+                    ),
                     None => format!("▶ {stamp}"),
                 }
             }
@@ -47,11 +53,11 @@ impl Hit {
     /// Quick Recall's kind word: "Transcript", "Your notes", "Summary".
     pub fn recall_kind(&self) -> &'static str {
         match self.kind {
-            DocKind::Segment => "Transcript",
-            DocKind::Notes => "Your notes",
-            DocKind::Title => "Title",
-            DocKind::Summary => "Summary",
-            DocKind::Outcome => "Outcome",
+            DocKind::Segment => lokalbot_i18n::tr("Transcript"),
+            DocKind::Notes => lokalbot_i18n::tr("Your notes"),
+            DocKind::Title => lokalbot_i18n::tr("Title"),
+            DocKind::Summary => lokalbot_i18n::tr("Summary"),
+            DocKind::Outcome => lokalbot_i18n::tr("Outcome"),
         }
     }
 
@@ -100,12 +106,12 @@ impl Facet {
 
     pub fn label(self) -> &'static str {
         match self {
-            Facet::All => "All",
-            Facet::Transcripts => "Transcripts",
-            Facet::Summaries => "Summaries",
-            Facet::Notes => "Notes",
-            Facet::Outcomes => "Outcomes",
-            Facet::Screen => "Screen",
+            Facet::All => lokalbot_i18n::tr("All"),
+            Facet::Transcripts => lokalbot_i18n::tr("Transcripts"),
+            Facet::Summaries => lokalbot_i18n::tr("Summaries"),
+            Facet::Notes => lokalbot_i18n::tr("Notes"),
+            Facet::Outcomes => lokalbot_i18n::tr("Outcomes"),
+            Facet::Screen => lokalbot_i18n::tr("Screen"),
         }
     }
 
@@ -238,13 +244,13 @@ pub fn speaker_label(name: &str) -> String {
     let trimmed = name.trim();
     let lower = trimmed.to_lowercase();
     if lower == "them" {
-        return "Other speaker".into();
+        return lokalbot_i18n::tr("Other speaker").into();
     }
     if let Some(number) = lower.strip_prefix("them ")
         && !number.is_empty()
         && number.bytes().all(|b| b.is_ascii_digit())
     {
-        return format!("Speaker {number}");
+        return lokalbot_i18n::format("Speaker {number}", &[("number", format!("{}", number))]);
     }
     trimmed.to_string()
 }

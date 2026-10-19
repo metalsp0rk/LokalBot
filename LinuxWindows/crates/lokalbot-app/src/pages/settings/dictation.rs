@@ -3,8 +3,9 @@
 //! `DictationView.swift`). The start sound and kept audio files are not
 //! implemented on Linux and Windows, so their rows are not shown.
 
+use crate::i18n::h_flex;
 use gpui_kit::component::button::Button;
-use gpui_kit::component::{Icon, Sizable as _, h_flex, v_flex};
+use gpui_kit::component::{Icon, Sizable as _, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{Context, FontWeight, ParentElement as _, SharedString, Styled as _, div, px};
 use lokalbot_core::Settings;
@@ -19,17 +20,19 @@ const INTENTS: [DictationIntent; 2] = [DictationIntent::Transcribe, DictationInt
 
 fn intent_label(intent: DictationIntent) -> &'static str {
     match intent {
-        DictationIntent::Transcribe => "Transcribe",
-        DictationIntent::Compose => "Compose",
+        DictationIntent::Transcribe => lokalbot_i18n::tr("Transcribe"),
+        DictationIntent::Compose => lokalbot_i18n::tr("Compose"),
     }
 }
 
 fn intent_detail(intent: DictationIntent) -> &'static str {
     match intent {
-        DictationIntent::Transcribe => "Keeps the recognized speech. No rewriting.",
-        DictationIntent::Compose => {
-            "Your Think model tidies what you say. Start with “reply…”, “write…” or “draft…” to have it write the text for you."
+        DictationIntent::Transcribe => {
+            lokalbot_i18n::tr("Keeps the recognized speech. No rewriting.")
         }
+        DictationIntent::Compose => lokalbot_i18n::tr(
+            "Your Think model tidies what you say. Start with “reply…”, “write…” or “draft…” to have it write the text for you.",
+        ),
     }
 }
 
@@ -39,10 +42,10 @@ pub fn writing_profile_summary(settings: &Settings) -> &'static str {
         settings.cotyping_user_name.trim().is_empty(),
         settings.cotyping_style_note.trim().is_empty(),
     ) {
-        (false, false) => "Name, Style",
-        (false, true) => "Name",
-        (true, false) => "Style",
-        (true, true) => "Not set",
+        (false, false) => lokalbot_i18n::tr("Name, Style"),
+        (false, true) => lokalbot_i18n::tr("Name"),
+        (true, false) => lokalbot_i18n::tr("Style"),
+        (true, true) => lokalbot_i18n::tr("Not set"),
     }
 }
 
@@ -59,7 +62,7 @@ impl SettingsPage {
         let lb = cx.lb().clone();
 
         let mut options: Vec<(SharedString, SharedString)> =
-            vec![("".into(), "System default".into())];
+            vec![("".into(), lokalbot_i18n::tr("System default").into())];
         options.extend(microphones.iter().map(|m| (m.clone(), m.clone())));
         if !settings.dictation_microphone_id.is_empty()
             && !options
@@ -73,7 +76,7 @@ impl SettingsPage {
             .iter()
             .find(|(value, _)| value.as_ref() == settings.dictation_microphone_id)
             .map(|(_, label)| label.clone())
-            .unwrap_or_else(|| "System default".into());
+            .unwrap_or_else(|| lokalbot_i18n::tr("System default").into());
         let items: Vec<(SharedString, bool)> = options
             .iter()
             .map(|(value, label)| {
@@ -91,12 +94,12 @@ impl SettingsPage {
             .position(|i| *i == settings.dictation_intent)
             .unwrap_or(0);
 
-        let dictation = Section::new("Dictation")
+        let dictation = Section::new(lokalbot_i18n::tr("Dictation"))
             .row(
                 "settings.dictationEnabled",
                 self.toggle(
                     "settings.dictationEnabled",
-                    "Enable dictation shortcut",
+                    lokalbot_i18n::tr("Enable dictation shortcut"),
                     None,
                     settings.dictation_enabled,
                     |s, v| s.dictation_enabled = v,
@@ -107,7 +110,7 @@ impl SettingsPage {
                 "settings.dictationShortcut",
                 settings_row::row(
                     "settings.dictationShortcut",
-                    "Shortcut",
+                    lokalbot_i18n::tr("Shortcut"),
                     None,
                     self.dictation_shortcut.clone(),
                     self.is_focused("settings.dictationShortcut"),
@@ -118,11 +121,11 @@ impl SettingsPage {
                 "settings.dictationTriggerMode",
                 self.choice(
                     "settings.dictationTriggerMode",
-                    "Trigger",
+                    lokalbot_i18n::tr("Trigger"),
                     None,
                     DictationTriggerMode::ALL
                         .iter()
-                        .map(|m| (*m, SharedString::from(m.label())))
+                        .map(|m| (*m, SharedString::from(lokalbot_i18n::tr(m.label()))))
                         .collect(),
                     settings.dictation_trigger_mode,
                     |s, v| s.dictation_trigger_mode = v,
@@ -133,7 +136,7 @@ impl SettingsPage {
                 "settings.dictationIntent",
                 settings_row::row(
                     "settings.dictationIntent",
-                    "Intent",
+                    lokalbot_i18n::tr("Intent"),
                     Some(intent_detail(settings.dictation_intent).into()),
                     settings_row::segmented(
                         "settings-dictation-intent",
@@ -153,15 +156,19 @@ impl SettingsPage {
             );
         let dictation = if settings.dictation_intent == DictationIntent::Compose {
             let compose_help = if crate::pages::ask::composer_inference(cx).remote {
-                "Compose uses your name and writing style. What you dictate is sent to your remote Think model for the final wording."
+                lokalbot_i18n::tr(
+                    "Compose uses your name and writing style. What you dictate is sent to your remote Think model for the final wording.",
+                )
             } else {
-                "Compose uses your name and writing style, with your Think model on this PC."
+                lokalbot_i18n::tr(
+                    "Compose uses your name and writing style, with your Think model on this PC.",
+                )
             };
             dictation.row(
                 "settings.dictationWritingProfile",
                 settings_row::row(
                     "settings.dictationWritingProfile",
-                    "Writing profile",
+                    lokalbot_i18n::tr("Writing profile"),
                     Some(compose_help.into()),
                     h_flex()
                         .gap(px(8.))
@@ -171,7 +178,7 @@ impl SettingsPage {
                             Button::new("settings-dictation-profile")
                                 .outline()
                                 .small()
-                                .label("Edit…")
+                                .label(lokalbot_i18n::tr("Edit…"))
                                 .on_click(cx.listener(|this, _, window, cx| {
                                     this.reveal("settings.cotypingUserName", window, cx)
                                 })),
@@ -188,9 +195,9 @@ impl SettingsPage {
                 "settings.dictationOutputMode",
                 self.choice(
                     "settings.dictationOutputMode",
-                    "After a shortcut recording",
+                    lokalbot_i18n::tr("After a shortcut recording"),
                     None,
-                    DictationOutputMode::ALL.iter().map(|m| (*m, SharedString::from(m.label()))).collect(),
+                    DictationOutputMode::ALL.iter().map(|m| (*m, SharedString::from(lokalbot_i18n::tr(m.label())))).collect(),
                     settings.dictation_output_mode,
                     |s, v| s.dictation_output_mode = v,
                     cx,
@@ -200,8 +207,8 @@ impl SettingsPage {
                 "settings.dictationMicrophoneID",
                 settings_row::row(
                     "settings.dictationMicrophoneID",
-                    "Microphone",
-                    Some("With a Bluetooth headset, choose the built-in microphone to keep the headset's audio quality while you dictate.".into()),
+                    lokalbot_i18n::tr("Microphone"),
+                    Some(lokalbot_i18n::tr("With a Bluetooth headset, choose the built-in microphone to keep the headset's audio quality while you dictate.").into()),
                     settings_row::picker("settings-dictation-microphone", current, items, move |index, _, cx| {
                         if let Some(value) = values.get(index).cloned() {
                             microphone_data.update(cx, |data, cx| data.update_settings(|s| s.dictation_microphone_id = value, cx));
@@ -215,7 +222,7 @@ impl SettingsPage {
                 "settings.dictationShowOverlay",
                 self.toggle(
                     "settings.dictationShowOverlay",
-                    "Show floating dictation status",
+                    lokalbot_i18n::tr("Show floating dictation status"),
                     None,
                     settings.dictation_show_overlay,
                     |s, v| s.dictation_show_overlay = v,
@@ -224,14 +231,20 @@ impl SettingsPage {
             );
 
         let status: SharedString = if settings.dictation_enabled {
-            let verb = match settings.dictation_trigger_mode {
-                DictationTriggerMode::PushToTalk => "hold",
-                DictationTriggerMode::Toggle => "press",
-                DictationTriggerMode::TapOrHold => "tap or hold",
-            };
-            format!("Ready — {verb} {} to dictate.", settings.dictation_shortcut).into()
+            lokalbot_i18n::format(
+                match settings.dictation_trigger_mode {
+                    DictationTriggerMode::PushToTalk => "Ready — hold {shortcut} to dictate.",
+                    DictationTriggerMode::Toggle => "Ready — press {shortcut} to dictate.",
+                    DictationTriggerMode::TapOrHold => "Ready — tap or hold {shortcut} to dictate.",
+                },
+                &[("shortcut", settings.dictation_shortcut.clone())],
+            )
+            .into()
         } else {
-            "The dictation shortcut is off. Try it here, or turn on the shortcut above.".into()
+            lokalbot_i18n::tr(
+                "The dictation shortcut is off. Try it here, or turn on the shortcut above.",
+            )
+            .into()
         };
         let data = self.data.clone();
         let try_it = v_flex()
@@ -254,7 +267,7 @@ impl SettingsPage {
                             .outline()
                             .small()
                             .icon(Icon::new(Ico::Mic))
-                            .label("Try here")
+                            .label(lokalbot_i18n::tr("Try here"))
                             .on_click(move |_, _, cx| {
                                 data.update(cx, |data, cx| {
                                     data.request(AppEvent::ToggleDictation, cx)
@@ -274,12 +287,14 @@ impl SettingsPage {
                                 .text_size(ty::CAPTION)
                                 .font_weight(FontWeight::SEMIBOLD)
                                 .text_color(lb.text_secondary)
-                                .child("Last result"),
+                                .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                                    "Last result",
+                                ))),
                         )
                         .child(div().text_size(ty::BODY).text_color(lb.text).child(text)),
                 )
             });
-        let try_section = Section::new("Try dictation").row(
+        let try_section = Section::new(lokalbot_i18n::tr("Try dictation")).row(
             "settings.dictationTry",
             settings_row::content_row("settings.dictationTry", try_it, false, cx),
         );

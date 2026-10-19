@@ -1,9 +1,10 @@
 //! Timeline's context panel: the selected work session or meeting
 //! (`TimelineContextPanel`, `TimelineMeetingPreview`).
 
+use crate::i18n::h_flex;
 use gpui_kit::component::button::{Button, ButtonVariants as _};
 use gpui_kit::component::scroll::ScrollableElement as _;
-use gpui_kit::component::{Icon, h_flex, v_flex};
+use gpui_kit::component::{Icon, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
     AnyElement, Context, FontWeight, InteractiveElement as _, IntoElement, ParentElement as _,
@@ -86,12 +87,12 @@ impl TimelinePage {
         let content = content.unwrap_or_else(|| {
             v_flex()
                 .gap(px(14.))
-                .child(self.panel_header(Ico::ScanText, "Details".into(), String::new(), drawer, cx))
+                .child(self.panel_header(Ico::ScanText, lokalbot_i18n::tr("Details").into(), String::new(), drawer, cx))
                 .child(
                     div()
                         .text_size(ty::BODY)
                         .text_color(cx.lb().text_secondary)
-                        .child("Select a work session, meeting, or captured moment to review its details."),
+                        .child(crate::ui::text::paragraph(lokalbot_i18n::tr("Select a work session, meeting, or captured moment to review its details."))),
                 )
                 .into_any_element()
         });
@@ -127,7 +128,7 @@ impl TimelinePage {
                             .text_color(lb.accent_text)
                             .hover(|s| s.underline())
                             .child(ui::icon(Ico::ChevronLeft, px(14.), lb.accent_text))
-                            .child("Day")
+                            .child(crate::ui::text::paragraph(lokalbot_i18n::tr("Day")))
                             .on_click(cx.listener(|this, _, _, cx| this.select(None, cx))),
                     )
                     .child(div().flex_1())
@@ -136,7 +137,7 @@ impl TimelinePage {
                             Button::new("context-close")
                                 .ghost()
                                 .icon(Icon::new(Ico::X))
-                                .tooltip("Close context panel")
+                                .tooltip(lokalbot_i18n::tr("Close context panel"))
                                 .on_click(cx.listener(|this, _, _, cx| {
                                     this.drawer_open = false;
                                     this.selection = None;
@@ -188,11 +189,25 @@ impl TimelinePage {
         cx: &mut Context<Self>,
     ) -> AnyElement {
         let lb = cx.lb().clone();
-        let subtitle = format!(
-            "{}–{} · {} active",
-            lokalbot_core::time::clock_time(session.start),
-            lokalbot_core::time::clock_time(session.end),
-            crate::pages::today::digest::hm(session.active_seconds)
+        let subtitle = lokalbot_i18n::format(
+            "{0}–{1} · {2} active",
+            &[
+                (
+                    "0",
+                    format!("{}", lokalbot_core::time::clock_time(session.start)),
+                ),
+                (
+                    "1",
+                    format!("{}", lokalbot_core::time::clock_time(session.end)),
+                ),
+                (
+                    "2",
+                    format!(
+                        "{}",
+                        crate::pages::today::digest::hm(session.active_seconds)
+                    ),
+                ),
+            ],
         );
         let moments: Vec<_> = model
             .moments
@@ -207,7 +222,7 @@ impl TimelinePage {
                     div()
                         .text_size(ty::BODY)
                         .text_color(lb.text_secondary)
-                        .child("No context moments were captured during this session."),
+                        .child(crate::ui::text::paragraph(lokalbot_i18n::tr("No context moments were captured during this session."))),
                 )
             })
             .children(representative.iter().map(|moment| {
@@ -243,11 +258,7 @@ impl TimelinePage {
                     )
             }))
             .when(moments.len() > representative.len(), |this| {
-                this.child(div().text_size(ty::SECONDARY).text_color(lb.text_secondary).child(format!(
-                    "Showing {} representative scenes from {}. Browse raw capture for every scene.",
-                    representative.len(),
-                    moments.len()
-                )))
+                this.child(div().text_size(ty::SECONDARY).text_color(lb.text_secondary).child(crate::ui::text::paragraph(lokalbot_i18n::format("Showing {0} representative scenes from {1}. Browse raw capture for every scene.", &[("0", format!("{}", representative.len())), ("1", format!("{}", moments.len()))]))))
             });
 
         // Window titles with the blocks behind them, most observed first.
@@ -309,12 +320,7 @@ impl TimelinePage {
                                             .text_color(lb.text)
                                             .child(title.clone()),
                                     )
-                                    .child(div().text_size(ty::SECONDARY).text_color(lb.text_secondary).child(format!(
-                                        "{} observed · {} activity {}",
-                                        crate::pages::today::digest::hm(observed),
-                                        matching.len(),
-                                        if matching.len() == 1 { "block" } else { "blocks" }
-                                    ))),
+                                    .child(div().text_size(ty::SECONDARY).text_color(lb.text_secondary).child(crate::ui::text::paragraph(lokalbot_i18n::format("{duration} observed · Activity entries: {count}", &[("duration", crate::pages::today::digest::hm(observed)), ("count", matching.len().to_string())])))),
                             )
                             .on_click(cx.listener(move |this, _, _, cx| {
                                 if !this.expanded_titles.remove(&key) {
@@ -340,12 +346,10 @@ impl TimelinePage {
             });
             context_section(
                 Ico::FileText,
-                "Documents and windows",
+                lokalbot_i18n::tr("Documents and windows"),
                 v_flex()
                     .gap(px(9.))
-                    .child(div().text_size(ty::SECONDARY).text_color(lb.text_secondary).child(
-                        "These are captured window titles. Expand a title to inspect the activity behind it.",
-                    ))
+                    .child(div().text_size(ty::SECONDARY).text_color(lb.text_secondary).child(crate::ui::text::paragraph(lokalbot_i18n::tr("These are captured window titles. Expand a title to inspect the activity behind it."))))
                     .children(rows),
                 cx,
             )
@@ -372,7 +376,9 @@ impl TimelinePage {
                         px(13.),
                         lb.text_secondary,
                     ))
-                    .child("Session details")
+                    .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                        "Session details",
+                    )))
                     .on_click(cx.listener(|this, _, _, cx| {
                         this.session_details_open = !this.session_details_open;
                         cx.notify();
@@ -392,20 +398,24 @@ impl TimelinePage {
                                 .child(ui::stat_chip(
                                     Ico::Clock,
                                     crate::pages::today::digest::hm(session.active_seconds),
-                                    "active",
+                                    lokalbot_i18n::tr("active"),
                                     cx,
                                 ))
                                 .child(ui::stat_chip(
                                     Ico::LayoutGrid,
                                     apps.to_string(),
-                                    if apps == 1 { "app" } else { "apps" },
+                                    if apps == 1 {
+                                        "app"
+                                    } else {
+                                        lokalbot_i18n::tr("apps")
+                                    },
                                     cx,
                                 ))
                                 .when(session.context_switch_count > 0, |this| {
                                     this.child(ui::stat_chip(
                                         Ico::ArrowRightLeft,
                                         session.context_switch_count.to_string(),
-                                        "switches",
+                                        lokalbot_i18n::tr("switches"),
                                         cx,
                                     ))
                                 }),
@@ -438,7 +448,7 @@ impl TimelinePage {
             ))
             .child(context_section(
                 Ico::ScanText,
-                "Representative evidence",
+                lokalbot_i18n::tr("Representative evidence"),
                 evidence,
                 cx,
             ))
@@ -449,11 +459,14 @@ impl TimelinePage {
                     ui::controls::bordered_icon(
                         "ask-session",
                         Ico::Sparkles,
-                        "Ask about this session",
+                        lokalbot_i18n::tr("Ask about this session"),
                     )
                     .on_click(cx.listener(move |this, _, _, cx| {
                         this.ask_day(
-                            format!("What matters from my work session on {title}?"),
+                            lokalbot_i18n::format(
+                                "What matters from my work session on {title}?",
+                                &[("title", format!("{}", title))],
+                            ),
                             Vec::new(),
                             cx,
                         )
@@ -476,7 +489,10 @@ impl TimelinePage {
             let hour = block
                 .start
                 .with_timezone(&chrono::Local)
-                .format("%-I:00 %p")
+                .format_localized(
+                    lokalbot_i18n::date_pattern("%-I:00 %p"),
+                    lokalbot_i18n::date_locale(),
+                )
                 .to_string();
             match hours.last_mut() {
                 Some((label, blocks)) if *label == hour => blocks.push(block),
@@ -487,7 +503,7 @@ impl TimelinePage {
         let activity = (!model.activity.blocks.is_empty()).then(|| {
             context_section(
                 Ico::ChartGantt,
-                "App activity",
+                lokalbot_i18n::tr("App activity"),
                 v_flex()
                     .gap(px(12.))
                     .children(hours.into_iter().map(|(hour, blocks)| {
@@ -563,7 +579,7 @@ impl TimelinePage {
         let moments = (!model.moments.is_empty()).then(|| {
             context_section(
                 Ico::ScanText,
-                "Screen moments",
+                lokalbot_i18n::tr("Screen moments"),
                 v_flex()
                     .gap(px(9.))
                     .children(model.moments.iter().map(|moment| {
@@ -616,7 +632,10 @@ impl TimelinePage {
                                                 moment
                                                     .ts
                                                     .with_timezone(&chrono::Local)
-                                                    .format("%-I:%M:%S %p")
+                                                    .format_localized(
+                                                        lokalbot_i18n::date_pattern("%-I:%M:%S %p"),
+                                                        lokalbot_i18n::date_locale()
+                                                    )
                                             )),
                                     ),
                             )
@@ -629,15 +648,13 @@ impl TimelinePage {
         });
         v_flex()
             .gap(px(16.))
-            .child(self.panel_header(Ico::Activity, "Raw capture".into(), capture_counts(model), drawer, cx))
-            .child(div().text_size(ty::SECONDARY).text_color(lb.text_secondary).child(
-                "Individual app activity and retained screen moments. Use this for exact evidence or cleanup.",
-            ))
+            .child(self.panel_header(Ico::Activity, lokalbot_i18n::tr("Raw capture").into(), capture_counts(model), drawer, cx))
+            .child(div().text_size(ty::SECONDARY).text_color(lb.text_secondary).child(crate::ui::text::paragraph(lokalbot_i18n::tr("Individual app activity and retained screen moments. Use this for exact evidence or cleanup."))))
             .when(empty, |this| {
                 this.child(ui::empty_state(
                     Ico::Activity,
-                    "No raw capture",
-                    "No activity or screen moments were retained for this day.",
+                    lokalbot_i18n::tr("No raw capture"),
+                    lokalbot_i18n::tr("No activity or screen moments were retained for this day."),
                     cx,
                 ))
             })
@@ -675,7 +692,9 @@ impl TimelinePage {
                             .text_size(ty::BODY)
                             .font_weight(FontWeight::SEMIBOLD)
                             .text_color(lb.recording_text)
-                            .child("Recording in progress"),
+                            .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                                "Recording in progress",
+                            ))),
                     )
                     .into_any_element(),
             );
@@ -683,7 +702,7 @@ impl TimelinePage {
         if let Some(recap) = preview.recap.clone() {
             sections.push(context_section(
                 Ico::FileText,
-                "Recap",
+                lokalbot_i18n::tr("Recap"),
                 v_flex().gap(px(6.)).children(
                     meeting_model::recap_points(&recap)
                         .into_iter()
@@ -697,7 +716,7 @@ impl TimelinePage {
             let count = preview.actions.len();
             sections.push(context_section(
                 Ico::ListChecks,
-                "My actions",
+                lokalbot_i18n::tr("My actions"),
                 v_flex().children(preview.actions.iter().enumerate().map(|(ix, reference)| {
                     let data = data.clone();
                     let (meeting_id, action_id, status) = (
@@ -749,7 +768,7 @@ impl TimelinePage {
         if !preview.decisions.is_empty() {
             sections.push(context_section(
                 Ico::BadgeCheck,
-                "Decisions",
+                lokalbot_i18n::tr("Decisions"),
                 v_flex()
                     .gap(px(10.))
                     .children(preview.decisions.iter().map(|decision| {
@@ -778,7 +797,9 @@ impl TimelinePage {
                 div()
                     .text_size(ty::BODY)
                     .text_color(lb.text_secondary)
-                    .child("No outcome summary has been extracted for this meeting yet.")
+                    .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                        "No outcome summary has been extracted for this meeting yet.",
+                    )))
                     .into_any_element(),
             );
         }
@@ -803,11 +824,14 @@ impl TimelinePage {
                         ui::controls::bordered_icon(
                             "ask-meeting",
                             Ico::Sparkles,
-                            "Ask about this meeting",
+                            lokalbot_i18n::tr("Ask about this meeting"),
                         )
                         .on_click(cx.listener(move |this, _, _, cx| {
                             this.ask_day(
-                                format!("What matters from {title}?"),
+                                lokalbot_i18n::format(
+                                    "What matters from {title}?",
+                                    &[("title", format!("{}", title))],
+                                ),
                                 vec![meeting_id],
                                 cx,
                             )
@@ -817,7 +841,7 @@ impl TimelinePage {
                         Button::new("open-meeting")
                             .primary()
                             .icon(Icon::new(Ico::ArrowUpRight))
-                            .label("Open meeting")
+                            .label(lokalbot_i18n::tr("Open meeting"))
                             .on_click(move |_, _, cx| {
                                 open_meeting(&open_data, meeting_id, None, cx)
                             }),
@@ -831,18 +855,12 @@ impl TimelinePage {
 pub(super) fn capture_counts(model: &DayModel) -> String {
     let blocks = model.activity.blocks.len();
     let moments = model.moments.len();
-    format!(
-        "{blocks} {} · {moments} {}",
-        if blocks == 1 {
-            "activity entry"
-        } else {
-            "activity entries"
-        },
-        if moments == 1 {
-            "screen moment"
-        } else {
-            "screen moments"
-        }
+    lokalbot_i18n::format(
+        "Activity entries: {blocks} · Screen moments: {moments}",
+        &[
+            ("blocks", blocks.to_string()),
+            ("moments", moments.to_string()),
+        ],
     )
 }
 

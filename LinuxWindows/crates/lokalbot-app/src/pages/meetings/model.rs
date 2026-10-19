@@ -103,13 +103,13 @@ impl ReviewSpeaker {
     /// `MeetingSpeakerReviewItem.status`.
     pub fn status(&self) -> &'static str {
         if self.is_user {
-            "Attributed to you"
+            lokalbot_i18n::tr("Attributed to you")
         } else if !self.can_confirm {
-            "Mixed or unresolved audio"
+            lokalbot_i18n::tr("Mixed or unresolved audio")
         } else if self.is_named {
-            "Named in this meeting"
+            lokalbot_i18n::tr("Named in this meeting")
         } else {
-            "Name not confirmed"
+            lokalbot_i18n::tr("Name not confirmed")
         }
     }
 }
@@ -189,19 +189,19 @@ pub fn display_label(name: &str, is_user: bool) -> String {
     let lower = trimmed.to_lowercase();
     if lower == "me" {
         return if is_user {
-            "You".into()
+            lokalbot_i18n::tr("You").into()
         } else {
             trimmed.to_string()
         };
     }
     if lower == "them" {
-        return "Other speaker".into();
+        return lokalbot_i18n::tr("Other speaker").into();
     }
     if let Some(n) = lower
         .strip_prefix("them ")
         .filter(|n| n.chars().all(|c| c.is_ascii_digit()) && !n.is_empty())
     {
-        return format!("Speaker {n}");
+        return lokalbot_i18n::format("Speaker {n}", &[("n", format!("{}", n))]);
     }
     trimmed.to_string()
 }
@@ -607,7 +607,10 @@ pub fn recap_points(text: &str) -> Vec<String> {
 /// "Oct 8, 2026 at 11:57 AM".
 pub fn date_label(at: DateTime<Utc>) -> String {
     at.with_timezone(&Local)
-        .format("%b %-d, %Y at %-I:%M %p")
+        .format_localized(
+            lokalbot_i18n::date_pattern("%b %-d, %Y at %-I:%M %p"),
+            lokalbot_i18n::date_locale(),
+        )
         .to_string()
 }
 
@@ -615,31 +618,56 @@ pub fn date_label(at: DateTime<Utc>) -> String {
 pub fn duration_label(meeting: &Meeting) -> String {
     let minutes = (meeting.duration_seconds() / 60.).floor() as u64;
     if minutes >= 60 {
-        format!("{} hr {} min", minutes / 60, minutes % 60)
+        lokalbot_i18n::format(
+            "{0} hr {1} min",
+            &[
+                ("0", format!("{}", minutes / 60)),
+                ("1", format!("{}", minutes % 60)),
+            ],
+        )
     } else {
-        format!("{minutes} min")
+        lokalbot_i18n::format("{minutes} min", &[("minutes", format!("{}", minutes))])
     }
 }
 
 /// List row metadata: "Zoom · 10:57 AM · 2 min"; merged meetings omit the app.
 pub fn row_detail(meeting: &Meeting, live: bool) -> String {
     let time = if live {
-        "in progress".to_string()
+        lokalbot_i18n::tr("in progress").to_string()
     } else {
         lokalbot_core::time::clock_time(meeting.started_at)
     };
     let duration = if live {
-        format!(
-            "{} min",
-            ((Utc::now() - meeting.started_at).num_seconds().max(60) / 60)
+        lokalbot_i18n::format(
+            "{0} min",
+            &[(
+                "0",
+                format!(
+                    "{}",
+                    ((Utc::now() - meeting.started_at).num_seconds().max(60) / 60)
+                ),
+            )],
         )
     } else {
         duration_label(meeting)
     };
     if meeting.is_merged_meeting() {
-        format!("{time} · {duration}")
+        lokalbot_i18n::format(
+            "{time} · {duration}",
+            &[
+                ("time", format!("{}", time)),
+                ("duration", format!("{}", duration)),
+            ],
+        )
     } else {
-        format!("{} · {time} · {duration}", meeting.app_name)
+        lokalbot_i18n::format(
+            "{0} · {time} · {duration}",
+            &[
+                ("0", format!("{}", meeting.app_name)),
+                ("time", format!("{}", time)),
+                ("duration", format!("{}", duration)),
+            ],
+        )
     }
 }
 

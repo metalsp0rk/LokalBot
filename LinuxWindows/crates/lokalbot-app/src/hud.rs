@@ -5,7 +5,7 @@
 
 use std::time::Duration;
 
-use gpui_kit::component::h_flex;
+use crate::i18n::h_flex;
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
     AnyWindowHandle, App, AppContext as _, Bounds, Context, Entity, FontWeight,
@@ -117,10 +117,13 @@ impl Render for Hud {
         let state = self.data.read(cx).dictation.clone();
         let data = self.data.clone();
         let (label, level): (Option<SharedString>, f32) = match &state {
-            DictationHud::Starting => (Some("Starting the microphone…".into()), 0.0),
+            DictationHud::Starting => (
+                Some(lokalbot_i18n::tr("Starting the microphone…").into()),
+                0.0,
+            ),
             DictationHud::Listening { level, .. } => (None, *level),
-            DictationHud::Transcribing => (Some("Transcribing".into()), 0.0),
-            DictationHud::Composing => (Some("Composing".into()), 0.0),
+            DictationHud::Transcribing => (Some(lokalbot_i18n::tr("Transcribing").into()), 0.0),
+            DictationHud::Composing => (Some(lokalbot_i18n::tr("Composing").into()), 0.0),
             DictationHud::Notice(text) | DictationHud::Failed(text) => (Some(text.clone()), 0.0),
             DictationHud::Idle => (None, 0.0),
         };

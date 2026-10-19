@@ -1,11 +1,12 @@
 //! Action-thread rows for Today, Timeline and the Actions workspace
 //! (`ActionThreadRow` in `OutcomeOverviewViews.swift`).
 
+use crate::i18n::h_flex;
 use chrono::Local;
 use gpui_kit::component::button::{Button, ButtonVariants as _};
 use gpui_kit::component::menu::PopupMenuItem;
 use gpui_kit::component::popover::Popover;
-use gpui_kit::component::{Sizable as _, WindowExt as _, h_flex, v_flex};
+use gpui_kit::component::{Sizable as _, WindowExt as _, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
     AnyElement, App, AppContext as _, Entity, FontWeight, InteractiveElement as _, IntoElement,
@@ -45,8 +46,11 @@ pub(crate) fn set_thread_status(
         apply_thread_status(data, thread, status, cx);
         return;
     }
-    let title: SharedString =
-        format!("Update actions in {} meetings?", thread.meeting_count()).into();
+    let title: SharedString = lokalbot_i18n::format(
+        "Update actions in {0} meetings?",
+        &[("0", format!("{}", thread.meeting_count()))],
+    )
+    .into();
     let titles: Vec<String> = {
         let mut seen = Vec::new();
         for reference in &thread.references {
@@ -56,7 +60,14 @@ pub(crate) fn set_thread_status(
         }
         seen
     };
-    let confirm: SharedString = format!("Mark all {}", status.label().to_lowercase()).into();
+    let confirm: SharedString = lokalbot_i18n::format(
+        "Mark all {0}",
+        &[(
+            "0",
+            format!("{}", lokalbot_i18n::tr(status.label()).to_lowercase()),
+        )],
+    )
+    .into();
     window.open_dialog(cx, move |dialog, _, cx| {
         let lb = cx.lb().clone();
         let data = data.clone();
@@ -82,11 +93,10 @@ pub(crate) fn set_thread_status(
                     .gap_2()
                     .justify_end()
                     .child(
-                        crate::ui::controls::bordered("thread-cancel", "Cancel").on_click(
-                            |_, window, cx| {
+                        crate::ui::controls::bordered("thread-cancel", lokalbot_i18n::tr("Cancel"))
+                            .on_click(|_, window, cx| {
                                 window.close_dialog(cx);
-                            },
-                        ),
+                            }),
                     )
                     .child(
                         Button::new("thread-confirm")
@@ -114,7 +124,13 @@ fn apply_thread_status(
             .await;
         data.update(cx, |data, cx| {
             if let Err(err) = result {
-                data.show_error(format!("Could not update this action thread. {err:#}"), cx);
+                data.show_error(
+                    lokalbot_i18n::format(
+                        "Could not update this action thread. {err}",
+                        &[("err", format!("{:#}", err))],
+                    ),
+                    cx,
+                );
             }
             data.mark_library_changed(cx);
         });
@@ -142,7 +158,13 @@ fn set_excluded(
             .await;
         data.update(cx, |data, cx| {
             if let Err(err) = result {
-                data.show_error(format!("Could not update this action. {err:#}"), cx);
+                data.show_error(
+                    lokalbot_i18n::format(
+                        "Could not update this action. {err}",
+                        &[("err", format!("{:#}", err))],
+                    ),
+                    cx,
+                );
             }
             data.mark_library_changed(cx);
         });
@@ -191,13 +213,19 @@ pub(crate) fn thread_row(
             .owner
             .as_deref()
             .map(|o| crate::pages::meetings::model::display_label(o, latest.is_for_user))
-            .unwrap_or_else(|| "Owner unclear".into());
+            .unwrap_or_else(|| lokalbot_i18n::tr("Owner unclear").into());
         meta.push(action_row::meta_text(owner, lb.text_secondary).into_any_element());
     }
     if mixed {
-        meta.push(action_row::meta_text("Mixed status", lb.text_secondary).into_any_element());
+        meta.push(
+            action_row::meta_text(lokalbot_i18n::tr("Mixed status"), lb.text_secondary)
+                .into_any_element(),
+        );
     } else if show_owner && status == ActionStatus::Deferred {
-        meta.push(action_row::meta_text("Deferred", lb.text_secondary).into_any_element());
+        meta.push(
+            action_row::meta_text(lokalbot_i18n::tr("Deferred"), lb.text_secondary)
+                .into_any_element(),
+        );
     }
     if multiple {
         meta.push(sources_popover(
@@ -235,7 +263,10 @@ pub(crate) fn thread_row(
         );
     }
     if thread.due_history().len() > 1 {
-        meta.push(action_row::meta_text("Deadline updated", lb.text_secondary).into_any_element());
+        meta.push(
+            action_row::meta_text(lokalbot_i18n::tr("Deadline updated"), lb.text_secondary)
+                .into_any_element(),
+        );
     }
     if !multiple && let Some(citation) = latest.first_citation().cloned() {
         let data = data.clone();
@@ -268,7 +299,7 @@ pub(crate) fn thread_row(
                     let data = data.clone();
                     let thread = thread.clone();
                     menu = menu.item(
-                        PopupMenuItem::new(option.label())
+                        PopupMenuItem::new(lokalbot_i18n::tr(option.label()))
                             .checked(!thread.is_mixed() && thread.status() == option)
                             .on_click(move |_, window, cx| {
                                 set_thread_status(data.clone(), thread.clone(), option, window, cx)
@@ -277,27 +308,27 @@ pub(crate) fn thread_row(
                 }
                 let latest = thread.latest().clone();
                 let open_data = data.clone();
-                menu =
-                    menu.separator()
-                        .item(PopupMenuItem::new("Open latest meeting").on_click(
-                            move |_, _, cx| open_meeting(&open_data, latest.meeting_id, None, cx),
-                        ));
+                menu = menu.separator().item(
+                    PopupMenuItem::new(lokalbot_i18n::tr("Open latest meeting")).on_click(
+                        move |_, _, cx| open_meeting(&open_data, latest.meeting_id, None, cx),
+                    ),
+                );
                 if thread.meeting_count() > 1 {
                     let data = data.clone();
                     let latest = thread.latest().clone();
                     menu.item(
-                        PopupMenuItem::new("Review source meetings").on_click(move |_, _, cx| {
-                            open_meeting(&data, latest.meeting_id, None, cx)
-                        }),
+                        PopupMenuItem::new(lokalbot_i18n::tr("Review source meetings")).on_click(
+                            move |_, _, cx| open_meeting(&data, latest.meeting_id, None, cx),
+                        ),
                     )
                 } else {
                     let data = data.clone();
                     let latest = thread.latest().clone();
                     let excluded = latest.is_thread_excluded;
                     let label = if excluded {
-                        "Allow matching across meetings"
+                        lokalbot_i18n::tr("Allow matching across meetings")
                     } else {
-                        "Keep as separate action"
+                        lokalbot_i18n::tr("Keep as separate action")
                     };
                     menu.item(PopupMenuItem::new(label).on_click(move |_, _, cx| {
                         set_excluded(
@@ -325,7 +356,10 @@ fn sources_popover(
     cx: &App,
 ) -> AnyElement {
     let lb = cx.lb().clone();
-    let label = format!("Mentioned in {} meetings", thread.meeting_count());
+    let label = lokalbot_i18n::format(
+        "Mentioned in {0} meetings",
+        &[("0", format!("{}", thread.meeting_count()))],
+    );
     let thread = thread.clone();
     let data = data.clone();
     let trigger = Button::new(SharedString::from(format!("{id}-trigger")))
@@ -352,13 +386,17 @@ fn sources_popover(
                             div()
                                 .text_size(ty::SECTION)
                                 .font_weight(FontWeight::BOLD)
-                                .child("Action thread"),
+                                .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                                    "Action thread",
+                                ))),
                         )
                         .child(
                             div()
                                 .text_size(ty::SECONDARY)
                                 .text_color(lb.text_secondary)
-                                .child("Every source remains attached to its original meeting."),
+                                .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                                    "Every source remains attached to its original meeting.",
+                                ))),
                         ),
                 )
                 .child(div().h(px(1.)).bg(lb.separator))
@@ -367,18 +405,27 @@ fn sources_popover(
                     let meeting_id = reference.meeting_id;
                     let mut details = Vec::new();
                     if let Some(owner) = reference.owner.as_deref() {
-                        details.push(format!(
-                            "Owner: {}",
-                            crate::pages::meetings::model::display_label(
-                                owner,
-                                reference.is_for_user
-                            )
+                        details.push(lokalbot_i18n::format(
+                            "Owner: {0}",
+                            &[(
+                                "0",
+                                format!(
+                                    "{}",
+                                    crate::pages::meetings::model::display_label(
+                                        owner,
+                                        reference.is_for_user
+                                    )
+                                ),
+                            )],
                         ));
                     }
                     if let Some(due) = reference.due.as_deref() {
-                        details.push(format!("Due: {due}"));
+                        details.push(lokalbot_i18n::format(
+                            "Due: {due}",
+                            &[("due", format!("{}", due))],
+                        ));
                     }
-                    details.push(reference.status.label().to_string());
+                    details.push(lokalbot_i18n::tr(reference.status.label()).to_string());
                     v_flex()
                         .gap(px(4.))
                         .child(
@@ -418,7 +465,10 @@ fn sources_popover(
                                 div()
                                     .text_size(ty::SECONDARY)
                                     .text_color(lb.text_secondary)
-                                    .child(format!("Corrected to: {}", reference.text)),
+                                    .child(crate::ui::text::paragraph(lokalbot_i18n::format(
+                                        "Corrected to: {0}",
+                                        &[("0", format!("{}", reference.text))],
+                                    ))),
                             )
                         })
                         .child(

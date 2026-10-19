@@ -34,8 +34,8 @@ impl Source {
 
     pub fn label(self) -> &'static str {
         match self {
-            Source::Meetings => "Meetings",
-            Source::Screen => "Screen",
+            Source::Meetings => lokalbot_i18n::tr("Meetings"),
+            Source::Screen => lokalbot_i18n::tr("Screen"),
         }
     }
 }
@@ -66,12 +66,12 @@ impl Sources {
     /// "All sources" or "Screen".
     pub fn summary(&self) -> String {
         if *self == Sources::default() {
-            return "All sources".into();
+            return lokalbot_i18n::tr("All sources").into();
         }
         Source::ALL
             .iter()
             .filter(|s| self.contains(**s))
-            .map(|s| s.label())
+            .map(|s| lokalbot_i18n::tr(s.label()))
             .collect::<Vec<_>>()
             .join(", ")
     }
@@ -91,20 +91,28 @@ pub enum DateScope {
 impl DateScope {
     pub fn label(self) -> String {
         match self {
-            DateScope::AnyTime => "Any time".into(),
-            DateScope::Today => "Today".into(),
-            DateScope::Yesterday => "Yesterday".into(),
-            DateScope::LastSevenDays => "Last 7 days".into(),
+            DateScope::AnyTime => lokalbot_i18n::tr("Any time").into(),
+            DateScope::Today => lokalbot_i18n::tr("Today").into(),
+            DateScope::Yesterday => lokalbot_i18n::tr("Yesterday").into(),
+            DateScope::LastSevenDays => lokalbot_i18n::tr("Last 7 days").into(),
             DateScope::Day(day) => {
                 let today = Local::now().date_naive();
                 if day == today {
-                    "Today".into()
+                    lokalbot_i18n::tr("Today").into()
                 } else if Some(day) == today.pred_opt() {
-                    "Yesterday".into()
+                    lokalbot_i18n::tr("Yesterday").into()
                 } else if day.year() == today.year() {
-                    day.format("%b %-d").to_string()
+                    day.format_localized(
+                        lokalbot_i18n::date_pattern("%b %-d"),
+                        lokalbot_i18n::date_locale(),
+                    )
+                    .to_string()
                 } else {
-                    day.format("%b %-d, %Y").to_string()
+                    day.format_localized(
+                        lokalbot_i18n::date_pattern("%b %-d, %Y"),
+                        lokalbot_i18n::date_locale(),
+                    )
+                    .to_string()
                 }
             }
         }

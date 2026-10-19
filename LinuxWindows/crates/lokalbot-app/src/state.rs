@@ -27,14 +27,14 @@ pub enum Section {
 impl Section {
     pub fn title(self) -> &'static str {
         match self {
-            Section::Today => "Today",
-            Section::Meetings => "Meetings",
-            Section::Timeline => "Timeline",
-            Section::People => "People",
-            Section::Projects => "Projects",
-            Section::Ask => "Ask",
-            Section::Agent => "Agent",
-            Section::Settings => "Settings",
+            Section::Today => lokalbot_i18n::tr("Today"),
+            Section::Meetings => lokalbot_i18n::tr("Meetings"),
+            Section::Timeline => lokalbot_i18n::tr("Timeline"),
+            Section::People => lokalbot_i18n::tr("People"),
+            Section::Projects => lokalbot_i18n::tr("Projects"),
+            Section::Ask => lokalbot_i18n::tr("Ask"),
+            Section::Agent => lokalbot_i18n::tr("Agent"),
+            Section::Settings => lokalbot_i18n::tr("Settings"),
         }
     }
 }
@@ -445,7 +445,13 @@ impl AppData {
             let _ = this.update(cx, |this, cx| {
                 match loaded {
                     Ok(meetings) => this.meetings = meetings,
-                    Err(err) => this.show_error(format!("Could not read the library: {err:#}"), cx),
+                    Err(err) => this.show_error(
+                        lokalbot_i18n::format(
+                            "Could not read the library: {err}",
+                            &[("err", format!("{:#}", err))],
+                        ),
+                        cx,
+                    ),
                 }
                 this.meetings_loaded = true;
                 this.revision += 1;
@@ -485,7 +491,13 @@ impl AppData {
                 .await;
             let _ = this.update(cx, |this, cx| {
                 if let Err(err) = result {
-                    this.show_error(format!("Could not update the action: {err:#}"), cx);
+                    this.show_error(
+                        lokalbot_i18n::format(
+                            "Could not update the action: {err}",
+                            &[("err", format!("{:#}", err))],
+                        ),
+                        cx,
+                    );
                 }
                 this.revision += 1;
                 cx.notify();
@@ -505,7 +517,13 @@ impl AppData {
                 .await;
             let _ = this.update(cx, |this, cx| {
                 if let Err(err) = result {
-                    this.show_error(format!("Could not delete the meeting: {err:#}"), cx);
+                    this.show_error(
+                        lokalbot_i18n::format(
+                            "Could not delete the meeting: {err}",
+                            &[("err", format!("{:#}", err))],
+                        ),
+                        cx,
+                    );
                 }
                 if this
                     .meeting_focus
@@ -525,7 +543,7 @@ impl AppData {
     pub fn save_screen_moment(&mut self, id: i64, note: String, cx: &mut Context<Self>) {
         let library = self.library.clone();
         self.run_library_change(
-            "Could not update the saved moment",
+            lokalbot_i18n::tr("Could not update the saved moment"),
             move || library.save_moment(id, &note),
             cx,
         );
@@ -534,7 +552,7 @@ impl AppData {
     pub fn unsave_screen_moment(&mut self, id: i64, cx: &mut Context<Self>) {
         let library = self.library.clone();
         self.run_library_change(
-            "Could not update the saved moment",
+            lokalbot_i18n::tr("Could not update the saved moment"),
             move || library.unsave_moment(id),
             cx,
         );
@@ -544,7 +562,7 @@ impl AppData {
     pub fn delete_screen_moment(&mut self, id: i64, cx: &mut Context<Self>) {
         let library = self.library.clone();
         self.run_library_change(
-            "Could not delete the captured screen",
+            lokalbot_i18n::tr("Could not delete the captured screen"),
             move || library.delete_screen_moments(&[id]).map(|_| ()),
             cx,
         );
@@ -560,7 +578,16 @@ impl AppData {
             let result = cx.background_spawn(async move { change() }).await;
             let _ = this.update(cx, |this, cx| {
                 if let Err(err) = result {
-                    this.show_error(format!("{failure}: {err:#}"), cx);
+                    this.show_error(
+                        lokalbot_i18n::format(
+                            "{failure}: {err}",
+                            &[
+                                ("failure", format!("{}", failure)),
+                                ("err", format!("{:#}", err)),
+                            ],
+                        ),
+                        cx,
+                    );
                 }
                 this.revision += 1;
                 cx.notify();
@@ -577,6 +604,9 @@ impl AppData {
         change(&mut self.settings);
         if self.settings == before {
             return;
+        }
+        if before.app_language != self.settings.app_language {
+            crate::i18n::apply(&self.settings.app_language, cx);
         }
         let (label, hosts) = inference_presentation(&self.settings);
         self.inference_label = label;
@@ -710,9 +740,12 @@ pub fn inference_presentation(settings: &Settings) -> (SharedString, Vec<SharedS
             let host = lokalbot_core::access::origin_of(url)
                 .map(|o| o.split_once("://").map(|(_, h)| h.to_string()).unwrap_or(o))
                 .unwrap_or_else(|| url.to_string());
-            ("AI: local + remote".into(), vec![host.into()])
+            (
+                lokalbot_i18n::tr("AI: local + remote").into(),
+                vec![host.into()],
+            )
         }
-        _ => ("AI: on this PC".into(), Vec::new()),
+        _ => (lokalbot_i18n::tr("AI: on this PC").into(), Vec::new()),
     }
 }
 
@@ -721,10 +754,14 @@ pub fn day_label(at: DateTime<Utc>) -> String {
     let day = lokalbot_core::time::local_day(at);
     let today = chrono::Local::now().date_naive();
     if day == today {
-        "Today".into()
+        lokalbot_i18n::tr("Today").into()
     } else if Some(day) == today.pred_opt() {
-        "Yesterday".into()
+        lokalbot_i18n::tr("Yesterday").into()
     } else {
-        day.format("%A, %B %-d").to_string()
+        day.format_localized(
+            lokalbot_i18n::date_pattern("%A, %B %-d"),
+            lokalbot_i18n::date_locale(),
+        )
+        .to_string()
     }
 }

@@ -2,8 +2,9 @@
 //! arguments a tool asked to use, with Deny, Allow for Session (file changes
 //! in the working folder only) and Allow Once.
 
+use crate::i18n::h_flex;
 use gpui_kit::component::button::{Button, ButtonVariants as _};
-use gpui_kit::component::{Disableable as _, h_flex, v_flex};
+use gpui_kit::component::{Disableable as _, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
     AnyElement, App, Context, Div, FontWeight, Hsla, InteractiveElement as _, IntoElement,
@@ -22,16 +23,22 @@ use crate::ui::{self, Ico};
 /// What approving does, by tool (`approvalEffect`).
 fn effect(tool: &str) -> &'static str {
     match tool.to_lowercase().as_str() {
-        "read" => "Read the file shown below and make its contents available to this session.",
-        "write" => "Create or replace the file shown below with the proposed content.",
-        "edit" => "Apply the replacements shown below to the target file.",
-        "bash" | "shell" => {
-            "Run the command shown below in the working folder with this session's current access."
+        "read" => lokalbot_i18n::tr(
+            "Read the file shown below and make its contents available to this session.",
+        ),
+        "write" => {
+            lokalbot_i18n::tr("Create or replace the file shown below with the proposed content.")
         }
-        "powershell" => {
-            "Run the PowerShell command shown below in the working folder with this session's current access."
+        "edit" => lokalbot_i18n::tr("Apply the replacements shown below to the target file."),
+        "bash" | "shell" => lokalbot_i18n::tr(
+            "Run the command shown below in the working folder with this session's current access.",
+        ),
+        "powershell" => lokalbot_i18n::tr(
+            "Run the PowerShell command shown below in the working folder with this session's current access.",
+        ),
+        _ => {
+            lokalbot_i18n::tr("Allow the operation shown below with this session's current access.")
         }
-        _ => "Allow the operation shown below with this session's current access.",
     }
 }
 
@@ -52,21 +59,31 @@ impl AgentPage {
 
         let mut details = v_flex().gap(px(8.));
         if let Some(path) = &request.path {
-            details = details.child(text_field("File", path, cx));
+            details = details.child(text_field(lokalbot_i18n::tr("File"), path, cx));
         }
         if let Some(command) = &request.command {
-            details = details.child(code_field("Command", command, lb.text_secondary, cx));
+            details = details.child(code_field(
+                lokalbot_i18n::tr("Command"),
+                command,
+                lb.text_secondary,
+                cx,
+            ));
         }
         if let Some(content) = &request.content {
             details = details.child(code_field(
-                "Content to write",
+                lokalbot_i18n::tr("Content to write"),
                 content,
                 lb.text_secondary,
                 cx,
             ));
         }
         if let Some(arguments) = &request.arguments {
-            details = details.child(code_field("Arguments", arguments, lb.text_secondary, cx));
+            details = details.child(code_field(
+                lokalbot_i18n::tr("Arguments"),
+                arguments,
+                lb.text_secondary,
+                cx,
+            ));
         }
         let several = request.edits.len() > 1;
         for (index, edit) in request.edits.iter().enumerate() {
@@ -77,23 +94,40 @@ impl AgentPage {
                         .text_size(ty::CAPTION)
                         .font_weight(FontWeight::SEMIBOLD)
                         .text_color(lb.text)
-                        .child(format!("Edit {}", index + 1)),
+                        .child(crate::ui::text::paragraph(lokalbot_i18n::format(
+                            "Edit {0}",
+                            &[("0", format!("{}", index + 1))],
+                        ))),
                 );
             }
             details = details.child(
                 block
-                    .child(code_field("Remove", &edit.old_text, lb.recording, cx))
-                    .child(code_field("Replace with", &edit.new_text, lb.success, cx)),
+                    .child(code_field(
+                        lokalbot_i18n::tr("Remove"),
+                        &edit.old_text,
+                        lb.recording,
+                        cx,
+                    ))
+                    .child(code_field(
+                        lokalbot_i18n::tr("Replace with"),
+                        &edit.new_text,
+                        lb.success,
+                        cx,
+                    )),
             );
         }
         if let Some(workspace) = &request.workspace {
-            details = details.child(text_field("Working folder", workspace, cx));
+            details = details.child(text_field(
+                lokalbot_i18n::tr("Working folder"),
+                workspace,
+                cx,
+            ));
         }
         if !request.has_structured_details()
             && let Some(summary) = request.summary.as_deref().filter(|s| !s.is_empty())
         {
             details = details.child(code_field(
-                "Request details",
+                lokalbot_i18n::tr("Request details"),
                 summary,
                 lb.text_secondary,
                 cx,
@@ -109,7 +143,9 @@ impl AgentPage {
                         div()
                             .text_size(ty::CAPTION)
                             .text_color(lb.text_secondary)
-                            .child("Preview shortened because the requested change is very large."),
+                            .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                                "Preview shortened because the requested change is very large.",
+                            ))),
                     ),
             );
         }
@@ -125,8 +161,8 @@ impl AgentPage {
             .child(
                 Button::new("agent-approve-deny")
                     .outline()
-                    .label("Deny")
-                    .tooltip("Deny (Esc)")
+                    .label(lokalbot_i18n::tr("Deny"))
+                    .tooltip(lokalbot_i18n::tr("Deny (Esc)"))
                     .on_click(cx.listener(move |this, _, _, cx| {
                         this.respond(&deny_id, false, ApprovalScope::Once, cx)
                     })),
@@ -135,9 +171,13 @@ impl AgentPage {
                 this.child(
                     Button::new("agent-approve-session")
                         .outline()
-                        .label(format!("Allow {tool} for Session"))
-                        .tooltip(format!(
-                            "Automatically allow future {tool} requests until this session closes"
+                        .label(lokalbot_i18n::format(
+                            "Allow {tool} for Session",
+                            &[("tool", format!("{}", tool))],
+                        ))
+                        .tooltip(lokalbot_i18n::format(
+                            "Automatically allow future {tool} requests until this session closes",
+                            &[("tool", format!("{}", tool))],
                         ))
                         .on_click(cx.listener(move |this, _, _, cx| {
                             this.respond(&session_id, true, ApprovalScope::Session, cx)
@@ -147,7 +187,7 @@ impl AgentPage {
             .child(
                 Button::new("agent-approve-once")
                     .primary()
-                    .label("Allow Once")
+                    .label(lokalbot_i18n::tr("Allow Once"))
                     .font_weight(FontWeight::SEMIBOLD)
                     .disabled(!can_approve)
                     .on_click(cx.listener(move |this, _, _, cx| {
@@ -164,7 +204,10 @@ impl AgentPage {
                     div()
                         .text_size(ty::CAPTION)
                         .text_color(lb.text_secondary)
-                        .child(format!("{waiting} approvals waiting")),
+                        .child(crate::ui::text::paragraph(lokalbot_i18n::format(
+                            "{waiting} approvals waiting",
+                            &[("waiting", format!("{}", waiting))],
+                        ))),
                 )
             })
             .child(
@@ -184,7 +227,12 @@ impl AgentPage {
                                             .text_size(ty::SECTION)
                                             .font_weight(FontWeight::SEMIBOLD)
                                             .text_color(lb.attention_text)
-                                            .child(format!("Approval required: {}", request.tool)),
+                                            .child(crate::ui::text::paragraph(
+                                                lokalbot_i18n::format(
+                                                    "Approval required: {0}",
+                                                    &[("0", format!("{}", request.tool))],
+                                                ),
+                                            )),
                                     ),
                             )
                             .child(
@@ -219,7 +267,9 @@ impl AgentPage {
                                         px(11.),
                                         lb.text_secondary,
                                     ))
-                                    .child("Review Details")
+                                    .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                                        "Review Details",
+                                    )))
                                     .on_click(cx.listener(move |this, _, _, cx| {
                                         if !this.collapsed_approvals.remove(&toggle_id) {
                                             this.collapsed_approvals.insert(toggle_id.clone());
@@ -299,7 +349,7 @@ fn text_field(label: &str, value: &str, cx: &App) -> Div {
 fn code_field(label: &str, value: &str, tint: Hsla, cx: &App) -> Div {
     let lb = cx.lb();
     let shown = if value.is_empty() {
-        "(empty)".to_string()
+        lokalbot_i18n::tr("(empty)").to_string()
     } else {
         value.to_string()
     };

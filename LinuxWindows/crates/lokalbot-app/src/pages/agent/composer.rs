@@ -4,11 +4,12 @@
 
 use std::path::PathBuf;
 
+use crate::i18n::h_flex;
 use gpui_kit::component::button::{Button, ButtonVariant, ButtonVariants as _};
 use gpui_kit::component::input::Textarea;
 use gpui_kit::component::menu::{DropdownMenu as _, PopupMenuItem};
 use gpui_kit::component::popover::Popover;
-use gpui_kit::component::{Disableable as _, Icon, Sizable as _, WindowExt as _, h_flex, v_flex};
+use gpui_kit::component::{Disableable as _, Icon, Sizable as _, WindowExt as _, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
     AnyElement, App, Context, Div, ExternalPaths, Focusable as _, FontWeight,
@@ -28,6 +29,16 @@ use super::AgentPage;
 use super::conversation::Snapshot;
 use crate::theme::{LbThemeExt as _, metric, ty};
 use crate::ui::{self, Ico};
+
+fn destination_label(destination: &Destination) -> String {
+    match destination {
+        Destination::OnDevice => lokalbot_i18n::tr("On this PC").into(),
+        Destination::Remote(host) => {
+            lokalbot_i18n::format("Remote · {host}", &[("host", host.clone())])
+        }
+        Destination::Blocked(_) => lokalbot_i18n::tr("Model connection blocked").into(),
+    }
+}
 
 /// What the composer shows, copied out of the selected task.
 struct View {
@@ -98,7 +109,7 @@ impl AgentPage {
                 div()
                     .text_size(ty::SECONDARY)
                     .text_color(lb.attention_text)
-                    .child(notice)
+                    .child(crate::ui::text::paragraph(lokalbot_i18n::tr(notice)))
                     .into_any_element(),
             );
         }
@@ -116,10 +127,14 @@ impl AgentPage {
                             .child(error),
                     )
                     .child(
-                        super::small_icon_button("agent-dismiss-error", Ico::X, "Dismiss message")
-                            .on_click(cx.listener(|this, _, _, cx| {
-                                this.with_session(cx, |s| s.composer_error = None)
-                            })),
+                        super::small_icon_button(
+                            "agent-dismiss-error",
+                            Ico::X,
+                            lokalbot_i18n::tr("Dismiss message"),
+                        )
+                        .on_click(cx.listener(|this, _, _, cx| {
+                            this.with_session(cx, |s| s.composer_error = None)
+                        })),
                     )
                     .into_any_element(),
             );
@@ -130,7 +145,7 @@ impl AgentPage {
                 Button::new("agent-restore-task")
                     .outline()
                     .w_full()
-                    .label("Restore task to continue")
+                    .label(lokalbot_i18n::tr("Restore task to continue"))
                     .on_click(cx.listener(move |this, _, _, cx| {
                         this.with_tasks(cx, |tasks| tasks.set_archived(task, false))
                     }))
@@ -178,11 +193,13 @@ impl AgentPage {
         let expanded = self.queue_expanded;
         let task = view.task;
         let idle = !matches!(view.state, SessionState::Running | SessionState::Starting);
-        let title = format!(
-            "{} queued follow-up{}{}",
-            view.queued.len(),
-            if view.queued.len() == 1 { "" } else { "s" },
-            if view.queue_paused { " · paused" } else { "" }
+        let title = lokalbot_i18n::format(
+            if view.queue_paused {
+                "Queued follow-ups: {count} · paused"
+            } else {
+                "Queued follow-ups: {count}"
+            },
+            &[("count", view.queued.len().to_string())],
         );
         let mut list = v_flex().gap(px(6.)).pt(px(6.));
         for prompt in &view.queued {
@@ -205,7 +222,7 @@ impl AgentPage {
                         Button::new(("agent-queue-edit", super::key(prompt.id)))
                             .ghost()
                             .xsmall()
-                            .label("Edit")
+                            .label(lokalbot_i18n::tr("Edit"))
                             .on_click(cx.listener(move |this, _, window, cx| {
                                 this.with_session(cx, |s| s.edit_queued(edit_id));
                                 this.sync_composer(window, cx);
@@ -216,7 +233,7 @@ impl AgentPage {
                         Button::new(("agent-queue-cancel", super::key(prompt.id)))
                             .ghost()
                             .xsmall()
-                            .label("Cancel")
+                            .label(lokalbot_i18n::tr("Cancel"))
                             .on_click(cx.listener(move |this, _, _, cx| {
                                 this.with_session(cx, |s| s.cancel_queued(cancel_id))
                             })),
@@ -257,7 +274,7 @@ impl AgentPage {
                             Button::new("agent-queue-send-next")
                                 .ghost()
                                 .xsmall()
-                                .label("Send next")
+                                .label(lokalbot_i18n::tr("Send next"))
                                 .on_click(cx.listener(move |this, _, _, cx| {
                                     this.with_tasks(cx, |tasks| tasks.send_next_queued(task))
                                 })),
@@ -326,7 +343,10 @@ impl AgentPage {
                         super::small_icon_button(
                             SharedString::from(format!("agent-chip-remove-{}", attachment.id)),
                             Ico::X,
-                            format!("Remove {}", attachment.title),
+                            lokalbot_i18n::format(
+                                "Remove {0}",
+                                &[("0", format!("{}", attachment.title))],
+                            ),
                         )
                         .on_click(cx.listener(move |this, _, _, cx| {
                             let remove = remove.clone();
@@ -336,7 +356,11 @@ impl AgentPage {
             );
         }
 
-        let send_label = if running { "Queue follow-up" } else { "Send" };
+        let send_label = if running {
+            lokalbot_i18n::tr("Queue follow-up")
+        } else {
+            lokalbot_i18n::tr("Send")
+        };
         let send_icon = if running { Ico::ListPlus } else { Ico::ArrowUp };
         let send = h_flex()
             .gap(px(8.))
@@ -347,7 +371,7 @@ impl AgentPage {
                         .outline()
                         .small()
                         .icon(Icon::new(Ico::CircleStop))
-                        .label("Stop")
+                        .label(lokalbot_i18n::tr("Stop"))
                         .disabled(view.stopping)
                         .on_click(
                             cx.listener(|this, _, _, cx| this.with_session(cx, |s| s.abort())),
@@ -357,8 +381,10 @@ impl AgentPage {
                     Button::new("agent-steer")
                         .outline()
                         .small()
-                        .label("Send now")
-                        .tooltip("Steer the current task at its next opportunity (Ctrl+Enter)")
+                        .label(lokalbot_i18n::tr("Send now"))
+                        .tooltip(lokalbot_i18n::tr(
+                            "Steer the current task at its next opportunity (Ctrl+Enter)",
+                        ))
                         .disabled(!has_prompt || view.sending || view.stopping)
                         .on_click(cx.listener(|this, _, window, cx| this.submit(true, window, cx))),
                 )
@@ -384,7 +410,7 @@ impl AgentPage {
                     .small()
                     .icon(Icon::new(Ico::Folder))
                     .label(view.workspace_name.clone())
-                    .tooltip("Files in the chosen folder can be read automatically and sent to the displayed model. Private-library reads still follow the approval mode. Changing folders in an existing conversation starts a new task.")
+                    .tooltip(lokalbot_i18n::tr("Files in the chosen folder can be read automatically and sent to the displayed model. Private-library reads still follow the approval mode. Changing folders in an existing conversation starts a new task."))
                     .on_click(cx.listener(|this, _, window, cx| this.choose_workspace(window, cx))),
             )
             .child(self.approval_menu(view.mode, cx))
@@ -432,19 +458,21 @@ impl AgentPage {
             .ghost()
             .small()
             .icon(Icon::new(Ico::Plus))
-            .tooltip("Attach context")
+            .tooltip(lokalbot_i18n::tr("Attach context"))
             .dropdown_menu(move |menu, _, _| {
                 let files = page.clone();
                 let context = page.clone();
                 menu.item(
-                    PopupMenuItem::new("Files…")
+                    PopupMenuItem::new(lokalbot_i18n::tr("Files…"))
                         .on_click(move |_, _, cx| files.update(cx, |page, cx| page.pick_files(cx))),
                 )
-                .item(PopupMenuItem::new("Meetings and saved moments…").on_click(
-                    move |_, window, cx| {
-                        context.update(cx, |page, cx| page.open_context_picker(window, cx))
-                    },
-                ))
+                .item(
+                    PopupMenuItem::new(lokalbot_i18n::tr("Meetings and saved moments…")).on_click(
+                        move |_, window, cx| {
+                            context.update(cx, |page, cx| page.open_context_picker(window, cx))
+                        },
+                    ),
+                )
             })
     }
 
@@ -458,15 +486,15 @@ impl AgentPage {
             .ghost()
             .small()
             .icon(Icon::new(mode_icon(mode)))
-            .label(mode.title())
+            .label(lokalbot_i18n::tr(mode.title()))
             .dropdown_caret(true)
-            .tooltip(mode.detail())
+            .tooltip(lokalbot_i18n::tr(mode.detail()))
             .dropdown_menu(move |mut menu, _, _| {
                 menu = menu.min_w(px(240.));
                 for option in ApprovalMode::ALL {
                     let page = page.clone();
                     menu = menu.item(
-                        PopupMenuItem::new(option.title())
+                        PopupMenuItem::new(lokalbot_i18n::tr(option.title()))
                             .checked(option == mode)
                             .on_click(move |_, window, cx| {
                                 if option > mode {
@@ -494,9 +522,17 @@ impl AgentPage {
         let chosen = settings.agent_reasoning_level;
         let shown = choices.displayed(settings.effective_agent_reasoning_level());
         let checked = chosen.map(|level| choices.displayed(level));
-        let same_as_think = format!(
-            "Same as Think ({})",
-            reasoning_name(choices.displayed(settings.think_reasoning_level))
+        let same_as_think = lokalbot_i18n::format(
+            "Same as Think ({0})",
+            &[(
+                "0",
+                format!(
+                    "{}",
+                    lokalbot_i18n::tr(reasoning_name(
+                        choices.displayed(settings.think_reasoning_level)
+                    ))
+                ),
+            )],
         );
         let data = self.data.clone();
         let choices = choices.clone();
@@ -504,9 +540,9 @@ impl AgentPage {
             .ghost()
             .small()
             .icon(Icon::new(Ico::Brain))
-            .label(format!("Reasoning: {}", reasoning_name(shown)))
+            .label(lokalbot_i18n::format("Reasoning: {0}", &[("0", format!("{}", lokalbot_i18n::tr(reasoning_name(shown))))]))
             .dropdown_caret(true)
-            .tooltip("How much the agent reasons before each step, from the levels this model accepts. Same as Think follows Settings → Models. A change applies from the agent's next step.")
+            .tooltip(lokalbot_i18n::tr("How much the agent reasons before each step, from the levels this model accepts. Same as Think follows Settings → Models. A change applies from the agent's next step."))
             .dropdown_menu(move |mut menu, _, _| {
                 let choose = |level: Option<ReasoningLevel>| {
                     let data = data.clone();
@@ -528,9 +564,12 @@ impl AgentPage {
                 levels.extend(choices.levels.iter().copied());
                 for level in levels {
                     let title = if level == ReasoningLevel::Automatic {
-                        choices.automatic_title()
+                        match choices.default_level {
+                            Some(default) => lokalbot_i18n::format("Automatic ({level})", &[("level", lokalbot_i18n::tr(reasoning_name(default)).into())]),
+                            None => lokalbot_i18n::tr("Automatic").into(),
+                        }
                     } else {
-                        reasoning_name(level).to_string()
+                        lokalbot_i18n::tr(reasoning_name(level)).to_string()
                     };
                     menu = menu.item(
                         PopupMenuItem::new(title)
@@ -549,10 +588,14 @@ impl AgentPage {
             Destination::Remote(_) => (Ico::Network, lb.accent_text),
             Destination::Blocked(_) => (Ico::TriangleAlert, lb.attention_text),
         };
-        let label = format!("{} · {}", view.model.name, view.model.destination.label());
+        let label = format!(
+            "{} · {}",
+            view.model.name,
+            destination_label(&view.model.destination)
+        );
         let mode = view.mode;
         let path = view.workspace_path.display().to_string();
-        let destination = view.model.destination.label();
+        let destination = destination_label(&view.model.destination);
         let differs = view.model_differs;
         let shell = self
             .model(cx)
@@ -573,7 +616,7 @@ impl AgentPage {
                             .ghost()
                             .xsmall()
                             .icon(Icon::new(Ico::Info))
-                            .tooltip("Task access details"),
+                            .tooltip(lokalbot_i18n::tr("Task access details")),
                     )
                     .content(move |_, _, cx| {
                         let lb = cx.lb().clone();
@@ -592,7 +635,7 @@ impl AgentPage {
                                     .text_size(ty::SECTION)
                                     .font_weight(FontWeight::BOLD)
                                     .text_color(lb.text)
-                                    .child("This task’s access"),
+                                    .child(crate::ui::text::paragraph(lokalbot_i18n::tr("This task’s access"))),
                             )
                             .child(
                                 h_flex()
@@ -609,12 +652,12 @@ impl AgentPage {
                                             .child(path.clone()),
                                     ),
                             )
-                            .child(paragraph(mode.detail().to_string()))
-                            .child(paragraph("The working folder is separate from LokalBot’s private data. Meeting Library tools provide scoped local read access when this task runs. Saved screen moments require the separate screen-memory grant. Raw private-library file reads follow the approval mode even when a parent folder is selected.".to_string()))
-                            .child(paragraph(format!("{destination}. Attached text is included when you send. Files and tool actions follow the approval mode above.")))
+                            .child(paragraph(lokalbot_i18n::tr(mode.detail()).to_string()))
+                            .child(paragraph(lokalbot_i18n::tr("The working folder is separate from LokalBot’s private data. Meeting Library tools provide scoped local read access when this task runs. Saved screen moments require the separate screen-memory grant. Raw private-library file reads follow the approval mode even when a parent folder is selected.").to_string()))
+                            .child(paragraph(lokalbot_i18n::format("{destination}. Attached text is included when you send. Files and tool actions follow the approval mode above.", &[("destination", format!("{}", destination))])))
                             .when_some(shell.clone(), |this, shell| this.child(paragraph(shell)))
                             .when(differs, |this| {
-                                this.child(paragraph("New tasks use the model selected in Settings.".to_string()))
+                                this.child(paragraph(lokalbot_i18n::tr("New tasks use the model selected in Settings.").to_string()))
                             })
                     }),
             )
@@ -627,7 +670,7 @@ impl AgentPage {
             files: true,
             directories: false,
             multiple: true,
-            prompt: Some("Attach".into()),
+            prompt: Some(lokalbot_i18n::tr("Attach").into()),
         });
         cx.spawn(async move |this, cx| {
             let picked = receiver.await;
@@ -635,7 +678,10 @@ impl AgentPage {
                 Ok(Ok(Some(paths))) => this.attach_files(paths, cx),
                 Ok(Ok(None)) => {}
                 Ok(Err(err)) => this.with_session(cx, |s| {
-                    s.composer_error = Some(format!("No file chooser is available: {err:#}"))
+                    s.composer_error = Some(lokalbot_i18n::format(
+                        "No file chooser is available: {err}",
+                        &[("err", format!("{:#}", err))],
+                    ))
                 }),
                 Err(_) => {}
             });
@@ -675,7 +721,7 @@ impl AgentPage {
             files: false,
             directories: true,
             multiple: false,
-            prompt: Some("Choose Working Folder".into()),
+            prompt: Some(lokalbot_i18n::tr("Choose Working Folder").into()),
         });
         cx.spawn(async move |this, cx| {
             let picked = receiver.await;
@@ -686,7 +732,10 @@ impl AgentPage {
                     }
                 }
                 Ok(Err(err)) => this.with_session(cx, |s| {
-                    s.composer_error = Some(format!("No folder chooser is available: {err:#}"))
+                    s.composer_error = Some(lokalbot_i18n::format(
+                        "No folder chooser is available: {err}",
+                        &[("err", format!("{:#}", err))],
+                    ))
                 }),
                 _ => {}
             });
@@ -754,12 +803,12 @@ fn confirm_mode(
     window.open_alert_dialog(cx, move |alert, _, _| {
         let page = page.clone();
         alert
-            .title(mode.confirmation_title())
-            .description(mode.confirmation_message())
+            .title(lokalbot_i18n::tr(mode.confirmation_title()))
+            .description(lokalbot_i18n::tr(mode.confirmation_message()))
             .confirm()
-            .ok_text(mode.confirmation_action())
+            .ok_text(lokalbot_i18n::tr(mode.confirmation_action()))
             .ok_variant(ButtonVariant::Danger)
-            .cancel_text("Keep Current Mode")
+            .cancel_text(lokalbot_i18n::tr("Keep Current Mode"))
             .on_ok(move |_, _, cx| {
                 page.update(cx, |page, cx| {
                     page.with_session(cx, |s| s.set_approval_mode(mode))

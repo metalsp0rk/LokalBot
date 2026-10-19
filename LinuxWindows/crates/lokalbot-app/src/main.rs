@@ -8,8 +8,10 @@
 mod assets;
 mod autocomplete;
 mod bridge;
+mod component_i18n;
 mod desktop;
 mod hud;
+mod i18n;
 mod pages;
 mod shell;
 mod state;
@@ -211,6 +213,7 @@ fn main() {
         .with_assets(assets::Assets)
         .run(move |cx: &mut App| {
             gpui_kit::init(cx);
+            i18n::apply(&settings.app_language, cx);
             assets::load_fonts(cx);
             cx.set_app_identity("com.lokalbot.LokalBot", "LokalBot");
 
@@ -362,10 +365,17 @@ fn handle_event(data: &Entity<AppData>, event: &AppEvent, window: &mut Window, c
                     )
                     .await;
                 data.update(cx, |data, cx| match result {
-                    Ok(()) => {
-                        data.show_message("Saved the API key in the system credential store.", cx)
-                    }
-                    Err(err) => data.show_error(format!("The API key was not saved: {err:#}"), cx),
+                    Ok(()) => data.show_message(
+                        lokalbot_i18n::tr("Saved the API key in the system credential store."),
+                        cx,
+                    ),
+                    Err(err) => data.show_error(
+                        lokalbot_i18n::format(
+                            "The API key was not saved: {err}",
+                            &[("err", format!("{:#}", err))],
+                        ),
+                        cx,
+                    ),
                 });
             })
             .detach();
@@ -428,8 +438,17 @@ fn install_cli(data: &Entity<AppData>, cx: &mut App) {
             })
             .await;
         data.update(cx, |data, cx| match result {
-            Ok(_) => data.show_message("Installed lokalbot-cli for your coding agents.", cx),
-            Err(err) => data.show_error(format!("Installing lokalbot-cli failed: {err:#}"), cx),
+            Ok(_) => data.show_message(
+                lokalbot_i18n::tr("Installed lokalbot-cli for your coding agents."),
+                cx,
+            ),
+            Err(err) => data.show_error(
+                lokalbot_i18n::format(
+                    "Installing lokalbot-cli failed: {err}",
+                    &[("err", format!("{:#}", err))],
+                ),
+                cx,
+            ),
         });
     })
     .detach();

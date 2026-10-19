@@ -40,6 +40,8 @@ pub enum TrayEvent {
 /// What the standard menu shows.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct TrayMenuState {
+    /// Included in equality so an active recording also rebuilds its menu.
+    pub interface_language: String,
     pub recording: bool,
     /// "MM:SS" while recording.
     pub timer: Option<String>,
@@ -69,10 +71,13 @@ pub mod item_ids {
 /// Now while screen context is on, Quit LokalBot.
 pub fn standard_items(state: &TrayMenuState) -> Vec<TrayItem> {
     use item_ids::*;
+    use lokalbot_i18n::tr;
     let status = match (&state.timer, state.recording) {
-        (Some(timer), true) => format!("Recording · {timer}"),
-        (None, true) => "Recording".to_string(),
-        _ => "Not recording".to_string(),
+        (Some(timer), true) => {
+            lokalbot_i18n::format("Recording · {timer}", &[("timer", timer.clone())])
+        }
+        (None, true) => tr("Recording").to_string(),
+        _ => tr("Not recording").to_string(),
     };
     let mut items = vec![TrayItem::Status(status)];
     if !state.subtitle.is_empty() {
@@ -80,24 +85,24 @@ pub fn standard_items(state: &TrayMenuState) -> Vec<TrayItem> {
     }
     items.push(TrayItem::Separator);
     items.push(if state.recording {
-        TrayItem::action(STOP_RECORDING, "Stop Recording")
+        TrayItem::action(STOP_RECORDING, tr("Stop Recording"))
     } else {
-        TrayItem::action(RECORD, "Record Now")
+        TrayItem::action(RECORD, tr("Record Now"))
     });
     items.push(TrayItem::Separator);
-    items.push(TrayItem::action(ASK, "Ask"));
-    items.push(TrayItem::action(OPEN, "Open LokalBot"));
-    items.push(TrayItem::action(SETTINGS, "Settings…"));
+    items.push(TrayItem::action(ASK, tr("Ask")));
+    items.push(TrayItem::action(OPEN, tr("Open LokalBot")));
+    items.push(TrayItem::action(SETTINGS, tr("Settings…")));
     items.push(if state.day_memory_paused {
-        TrayItem::action(RESUME_DAY_MEMORY, "Resume day memory")
+        TrayItem::action(RESUME_DAY_MEMORY, tr("Resume day memory"))
     } else {
-        TrayItem::action(PAUSE_DAY_MEMORY, "Pause day memory")
+        TrayItem::action(PAUSE_DAY_MEMORY, tr("Pause day memory"))
     });
     if state.screen_capture && !state.day_memory_paused {
-        items.push(TrayItem::action(CAPTURE_SCREEN, "Capture Screen Now"));
+        items.push(TrayItem::action(CAPTURE_SCREEN, tr("Capture Screen Now")));
     }
     items.push(TrayItem::Separator);
-    items.push(TrayItem::action(QUIT, "Quit LokalBot"));
+    items.push(TrayItem::action(QUIT, tr("Quit LokalBot")));
     items
 }
 
@@ -595,6 +600,7 @@ mod tests {
             subtitle: "Weekly sync".into(),
             day_memory_paused: true,
             screen_capture: true,
+            ..Default::default()
         });
         assert_eq!(live[0], TrayItem::Status("Recording · 12:04".into()));
         assert!(live.contains(&TrayItem::action(

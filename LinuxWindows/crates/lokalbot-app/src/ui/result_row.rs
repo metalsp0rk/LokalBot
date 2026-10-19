@@ -3,7 +3,8 @@
 
 use std::ops::Range;
 
-use gpui_kit::component::{h_flex, v_flex};
+use crate::i18n::h_flex;
+use gpui_kit::component::v_flex;
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
     App, Div, FontWeight, HighlightStyle, Hsla, ParentElement as _, SharedString, Styled as _,

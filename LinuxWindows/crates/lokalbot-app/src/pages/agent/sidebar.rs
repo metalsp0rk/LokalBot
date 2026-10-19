@@ -1,10 +1,11 @@
 //! The task list (`AgentTaskSidebar.swift`): pinned and recent tasks with
 //! their status, search, archive, and the Tasks menu.
 
+use crate::i18n::h_flex;
 use gpui_kit::component::button::{Button, ButtonVariant, ButtonVariants as _};
 use gpui_kit::component::input::Input;
 use gpui_kit::component::menu::{ContextMenuExt as _, DropdownMenu as _, PopupMenuItem};
-use gpui_kit::component::{Icon, Sizable as _, WindowExt as _, h_flex, v_flex};
+use gpui_kit::component::{Icon, Sizable as _, WindowExt as _, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
     AnyElement, App, Context, FontWeight, Hsla, InteractiveElement as _, IntoElement,
@@ -49,60 +50,66 @@ impl AgentPage {
 
         let page = cx.entity();
         let show_archived = self.show_archived;
-        let menu =
-            Button::new("agent-task-options")
-                .ghost()
-                .small()
-                .icon(Icon::new(Ico::Ellipsis))
-                .tooltip("Task options")
-                .dropdown_menu(move |menu, _, _| {
-                    let refresh = page.clone();
-                    let archived = page.clone();
-                    let saved = page.clone();
-                    let verify = page.clone();
-                    let clear = page.clone();
-                    menu.min_w(px(230.))
-                        .item(
-                            PopupMenuItem::new("Refresh tasks").on_click(move |_, _, cx| {
+        let menu = Button::new("agent-task-options")
+            .ghost()
+            .small()
+            .icon(Icon::new(Ico::Ellipsis))
+            .tooltip(lokalbot_i18n::tr("Task options"))
+            .dropdown_menu(move |menu, _, _| {
+                let refresh = page.clone();
+                let archived = page.clone();
+                let saved = page.clone();
+                let verify = page.clone();
+                let clear = page.clone();
+                menu.min_w(px(230.))
+                    .item(
+                        PopupMenuItem::new(lokalbot_i18n::tr("Refresh tasks")).on_click(
+                            move |_, _, cx| {
                                 refresh.update(cx, |page, cx| {
                                     if let Some(model) = &page.model {
                                         model.update(cx, |model, cx| model.refresh_history(cx));
                                     }
                                 })
+                            },
+                        ),
+                    )
+                    .item(
+                        PopupMenuItem::new(lokalbot_i18n::tr("Show archived tasks"))
+                            .checked(show_archived)
+                            .on_click(move |_, _, cx| {
+                                archived.update(cx, |page, cx| {
+                                    page.show_archived = !page.show_archived;
+                                    cx.notify();
+                                })
                             }),
-                        )
-                        .item(
-                            PopupMenuItem::new("Show archived tasks")
-                                .checked(show_archived)
-                                .on_click(move |_, _, cx| {
-                                    archived.update(cx, |page, cx| {
-                                        page.show_archived = !page.show_archived;
-                                        cx.notify();
-                                    })
-                                }),
-                        )
-                        .separator()
-                        .item(PopupMenuItem::new("Saved sessions…").on_click(
+                    )
+                    .separator()
+                    .item(
+                        PopupMenuItem::new(lokalbot_i18n::tr("Saved sessions…")).on_click(
                             move |_, window, cx| {
                                 saved.update(cx, |page, cx| page.open_saved_sessions(window, cx))
                             },
-                        ))
-                        .item(
-                            PopupMenuItem::new("Verify Agent runtime…")
-                                .disabled(any_running)
-                                .on_click(move |_, _, cx| {
-                                    verify.update(cx, |page, cx| {
-                                        if let Some(model) = &page.model {
-                                            model.update(cx, |model, cx| model.verify(cx));
-                                        }
-                                    })
-                                }),
-                        )
-                        .separator()
-                        .item(PopupMenuItem::new("Clear saved Agent history…").on_click(
-                            move |_, window, cx| confirm_clear(clear.clone(), window, cx),
-                        ))
-                });
+                        ),
+                    )
+                    .item(
+                        PopupMenuItem::new(lokalbot_i18n::tr("Verify Agent runtime…"))
+                            .disabled(any_running)
+                            .on_click(move |_, _, cx| {
+                                verify.update(cx, |page, cx| {
+                                    if let Some(model) = &page.model {
+                                        model.update(cx, |model, cx| model.verify(cx));
+                                    }
+                                })
+                            }),
+                    )
+                    .separator()
+                    .item(
+                        PopupMenuItem::new(lokalbot_i18n::tr("Clear saved Agent history…"))
+                            .on_click(move |_, window, cx| {
+                                confirm_clear(clear.clone(), window, cx)
+                            }),
+                    )
+            });
 
         let header = v_flex()
             .gap(px(8.))
@@ -121,14 +128,14 @@ impl AgentPage {
                             .text_size(ty::COLUMN_TITLE)
                             .font_weight(FontWeight::BOLD)
                             .text_color(lb.text)
-                            .child("Tasks"),
+                            .child(crate::ui::text::paragraph(lokalbot_i18n::tr("Tasks"))),
                     )
                     .child(
                         Button::new("agent-new-task")
                             .ghost()
                             .small()
                             .icon(Icon::new(Ico::SquarePen))
-                            .tooltip("New task (Ctrl+N)")
+                            .tooltip(lokalbot_i18n::tr("New task (Ctrl+N)"))
                             .on_click(cx.listener(|this, _, window, cx| this.new_task(window, cx))),
                     )
                     .child(menu),
@@ -150,11 +157,11 @@ impl AgentPage {
                                 .flex_1()
                                 .text_size(ty::CAPTION)
                                 .text_color(lb.text_secondary)
-                                .child("Archived"),
+                                .child(crate::ui::text::paragraph(lokalbot_i18n::tr("Archived"))),
                         )
                         .child(div().text_size(ty::CAPTION).child(ui::link(
                             "agent-show-active",
-                            "Show Active",
+                            lokalbot_i18n::tr("Show Active"),
                             {
                                 let page = cx.entity();
                                 move |_, cx| {
@@ -173,9 +180,12 @@ impl AgentPage {
         let (pinned, recent): (Vec<&Row>, Vec<&Row>) = rows.iter().partition(|r| r.pinned);
         if rows.is_empty() {
             let message = if query.is_empty() {
-                "No tasks yet.".to_string()
+                lokalbot_i18n::tr("No tasks yet.").to_string()
             } else {
-                format!("No tasks match “{query}”.")
+                lokalbot_i18n::format(
+                    "No tasks match “{query}”.",
+                    &[("query", format!("{}", query))],
+                )
             };
             list.push(
                 div()
@@ -188,7 +198,7 @@ impl AgentPage {
             );
         }
         if !pinned.is_empty() {
-            list.push(section_title("Pinned", cx));
+            list.push(section_title(lokalbot_i18n::tr("Pinned"), cx));
             for row in pinned {
                 list.push(self.render_task_row(row, selected == Some(row.id), cx));
             }
@@ -196,9 +206,9 @@ impl AgentPage {
         if !recent.is_empty() {
             list.push(section_title(
                 if self.show_archived {
-                    "Archived tasks"
+                    lokalbot_i18n::tr("Archived tasks")
                 } else {
-                    "Recent"
+                    lokalbot_i18n::tr("Recent")
                 },
                 cx,
             ));
@@ -259,7 +269,7 @@ impl AgentPage {
                 let detail = if attention || busy {
                     Some(session.task_status().to_string())
                 } else if tab.record.is_archived {
-                    Some("Archived".into())
+                    Some(lokalbot_i18n::tr("Archived").into())
                 } else {
                     Some(session.workspace_display_name())
                 };
@@ -343,25 +353,28 @@ impl AgentPage {
                 let pin = page.clone();
                 let archive = page.clone();
                 let title = title.clone();
-                menu.item(
-                    PopupMenuItem::new("Rename…").on_click(move |_, window, cx| {
+                menu.item(PopupMenuItem::new(lokalbot_i18n::tr("Rename…")).on_click(
+                    move |_, window, cx| {
                         rename.update(cx, |page, cx| {
                             page.open_rename(id, title.clone(), window, cx)
                         })
+                    },
+                ))
+                .item(
+                    PopupMenuItem::new(if pinned {
+                        lokalbot_i18n::tr("Unpin")
+                    } else {
+                        lokalbot_i18n::tr("Pin")
+                    })
+                    .on_click(move |_, _, cx| {
+                        pin.update(cx, |page, cx| page.with_tasks(cx, |t| t.toggle_pin(id)))
                     }),
                 )
                 .item(
-                    PopupMenuItem::new(if pinned { "Unpin" } else { "Pin" }).on_click(
-                        move |_, _, cx| {
-                            pin.update(cx, |page, cx| page.with_tasks(cx, |t| t.toggle_pin(id)))
-                        },
-                    ),
-                )
-                .item(
                     PopupMenuItem::new(if archived {
-                        "Restore task"
+                        lokalbot_i18n::tr("Restore task")
                     } else {
-                        "Archive task"
+                        lokalbot_i18n::tr("Archive task")
                     })
                     .disabled(busy)
                     .on_click(move |_, _, cx| {
@@ -391,12 +404,12 @@ fn confirm_clear(page: gpui_kit::Entity<AgentPage>, window: &mut Window, cx: &mu
     window.open_alert_dialog(cx, move |alert, _, _| {
         let page = page.clone();
         alert
-            .title("Clear all saved Agent history?")
-            .description("This stops every Agent task and permanently removes its local conversation, draft, and task metadata. Your meeting library is not affected.")
+            .title(lokalbot_i18n::tr("Clear all saved Agent history?"))
+            .description(lokalbot_i18n::tr("This stops every Agent task and permanently removes its local conversation, draft, and task metadata. Your meeting library is not affected."))
             .confirm()
-            .ok_text("Clear History")
+            .ok_text(lokalbot_i18n::tr("Clear History"))
             .ok_variant(ButtonVariant::Danger)
-            .cancel_text("Cancel")
+            .cancel_text(lokalbot_i18n::tr("Cancel"))
             .on_ok(move |_, _, cx| {
                 page.update(cx, |page, cx| {
                     page.with_tasks(cx, |tasks| {

@@ -5,11 +5,12 @@
 
 use std::time::Duration;
 
+use crate::i18n::h_flex;
 use chrono::{DateTime, Local, Utc};
 use gpui_kit::component::button::{Button, ButtonVariants as _};
 use gpui_kit::component::input::{Escape, Input, InputEvent, InputState, MoveDown, MoveUp};
 use gpui_kit::component::spinner::Spinner;
-use gpui_kit::component::{Icon, Sizable as _, h_flex, v_flex};
+use gpui_kit::component::{Icon, Sizable as _, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
     AnyElement, App, AppContext as _, Bounds, Context, Entity, FontWeight, Hsla,
@@ -69,7 +70,7 @@ pub fn open(cx: &mut App) {
         ..Default::default()
     };
     match gpui_kit::open_window(options, cx, |window, cx| {
-        window.set_window_title("Ask");
+        window.set_window_title(lokalbot_i18n::tr("Ask"));
         let view = cx.new(|cx| QuickRecall::new(window, cx));
         view.update(cx, |view, cx| view.focus_input(window, cx));
         view
@@ -113,7 +114,13 @@ pub struct QuickRecall {
 impl QuickRecall {
     pub fn new(window: &mut Window, cx: &mut Context<Self>) -> Self {
         let data = AppData::global(cx);
-        let input = cx.new(|cx| InputState::new(window, cx).placeholder("Search your memory…"));
+        let input = cx.new(|cx| {
+            InputState::new(window, cx).placeholder(crate::i18n::placeholder(
+                "Search your memory…",
+                window,
+                cx,
+            ))
+        });
         let subscriptions = vec![
             cx.subscribe_in(
                 &input,
@@ -398,7 +405,7 @@ impl QuickRecall {
                         .ghost()
                         .small()
                         .icon(Icon::new(Ico::CircleX))
-                        .tooltip("Clear")
+                        .tooltip(lokalbot_i18n::tr("Clear"))
                         .on_click(cx.listener(|this, _, window, cx| {
                             this.input
                                 .update(cx, |input, cx| input.set_value("", window, cx));
@@ -413,7 +420,7 @@ impl QuickRecall {
                     .ghost()
                     .small()
                     .icon(Icon::new(Ico::SquareArrowOutUpRight))
-                    .tooltip("Open full Ask")
+                    .tooltip(lokalbot_i18n::tr("Open full Ask"))
                     .on_click(cx.listener(|this, _, window, cx| this.open_full_ask(window, cx))),
             )
     }
@@ -442,7 +449,10 @@ impl QuickRecall {
                         .unwrap_or_else(|| screen_title(moment));
                     let mut meta = moment.app.clone();
                     if *captures > 1 {
-                        meta.push_str(&format!(" · {captures} captures"));
+                        meta.push_str(&lokalbot_i18n::format(
+                            " · {captures} captures",
+                            &[("captures", format!("{}", captures))],
+                        ));
                     }
                     meta.push_str(&format!(" · {}", date_label(moment.ts, Local::now())));
                     let tint = lb.app_color(&moment.app);
@@ -609,7 +619,9 @@ impl QuickRecall {
                     .text_size(ty::SECONDARY)
                     .text_color(lb.text_secondary)
                     .child(Spinner::new().xsmall().color(lb.text_secondary))
-                    .child("Searching your local memory…")
+                    .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                        "Searching your local memory…",
+                    )))
                     .into_any_element(),
             );
         } else if !trimmed.is_empty() && screens.is_empty() && meetings.is_empty() {
@@ -629,7 +641,7 @@ impl QuickRecall {
                                     .text_size(ty::SECTION)
                                     .font_weight(FontWeight::BOLD)
                                     .text_color(lb.text)
-                                    .child("No local matches"),
+                                    .child(crate::ui::text::paragraph(lokalbot_i18n::tr("No local matches"))),
                             ),
                     )
                     .child(
@@ -637,7 +649,7 @@ impl QuickRecall {
                             .text_center()
                             .text_size(ty::SECONDARY)
                             .text_color(lb.text_secondary)
-                            .child("Nothing in saved moments, captured screens, or meetings matches this search."),
+                            .child(crate::ui::text::paragraph(lokalbot_i18n::tr("Nothing in saved moments, captured screens, or meetings matches this search."))),
                     )
                     .into_any_element(),
             );
@@ -646,7 +658,10 @@ impl QuickRecall {
         // dividers are folded into the row elements to keep indexes aligned.
         let mut index = 0;
         let mut rows: Vec<AnyElement> = Vec::new();
-        for (title, section) in [("Screens", &screens), ("Meetings", &meetings)] {
+        for (title, section) in [
+            (lokalbot_i18n::tr("Screens"), &screens),
+            (lokalbot_i18n::tr("Meetings"), &meetings),
+        ] {
             for (position, row) in section.iter().enumerate() {
                 let element = self.render_row(index, row, cx);
                 rows.push(
@@ -712,11 +727,11 @@ impl QuickRecall {
                             .truncate()
                             .text_size(ty::BODY)
                             .text_color(lb.text)
-                            .child(*suggestion),
+                            .child(crate::ui::text::paragraph(lokalbot_i18n::tr(suggestion))),
                     )
                     .child(ui::icon(Ico::CircleArrowUp, px(16.), lb.accent_text))
                     .on_click(cx.listener(move |this, _, window, cx| {
-                        this.ask_suggestion(suggestion, window, cx)
+                        this.ask_suggestion(lokalbot_i18n::tr(suggestion), window, cx)
                     }))
                     .into_any_element()
             })
@@ -728,14 +743,14 @@ impl QuickRecall {
             .gap(px(8.))
             .px(px(24.))
             .child(ui::glyphs::ask_glyph(px(30.), lb.text_secondary))
-            .child(div().text_size(ty::COLUMN_TITLE).font_weight(FontWeight::BOLD).text_color(lb.text).child("Ask anything"))
+            .child(div().text_size(ty::COLUMN_TITLE).font_weight(FontWeight::BOLD).text_color(lb.text).child(crate::ui::text::paragraph(lokalbot_i18n::tr("Ask anything"))))
             .child(
                 div()
                     .max_w(px(420.))
                     .text_center()
                     .text_size(ty::BODY)
                     .text_color(lb.text_secondary)
-                    .child("Type to search meetings, screens, and saved moments. Return opens a result; Ask is a separate action."),
+                    .child(crate::ui::text::paragraph(lokalbot_i18n::tr("Type to search meetings, screens, and saved moments. Return opens a result; Ask is a separate action."))),
             )
             .child(v_flex().gap(px(7.)).pt(px(6.)).children(suggestions))
             .into_any_element()
@@ -757,13 +772,17 @@ impl QuickRecall {
                         .gap(px(12.))
                         .text_size(ty::CAPTION)
                         .text_color(lb.text_secondary)
-                        .child("↑↓ Navigate")
-                        .child("↩ Open"),
+                        .child(crate::ui::text::paragraph(lokalbot_i18n::tr("↑↓ Navigate")))
+                        .child(crate::ui::text::paragraph(lokalbot_i18n::tr("↩ Open"))),
                 )
             })
             .child(div().flex_1().min_w_0())
             .when(!query.is_empty(), |this| {
-                let label: SharedString = format!("Ask about “{query}”").into();
+                let label: SharedString = lokalbot_i18n::format(
+                    "Ask about “{query}”",
+                    &[("query", format!("{}", query))],
+                )
+                .into();
                 this.child(
                     v_flex()
                         .items_end()
@@ -781,7 +800,9 @@ impl QuickRecall {
                                         .text_color(lb.text_secondary)
                                         .child("Ctrl↩"),
                                 )
-                                .tooltip("Open Ask with this query and its matching sources")
+                                .tooltip(lokalbot_i18n::tr(
+                                    "Open Ask with this query and its matching sources",
+                                ))
                                 .on_click(cx.listener(|this, _, window, cx| {
                                     this.ask_about_query(window, cx)
                                 })),
@@ -808,6 +829,7 @@ impl Render for QuickRecall {
             .size_full()
             .key_context("QuickRecall")
             .font_family(FONT_FAMILY)
+            .text_align(crate::i18n::interface_alignment())
             .bg(lb.elevated)
             .text_color(lb.text)
             .capture_action(cx.listener(|this, _: &MoveUp, _, cx| {
@@ -839,15 +861,31 @@ fn screen_title(moment: &ScreenMoment) -> String {
 /// (`QuickRecallDateLabel`).
 pub fn date_label(at: DateTime<Utc>, now: DateTime<Local>) -> String {
     let local = at.with_timezone(&Local);
-    let time = local.format("%-I:%M %p");
+    let time = local.format_localized(
+        lokalbot_i18n::date_pattern("%-I:%M %p"),
+        lokalbot_i18n::date_locale(),
+    );
     let days = (now.date_naive() - local.date_naive()).num_days();
     let day = match days {
-        0 => "Today".to_string(),
-        1 => "Yesterday".to_string(),
-        2..=6 => local.format("%a").to_string(),
-        _ => local.format("%b %-d").to_string(),
+        0 => lokalbot_i18n::tr("Today").to_string(),
+        1 => lokalbot_i18n::tr("Yesterday").to_string(),
+        2..=6 => local
+            .format_localized(
+                lokalbot_i18n::date_pattern("%a"),
+                lokalbot_i18n::date_locale(),
+            )
+            .to_string(),
+        _ => local
+            .format_localized(
+                lokalbot_i18n::date_pattern("%b %-d"),
+                lokalbot_i18n::date_locale(),
+            )
+            .to_string(),
     };
-    format!("{day} · {time}")
+    lokalbot_i18n::format(
+        "{day} · {time}",
+        &[("day", format!("{}", day)), ("time", format!("{}", time))],
+    )
 }
 
 #[cfg(test)]

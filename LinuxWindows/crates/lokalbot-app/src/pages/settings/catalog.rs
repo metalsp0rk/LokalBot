@@ -15,42 +15,53 @@ pub struct Entry {
 }
 
 fn on_off(value: bool) -> String {
-    if value { "On".into() } else { "Off".into() }
+    if value {
+        lokalbot_i18n::tr("On").into()
+    } else {
+        lokalbot_i18n::tr("Off").into()
+    }
 }
 
 fn text(value: &str) -> String {
     if value.trim().is_empty() {
-        "Not set".into()
+        lokalbot_i18n::tr("Not set").into()
     } else {
         value.chars().take(70).collect()
     }
 }
 
 fn details(_: &Settings) -> String {
-    "Open details".into()
+    lokalbot_i18n::tr("Open details").into()
 }
 
 pub fn theme_label(theme: AppTheme) -> &'static str {
     match theme {
-        AppTheme::System => "Match System",
-        AppTheme::Light => "Light",
-        AppTheme::Dark => "Dark",
+        AppTheme::System => lokalbot_i18n::tr("Match System"),
+        AppTheme::Light => lokalbot_i18n::tr("Light"),
+        AppTheme::Dark => lokalbot_i18n::tr("Dark"),
     }
 }
 
 pub fn text_size_label(size: TextSize) -> &'static str {
     match size {
-        TextSize::Small => "Small",
-        TextSize::Standard => "Default",
-        TextSize::Large => "Large",
-        TextSize::Larger => "Larger",
-        TextSize::Largest => "Largest",
+        TextSize::Small => lokalbot_i18n::tr("Small"),
+        TextSize::Standard => lokalbot_i18n::tr("Default"),
+        TextSize::Large => lokalbot_i18n::tr("Large"),
+        TextSize::Larger => lokalbot_i18n::tr("Larger"),
+        TextSize::Largest => lokalbot_i18n::tr("Largest"),
     }
 }
 
 use SettingsCategory::*;
 
 pub const ENTRIES: &[Entry] = &[
+    Entry {
+        id: "settings.appLanguage",
+        title: "App language",
+        category: General,
+        aliases: "language locale translation interface follow system",
+        value: |s| lokalbot_i18n::picker_label(&s.app_language).into(),
+    },
     Entry {
         id: "settings.launchAtLogin",
         title: "Launch LokalBot at login",
@@ -105,14 +116,19 @@ pub const ENTRIES: &[Entry] = &[
         title: "When a meeting is detected",
         category: Meetings,
         aliases: "auto record detect notification consent",
-        value: |s| s.auto_record_mode.label().into(),
+        value: |s| lokalbot_i18n::tr(s.auto_record_mode.label()).into(),
     },
     Entry {
         id: "settings.stopDebounceSeconds",
         title: "Wait before stopping",
         category: Meetings,
         aliases: "debounce stop delay",
-        value: |s| format!("{} s after audio stops", s.stop_debounce_seconds.round()),
+        value: |s| {
+            lokalbot_i18n::format(
+                "{0} s after audio stops",
+                &[("0", format!("{}", s.stop_debounce_seconds.round()))],
+            )
+        },
     },
     Entry {
         id: "settings.recordSystemAudio",
@@ -128,7 +144,7 @@ pub const ENTRIES: &[Entry] = &[
         aliases: "input device mic",
         value: |s| {
             if s.microphone_device.is_empty() {
-                "System default".into()
+                lokalbot_i18n::tr("System default").into()
             } else {
                 s.microphone_device.clone()
             }
@@ -153,7 +169,7 @@ pub const ENTRIES: &[Entry] = &[
         title: "Notes template",
         category: Meetings,
         aliases: "summary lecture study podcast",
-        value: |s| s.note_template.label().into(),
+        value: |s| lokalbot_i18n::tr(s.note_template.label()).into(),
     },
     Entry {
         id: "settings.summaryLanguage",
@@ -188,7 +204,7 @@ pub const ENTRIES: &[Entry] = &[
         title: "Screen context",
         category: DayMemory,
         aliases: "screenshots ocr text capture visual images",
-        value: |s| s.screen_context_capture_mode.label().into(),
+        value: |s| lokalbot_i18n::tr(s.screen_context_capture_mode.label()).into(),
     },
     Entry {
         id: "settings.screenTextRecognition",
@@ -203,9 +219,9 @@ pub const ENTRIES: &[Entry] = &[
         category: DayMemory,
         aliases: "screen capture interval minutes screenshots",
         value: |s| {
-            format!(
-                "at least every {} min",
-                s.screenshot_interval_minutes.round()
+            lokalbot_i18n::format(
+                "at least every {0} min",
+                &[("0", format!("{}", s.screenshot_interval_minutes.round()))],
             )
         },
     },
@@ -242,7 +258,12 @@ pub const ENTRIES: &[Entry] = &[
         title: "Suggestion length",
         category: Writing,
         aliases: "autocomplete words length max words",
-        value: |s| format!("up to {} words", s.cotyping_max_words),
+        value: |s| {
+            lokalbot_i18n::format(
+                "up to {0} words",
+                &[("0", format!("{}", s.cotyping_max_words))],
+            )
+        },
     },
     Entry {
         id: "settings.cotypingMultiLine",
@@ -256,7 +277,7 @@ pub const ENTRIES: &[Entry] = &[
         title: "Pause before suggesting",
         category: Writing,
         aliases: "autocomplete delay latency milliseconds debounce",
-        value: |s| format!("{} ms", s.cotyping_debounce_ms),
+        value: |s| lokalbot_i18n::format("{0} ms", &[("0", format!("{}", s.cotyping_debounce_ms))]),
     },
     Entry {
         id: "settings.cotypingAcceptGranularity",
@@ -284,14 +305,24 @@ pub const ENTRIES: &[Entry] = &[
         title: "Never suggest in these apps",
         category: Writing,
         aliases: "exclude autocomplete applications exclusions",
-        value: |s| format!("{} selected", s.cotyping_excluded_app_list().len()),
+        value: |s| {
+            lokalbot_i18n::format(
+                "{0} selected",
+                &[("0", format!("{}", s.cotyping_excluded_app_list().len()))],
+            )
+        },
     },
     Entry {
         id: "settings.cotypingExcludedDomains",
         title: "Never suggest on these sites",
         category: Writing,
         aliases: "exclude autocomplete websites domains exclusions",
-        value: |s| format!("{} selected", s.cotyping_excluded_domain_list().len()),
+        value: |s| {
+            lokalbot_i18n::format(
+                "{0} selected",
+                &[("0", format!("{}", s.cotyping_excluded_domain_list().len()))],
+            )
+        },
     },
     Entry {
         id: "settings.cotypingUserName",
@@ -326,7 +357,7 @@ pub const ENTRIES: &[Entry] = &[
         title: "Trigger",
         category: Dictation,
         aliases: "push to talk toggle hold",
-        value: |s| s.dictation_trigger_mode.label().into(),
+        value: |s| lokalbot_i18n::tr(s.dictation_trigger_mode.label()).into(),
     },
     Entry {
         id: "settings.dictationIntent",
@@ -334,8 +365,12 @@ pub const ENTRIES: &[Entry] = &[
         category: Dictation,
         aliases: "dictation transcribe compose rewrite draft reply",
         value: |s| match s.dictation_intent {
-            lokalbot_core::settings::DictationIntent::Transcribe => "Transcribe".into(),
-            lokalbot_core::settings::DictationIntent::Compose => "Compose".into(),
+            lokalbot_core::settings::DictationIntent::Transcribe => {
+                lokalbot_i18n::tr("Transcribe").into()
+            }
+            lokalbot_core::settings::DictationIntent::Compose => {
+                lokalbot_i18n::tr("Compose").into()
+            }
         },
     },
     Entry {
@@ -343,7 +378,7 @@ pub const ENTRIES: &[Entry] = &[
         title: "After a shortcut recording",
         category: Dictation,
         aliases: "paste clipboard output",
-        value: |s| s.dictation_output_mode.label().into(),
+        value: |s| lokalbot_i18n::tr(s.dictation_output_mode.label()).into(),
     },
     Entry {
         id: "settings.dictationShowOverlay",
@@ -371,7 +406,7 @@ pub const ENTRIES: &[Entry] = &[
         title: "Connections",
         category: Models,
         aliases: "ollama openai server remote api key url",
-        value: |s| s.summarizer_backend.label().into(),
+        value: |s| lokalbot_i18n::tr(s.summarizer_backend.label()).into(),
     },
     Entry {
         id: "settings.semanticSearchEnabled",
@@ -399,7 +434,7 @@ pub const ENTRIES: &[Entry] = &[
         title: "Keep screen context",
         category: Privacy,
         aliases: "retention delete days cleanup window titles history activity screenshots",
-        value: |s| format!("{} days", s.retention_days),
+        value: |s| lokalbot_i18n::format("{0} days", &[("0", format!("{}", s.retention_days))]),
     },
     Entry {
         id: "settings.keepOCRTextForever",
@@ -427,14 +462,24 @@ pub const ENTRIES: &[Entry] = &[
         title: "Never capture these apps",
         category: Privacy,
         aliases: "exclusions private password activity",
-        value: |s| format!("{} selected", s.excluded_app_list().len()),
+        value: |s| {
+            lokalbot_i18n::format(
+                "{0} selected",
+                &[("0", format!("{}", s.excluded_app_list().len()))],
+            )
+        },
     },
     Entry {
         id: "settings.excludedScreenDomains",
         title: "Never capture these sites",
         category: Privacy,
         aliases: "exclusions domains websites private",
-        value: |s| format!("{} selected", s.excluded_domain_list().len()),
+        value: |s| {
+            lokalbot_i18n::format(
+                "{0} selected",
+                &[("0", format!("{}", s.excluded_domain_list().len()))],
+            )
+        },
     },
     Entry {
         id: "settings.setupAgain",
@@ -468,6 +513,10 @@ pub const ENTRIES: &[Entry] = &[
 
 /// Entries whose title, aliases or category contain every query word.
 pub fn search(query: &str) -> Vec<&'static Entry> {
+    search_in(query, lokalbot_i18n::current().code)
+}
+
+fn search_in(query: &str, locale: &str) -> Vec<&'static Entry> {
     let words: Vec<String> = query.split_whitespace().map(str::to_lowercase).collect();
     if words.is_empty() {
         return Vec::new();
@@ -476,10 +525,20 @@ pub fn search(query: &str) -> Vec<&'static Entry> {
         .iter()
         .filter(|entry| {
             let haystack = format!(
-                "{} {} {}",
+                "{} {} {} {} {}",
                 entry.title,
                 entry.aliases,
-                category_title(entry.category)
+                lokalbot_i18n::translate(locale, category_key(entry.category)),
+                lokalbot_i18n::translate(locale, entry.title),
+                if entry.id == "settings.appLanguage" {
+                    lokalbot_i18n::LANGUAGES
+                        .iter()
+                        .map(|l| format!("{} {}", l.name, l.english_name))
+                        .collect::<Vec<_>>()
+                        .join(" ")
+                } else {
+                    String::new()
+                }
             )
             .to_lowercase();
             words.iter().all(|word| haystack.contains(word.as_str()))
@@ -488,6 +547,10 @@ pub fn search(query: &str) -> Vec<&'static Entry> {
 }
 
 pub fn category_title(category: SettingsCategory) -> &'static str {
+    lokalbot_i18n::tr(category_key(category))
+}
+
+fn category_key(category: SettingsCategory) -> &'static str {
     match category {
         General => "General",
         Meetings => "Meetings",
@@ -503,6 +566,26 @@ pub fn category_title(category: SettingsCategory) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn native_names_and_localized_titles_are_searchable() {
+        for language in lokalbot_i18n::LANGUAGES {
+            assert!(
+                search_in(language.name, "en")
+                    .iter()
+                    .any(|e| e.id == "settings.appLanguage"),
+                "{}",
+                language.name
+            );
+        }
+        for (query, locale) in [("Sprache", "de"), ("界面语言", "zh-Hans")] {
+            assert!(
+                search_in(query, locale)
+                    .iter()
+                    .any(|e| e.id == "settings.appLanguage")
+            );
+        }
+    }
 
     #[test]
     fn search_matches_every_word() {

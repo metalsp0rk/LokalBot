@@ -11,10 +11,11 @@ use std::collections::HashSet;
 use std::rc::Rc;
 use std::time::Duration;
 
+use crate::i18n::h_flex;
 use chrono::{Local, NaiveDate};
 use gpui_kit::component::button::{Button, ButtonVariants as _};
 use gpui_kit::component::scroll::ScrollableElement as _;
-use gpui_kit::component::{Icon, h_flex, v_flex};
+use gpui_kit::component::{Icon, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
     AnyElement, App, AppContext as _, Bounds, Context, Entity, FontWeight, InteractiveElement as _,
@@ -193,7 +194,7 @@ impl TodayPage {
         self.data.update(cx, |data, cx| {
             data.ask(
                 AskRequest {
-                    question: "What happened today?".into(),
+                    question: lokalbot_i18n::tr("What happened today?").into(),
                     meeting_ids: Vec::new(),
                     submit: false,
                 },
@@ -239,7 +240,10 @@ impl TodayPage {
                                 .text_size(ty::BODY)
                                 .font_weight(FontWeight::SEMIBOLD)
                                 .text_color(lb.text)
-                                .child(format!("Recording — {title}")),
+                                .child(crate::ui::text::paragraph(lokalbot_i18n::format(
+                                    "Recording — {title}",
+                                    &[("title", format!("{}", title))],
+                                ))),
                         )
                         .child(
                             div()
@@ -249,16 +253,15 @@ impl TodayPage {
                         ),
                 )
                 .child(
-                    ui::controls::bordered("now-live", "Live Meeting Notes").on_click(
-                        move |_, _, cx| {
+                    ui::controls::bordered("now-live", lokalbot_i18n::tr("Live Meeting Notes"))
+                        .on_click(move |_, _, cx| {
                             open.update(cx, |data, cx| {
                                 data.open_meeting(id, Default::default(), None, cx)
                             })
-                        },
-                    ),
+                        }),
                 )
                 .child(
-                    ui::controls::bordered("now-stop", "Stop Recording")
+                    ui::controls::bordered("now-stop", lokalbot_i18n::tr("Stop Recording"))
                         .text_color(lb.recording_text)
                         .on_click(move |_, _, cx| {
                             stop.update(cx, |data, cx| data.stop_recording(cx))
@@ -277,12 +280,14 @@ impl TodayPage {
                     .flex_1()
                     .text_size(ty::BODY)
                     .text_color(lb.text)
-                    .child("Nothing recording right now"),
+                    .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                        "Nothing recording right now",
+                    ))),
             )
             .child(
-                ui::controls::bordered("now-record", "Record Now").on_click(move |_, _, cx| {
-                    start.update(cx, |data, cx| data.start_recording(cx))
-                }),
+                ui::controls::bordered("now-record", lokalbot_i18n::tr("Record Now")).on_click(
+                    move |_, _, cx| start.update(cx, |data, cx| data.start_recording(cx)),
+                ),
             )
             .into_any_element()
     }
@@ -306,15 +311,15 @@ impl TodayPage {
                     this.child(div().h(px(1.)).bg(lb.separator))
                 })
         });
-        let content =
-            v_flex()
-                .children(rows)
-                .child(h_flex().pt(px(8.)).gap(px(8.)).child(
-                    ui::controls::bordered("review-actions", "Review Actions…").on_click(
+        let content = v_flex().children(rows).child(
+            h_flex().pt(px(8.)).gap(px(8.)).child(
+                ui::controls::bordered("review-actions", lokalbot_i18n::tr("Review Actions…"))
+                    .on_click(
                         cx.listener(|this, _, window, cx| this.show_actions(true, window, cx)),
                     ),
-                ));
-        Some(ui::section("Needs Attention", content, cx).into_any_element())
+            ),
+        );
+        Some(ui::section(lokalbot_i18n::tr("Needs Attention"), content, cx).into_any_element())
     }
 
     fn render_digest(&self, model: &TodayModel, cx: &mut Context<Self>) -> AnyElement {
@@ -334,7 +339,7 @@ impl TodayPage {
                             .text_size(ty::SECTION)
                             .font_weight(FontWeight::BOLD)
                             .text_color(lb.text)
-                            .child("Day Digest"),
+                            .child(crate::ui::text::paragraph(lokalbot_i18n::tr("Day Digest"))),
                     ),
             )
             .child(digest::digest_controls(
@@ -366,7 +371,7 @@ impl TodayPage {
             .flex_col()
             .gap(px(18.))
             .child(digest::day_overview(
-                "Day So Far",
+                lokalbot_i18n::tr("Day So Far"),
                 &model.activity,
                 false,
                 false,
@@ -468,9 +473,12 @@ impl TodayPage {
             });
         let more = (total > 4).then(|| {
             let label = if self.sessions_expanded {
-                "Show Fewer Sessions".to_string()
+                lokalbot_i18n::tr("Show Fewer Sessions").to_string()
             } else {
-                format!("Show All {total} Sessions")
+                lokalbot_i18n::format(
+                    "Show All {total} Sessions",
+                    &[("total", format!("{}", total))],
+                )
             };
             ui::link(
                 "sessions-more",
@@ -499,12 +507,12 @@ impl TodayPage {
                             .text_size(ty::SECTION)
                             .font_weight(FontWeight::BOLD)
                             .text_color(lb.text)
-                            .child("Sessions"),
+                            .child(crate::ui::text::paragraph(lokalbot_i18n::tr("Sessions"))),
                     )
                     .child(
                         ui::link(
                             "sessions-timeline",
-                            "Open Timeline",
+                            lokalbot_i18n::tr("Open Timeline"),
                             move |_, cx| {
                                 open_timeline
                                     .update(cx, |data, cx| data.navigate(Section::Timeline, cx))
@@ -607,20 +615,20 @@ impl TodayPage {
                                         .text_size(ty::QUESTION)
                                         .font_weight(FontWeight::BOLD)
                                         .text_color(lb.text)
-                                        .child("Welcome to LokalBot"),
+                                        .child(crate::ui::text::paragraph(lokalbot_i18n::tr("Welcome to LokalBot"))),
                                 )
                                 .child(
                                     div()
                                         .text_size(ty::BODY)
                                         .text_color(lb.text_secondary)
-                                        .child("Your private AI memory for work — on-device by default."),
+                                        .child(crate::ui::text::paragraph(lokalbot_i18n::tr("Your private AI memory for work — on-device by default."))),
                                 ),
                         )
                         .child(
                             Button::new("getting-started-dismiss")
                                 .ghost()
                                 .icon(Icon::new(Ico::X))
-                                .tooltip("Dismiss")
+                                .tooltip(lokalbot_i18n::tr("Dismiss"))
                                 .on_click(move |_, _, cx| {
                                     dismiss.update(cx, |data, cx| {
                                         data.update_settings(|s| s.getting_started_dismissed = true, cx)
@@ -634,46 +642,46 @@ impl TodayPage {
                         .child(
                             h_flex()
                                 .gap(px(10.))
-                                .child(pillar(Ico::AudioLines, "Remember", "Capture meetings and the day context you choose."))
-                                .child(pillar(Ico::TextSearch, "Ask", "Search, ask, and open the evidence behind an answer.")),
+                                .child(pillar(Ico::AudioLines, lokalbot_i18n::tr("Remember"), lokalbot_i18n::tr("Capture meetings and the day context you choose.")))
+                                .child(pillar(Ico::TextSearch, lokalbot_i18n::tr("Ask"), lokalbot_i18n::tr("Search, ask, and open the evidence behind an answer."))),
                         )
                         .child(
                             h_flex()
                                 .gap(px(10.))
-                                .child(pillar(Ico::Keyboard, "Write", "Dictate text into the app where you're working."))
+                                .child(pillar(Ico::Keyboard, lokalbot_i18n::tr("Write"), lokalbot_i18n::tr("Dictate text into the app where you're working.")))
                                 .child(pillar(
                                     Ico::SquareArrowOutUpRight,
-                                    "Act",
-                                    "Create inspectable drafts and exports, and share meetings with your coding agent.",
+                                    lokalbot_i18n::tr("Act"),
+                                    lokalbot_i18n::tr("Create inspectable drafts and exports, and share meetings with your coding agent."),
                                 )),
                         ),
                 )
-                .child(div().text_size(ty::SECTION).font_weight(FontWeight::BOLD).text_color(lb.text).child("Get started"))
+                .child(div().text_size(ty::SECTION).font_weight(FontWeight::BOLD).text_color(lb.text).child(crate::ui::text::paragraph(lokalbot_i18n::tr("Get started"))))
                 .child(
                     v_flex()
                         .gap(px(10.))
                         .child(step(
                             transcription_ready,
                             if transcription_ready {
-                                div().child("Transcription model ready — recaps run entirely on-device.").into_any_element()
+                                div().child(crate::ui::text::paragraph(lokalbot_i18n::tr("Transcription model ready — recaps run entirely on-device."))).into_any_element()
                             } else {
                                 link_step(
                                     "gs-download",
-                                    "Download the transcription model",
-                                    "one-time — or it downloads with your first recap.",
+                                    lokalbot_i18n::tr("Download the transcription model"),
+                                    lokalbot_i18n::tr("one-time — or it downloads with your first recap."),
                                     Box::new(move |cx| {
                                         models.update(cx, |data, cx| data.request(crate::state::AppEvent::PrepareModels, cx))
                                     }),
                                 )
                             },
                         ))
-                        .child(step(has_meeting, div().child("Record a meeting — it appears in the list automatically.").into_any_element()))
+                        .child(step(has_meeting, div().child(crate::ui::text::paragraph(lokalbot_i18n::tr("Record a meeting — it appears in the list automatically."))).into_any_element()))
                         .child(step(
                             tracking,
                             link_step(
                                 "gs-tracking",
-                                "Turn on day tracking",
-                                "to see where your time goes.",
+                                lokalbot_i18n::tr("Turn on day tracking"),
+                                lokalbot_i18n::tr("to see where your time goes."),
                                 Box::new(move |cx| {
                                     tracking_data.update(cx, |data, cx| data.update_settings(|s| s.tracking_enabled = true, cx))
                                 }),
@@ -683,8 +691,8 @@ impl TodayPage {
                             false,
                             link_step(
                                 "gs-dictation",
-                                "Try dictation",
-                                "— speak, and LokalBot types it in the app you're using.",
+                                lokalbot_i18n::tr("Try dictation"),
+                                lokalbot_i18n::tr("— speak, and LokalBot types it in the app you're using."),
                                 Box::new(move |cx| {
                                     dictation.update(cx, |data, cx| {
                                         data.open_settings(crate::state::SettingsCategory::Dictation, cx)
@@ -701,9 +709,9 @@ impl TodayPage {
 impl Page for TodayPage {
     fn title(&self, _cx: &App) -> SharedString {
         if self.showing_actions {
-            "Actions".into()
+            lokalbot_i18n::tr("Actions").into()
         } else {
-            "Today".into()
+            lokalbot_i18n::tr("Today").into()
         }
     }
 
@@ -716,14 +724,22 @@ impl Page for TodayPage {
             h_flex()
                 .gap_1()
                 .child(
-                    ui::controls::toolbar_icon("today-ask", Ico::TextSearch, "Ask About Today")
-                        .on_click(cx.listener(|this, _, _, cx| this.ask_today(cx))),
+                    ui::controls::toolbar_icon(
+                        "today-ask",
+                        Ico::TextSearch,
+                        lokalbot_i18n::tr("Ask About Today"),
+                    )
+                    .on_click(cx.listener(|this, _, _, cx| this.ask_today(cx))),
                 )
                 .child(
-                    ui::controls::toolbar_icon("today-timeline", Ico::ChartGantt, "Open Timeline")
-                        .on_click(move |_, _, cx| {
-                            data.update(cx, |data, cx| data.navigate(Section::Timeline, cx))
-                        }),
+                    ui::controls::toolbar_icon(
+                        "today-timeline",
+                        Ico::ChartGantt,
+                        lokalbot_i18n::tr("Open Timeline"),
+                    )
+                    .on_click(move |_, _, cx| {
+                        data.update(cx, |data, cx| data.navigate(Section::Timeline, cx))
+                    }),
                 )
                 .into_any_element(),
         )
@@ -757,7 +773,12 @@ impl Render for TodayPage {
         .absolute()
         .size_full();
 
-        let date = Local::now().format("%A, %B %-d, %Y").to_string();
+        let date = Local::now()
+            .format_localized(
+                lokalbot_i18n::date_pattern("%A, %B %-d, %Y"),
+                lokalbot_i18n::date_locale(),
+            )
+            .to_string();
         let mut sections: Vec<AnyElement> = vec![
             div()
                 .text_size(ty::BODY)
@@ -779,7 +800,9 @@ impl Render for TodayPage {
                     .text_size(ty::BODY)
                     .text_color(lb.text_secondary)
                     .child(gpui_kit::component::spinner::Spinner::new())
-                    .child("Loading today…")
+                    .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                        "Loading today…",
+                    )))
                     .into_any_element(),
             ),
         }

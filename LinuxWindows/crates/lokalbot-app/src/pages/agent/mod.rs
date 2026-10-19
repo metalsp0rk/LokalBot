@@ -18,8 +18,9 @@ mod sidebar;
 use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
+use crate::i18n::h_flex;
 use gpui_kit::component::input::{InputEvent, InputState, TextareaState};
-use gpui_kit::component::{Icon, Selectable as _, h_flex};
+use gpui_kit::component::{Icon, Selectable as _};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
     AnyElement, App, AppContext as _, ClipboardItem, Context, Entity, InteractiveElement as _,
@@ -115,10 +116,22 @@ impl AgentPage {
             TextareaState::new(window, cx)
                 .auto_grow(2, 8)
                 .submit_on_enter(true)
-                .placeholder("Ask the agent…")
+                .placeholder(crate::i18n::placeholder("Ask the agent…", window, cx))
         });
-        let task_search = cx.new(|cx| InputState::new(window, cx).placeholder("Search tasks"));
-        let find_input = cx.new(|cx| InputState::new(window, cx).placeholder("Find in this task"));
+        let task_search = cx.new(|cx| {
+            InputState::new(window, cx).placeholder(crate::i18n::placeholder(
+                "Search tasks",
+                window,
+                cx,
+            ))
+        });
+        let find_input = cx.new(|cx| {
+            InputState::new(window, cx).placeholder(crate::i18n::placeholder(
+                "Find in this task",
+                window,
+                cx,
+            ))
+        });
         let subscriptions = vec![
             cx.observe_in(&data, window, |this, data, window, cx| {
                 let section = data.read(cx).section;
@@ -180,7 +193,7 @@ impl AgentPage {
             composer,
             composer_task: None,
             synced_draft: String::new(),
-            composer_placeholder: "Ask the agent…",
+            composer_placeholder: lokalbot_i18n::tr("Ask the agent…"),
             task_search,
             task_query: String::new(),
             find_input,
@@ -283,9 +296,9 @@ impl AgentPage {
             return;
         };
         let placeholder = if running {
-            "Add a follow-up or steer the agent…"
+            lokalbot_i18n::tr("Add a follow-up or steer the agent…")
         } else {
-            "Ask the agent…"
+            lokalbot_i18n::tr("Ask the agent…")
         };
         if self.composer_task != Some(id) || draft != self.synced_draft {
             self.composer_task = Some(id);
@@ -388,7 +401,7 @@ impl AgentPage {
 
 impl Page for AgentPage {
     fn title(&self, _cx: &App) -> SharedString {
-        "Agent".into()
+        lokalbot_i18n::tr("Agent").into()
     }
 
     /// Find and the results panel (`taskActions`).
@@ -401,16 +414,20 @@ impl Page for AgentPage {
             h_flex()
                 .gap_1()
                 .child(
-                    controls::toolbar_icon("agent-find", Ico::Search, "Find in task (Ctrl+F)")
-                        .on_click(cx.listener(|this, _, window, cx| {
-                            this.open_find(window, cx);
-                        })),
+                    controls::toolbar_icon(
+                        "agent-find",
+                        Ico::Search,
+                        lokalbot_i18n::tr("Find in task (Ctrl+F)"),
+                    )
+                    .on_click(cx.listener(|this, _, window, cx| {
+                        this.open_find(window, cx);
+                    })),
                 )
                 .child(
                     controls::toolbar_icon(
                         "agent-results",
                         Ico::PanelRight,
-                        "Results and sources (Ctrl+Alt+B)",
+                        lokalbot_i18n::tr("Results and sources (Ctrl+Alt+B)"),
                     )
                     .when(self.results_visible, |this| this.selected(true))
                     .on_click(cx.listener(|this, _, _, cx| {

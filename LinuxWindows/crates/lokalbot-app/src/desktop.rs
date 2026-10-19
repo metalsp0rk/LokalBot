@@ -166,6 +166,7 @@ fn tray_state(data: &AppData) -> TrayMenuState {
         _ => (false, None, mode_status(&data.settings).to_string()),
     };
     TrayMenuState {
+        interface_language: lokalbot_i18n::current().code.into(),
         recording,
         timer,
         subtitle,
@@ -180,9 +181,9 @@ fn tray_state(data: &AppData) -> TrayMenuState {
 fn mode_status(settings: &lokalbot_core::Settings) -> &'static str {
     use lokalbot_core::settings::AutoRecordMode;
     match settings.auto_record_mode {
-        AutoRecordMode::Automatic => "Auto-records detected meetings",
-        AutoRecordMode::Ask => "Asks before recording meetings",
-        AutoRecordMode::Manual => "Manual recording only",
+        AutoRecordMode::Automatic => lokalbot_i18n::tr("Auto-records detected meetings"),
+        AutoRecordMode::Ask => lokalbot_i18n::tr("Asks before recording meetings"),
+        AutoRecordMode::Manual => lokalbot_i18n::tr("Manual recording only"),
     }
 }
 
@@ -198,6 +199,7 @@ fn refresh_tray(data: &Entity<AppData>, cx: &mut App) {
     }
     let menu_changed = last.as_ref().is_none_or(|l| {
         l.recording != state.recording
+            || l.interface_language != state.interface_language
             || l.subtitle != state.subtitle
             || l.day_memory_paused != state.day_memory_paused
             || l.screen_capture != state.screen_capture
@@ -364,12 +366,15 @@ pub fn notify_meeting_detected(app_name: String, title: String, cx: &mut App) {
     let Some(desktop) = desktop(cx) else { return };
     let tx = desktop.sender.clone();
     std::thread::spawn(move || {
-        let body = format!("Record {title}?");
+        let body = lokalbot_i18n::format("Record {title}?", &[("title", format!("{}", title))]);
         let callback_title = title.clone();
         let result = lokalbot_platform::notify::notify_with_timeout(
-            "Meeting detected",
+            lokalbot_i18n::tr("Meeting detected"),
             &body,
-            &[("record", "Record"), ("ignore", "Ignore")],
+            &[
+                ("record", lokalbot_i18n::tr("Record")),
+                ("ignore", lokalbot_i18n::tr("Ignore")),
+            ],
             Some(Box::new(move |action| {
                 if action == "record" || action == "default" {
                     let _ = tx.send_blocking(DesktopEvent::RecordDetected {
@@ -392,8 +397,16 @@ pub fn notify_meeting_detected(app_name: String, title: String, cx: &mut App) {
 /// "Recording saved · <title> · N min", like the macOS notification.
 pub fn notify_recording_saved(title: String, minutes: u64) {
     std::thread::spawn(move || {
-        let body = format!("{title} · {minutes} min · transcribing…");
-        if let Err(err) = lokalbot_platform::notify("Recording saved", &body, &[], None) {
+        let body = lokalbot_i18n::format(
+            "{title} · {minutes} min · transcribing…",
+            &[
+                ("title", format!("{}", title)),
+                ("minutes", format!("{}", minutes)),
+            ],
+        );
+        if let Err(err) =
+            lokalbot_platform::notify(lokalbot_i18n::tr("Recording saved"), &body, &[], None)
+        {
             log::debug!("recording-saved notification failed: {err:#}");
         }
     });

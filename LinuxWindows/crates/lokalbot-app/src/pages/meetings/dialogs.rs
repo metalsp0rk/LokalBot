@@ -1,10 +1,11 @@
 //! Sheets of the meeting workspace: delete confirmation, action correction
 //! and naming a speaker.
 
+use crate::i18n::h_flex;
 use gpui_kit::component::button::{Button, ButtonVariants as _};
 use gpui_kit::component::input::{Input, InputState};
 use gpui_kit::component::menu::{DropdownMenu as _, PopupMenuItem};
-use gpui_kit::component::{Sizable as _, WindowExt as _, h_flex, v_flex};
+use gpui_kit::component::{Sizable as _, WindowExt as _, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
     App, AppContext as _, Context, Entity, FontWeight, IntoElement, ParentElement as _, Render,
@@ -28,9 +29,9 @@ pub(crate) fn confirm_delete(
         return;
     }
     let title: SharedString = if ids.len() == 1 {
-        "Delete 1 meeting?".into()
+        lokalbot_i18n::tr("Delete 1 meeting?").into()
     } else {
-        format!("Delete {} meetings?", ids.len()).into()
+        lokalbot_i18n::format("Delete {0} meetings?", &[("0", format!("{}", ids.len()))]).into()
     };
     window.open_dialog(cx, move |dialog, _, cx| {
         let lb = cx.lb().clone();
@@ -48,7 +49,9 @@ pub(crate) fn confirm_delete(
                 div()
                     .text_size(ty::BODY)
                     .text_color(lb.text_secondary)
-                    .child("This permanently deletes the audio, transcript and summary files."),
+                    .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                        "This permanently deletes the audio, transcript and summary files.",
+                    ))),
             )
             .footer(
                 h_flex()
@@ -56,16 +59,17 @@ pub(crate) fn confirm_delete(
                     .gap_2()
                     .justify_end()
                     .child(
-                        crate::ui::controls::bordered("delete-cancel", "Cancel").on_click(
-                            |_, window, cx| {
+                        crate::ui::controls::bordered("delete-cancel", lokalbot_i18n::tr("Cancel"))
+                            .on_click(|_, window, cx| {
                                 window.close_dialog(cx);
-                            },
-                        ),
+                            }),
                     )
                     .child(
                         Button::new("delete-confirm")
                             .danger()
-                            .label("Delete (removes recordings & transcripts)")
+                            .label(lokalbot_i18n::tr(
+                                "Delete (removes recordings & transcripts)",
+                            ))
                             .on_click(move |_, window, cx| {
                                 let ids = ids.clone();
                                 data.update(cx, |data, cx| {
@@ -115,12 +119,12 @@ impl CorrectionSheet {
             let text = cx.new(|cx| InputState::new(window, cx).default_value(action.text.clone()));
             let owner = cx.new(|cx| {
                 InputState::new(window, cx)
-                    .placeholder("Owner")
+                    .placeholder(crate::i18n::placeholder("Owner", window, cx))
                     .default_value(action.owner.clone().unwrap_or_default())
             });
             let due = cx.new(|cx| {
                 InputState::new(window, cx)
-                    .placeholder("Due date as agreed")
+                    .placeholder(crate::i18n::placeholder("Due date as agreed", window, cx))
                     .default_value(action.due.clone().unwrap_or_default())
             });
             Self {
@@ -152,8 +156,9 @@ impl CorrectionSheet {
         let text_change =
             (!text.is_empty() && text != self.action.original_text && text != self.action.text)
                 .then_some(text);
-        let owner_change = (owner != self.action.owner.clone().unwrap_or_default())
-            .then(|| (!owner.is_empty() && owner != "Unassigned").then_some(owner));
+        let owner_change = (owner != self.action.owner.clone().unwrap_or_default()).then(|| {
+            (!owner.is_empty() && owner != lokalbot_i18n::tr("Unassigned")).then_some(owner)
+        });
         let due_change = (due != self.action.due.clone().unwrap_or_default())
             .then(|| (!due.is_empty()).then_some(due));
         if text_change.is_none() && owner_change.is_none() && due_change.is_none() {
@@ -184,7 +189,13 @@ impl CorrectionSheet {
                     window.close_dialog(cx);
                 }
                 Err(err) => {
-                    this.error = Some(format!("The correction could not be saved. {err:#}").into());
+                    this.error = Some(
+                        lokalbot_i18n::format(
+                            "The correction could not be saved. {err}",
+                            &[("err", format!("{:#}", err))],
+                        )
+                        .into(),
+                    );
                     cx.notify();
                 }
             });
@@ -198,9 +209,9 @@ impl Render for CorrectionSheet {
         let lb = cx.lb().clone();
         let owner_value = self.owner.read(cx).value().to_string();
         let owner_label: SharedString = if owner_value.trim().is_empty() {
-            "Unassigned".into()
+            lokalbot_i18n::tr("Unassigned").into()
         } else if owner_value.trim().eq_ignore_ascii_case("me") {
-            "You".into()
+            lokalbot_i18n::tr("You").into()
         } else {
             owner_value.into()
         };
@@ -220,19 +231,21 @@ impl Render for CorrectionSheet {
                     .text_size(ty::QUESTION)
                     .font_weight(FontWeight::BOLD)
                     .text_color(lb.text)
-                    .child("Correct action details"),
+                    .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                        "Correct action details",
+                    ))),
             )
             .child(
                 v_flex()
                     .gap(px(6.))
-                    .child(label("Corrected wording"))
+                    .child(label(lokalbot_i18n::tr("Corrected wording")))
                     .child(Input::new(&self.text)),
             )
             .child(
                 h_flex()
                     .gap(px(8.))
                     .items_center()
-                    .child(div().flex_1().child(label("Owner")))
+                    .child(div().flex_1().child(label(lokalbot_i18n::tr("Owner"))))
                     .child(
                         Button::new("correction-owner-menu")
                             .outline()
@@ -251,18 +264,23 @@ impl Render for CorrectionSheet {
                                         });
                                     }
                                 };
-                                let mut menu =
-                                    menu.item(PopupMenuItem::new("You").on_click(pick("Me")));
+                                let mut menu = menu.item(
+                                    PopupMenuItem::new(lokalbot_i18n::tr("You"))
+                                        .on_click(pick(lokalbot_i18n::tr("Me"))),
+                                );
                                 for name in &suggestions {
                                     menu = menu.item(
                                         PopupMenuItem::new(name.clone()).on_click(pick(name)),
                                     );
                                 }
                                 menu.item(
-                                    PopupMenuItem::new("Unresolved speaker")
-                                        .on_click(pick("Unresolved speaker")),
+                                    PopupMenuItem::new(lokalbot_i18n::tr("Unresolved speaker"))
+                                        .on_click(pick(lokalbot_i18n::tr("Unresolved speaker"))),
                                 )
-                                .item(PopupMenuItem::new("Unassigned").on_click(pick("")))
+                                .item(
+                                    PopupMenuItem::new(lokalbot_i18n::tr("Unassigned"))
+                                        .on_click(pick("")),
+                                )
                             }),
                     ),
             )
@@ -270,14 +288,16 @@ impl Render for CorrectionSheet {
             .child(
                 v_flex()
                     .gap(px(6.))
-                    .child(label("Due date as agreed"))
+                    .child(label(lokalbot_i18n::tr("Due date as agreed")))
                     .child(Input::new(&self.due)),
             )
             .child(
                 div()
                     .text_size(ty::SECONDARY)
                     .text_color(lb.text_secondary)
-                    .child("This correction is stored separately from the extracted source."),
+                    .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                        "This correction is stored separately from the extracted source.",
+                    ))),
             )
             .when_some(self.error.clone(), |this, error| {
                 this.child(
@@ -292,16 +312,18 @@ impl Render for CorrectionSheet {
                     .gap_2()
                     .justify_end()
                     .child(
-                        crate::ui::controls::bordered("correction-cancel", "Cancel").on_click(
-                            |_, window, cx| {
-                                window.close_dialog(cx);
-                            },
-                        ),
+                        crate::ui::controls::bordered(
+                            "correction-cancel",
+                            lokalbot_i18n::tr("Cancel"),
+                        )
+                        .on_click(|_, window, cx| {
+                            window.close_dialog(cx);
+                        }),
                     )
                     .child(
                         Button::new("correction-save")
                             .primary()
-                            .label("Save correction")
+                            .label(lokalbot_i18n::tr("Save correction"))
                             .on_click(cx.listener(|this, _, window, cx| this.save(window, cx))),
                     ),
             )
@@ -336,7 +358,7 @@ impl NameSpeakerSheet {
         let sheet = cx.new(|cx| {
             let name = cx.new(|cx| {
                 InputState::new(window, cx)
-                    .placeholder("Name this speaker")
+                    .placeholder(crate::i18n::placeholder("Name this speaker", window, cx))
                     .default_value(current)
             });
             Self {
@@ -378,7 +400,13 @@ impl NameSpeakerSheet {
                     window.close_dialog(cx);
                 }
                 Err(err) => {
-                    this.error = Some(format!("The name could not be saved. {err:#}").into());
+                    this.error = Some(
+                        lokalbot_i18n::format(
+                            "The name could not be saved. {err}",
+                            &[("err", format!("{:#}", err))],
+                        )
+                        .into(),
+                    );
                     cx.notify();
                 }
             });
@@ -392,7 +420,7 @@ impl Render for NameSpeakerSheet {
         let lb = cx.lb().clone();
         v_flex()
             .gap(px(14.))
-            .child(div().text_size(ty::QUESTION).font_weight(FontWeight::BOLD).text_color(lb.text).child("Name Speaker"))
+            .child(div().text_size(ty::QUESTION).font_weight(FontWeight::BOLD).text_color(lb.text).child(crate::ui::text::paragraph(lokalbot_i18n::tr("Name Speaker"))))
             .child(match &self.speaker.sample {
                 Some((start, text)) => v_flex()
                     .gap(px(4.))
@@ -412,13 +440,13 @@ impl Render for NameSpeakerSheet {
                 None => div()
                     .text_size(ty::SECONDARY)
                     .text_color(lb.text_secondary)
-                    .child("No clear voice excerpt available. Check the transcript before confirming this speaker.")
+                    .child(crate::ui::text::paragraph(lokalbot_i18n::tr("No clear voice excerpt available. Check the transcript before confirming this speaker.")))
                     .into_any_element(),
             })
             .child(
                 v_flex()
                     .gap(px(6.))
-                    .child(div().text_size(ty::SECONDARY).text_color(lb.text_secondary).child("Name"))
+                    .child(div().text_size(ty::SECONDARY).text_color(lb.text_secondary).child(crate::ui::text::paragraph(lokalbot_i18n::tr("Name"))))
                     .child(Input::new(&self.name)),
             )
             .child(
@@ -431,7 +459,7 @@ impl Render for NameSpeakerSheet {
                             .flex_1()
                             .text_size(ty::CAPTION)
                             .text_color(lb.text_secondary)
-                            .child("Names are saved with this meeting."),
+                            .child(crate::ui::text::paragraph(lokalbot_i18n::tr("Names are saved with this meeting."))),
                     ),
             )
             .when_some(self.error.clone(), |this, error| {
@@ -443,15 +471,15 @@ impl Render for NameSpeakerSheet {
                     .child(
                         Button::new("speaker-unidentified")
                             .ghost()
-                            .label("Leave Unidentified")
+                            .label(lokalbot_i18n::tr("Leave Unidentified"))
                             .on_click(cx.listener(|this, _, window, cx| this.save(None, window, cx))),
                     )
                     .child(div().flex_1())
-                    .child(crate::ui::controls::bordered("speaker-cancel", "Cancel").on_click(|_, window, cx| {
+                    .child(crate::ui::controls::bordered("speaker-cancel", lokalbot_i18n::tr("Cancel")).on_click(|_, window, cx| {
                         window.close_dialog(cx);
                     }))
                     .child(
-                        Button::new("speaker-save").primary().label("Save").on_click(cx.listener(|this, _, window, cx| {
+                        Button::new("speaker-save").primary().label(lokalbot_i18n::tr("Save")).on_click(cx.listener(|this, _, window, cx| {
                             let name = this.name.read(cx).value().to_string();
                             this.save(Some(name), window, cx)
                         })),

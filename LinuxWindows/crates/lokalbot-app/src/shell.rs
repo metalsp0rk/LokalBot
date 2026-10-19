@@ -1,7 +1,8 @@
 //! The main window: sidebar, toolbar (which doubles as the title bar) and the
 //! current page. Mirrors `MainWindowView.swift`.
 
-use gpui_kit::component::{TitleBar, h_flex, v_flex};
+use crate::i18n::h_flex;
+use gpui_kit::component::{TitleBar, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
     AnyElement, App, AppContext as _, Context, Entity, FontWeight, Hsla, InteractiveElement as _,
@@ -131,7 +132,7 @@ impl Workspace {
                     .pt_1()
                     .gap(px(2.))
                     .child(item("sidebar-today", Ico::Sun, Section::Today, cx))
-                    .child(header("Remember", 10.))
+                    .child(header(lokalbot_i18n::tr("Remember"), 10.))
                     .child(item(
                         "sidebar-meetings",
                         Ico::AudioLines,
@@ -147,7 +148,7 @@ impl Workspace {
                     .child(item("sidebar-people", Ico::Users, Section::People, cx))
                     .child(item("sidebar-projects", Ico::Folder, Section::Projects, cx))
                     .child(item("sidebar-ask", Ico::TextSearch, Section::Ask, cx))
-                    .child(header("Tools", 14.))
+                    .child(header(lokalbot_i18n::tr("Tools"), 14.))
                     .child(item("sidebar-agent", Ico::WandSparkles, Section::Agent, cx))
                     .child(item(
                         "sidebar-settings",
@@ -185,7 +186,9 @@ impl Workspace {
                             div()
                                 .text_size(ty::SMALL)
                                 .text_color(lb.text_secondary)
-                                .child("Private work memory"),
+                                .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                                    "Private work memory",
+                                ))),
                         ),
                 ),
         )
@@ -223,7 +226,9 @@ impl Workspace {
                                         .text_size(ty::SECONDARY)
                                         .font_weight(FontWeight::SEMIBOLD)
                                         .text_color(lb.recording_text)
-                                        .child("Recording"),
+                                        .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                                            "Recording",
+                                        ))),
                                 )
                                 .child(div().flex_1())
                                 .child(
@@ -241,7 +246,9 @@ impl Workspace {
                                 .text_size(ty::SECONDARY)
                                 .text_color(lb.recording_text)
                                 .hover(|s| s.underline())
-                                .child("Live Meeting Notes")
+                                .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                                    "Live Meeting Notes",
+                                )))
                                 .on_click(move |_, _, cx| {
                                     data_entity.update(cx, |data, cx| {
                                         if let Some(meeting) = data.recording.meeting().cloned() {
@@ -298,7 +305,10 @@ impl Workspace {
                                     .mt(px(4.))
                                     .text_size(ty::CAPTION)
                                     .text_color(lb.text_secondary)
-                                    .child(format!("+{more} more")),
+                                    .child(crate::ui::text::paragraph(lokalbot_i18n::format(
+                                        "+{more} more",
+                                        &[("more", format!("{}", more))],
+                                    ))),
                             )
                         }),
                 )
@@ -317,7 +327,9 @@ impl Workspace {
                                         .text_size(ty::SECONDARY)
                                         .font_weight(FontWeight::SEMIBOLD)
                                         .text_color(lb.text)
-                                        .child("Storage: this PC"),
+                                        .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                                            "Storage: this PC",
+                                        ))),
                                 )
                                 .child(
                                     h_flex()
