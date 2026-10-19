@@ -72,6 +72,11 @@ def rust_string(value):
     return json.dumps(value, ensure_ascii=False).replace("\\b", "\\u{8}").replace("\\f", "\\u{c}")
 
 
+def constant(code):
+    """`zh-Hans` → `ZH_HANS`: the name of a language's generated table."""
+    return re.sub(r"[^A-Za-z0-9]", "_", code).upper()
+
+
 def generate():
     language_source = (ROOT / "LokalBot/Models/AppLanguage.swift").read_text()
     cases = dict(re.findall(r'case (\w+) = "([^"]+)"', language_source))
@@ -85,8 +90,21 @@ def generate():
         rtl = "true" if code in ("ar", "ar-EG", "ur") else "false"
         lines.append(f"    Language {{ code: {rust_string(code)}, name: {rust_string(names[case])}, english_name: {rust_string(english_names[case])}, rtl: {rtl} }},")
     lines.extend([
+        "];", "",
+        "// Each language's copy as (key, text) pairs sorted by key's bytes, so a lookup",
+        "// is a binary search. Data rather than a `match`: one match over every key of",
+        "// every language makes release builds of rustc overflow its stack.",
+        f"pub(crate) static CATALOGS: [(&str, &[(&str, &str)]); {len(cases)}] = [",
+    ])
+    lines.extend(f"    ({rust_string(code)}, {constant(code)})," for code in cases.values())
+    lines.extend([
         "];", "", "pub fn lookup(locale: &str, key: &str) -> Option<&'static str> {",
-        "    match locale {",
+        "    let (_, entries) = CATALOGS.iter().find(|(code, _)| *code == locale)?;",
+        "    entries",
+        "        .binary_search_by(|(candidate, _)| (*candidate).cmp(key))",
+        "        .ok()",
+        "        .map(|index| entries[index].1)",
+        "}",
     ])
     for code in cases.values():
         catalog = read_strings(ROOT / f"LokalBot/Resources/{code}.lproj/Localizable.strings")
@@ -100,10 +118,11 @@ def generate():
         if catalog.keys() & desktop[code].keys():
             raise ValueError(f"{code}: shared keys must be edited in the macOS catalog, not overridden")
         catalog.update(desktop[code])
-        lines.append(f"        {rust_string(code)} => match key {{")
-        lines.extend(f"            {rust_string(key)} => Some({rust_string(value)})," for key, value in sorted(catalog.items()))
-        lines.extend(["            _ => None,", "        },"])
-    lines.extend(["        _ => None,", "    }", "}", ""])
+        lines.extend(["", f"static {constant(code)}: &[(&str, &str)] = &["])
+        lines.extend(f"    ({rust_string(key)}, {rust_string(value)})," for key, value in
+                     sorted(catalog.items(), key=lambda item: item[0].encode("utf-8")))
+        lines.append("];")
+    lines.append("")
     return "\n".join(lines)
 
 

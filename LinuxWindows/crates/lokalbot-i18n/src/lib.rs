@@ -380,6 +380,35 @@ mod tests {
         );
     }
 
+    /// Lookups binary-search each table, so every table must be sorted.
+    #[test]
+    fn every_language_has_a_sorted_table() {
+        let codes: Vec<_> = catalogs::CATALOGS.iter().map(|(code, _)| *code).collect();
+        assert_eq!(codes, LANGUAGES.iter().map(|l| l.code).collect::<Vec<_>>());
+        for (code, entries) in &catalogs::CATALOGS {
+            assert!(entries.len() > 1000, "{code}");
+            for pair in entries.windows(2) {
+                assert!(
+                    pair[0].0 < pair[1].0,
+                    "{code}: {:?} before {:?}",
+                    pair[0].0,
+                    pair[1].0
+                );
+            }
+            for (key, value) in entries.iter() {
+                assert_eq!(catalogs::lookup(code, key), Some(*value), "{code}: {key:?}");
+            }
+        }
+        // First and last keys, and one past the end.
+        let english = catalogs::CATALOGS[0].1;
+        let (first, _) = english[0];
+        let (last, _) = english[english.len() - 1];
+        assert_eq!(catalogs::lookup("en", first), Some(first));
+        assert_eq!(catalogs::lookup("en", last), Some(last));
+        assert_eq!(catalogs::lookup("en", "\u{10FFFF}"), None);
+        assert_eq!(catalogs::lookup("en", ""), None);
+    }
+
     #[test]
     fn formatting_preserves_arbitrary_user_content() {
         let user_text = "日本語 {count} %s C:\\Users\\Me";
