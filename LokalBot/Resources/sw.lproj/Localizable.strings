@@ -1,9 +1,11 @@
 // Swahili (Kiswahili) interface translations. Keep user content and model prompts out of this table.
 "%@ detected — ready" = "%@ imetambuliwa — tayari";
 "%lld selected" = "%lld zimechaguliwa";
+"%lld settings changes are waiting for your approval" = "Mabadiliko %lld ya mipangilio yanasubiri idhini yako";
 "2. Review action owners" = "2. Kagua wanaohusika na hatua";
 "A domain excludes its subdomains too. A URL with a path excludes that URL prefix. Existing rules are kept until you remove them." = "Ukiondoa kikoa, vikoa vyake vidogo pia huondolewa. URL yenye njia huondoa URL zote zinazoanza na kiambishi hicho. Kanuni zilizopo hubaki hadi uziondoe.";
 "A newly granted permission may require a relaunch. Finish setup first; relaunch from Settings if the feature remains unavailable." = "Ruhusa mpya inaweza kuhitaji ufungue programu upya. Maliza usanidi kwanza; fungua upya kupitia Mipangilio ikiwa kipengele bado hakipatikani.";
+"A settings change is waiting for your approval" = "Badiliko la mipangilio linasubiri idhini yako";
 "About" = "Kuhusu";
 "Accept next" = "Kubali inayofuata";
 "Accept punctuation with the word" = "Kubali alama ya uandishi pamoja na neno";
@@ -41,6 +43,7 @@
 "Add ⌃, ⌥ or ⌘ so the shortcut does not block typing, or use a function key." = "Ongeza ⌃, ⌥ au ⌘ ili njia ya mkato isizuie kuandika, au tumia kitufe cha utendaji.";
 "Additional saved audio is outside the meeting boundaries." = "Sauti ya ziada iliyohifadhiwa iko nje ya mipaka ya mkutano.";
 "Adds titles of documents and pages captured during the call, never their captured text. Requires screen context in Day Memory." = "Huongeza vichwa vya hati na kurasa zilizonaswa wakati wa simu, kamwe si maandishi yake yaliyonaswa. Inahitaji muktadha wa skrini katika Kumbukumbu ya Siku.";
+"Adds: %@" = "Huongeza: %@";
 "Advanced" = "Ya kina";
 "After a shortcut recording" = "Baada ya kurekodi kwa njia ya mkato";
 "After applying" = "Baada ya kutumia";
@@ -58,11 +61,14 @@
 "All meetings" = "Mikutano yote";
 "All retained history" = "Historia yote iliyohifadhiwa";
 "All three core models will run on this Mac." = "Modeli zote tatu kuu zitaendeshwa kwenye Mac hii.";
+"Allow" = "Ruhusu";
 "Allow Once" = "Ruhusu Mara Moja";
 "Allow external agents to change LokalBot settings" = "Ruhusu mawakala wa nje wabadilishe mipangilio ya LokalBot";
 "Allow external agents to read screen memory" = "Ruhusu mawakala wa nje wasome kumbukumbu ya skrini";
 "Allow external agents to read your meeting library" = "Ruhusu mawakala wa nje wasome maktaba yako ya mikutano";
 "Allow multi-line suggestions" = "Ruhusu mapendekezo ya mistari mingi";
+"Allow only an agent you started yourself. Any program on this Mac can make this request." = "Ruhusu tu wakala uliyemwanzisha wewe mwenyewe. Programu yoyote kwenye Mac hii inaweza kutoa ombi hili.";
+"Allowing it lets the agent change your LokalBot settings, download models, and walk you through macOS permissions. Turning on capture, a data source, or sharing still asks you here. You can turn this off at any time in Settings → Privacy." = "Ukiruhusu, wakala ataweza kubadilisha mipangilio yako ya LokalBot, kupakua modeli, na kukuongoza katika ruhusa za macOS. Kuwasha kunasa, chanzo cha data au kushiriki bado kutakuuliza hapa. Unaweza kuzima hili wakati wowote katika Mipangilio → Faragha.";
 "Also allow relevant work memory derived from screen activity and daily journals. Reads what is already saved; it does not capture new screens or start an overnight review. Mixed meeting and screen memories require both settings." = "Ruhusu pia kumbukumbu husika ya kazi inayotokana na shughuli za skrini na shajara za kila siku. Husoma kilichohifadhiwa tayari; hainasi skrini mpya wala kuanza tathmini ya usiku. Kumbukumbu zinazochanganya mikutano na skrini zinahitaji mipangilio yote miwili.";
 "Also assigned to another voice" = "Pia limepewa sauti nyingine";
 "Also prepare Autocomplete (optional)" = "Andaa pia Ukamilishaji otomatiki (si lazima)";
@@ -77,6 +83,10 @@
 "Apply Choices and Start" = "Tumia Chaguo na Anza";
 "Apply policy and cleanup" = "Tumia sera na safisha";
 "Apply…" = "Tumia…";
+"Approve" = "Idhinisha";
+"Approve and clean up" = "Idhinisha na usafishe";
+"Approve only what you asked your agent to do. Approving can show macOS permission prompts for what it turns on." = "Idhinisha tu kile ulichomwomba wakala wako afanye. Kuidhinisha kunaweza kuonyesha maombi ya ruhusa ya macOS kwa kile kinachowashwa.";
+"Approve Settings Change" = "Idhinisha Badiliko la Mipangilio";
 "Apps use ⌘ with a single key. Add ⌃, ⌥ or ⇧." = "Programu hutumia ⌘ pamoja na kitufe kimoja. Ongeza ⌃, ⌥ au ⇧.";
 "Archived" = "Imewekwa kwenye kumbukumbu";
 "Arrived in the field" = "Imefika kwenye sehemu ya maandishi";
@@ -96,6 +106,7 @@
 "Ask via notification waits for you to start recording. Manual mode keeps Record Now available." = "Uliza kupitia arifa husubiri uanze kurekodi. Hali ya kujifanyia huweka Rekodi Sasa ipatikane.";
 "Ask your work memory" = "Uliza kumbukumbu yako ya kazi";
 "Asks before recording meetings" = "Huuliza kabla ya kurekodi mikutano";
+"asks to set up LokalBot for you from the terminal." = "anaomba kukusanidia LokalBot kutoka kwenye terminali.";
 "Ask…" = "Uliza…";
 "Attach context" = "Ambatisha muktadha";
 "Auto-detect" = "Tambua kiotomatiki";
@@ -143,6 +154,7 @@
 "Captures encrypted visuals for day memory. Only used in Text + visual context mode; system-audio capture does not use this permission." = "Hunasa picha zilizosimbwa kwa kumbukumbu ya siku. Hutumika tu katika hali ya Maandishi + muktadha wa kuona; kunasa sauti ya mfumo hakutumii ruhusa hii.";
 "Change the Ask shortcut" = "Badilisha njia ya mkato ya Uliza";
 "Change the dictation shortcut" = "Badilisha njia ya mkato ya imla";
+"Changes details that are hidden here, such as a URL's password or query." = "Hubadilisha maelezo yaliyofichwa hapa, kama vile nenosiri au hoja ya URL.";
 "Changes the interface immediately. Transcription and notes languages are set separately." = "Hubadilisha kiolesura mara moja. Lugha za unukuzi na maelezo huwekwa kando.";
 "Change…" = "Badilisha…";
 "Check Setup…" = "Kagua Usanidi…";
@@ -182,6 +194,7 @@
 "Clear search filters" = "Ondoa vichujio vya utafutaji";
 "Clear selection" = "Ondoa uteuzi";
 "Dictation already uses this shortcut. Choose another." = "Imla tayari hutumia njia hii ya mkato. Chagua nyingine.";
+"Don't Allow" = "Usiruhusu";
 "Hold the modifiers and press a key, like ⌃⇧ Space." = "Shikilia vitufe vya kurekebisha na ubonyeze kitufe, kama ⌃⇧ Space.";
 "macOS already uses this shortcut. Choose another." = "macOS tayari hutumia njia hii ya mkato. Chagua nyingine.";
 "Model folder selection cleared" = "Uteuzi wa folda ya modeli umeondolewa";
@@ -459,7 +472,7 @@
 "Legacy rule · review" = "Kanuni ya zamani · kagua";
 "Lets MCP clients and the lokalbot-cli skill (Claude, Cursor, …) list, read, search, and ask about your meetings — read-only and localhost only. Off by default." = "Huruhusu wateja wa MCP na ujuzi wa lokalbot-cli (Claude, Cursor, …) kuorodhesha, kusoma, kutafuta na kuuliza kuhusu mikutano yako — kusoma tu na localhost pekee. Imezimwa kwa chaguo-msingi.";
 "Lets dictation and cotyping detect their global keyboard shortcuts." = "Huruhusu imla na uandishi saidizi kutambua njia zao za mkato za kibodi za mfumo mzima.";
-"Lets lokalbot-cli read your settings and app status, open Settings at a setting, and start LokalBot in the background. Separate from the other agent access toggles. Off by default." = "Huruhusu lokalbot-cli kusoma mipangilio yako na hali ya programu, kufungua Mipangilio kwenye mpangilio mahususi, na kuanzisha LokalBot chinichini. Ni tofauti na swichi nyingine za ufikiaji wa mawakala. Imezimwa kwa chaguo-msingi.";
+"Lets lokalbot-cli read and change your preferences, show you a setting, and start LokalBot in the background. Turning on capture, a data source, or sharing still needs you here. Separate from the other agent access toggles. Off by default." = "Huruhusu lokalbot-cli kusoma na kubadilisha mapendeleo yako, kukuonyesha mpangilio, na kuanzisha LokalBot chinichini. Kuwasha kunasa, chanzo cha data au kushiriki bado kunakuhitaji hapa. Ni tofauti na swichi nyingine za ufikiaji wa mawakala. Imezimwa kwa chaguo-msingi.";
 "Library" = "Maktaba";
 "Library location" = "Mahali pa maktaba";
 "Light" = "Mwanga";
@@ -588,6 +601,7 @@
 "No suggested names match this search." = "Hakuna majina yaliyopendekezwa yanayolingana na utafutaji huu.";
 "No supporting passage was stored." = "Hakuna kifungu cha kuunga mkono kilichohifadhiwa.";
 "No transcript speakers are available yet." = "Hakuna wazungumzaji wa nakala ya sauti wanaopatikana bado.";
+"None" = "Hakuna";
 "None yet" = "Hakuna bado";
 "Not connected" = "Haijaunganishwa";
 "Not now" = "Si sasa";
@@ -599,6 +613,7 @@
 "Notes language" = "Lugha ya maelezo";
 "Notes template" = "Kiolezo cha maelezo";
 "Nothing in saved moments, captured screens, or meetings matches this search." = "Hakuna chochote katika matukio yaliyohifadhiwa, skrini zilizonaswa au mikutano kinacholingana na utafutaji huu.";
+"Nothing is waiting for your approval." = "Hakuna kinachosubiri idhini yako.";
 "Nothing recording right now" = "Hakuna kinachorekodiwa sasa";
 "OK" = "Sawa";
 "Off" = "Imezimwa";
@@ -717,6 +732,7 @@
 "Ready" = "Tayari";
 "Reasoning" = "Kufikiri";
 "Recent" = "Ya karibuni";
+"Recent changes by agents" = "Mabadiliko ya hivi karibuni ya mawakala";
 "Recent generations" = "Vilivyotengenezwa hivi karibuni";
 "Reconnect" = "Unganisha tena";
 "Record Capture Trace (60 s)" = "Rekodi Ufuatiliaji wa Kunasa (sekunde 60)";
@@ -758,6 +774,7 @@
 "Remove from List" = "Ondoa kwenye Orodha";
 "Remove the other side from your microphone track" = "Ondoa sauti ya upande mwingine kwenye njia ya maikrofoni yako";
 "Remove…" = "Ondoa…";
+"Removes: %@" = "Huondoa: %@";
 "Rename" = "Badilisha jina";
 "Rename…" = "Badilisha jina…";
 "Repair Agent Mode" = "Rekebisha Hali ya Wakala";
@@ -879,8 +896,11 @@
 "Session preview" = "Hakiki ya kipindi";
 "Sessions" = "Vipindi";
 "Set by the model" = "Imewekwa na modeli";
+"Set up LokalBot with your agent" = "Sanidi LokalBot ukitumia wakala wako";
+"Set Up with Your Agent" = "Sanidi kwa Kutumia Wakala Wako";
 "Settings" = "Mipangilio";
 "Settings categories" = "Kategoria za mipangilio";
+"Settings changed from the terminal. Undo restores the earlier value while the setting still holds the agent's." = "Mipangilio iliyobadilishwa kutoka kwenye terminali. Tendua hurejesha thamani ya awali maadamu mpangilio bado una thamani iliyowekwa na wakala.";
 "Settings navigation" = "Urambazaji wa mipangilio";
 "Settings…" = "Mipangilio…";
 "Setup progress" = "Maendeleo ya usanidi";
@@ -954,7 +974,7 @@
 "Summarization" = "Kutengeneza muhtasari";
 "Summarize automatically after transcription" = "Fupisha kiotomatiki baada ya unukuzi";
 "Summary" = "Muhtasari";
-"Symlinks the bundled CLI at ~/.local/bin/lokalbot-cli and the skill into ~/.agents/skills and ~/.claude/skills. Read-only by design." = "Huunda viungo vya kiishara vya CLI iliyojumuishwa kwenye ~/.local/bin/lokalbot-cli na vya ujuzi kwenye ~/.agents/skills na ~/.claude/skills. Imeundwa kwa kusoma tu.";
+"Symlinks the bundled CLI at ~/.local/bin/lokalbot-cli and the skill into ~/.agents/skills and ~/.claude/skills. Library access is read-only; changing settings needs its own toggle under Privacy." = "Huunda viungo vya kiishara vya CLI iliyojumuishwa kwenye ~/.local/bin/lokalbot-cli na vya ujuzi kwenye ~/.agents/skills na ~/.claude/skills. Ufikiaji wa maktaba ni wa kusoma tu; kubadilisha mipangilio kunahitaji swichi yake chini ya Faragha.";
 "System" = "Mfumo";
 "System audio input level" = "Kiwango cha ingizo la sauti ya mfumo";
 "System default" = "Chaguo-msingi la mfumo";
@@ -1083,6 +1103,8 @@
 "Voice" = "Sauti";
 "Wait before stopping" = "Subiri kabla ya kusimamisha";
 "Waiting for models" = "Inasubiri modeli";
+"wants to change LokalBot settings." = "anataka kubadilisha mipangilio ya LokalBot.";
+"wants to save an API key in LokalBot." = "anataka kuhifadhi ufunguo wa API katika LokalBot.";
 "Weekly log day" = "Siku ya rekodi ya kila wiki";
 "Weekly work log" = "Rekodi ya kazi ya kila wiki";
 "Welcome to LokalBot" = "Karibu LokalBot";

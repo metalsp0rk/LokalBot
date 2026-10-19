@@ -1,9 +1,11 @@
 // Russian interface translations. Keep user content and model prompts out of this table.
 "%@ detected — ready" = "%@ обнаружено — готово";
 "%lld selected" = "Выбрано: %lld";
+"%lld settings changes are waiting for your approval" = "Изменений настроек, ожидающих вашего одобрения: %lld";
 "2. Review action owners" = "2. Проверить ответственных за действия";
 "A domain excludes its subdomains too. A URL with a path excludes that URL prefix. Existing rules are kept until you remove them." = "Домен также исключает свои поддомены. URL с путём исключает все адреса с этим префиксом. Правила сохраняются, пока вы их не удалите.";
 "A newly granted permission may require a relaunch. Finish setup first; relaunch from Settings if the feature remains unavailable." = "Новое разрешение может потребовать перезапуска. Сначала завершите настройку; если функция недоступна, перезапустите приложение из Настроек.";
+"A settings change is waiting for your approval" = "Изменение настроек ожидает вашего одобрения";
 "About" = "О программе";
 "Accept next" = "Принять следующее";
 "Accept punctuation with the word" = "Принимать пунктуацию вместе со словом";
@@ -41,6 +43,7 @@
 "Add ⌃, ⌥ or ⌘ so the shortcut does not block typing, or use a function key." = "Добавьте ⌃, ⌥ или ⌘, чтобы сочетание не мешало вводу, или используйте функциональную клавишу.";
 "Additional saved audio is outside the meeting boundaries." = "Дополнительное сохранённое аудио выходит за границы встречи.";
 "Adds titles of documents and pages captured during the call, never their captured text. Requires screen context in Day Memory." = "Добавляет заголовки документов и страниц, захваченных во время звонка, но никогда не их текст. Требует контекст экрана в Памяти дня.";
+"Adds: %@" = "Добавляет: %@";
 "Advanced" = "Дополнительно";
 "After a shortcut recording" = "После записи сочетания клавиш";
 "After applying" = "После применения";
@@ -58,11 +61,14 @@
 "All meetings" = "Все встречи";
 "All retained history" = "Вся сохранённая история";
 "All three core models will run on this Mac." = "Все три основные модели будут работать на этом Mac.";
+"Allow" = "Разрешить";
 "Allow Once" = "Разрешить один раз";
 "Allow external agents to change LokalBot settings" = "Разрешить внешним агентам изменять настройки LokalBot";
 "Allow external agents to read screen memory" = "Разрешить внешним агентам читать память экрана";
 "Allow external agents to read your meeting library" = "Разрешить внешним агентам читать библиотеку встреч";
 "Allow multi-line suggestions" = "Разрешить многострочные предложения";
+"Allow only an agent you started yourself. Any program on this Mac can make this request." = "Разрешайте только агенту, которого вы запустили сами. Этот запрос может отправить любая программа на этом Mac.";
+"Allowing it lets the agent change your LokalBot settings, download models, and walk you through macOS permissions. Turning on capture, a data source, or sharing still asks you here. You can turn this off at any time in Settings → Privacy." = "Если разрешить, агент сможет изменять ваши настройки LokalBot, скачивать модели и проводить вас через настройку разрешений macOS. При включении захвата, источника данных или общего доступа вас по-прежнему спросят здесь. Это можно отключить в любой момент в Настройки → Конфиденциальность.";
 "Also allow relevant work memory derived from screen activity and daily journals. Reads what is already saved; it does not capture new screens or start an overnight review. Mixed meeting and screen memories require both settings." = "Также разрешить доступ к релевантной рабочей памяти из активности экрана и ежедневных журналов. Читаются только сохранённые данные; новые экраны не захватываются, ночной обзор не запускается. Для памяти, объединяющей встречи и экраны, нужны оба разрешения.";
 "Also assigned to another voice" = "Также назначено другому голосу";
 "Also prepare Autocomplete (optional)" = "Также подготовить Автодополнение (необязательно)";
@@ -77,6 +83,10 @@
 "Apply Choices and Start" = "Применить выбор и начать";
 "Apply policy and cleanup" = "Применить правила и очистку";
 "Apply…" = "Применить…";
+"Approve" = "Одобрить";
+"Approve and clean up" = "Одобрить и очистить данные";
+"Approve only what you asked your agent to do. Approving can show macOS permission prompts for what it turns on." = "Одобряйте только то, о чём вы просили своего агента. Одобрение может вызвать запросы разрешений macOS для того, что оно включает.";
+"Approve Settings Change" = "Одобрить изменение настроек";
 "Apps use ⌘ with a single key. Add ⌃, ⌥ or ⇧." = "Приложения используют ⌘ с одной клавишей. Добавьте ⌃, ⌥ или ⇧.";
 "Archived" = "В архиве";
 "Arrived in the field" = "Появилось в поле";
@@ -96,6 +106,7 @@
 "Ask via notification waits for you to start recording. Manual mode keeps Record Now available." = "В режиме уведомлений запись начинается только по вашему действию. В ручном режиме доступна кнопка Записать сейчас.";
 "Ask your work memory" = "Спросите свою рабочую память";
 "Asks before recording meetings" = "Спрашивает перед записью встреч";
+"asks to set up LokalBot for you from the terminal." = "просит разрешения настроить LokalBot за вас из терминала.";
 "Ask…" = "Спросить…";
 "Attach context" = "Прикрепить контекст";
 "Auto-detect" = "Автоопределение";
@@ -143,6 +154,7 @@
 "Captures encrypted visuals for day memory. Only used in Text + visual context mode; system-audio capture does not use this permission." = "Захватывает зашифрованные изображения для памяти дня. Используется только в режиме Текст + визуальный контекст; захват системного звука не использует это разрешение.";
 "Change the Ask shortcut" = "Изменить сочетание для Спросить";
 "Change the dictation shortcut" = "Изменить сочетание диктовки";
+"Changes details that are hidden here, such as a URL's password or query." = "Изменяет скрытые здесь сведения, например пароль или строку запроса в URL.";
 "Changes the interface immediately. Transcription and notes languages are set separately." = "Сразу меняет интерфейс. Языки расшифровки и заметок задаются отдельно.";
 "Change…" = "Изменить…";
 "Check Setup…" = "Проверить настройку…";
@@ -182,6 +194,7 @@
 "Clear search filters" = "Сбросить фильтры поиска";
 "Clear selection" = "Снять выделение";
 "Dictation already uses this shortcut. Choose another." = "Это сочетание уже используется диктовкой. Выберите другое.";
+"Don't Allow" = "Не разрешать";
 "Hold the modifiers and press a key, like ⌃⇧ Space." = "Удерживайте модификаторы и нажмите клавишу, например ⌃⇧ Пробел.";
 "macOS already uses this shortcut. Choose another." = "Это сочетание уже используется macOS. Выберите другое.";
 "Model folder selection cleared" = "Выбор папки модели сброшен";
@@ -459,7 +472,7 @@
 "Legacy rule · review" = "Старое правило · проверить";
 "Lets MCP clients and the lokalbot-cli skill (Claude, Cursor, …) list, read, search, and ask about your meetings — read-only and localhost only. Off by default." = "Разрешает клиентам MCP и навыку lokalbot-cli (Claude, Cursor, …) просматривать список встреч, читать, искать и спрашивать о них — только чтение и только localhost. По умолчанию выключено.";
 "Lets dictation and cotyping detect their global keyboard shortcuts." = "Позволяет диктовке и совместному набору распознавать глобальные сочетания клавиш.";
-"Lets lokalbot-cli read your settings and app status, open Settings at a setting, and start LokalBot in the background. Separate from the other agent access toggles. Off by default." = "Разрешает lokalbot-cli читать ваши настройки и состояние приложения, открывать Настройки на конкретном параметре и запускать LokalBot в фоновом режиме. Действует отдельно от других переключателей доступа агентов. По умолчанию выключено.";
+"Lets lokalbot-cli read and change your preferences, show you a setting, and start LokalBot in the background. Turning on capture, a data source, or sharing still needs you here. Separate from the other agent access toggles. Off by default." = "Разрешает lokalbot-cli читать и изменять ваши настройки, показывать вам конкретный параметр и запускать LokalBot в фоновом режиме. Для включения захвата, источника данных или общего доступа по-прежнему нужно ваше подтверждение здесь. Действует отдельно от других переключателей доступа агентов. По умолчанию выключено.";
 "Library" = "Библиотека";
 "Library location" = "Расположение библиотеки";
 "Light" = "Светлая";
@@ -588,6 +601,7 @@
 "No suggested names match this search." = "Ни одно предложенное имя не соответствует запросу.";
 "No supporting passage was stored." = "Подтверждающий отрывок не сохранён.";
 "No transcript speakers are available yet." = "Говорящие в расшифровке пока недоступны.";
+"None" = "Нет";
 "None yet" = "Пока нет";
 "Not connected" = "Не подключено";
 "Not now" = "Не сейчас";
@@ -599,6 +613,7 @@
 "Notes language" = "Язык заметок";
 "Notes template" = "Шаблон заметок";
 "Nothing in saved moments, captured screens, or meetings matches this search." = "В сохранённых моментах, захваченных экранах и встречах нет совпадений.";
+"Nothing is waiting for your approval." = "Ничего не ожидает вашего одобрения.";
 "Nothing recording right now" = "Сейчас ничего не записывается";
 "OK" = "ОК";
 "Off" = "Выкл.";
@@ -717,6 +732,7 @@
 "Ready" = "Готово";
 "Reasoning" = "Рассуждения";
 "Recent" = "Недавние";
+"Recent changes by agents" = "Недавние изменения, внесённые агентами";
 "Recent generations" = "Недавние генерации";
 "Reconnect" = "Подключить снова";
 "Record Capture Trace (60 s)" = "Записать трассу захвата (60 с)";
@@ -758,6 +774,7 @@
 "Remove from List" = "Убрать из списка";
 "Remove the other side from your microphone track" = "Удалять голос собеседника из вашей дорожки микрофона";
 "Remove…" = "Удалить…";
+"Removes: %@" = "Удаляет: %@";
 "Rename" = "Переименовать";
 "Rename…" = "Переименовать…";
 "Repair Agent Mode" = "Восстановить режим агента";
@@ -879,8 +896,11 @@
 "Session preview" = "Предпросмотр сеанса";
 "Sessions" = "Сеансы";
 "Set by the model" = "Задано моделью";
+"Set up LokalBot with your agent" = "Настройка LokalBot с помощью вашего агента";
+"Set Up with Your Agent" = "Настройка с помощью вашего агента";
 "Settings" = "Настройки";
 "Settings categories" = "Категории настроек";
+"Settings changed from the terminal. Undo restores the earlier value while the setting still holds the agent's." = "Настройки, изменённые из терминала. «Отменить» восстанавливает прежнее значение, пока в настройке остаётся значение, заданное агентом.";
 "Settings navigation" = "Навигация по настройкам";
 "Settings…" = "Настройки…";
 "Setup progress" = "Ход настройки";
@@ -954,7 +974,7 @@
 "Summarization" = "Создание сводок";
 "Summarize automatically after transcription" = "Автоматически создавать сводку после расшифровки";
 "Summary" = "Сводка";
-"Symlinks the bundled CLI at ~/.local/bin/lokalbot-cli and the skill into ~/.agents/skills and ~/.claude/skills. Read-only by design." = "Создаёт символическую ссылку на встроенный CLI в ~/.local/bin/lokalbot-cli и на навык в ~/.agents/skills и ~/.claude/skills. Предусмотрено только чтение.";
+"Symlinks the bundled CLI at ~/.local/bin/lokalbot-cli and the skill into ~/.agents/skills and ~/.claude/skills. Library access is read-only; changing settings needs its own toggle under Privacy." = "Создаёт символическую ссылку на встроенный CLI в ~/.local/bin/lokalbot-cli и на навык в ~/.agents/skills и ~/.claude/skills. Доступ к библиотеке — только для чтения; для изменения настроек нужен отдельный переключатель в разделе Конфиденциальность.";
 "System" = "Система";
 "System audio input level" = "Уровень входного системного звука";
 "System default" = "Системный вариант";
@@ -1083,6 +1103,8 @@
 "Voice" = "Голос";
 "Wait before stopping" = "Ожидание перед остановкой";
 "Waiting for models" = "Ожидание моделей";
+"wants to change LokalBot settings." = "хочет изменить настройки LokalBot.";
+"wants to save an API key in LokalBot." = "хочет сохранить ключ API в LokalBot.";
 "Weekly log day" = "День еженедельного журнала";
 "Weekly work log" = "Еженедельный рабочий журнал";
 "Welcome to LokalBot" = "Добро пожаловать в LokalBot";

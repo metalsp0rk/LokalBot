@@ -1,9 +1,11 @@
 // Localized interface strings.
 "%@ detected — ready" = "Đã phát hiện %@ — sẵn sàng";
 "%lld selected" = "Đã chọn %lld";
+"%lld settings changes are waiting for your approval" = "%lld thay đổi cài đặt đang chờ bạn phê duyệt";
 "2. Review action owners" = "2. Xem lại người phụ trách hành động";
 "A domain excludes its subdomains too. A URL with a path excludes that URL prefix. Existing rules are kept until you remove them." = "Loại trừ một miền cũng loại trừ các miền con. URL có đường dẫn sẽ loại trừ mọi URL bắt đầu bằng tiền tố đó. Quy tắc hiện có được giữ cho đến khi bạn xóa.";
 "A newly granted permission may require a relaunch. Finish setup first; relaunch from Settings if the feature remains unavailable." = "Quyền mới cấp có thể cần khởi động lại ứng dụng. Hãy hoàn tất thiết lập trước; khởi động lại từ Cài đặt nếu tính năng vẫn chưa khả dụng.";
+"A settings change is waiting for your approval" = "Một thay đổi cài đặt đang chờ bạn phê duyệt";
 "About" = "Giới thiệu";
 "Accept next" = "Chấp nhận phần tiếp theo";
 "Accept punctuation with the word" = "Chấp nhận dấu câu cùng từ";
@@ -41,6 +43,7 @@
 "Add ⌃, ⌥ or ⌘ so the shortcut does not block typing, or use a function key." = "Thêm ⌃, ⌥ hoặc ⌘ để phím tắt không chặn việc gõ, hoặc dùng phím chức năng.";
 "Additional saved audio is outside the meeting boundaries." = "Phần âm thanh bổ sung đã lưu nằm ngoài phạm vi cuộc họp.";
 "Adds titles of documents and pages captured during the call, never their captured text. Requires screen context in Day Memory." = "Thêm tiêu đề tài liệu và trang được ghi lại trong cuộc gọi, không bao giờ thêm nội dung văn bản đã ghi lại. Cần bật ngữ cảnh màn hình trong Bộ nhớ trong ngày.";
+"Adds: %@" = "Thêm: %@";
 "Advanced" = "Nâng cao";
 "After a shortcut recording" = "Sau khi ghi bằng phím tắt";
 "After applying" = "Sau khi áp dụng";
@@ -58,11 +61,14 @@
 "All meetings" = "Tất cả cuộc họp";
 "All retained history" = "Toàn bộ lịch sử được giữ lại";
 "All three core models will run on this Mac." = "Cả ba mô hình cốt lõi sẽ chạy trên Mac này.";
+"Allow" = "Cho phép";
 "Allow Once" = "Cho phép một lần";
 "Allow external agents to change LokalBot settings" = "Cho phép tác nhân bên ngoài thay đổi cài đặt LokalBot";
 "Allow external agents to read screen memory" = "Cho phép tác nhân bên ngoài đọc bộ nhớ màn hình";
 "Allow external agents to read your meeting library" = "Cho phép tác nhân bên ngoài đọc thư viện cuộc họp của bạn";
 "Allow multi-line suggestions" = "Cho phép gợi ý nhiều dòng";
+"Allow only an agent you started yourself. Any program on this Mac can make this request." = "Chỉ cho phép tác nhân do chính bạn khởi chạy. Mọi chương trình trên Mac này đều có thể gửi yêu cầu này.";
+"Allowing it lets the agent change your LokalBot settings, download models, and walk you through macOS permissions. Turning on capture, a data source, or sharing still asks you here. You can turn this off at any time in Settings → Privacy." = "Khi được cho phép, tác nhân có thể thay đổi cài đặt LokalBot của bạn, tải mô hình và hướng dẫn bạn qua các bước cấp quyền macOS. Việc bật ghi lại, nguồn dữ liệu hoặc chia sẻ vẫn sẽ hỏi bạn tại đây. Bạn có thể tắt quyền này bất cứ lúc nào trong Cài đặt → Quyền riêng tư.";
 "Also allow relevant work memory derived from screen activity and daily journals. Reads what is already saved; it does not capture new screens or start an overnight review. Mixed meeting and screen memories require both settings." = "Cũng cho phép bộ nhớ công việc liên quan được rút ra từ hoạt động màn hình và nhật ký hằng ngày. Chỉ đọc dữ liệu đã lưu; không ghi màn hình mới hay bắt đầu đánh giá qua đêm. Bộ nhớ kết hợp cuộc họp và màn hình cần cả hai cài đặt.";
 "Also assigned to another voice" = "Cũng được gán cho giọng nói khác";
 "Also prepare Autocomplete (optional)" = "Cũng chuẩn bị Tự động hoàn thành (tùy chọn)";
@@ -77,6 +83,10 @@
 "Apply Choices and Start" = "Áp dụng lựa chọn và bắt đầu";
 "Apply policy and cleanup" = "Áp dụng chính sách và dọn dẹp";
 "Apply…" = "Áp dụng…";
+"Approve" = "Phê duyệt";
+"Approve and clean up" = "Phê duyệt và xóa dữ liệu";
+"Approve only what you asked your agent to do. Approving can show macOS permission prompts for what it turns on." = "Chỉ phê duyệt những gì bạn đã yêu cầu tác nhân của mình làm. Việc phê duyệt có thể hiển thị yêu cầu cấp quyền của macOS cho những gì được bật.";
+"Approve Settings Change" = "Phê duyệt thay đổi cài đặt";
 "Apps use ⌘ with a single key. Add ⌃, ⌥ or ⇧." = "Ứng dụng dùng ⌘ với một phím. Hãy thêm ⌃, ⌥ hoặc ⇧.";
 "Archived" = "Đã lưu trữ";
 "Arrived in the field" = "Đã đưa vào ô nhập";
@@ -96,6 +106,7 @@
 "Ask via notification waits for you to start recording. Manual mode keeps Record Now available." = "Hỏi qua thông báo sẽ đợi bạn bắt đầu ghi âm. Chế độ thủ công vẫn giữ tùy chọn Ghi ngay.";
 "Ask your work memory" = "Hỏi bộ nhớ công việc của bạn";
 "Asks before recording meetings" = "Hỏi trước khi ghi âm cuộc họp";
+"asks to set up LokalBot for you from the terminal." = "xin phép thiết lập LokalBot giúp bạn từ terminal.";
 "Ask…" = "Hỏi…";
 "Attach context" = "Đính kèm ngữ cảnh";
 "Auto-detect" = "Tự động phát hiện";
@@ -143,6 +154,7 @@
 "Captures encrypted visuals for day memory. Only used in Text + visual context mode; system-audio capture does not use this permission." = "Ghi lại hình ảnh mã hóa cho bộ nhớ trong ngày. Chỉ dùng ở chế độ Văn bản + ngữ cảnh hình ảnh; ghi âm hệ thống không dùng quyền này.";
 "Change the Ask shortcut" = "Đổi phím tắt Hỏi";
 "Change the dictation shortcut" = "Đổi phím tắt đọc chính tả";
+"Changes details that are hidden here, such as a URL's password or query." = "Thay đổi chi tiết bị ẩn ở đây, chẳng hạn như mật khẩu hoặc chuỗi truy vấn của URL.";
 "Changes the interface immediately. Transcription and notes languages are set separately." = "Đổi giao diện ngay lập tức. Ngôn ngữ chép lời và ghi chú được đặt riêng.";
 "Change…" = "Đổi…";
 "Check Setup…" = "Kiểm tra thiết lập…";
@@ -182,6 +194,7 @@
 "Clear search filters" = "Xóa bộ lọc tìm kiếm";
 "Clear selection" = "Bỏ chọn";
 "Dictation already uses this shortcut. Choose another." = "Đọc chính tả đang dùng phím tắt này. Hãy chọn phím khác.";
+"Don't Allow" = "Không cho phép";
 "Hold the modifiers and press a key, like ⌃⇧ Space." = "Giữ các phím bổ trợ rồi nhấn một phím, như ⌃⇧ Space.";
 "macOS already uses this shortcut. Choose another." = "macOS đang dùng phím tắt này. Hãy chọn phím khác.";
 "Model folder selection cleared" = "Đã bỏ chọn thư mục mô hình";
@@ -459,7 +472,7 @@
 "Legacy rule · review" = "Quy tắc cũ · xem lại";
 "Lets MCP clients and the lokalbot-cli skill (Claude, Cursor, …) list, read, search, and ask about your meetings — read-only and localhost only. Off by default." = "Cho phép máy khách MCP và kỹ năng lokalbot-cli (Claude, Cursor, …) liệt kê, đọc, tìm kiếm và hỏi về cuộc họp — chỉ đọc và chỉ qua localhost. Mặc định tắt.";
 "Lets dictation and cotyping detect their global keyboard shortcuts." = "Cho phép đọc chính tả và hỗ trợ gõ phát hiện phím tắt toàn hệ thống.";
-"Lets lokalbot-cli read your settings and app status, open Settings at a setting, and start LokalBot in the background. Separate from the other agent access toggles. Off by default." = "Cho phép lokalbot-cli đọc cài đặt và trạng thái ứng dụng của bạn, mở Cài đặt tại một mục cài đặt cụ thể và khởi động LokalBot ở chế độ nền. Tách biệt với các nút bật/tắt quyền truy cập tác nhân khác. Mặc định tắt.";
+"Lets lokalbot-cli read and change your preferences, show you a setting, and start LokalBot in the background. Turning on capture, a data source, or sharing still needs you here. Separate from the other agent access toggles. Off by default." = "Cho phép lokalbot-cli đọc và thay đổi tùy chọn của bạn, hiển thị cho bạn một mục cài đặt và khởi động LokalBot ở chế độ nền. Việc bật ghi lại, nguồn dữ liệu hoặc chia sẻ vẫn cần bạn xác nhận tại đây. Tách biệt với các nút bật/tắt quyền truy cập tác nhân khác. Mặc định tắt.";
 "Library" = "Thư viện";
 "Library location" = "Vị trí thư viện";
 "Light" = "Sáng";
@@ -588,6 +601,7 @@
 "No suggested names match this search." = "Không có tên gợi ý khớp với tìm kiếm này.";
 "No supporting passage was stored." = "Chưa lưu đoạn văn hỗ trợ nào.";
 "No transcript speakers are available yet." = "Chưa có người nói trong bản chép lời.";
+"None" = "Không có";
 "None yet" = "Chưa có";
 "Not connected" = "Chưa kết nối";
 "Not now" = "Để sau";
@@ -599,6 +613,7 @@
 "Notes language" = "Ngôn ngữ ghi chú";
 "Notes template" = "Mẫu ghi chú";
 "Nothing in saved moments, captured screens, or meetings matches this search." = "Không có khoảnh khắc đã lưu, màn hình đã ghi hay cuộc họp nào khớp tìm kiếm này.";
+"Nothing is waiting for your approval." = "Không có gì đang chờ bạn phê duyệt.";
 "Nothing recording right now" = "Hiện không ghi âm gì";
 "OK" = "OK";
 "Off" = "Tắt";
@@ -717,6 +732,7 @@
 "Ready" = "Sẵn sàng";
 "Reasoning" = "Suy luận";
 "Recent" = "Gần đây";
+"Recent changes by agents" = "Thay đổi gần đây của tác nhân";
 "Recent generations" = "Các lượt tạo gần đây";
 "Reconnect" = "Kết nối lại";
 "Record Capture Trace (60 s)" = "Ghi dấu vết thu thập (60 giây)";
@@ -758,6 +774,7 @@
 "Remove from List" = "Xóa khỏi danh sách";
 "Remove the other side from your microphone track" = "Loại bỏ giọng người khác khỏi rãnh micrô của bạn";
 "Remove…" = "Xóa…";
+"Removes: %@" = "Xóa: %@";
 "Rename" = "Đổi tên";
 "Rename…" = "Đổi tên…";
 "Repair Agent Mode" = "Sửa Chế độ tác nhân";
@@ -879,8 +896,11 @@
 "Session preview" = "Xem trước phiên";
 "Sessions" = "Phiên";
 "Set by the model" = "Do mô hình đặt";
+"Set up LokalBot with your agent" = "Thiết lập LokalBot bằng tác nhân của bạn";
+"Set Up with Your Agent" = "Thiết lập bằng tác nhân của bạn";
 "Settings" = "Cài đặt";
 "Settings categories" = "Danh mục cài đặt";
+"Settings changed from the terminal. Undo restores the earlier value while the setting still holds the agent's." = "Cài đặt đã thay đổi từ terminal. Hoàn tác sẽ khôi phục giá trị trước đó, miễn là cài đặt vẫn giữ giá trị do tác nhân đặt.";
 "Settings navigation" = "Điều hướng cài đặt";
 "Settings…" = "Cài đặt…";
 "Setup progress" = "Tiến độ thiết lập";
@@ -954,7 +974,7 @@
 "Summarization" = "Tóm tắt";
 "Summarize automatically after transcription" = "Tự động tóm tắt sau khi chép lời";
 "Summary" = "Bản tóm tắt";
-"Symlinks the bundled CLI at ~/.local/bin/lokalbot-cli and the skill into ~/.agents/skills and ~/.claude/skills. Read-only by design." = "Tạo liên kết tượng trưng cho CLI đi kèm tại ~/.local/bin/lokalbot-cli và kỹ năng trong ~/.agents/skills cùng ~/.claude/skills. Được thiết kế chỉ đọc.";
+"Symlinks the bundled CLI at ~/.local/bin/lokalbot-cli and the skill into ~/.agents/skills and ~/.claude/skills. Library access is read-only; changing settings needs its own toggle under Privacy." = "Tạo liên kết tượng trưng cho CLI đi kèm tại ~/.local/bin/lokalbot-cli và kỹ năng trong ~/.agents/skills cùng ~/.claude/skills. Quyền truy cập thư viện chỉ đọc; việc thay đổi cài đặt cần nút bật/tắt riêng trong Quyền riêng tư.";
 "System" = "Hệ thống";
 "System audio input level" = "Mức đầu vào âm thanh hệ thống";
 "System default" = "Mặc định hệ thống";
@@ -1083,6 +1103,8 @@
 "Voice" = "Giọng nói";
 "Wait before stopping" = "Đợi trước khi dừng";
 "Waiting for models" = "Đang đợi mô hình";
+"wants to change LokalBot settings." = "muốn thay đổi cài đặt LokalBot.";
+"wants to save an API key in LokalBot." = "muốn lưu khóa API trong LokalBot.";
 "Weekly log day" = "Ngày ghi nhật ký hằng tuần";
 "Weekly work log" = "Nhật ký công việc hằng tuần";
 "Welcome to LokalBot" = "Chào mừng đến với LokalBot";

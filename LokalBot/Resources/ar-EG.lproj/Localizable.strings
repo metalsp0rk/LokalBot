@@ -1,9 +1,11 @@
 // ar-EG interface translations. Keep user content and model prompts out of this table.
 "%@ detected — ready" = "لقينا %@ — جاهز";
 "%lld selected" = "اتحدد %lld";
+"%lld settings changes are waiting for your approval" = "فيه %lld من تغييرات الإعدادات مستنية موافقتك";
 "2. Review action owners" = "2. راجع المسؤولين عن الإجراءات";
 "A domain excludes its subdomains too. A URL with a path excludes that URL prefix. Existing rules are kept until you remove them." = "لما تستثني دومين، الدومينات الفرعية بتاعته بتتستثنى كمان. لو الـ URL فيه مسار، بيتستثنى أي عنوان بيبدأ بالمسار ده. القواعد الموجودة بتفضل لحد ما تشيلها.";
 "A newly granted permission may require a relaunch. Finish setup first; relaunch from Settings if the feature remains unavailable." = "الصلاحية الجديدة ممكن تحتاج تقفل التطبيق وتفتحه تاني. كمّل الإعداد الأول؛ ولو الميزة لسه مش متاحة، أعد التشغيل من الإعدادات.";
+"A settings change is waiting for your approval" = "فيه تغيير في الإعدادات مستني موافقتك";
 "About" = "عن التطبيق";
 "Accept next" = "اقبل اللي بعده";
 "Accept punctuation with the word" = "اقبل علامة الترقيم مع الكلمة";
@@ -41,6 +43,7 @@
 "Add ⌃, ⌥ or ⌘ so the shortcut does not block typing, or use a function key." = "ضيف ⌃ أو ⌥ أو ⌘ عشان الاختصار ميعطّلش الكتابة، أو استخدم مفتاح وظائف.";
 "Additional saved audio is outside the meeting boundaries." = "فيه صوت إضافي محفوظ برّه حدود الاجتماع.";
 "Adds titles of documents and pages captured during the call, never their captured text. Requires screen context in Day Memory." = "بيضيف عناوين المستندات والصفحات اللي اتلقطت أثناء المكالمة، ومبيضيفش النص اللي اتلقط منها أبدًا. محتاج سياق الشاشة في ذاكرة اليوم.";
+"Adds: %@" = "بيضيف: %@";
 "Advanced" = "متقدم";
 "After a shortcut recording" = "بعد التسجيل باختصار";
 "After applying" = "بعد التطبيق";
@@ -58,11 +61,14 @@
 "All meetings" = "جميع الاجتماعات";
 "All retained history" = "كل السجل المحتفظ به";
 "All three core models will run on this Mac." = "النماذج الأساسية التلاتة هتشتغل على الـ Mac ده.";
+"Allow" = "اسمح";
 "Allow Once" = "اسمح مرة واحدة";
 "Allow external agents to change LokalBot settings" = "اسمح للوكلاء الخارجيين يغيّروا إعدادات LokalBot";
 "Allow external agents to read screen memory" = "اسمح للوكلاء الخارجيين بقراءة ذاكرة الشاشة";
 "Allow external agents to read your meeting library" = "اسمح للوكلاء الخارجيين يقروا مكتبة اجتماعاتك";
 "Allow multi-line suggestions" = "اسمح باقتراحات متعددة الأسطر";
+"Allow only an agent you started yourself. Any program on this Mac can make this request." = "اسمح بس لوكيل إنت اللي شغّلته بنفسك. أي برنامج على الـ Mac ده يقدر يقدّم الطلب ده.";
+"Allowing it lets the agent change your LokalBot settings, download models, and walk you through macOS permissions. Turning on capture, a data source, or sharing still asks you here. You can turn this off at any time in Settings → Privacy." = "لو سمحت بكده، الوكيل يقدر يغيّر إعدادات LokalBot بتاعتك، وينزّل نماذج، ويرشدك خلال صلاحيات macOS. تشغيل الالتقاط أو مصدر بيانات أو المشاركة لسه بيسألك هنا. تقدر تقفل ده في أي وقت من الإعدادات ← الخصوصية.";
 "Also allow relevant work memory derived from screen activity and daily journals. Reads what is already saved; it does not capture new screens or start an overnight review. Mixed meeting and screen memories require both settings." = "اسمح كمان بذاكرة العمل المناسبة اللي جاية من نشاط الشاشة واليوميات. بيقرأ اللي اتحفظ بالفعل؛ مش بيلتقط شاشات جديدة ومش بيبدأ مراجعة ليلية. الذاكرة اللي بتجمع بين الاجتماعات والشاشة محتاجة تفعيل الإعدادين.";
 "Also assigned to another voice" = "متعيّن كمان لصوت تاني";
 "Also prepare Autocomplete (optional)" = "جهّز الإكمال التلقائي كمان (اختياري)";
@@ -77,6 +83,10 @@
 "Apply Choices and Start" = "تطبيق الخيارات والبدء";
 "Apply policy and cleanup" = "تطبيق السياسة والتنظيف";
 "Apply…" = "تطبيق…";
+"Approve" = "وافق";
+"Approve and clean up" = "وافق ونضّف";
+"Approve only what you asked your agent to do. Approving can show macOS permission prompts for what it turns on." = "وافق بس على اللي طلبت من الوكيل بتاعك يعمله. الموافقة ممكن تظهّر طلبات صلاحية من macOS للحاجات اللي هتتشغّل.";
+"Approve Settings Change" = "وافق على تغيير الإعدادات";
 "Apps use ⌘ with a single key. Add ⌃, ⌥ or ⇧." = "التطبيقات بتستخدم ⌘ مع مفتاح واحد. ضيف ⌃ أو ⌥ أو ⇧.";
 "Archived" = "مؤرشف";
 "Arrived in the field" = "وصل إلى الحقل";
@@ -96,6 +106,7 @@
 "Ask via notification waits for you to start recording. Manual mode keeps Record Now available." = "اختيار السؤال بإشعار بيستنى إنك تبدأ التسجيل. الوضع اليدوي بيخلّي «سجّل دلوقتي» متاح.";
 "Ask your work memory" = "اسأل ذاكرة عملك";
 "Asks before recording meetings" = "يسأل قبل تسجيل الاجتماعات";
+"asks to set up LokalBot for you from the terminal." = "بيطلب يظبطلك LokalBot من الطرفية.";
 "Ask…" = "اسأل…";
 "Attach context" = "ارفق سياق";
 "Auto-detect" = "اكتشاف تلقائي";
@@ -143,6 +154,7 @@
 "Captures encrypted visuals for day memory. Only used in Text + visual context mode; system-audio capture does not use this permission." = "بيلتقط صور مشفرة لذاكرة اليوم. بيتستخدم بس في وضع السياق النصي والمرئي؛ تسجيل صوت النظام مش بيستخدم الصلاحية دي.";
 "Change the Ask shortcut" = "غيّر اختصار «اسأل»";
 "Change the dictation shortcut" = "غيّر اختصار الإملاء";
+"Changes details that are hidden here, such as a URL's password or query." = "بيغيّر تفاصيل مستخبية هنا، زي كلمة السر أو الاستعلام في الـ URL.";
 "Changes the interface immediately. Transcription and notes languages are set separately." = "بيغيّر الواجهة فورًا. لغة التفريغ النصي ولغة الملاحظات بيتحددوا بشكل منفصل.";
 "Change…" = "غيّر…";
 "Check Setup…" = "افحص الإعداد…";
@@ -182,6 +194,7 @@
 "Clear search filters" = "امسح عوامل تصفية البحث";
 "Clear selection" = "امسح التحديد";
 "Dictation already uses this shortcut. Choose another." = "الإملاء بيستخدم الاختصار ده بالفعل. اختار غيره.";
+"Don't Allow" = "متسمحش";
 "Hold the modifiers and press a key, like ⌃⇧ Space." = "فضل ضاغط على مفاتيح التعديل واضغط مفتاح، زي ⌃⇧ Space.";
 "macOS already uses this shortcut. Choose another." = "macOS بيستخدم الاختصار ده بالفعل. اختار غيره.";
 "Model folder selection cleared" = "اختيار فولدر النموذج اتمسح";
@@ -459,7 +472,7 @@
 "Legacy rule · review" = "قاعدة قديمة · مراجعة";
 "Lets MCP clients and the lokalbot-cli skill (Claude, Cursor, …) list, read, search, and ask about your meetings — read-only and localhost only. Off by default." = "بيسمح لعملاء MCP ومهارة lokalbot-cli (Claude وCursor و…) يعرضوا اجتماعاتك ويقروها ويدوّروا فيها ويسألوا عنها — للقراءة بس وعلى localhost بس. مقفول افتراضيًا.";
 "Lets dictation and cotyping detect their global keyboard shortcuts." = "بيخلّي الإملاء والكتابة المساعدة يكتشفوا اختصارات لوحة المفاتيح العامة بتاعتهم.";
-"Lets lokalbot-cli read your settings and app status, open Settings at a setting, and start LokalBot in the background. Separate from the other agent access toggles. Off by default." = "بيسمح لـ lokalbot-cli يقرأ إعداداتك وحالة التطبيق، ويفتح الإعدادات على إعداد معيّن، ويشغّل LokalBot في الخلفية. منفصل عن مفاتيح التبديل التانية بتاعة وصول الوكلاء. مقفول افتراضيًا.";
+"Lets lokalbot-cli read and change your preferences, show you a setting, and start LokalBot in the background. Turning on capture, a data source, or sharing still needs you here. Separate from the other agent access toggles. Off by default." = "بيسمح لـ lokalbot-cli يقرأ تفضيلاتك ويغيّرها، ويعرضلك إعداد معيّن، ويشغّل LokalBot في الخلفية. تشغيل الالتقاط أو مصدر بيانات أو المشاركة لسه محتاجك هنا. منفصل عن مفاتيح التبديل التانية بتاعة وصول الوكلاء. مقفول افتراضيًا.";
 "Library" = "المكتبة";
 "Library location" = "موقع المكتبة";
 "Light" = "فاتح";
@@ -588,6 +601,7 @@
 "No suggested names match this search." = "مفيش أسماء مقترحة مطابقة للبحث ده.";
 "No supporting passage was stored." = "مفيش مقطع داعم اتحفظ.";
 "No transcript speakers are available yet." = "لسه مفيش متحدثين متاحين في التفريغ النصي.";
+"None" = "مفيش";
 "None yet" = "لسه مفيش";
 "Not connected" = "مش متصل";
 "Not now" = "مش دلوقتي";
@@ -599,6 +613,7 @@
 "Notes language" = "لغة الملاحظات";
 "Notes template" = "قالب الملاحظات";
 "Nothing in saved moments, captured screens, or meetings matches this search." = "مفيش حاجة في اللحظات المحفوظة أو الشاشات الملتقطة أو الاجتماعات مطابقة للبحث ده.";
+"Nothing is waiting for your approval." = "مفيش حاجة مستنية موافقتك.";
 "Nothing recording right now" = "مفيش حاجة بتتسجّل دلوقتي";
 "OK" = "موافق";
 "Off" = "مقفول";
@@ -717,6 +732,7 @@
 "Ready" = "جاهز";
 "Reasoning" = "الاستدلال";
 "Recent" = "الأخيرة";
+"Recent changes by agents" = "التغييرات الأخيرة اللي عملها الوكلاء";
 "Recent generations" = "عمليات التوليد الأخيرة";
 "Reconnect" = "اتصل تاني";
 "Record Capture Trace (60 s)" = "تسجيل تتبّع الالتقاط (60 ثانية)";
@@ -758,6 +774,7 @@
 "Remove from List" = "شيله من الليستة";
 "Remove the other side from your microphone track" = "شيل صوت الطرف التاني من مسار ميكروفونك";
 "Remove…" = "شيل…";
+"Removes: %@" = "بيشيل: %@";
 "Rename" = "غيّر الاسم";
 "Rename…" = "غيّر الاسم…";
 "Repair Agent Mode" = "إصلاح وضع الوكيل";
@@ -879,8 +896,11 @@
 "Session preview" = "معاينة الجلسة";
 "Sessions" = "الجلسات";
 "Set by the model" = "النموذج بيحدده";
+"Set up LokalBot with your agent" = "إعداد LokalBot بالوكيل بتاعك";
+"Set Up with Your Agent" = "الإعداد بالوكيل بتاعك";
 "Settings" = "الإعدادات";
 "Settings categories" = "فئات الإعدادات";
+"Settings changed from the terminal. Undo restores the earlier value while the setting still holds the agent's." = "إعدادات اتغيّرت من الطرفية. «ارجع» بيرجّع القيمة اللي كانت قبلها طول ما الإعداد لسه على القيمة اللي حطّها الوكيل.";
 "Settings navigation" = "التنقل في الإعدادات";
 "Settings…" = "الإعدادات…";
 "Setup progress" = "تقدم الإعداد";
@@ -954,7 +974,7 @@
 "Summarization" = "التلخيص";
 "Summarize automatically after transcription" = "التلخيص تلقائيًا بعد التفريغ النصي";
 "Summary" = "الملخص";
-"Symlinks the bundled CLI at ~/.local/bin/lokalbot-cli and the skill into ~/.agents/skills and ~/.claude/skills. Read-only by design." = "بيعمل روابط رمزية لواجهة سطر الأوامر المضمّنة في ~/.local/bin/lokalbot-cli وللمهارة في ~/.agents/skills و~/.claude/skills. معمولة للقراءة بس.";
+"Symlinks the bundled CLI at ~/.local/bin/lokalbot-cli and the skill into ~/.agents/skills and ~/.claude/skills. Library access is read-only; changing settings needs its own toggle under Privacy." = "بيعمل روابط رمزية لواجهة سطر الأوامر المضمّنة في ~/.local/bin/lokalbot-cli وللمهارة في ~/.agents/skills و~/.claude/skills. الوصول للمكتبة للقراءة بس؛ وتغيير الإعدادات محتاج مفتاح تبديل لوحده في «الخصوصية».";
 "System" = "النظام";
 "System audio input level" = "مستوى إدخال صوت النظام";
 "System default" = "افتراضي النظام";
@@ -1083,6 +1103,8 @@
 "Voice" = "الصوت";
 "Wait before stopping" = "الانتظار قبل الإيقاف";
 "Waiting for models" = "بانتظار النماذج";
+"wants to change LokalBot settings." = "عايز يغيّر إعدادات LokalBot.";
+"wants to save an API key in LokalBot." = "عايز يحفظ مفتاح API في LokalBot.";
 "Weekly log day" = "يوم السجل الأسبوعي";
 "Weekly work log" = "سجل العمل الأسبوعي";
 "Welcome to LokalBot" = "مرحبًا بك في LokalBot";

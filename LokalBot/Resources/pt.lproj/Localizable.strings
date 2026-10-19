@@ -1,9 +1,11 @@
 // Portuguese interface translations. Keep user content and model prompts out of this table.
 "%@ detected — ready" = "%@ detectado — pronto";
 "%lld selected" = "%lld selecionados";
+"%lld settings changes are waiting for your approval" = "%lld alterações de ajustes aguardam sua aprovação";
 "2. Review action owners" = "2. Revisar responsáveis pelas ações";
 "A domain excludes its subdomains too. A URL with a path excludes that URL prefix. Existing rules are kept until you remove them." = "Um domínio também exclui seus subdomínios. Uma URL com um caminho exclui esse prefixo de URL. As regras existentes são mantidas até você removê-las.";
 "A newly granted permission may require a relaunch. Finish setup first; relaunch from Settings if the feature remains unavailable." = "Uma permissão recém-concedida pode exigir reiniciar o app. Conclua a configuração primeiro; reinicie pelos Ajustes se o recurso continuar indisponível.";
+"A settings change is waiting for your approval" = "Uma alteração de ajustes aguarda sua aprovação";
 "About" = "Sobre";
 "Accept next" = "Aceitar próximo";
 "Accept punctuation with the word" = "Aceitar pontuação junto com a palavra";
@@ -41,6 +43,7 @@
 "Add ⌃, ⌥ or ⌘ so the shortcut does not block typing, or use a function key." = "Adicione ⌃, ⌥ ou ⌘ para que o atalho não bloqueie a digitação, ou use uma tecla de função.";
 "Additional saved audio is outside the meeting boundaries." = "O áudio adicional salvo está fora dos limites da reunião.";
 "Adds titles of documents and pages captured during the call, never their captured text. Requires screen context in Day Memory." = "Adiciona títulos de documentos e páginas capturados durante a chamada, nunca o texto capturado deles. Requer contexto de tela na Memória do dia.";
+"Adds: %@" = "Adiciona: %@";
 "Advanced" = "Avançado";
 "After a shortcut recording" = "Após gravar um atalho";
 "After applying" = "Após aplicar";
@@ -58,11 +61,14 @@
 "All meetings" = "Todas as reuniões";
 "All retained history" = "Todo o histórico mantido";
 "All three core models will run on this Mac." = "Os três modelos principais serão executados neste Mac.";
+"Allow" = "Permitir";
 "Allow Once" = "Permitir uma vez";
 "Allow external agents to change LokalBot settings" = "Permitir que agentes externos alterem os ajustes do LokalBot";
 "Allow external agents to read screen memory" = "Permitir que agentes externos leiam a memória de tela";
 "Allow external agents to read your meeting library" = "Permitir que agentes externos leiam sua biblioteca de reuniões";
 "Allow multi-line suggestions" = "Permitir sugestões com várias linhas";
+"Allow only an agent you started yourself. Any program on this Mac can make this request." = "Permita somente um agente que você mesmo iniciou. Qualquer programa neste Mac pode fazer este pedido.";
+"Allowing it lets the agent change your LokalBot settings, download models, and walk you through macOS permissions. Turning on capture, a data source, or sharing still asks you here. You can turn this off at any time in Settings → Privacy." = "Ao permitir, o agente pode alterar seus ajustes do LokalBot, baixar modelos e orientar você pelas permissões do macOS. Para ativar a captura, uma fonte de dados ou o compartilhamento, a pergunta ainda é feita a você aqui. Você pode desativar isso a qualquer momento em Ajustes → Privacidade.";
 "Also allow relevant work memory derived from screen activity and daily journals. Reads what is already saved; it does not capture new screens or start an overnight review. Mixed meeting and screen memories require both settings." = "Permite também memória de trabalho relevante derivada da atividade de tela e dos diários. Lê o que já está salvo; não captura novas telas nem inicia uma revisão noturna. Memórias que combinam reuniões e telas exigem ambos os ajustes.";
 "Also assigned to another voice" = "Também atribuído a outra voz";
 "Also prepare Autocomplete (optional)" = "Preparar também o Autocompletar (opcional)";
@@ -77,6 +83,10 @@
 "Apply Choices and Start" = "Aplicar escolhas e iniciar";
 "Apply policy and cleanup" = "Aplicar política e limpeza";
 "Apply…" = "Aplicar…";
+"Approve" = "Aprovar";
+"Approve and clean up" = "Aprovar e limpar";
+"Approve only what you asked your agent to do. Approving can show macOS permission prompts for what it turns on." = "Aprove somente o que você pediu ao seu agente para fazer. Aprovar pode exibir pedidos de permissão do macOS para o que for ativado.";
+"Approve Settings Change" = "Aprovar alteração de ajustes";
 "Apps use ⌘ with a single key. Add ⌃, ⌥ or ⇧." = "Os apps usam ⌘ com uma única tecla. Adicione ⌃, ⌥ ou ⇧.";
 "Archived" = "Arquivado";
 "Arrived in the field" = "Chegou ao campo";
@@ -96,6 +106,7 @@
 "Ask via notification waits for you to start recording. Manual mode keeps Record Now available." = "Perguntar por notificação aguarda você iniciar a gravação. O modo manual mantém Gravar agora disponível.";
 "Ask your work memory" = "Pergunte à sua memória de trabalho";
 "Asks before recording meetings" = "Pergunta antes de gravar reuniões";
+"asks to set up LokalBot for you from the terminal." = "pede para configurar o LokalBot para você pelo terminal.";
 "Ask…" = "Perguntar…";
 "Attach context" = "Anexar contexto";
 "Auto-detect" = "Detectar automaticamente";
@@ -143,6 +154,7 @@
 "Captures encrypted visuals for day memory. Only used in Text + visual context mode; system-audio capture does not use this permission." = "Captura imagens criptografadas para a memória do dia. Usado somente no modo Texto + contexto visual; a captura de áudio do sistema não usa esta permissão.";
 "Change the Ask shortcut" = "Alterar o atalho de Perguntar";
 "Change the dictation shortcut" = "Alterar o atalho de ditado";
+"Changes details that are hidden here, such as a URL's password or query." = "Altera detalhes ocultos aqui, como a senha ou os parâmetros de consulta de uma URL.";
 "Changes the interface immediately. Transcription and notes languages are set separately." = "Altera a interface imediatamente. Os idiomas da transcrição e das notas são definidos separadamente.";
 "Change…" = "Alterar…";
 "Check Setup…" = "Verificar configuração…";
@@ -182,6 +194,7 @@
 "Clear search filters" = "Limpar filtros de busca";
 "Clear selection" = "Limpar seleção";
 "Dictation already uses this shortcut. Choose another." = "O Ditado já usa este atalho. Escolha outro.";
+"Don't Allow" = "Não permitir";
 "Hold the modifiers and press a key, like ⌃⇧ Space." = "Segure os modificadores e pressione uma tecla, como ⌃⇧ Espaço.";
 "macOS already uses this shortcut. Choose another." = "O macOS já usa este atalho. Escolha outro.";
 "Model folder selection cleared" = "Seleção da pasta do modelo limpa";
@@ -459,7 +472,7 @@
 "Legacy rule · review" = "Regra antiga · revisar";
 "Lets MCP clients and the lokalbot-cli skill (Claude, Cursor, …) list, read, search, and ask about your meetings — read-only and localhost only. Off by default." = "Permite que clientes MCP e a habilidade lokalbot-cli (Claude, Cursor, …) listem, leiam, busquem e perguntem sobre suas reuniões — somente leitura e somente localhost. Desativado por padrão.";
 "Lets dictation and cotyping detect their global keyboard shortcuts." = "Permite que o ditado e a escrita assistida detectem seus atalhos de teclado globais.";
-"Lets lokalbot-cli read your settings and app status, open Settings at a setting, and start LokalBot in the background. Separate from the other agent access toggles. Off by default." = "Permite que o lokalbot-cli leia seus ajustes e o estado do app, abra os Ajustes em um ajuste específico e inicie o LokalBot em segundo plano. Separado das outras opções de acesso de agentes. Desativado por padrão.";
+"Lets lokalbot-cli read and change your preferences, show you a setting, and start LokalBot in the background. Turning on capture, a data source, or sharing still needs you here. Separate from the other agent access toggles. Off by default." = "Permite que o lokalbot-cli leia e altere suas preferências, mostre um ajuste a você e inicie o LokalBot em segundo plano. Ativar a captura, uma fonte de dados ou o compartilhamento ainda depende de você aqui. Separado das outras opções de acesso de agentes. Desativado por padrão.";
 "Library" = "Biblioteca";
 "Library location" = "Localização da biblioteca";
 "Light" = "Claro";
@@ -588,6 +601,7 @@
 "No suggested names match this search." = "Nenhum nome sugerido corresponde a esta busca.";
 "No supporting passage was stored." = "Nenhum trecho de apoio foi armazenado.";
 "No transcript speakers are available yet." = "Ainda não há falantes da transcrição disponíveis.";
+"None" = "Nenhum";
 "None yet" = "Nenhum ainda";
 "Not connected" = "Não conectado";
 "Not now" = "Agora não";
@@ -599,6 +613,7 @@
 "Notes language" = "Idioma das notas";
 "Notes template" = "Modelo de notas";
 "Nothing in saved moments, captured screens, or meetings matches this search." = "Nada nos momentos salvos, telas capturadas ou reuniões corresponde a esta busca.";
+"Nothing is waiting for your approval." = "Nada está aguardando sua aprovação.";
 "Nothing recording right now" = "Nada sendo gravado agora";
 "OK" = "OK";
 "Off" = "Desativado";
@@ -717,6 +732,7 @@
 "Ready" = "Pronto";
 "Reasoning" = "Raciocínio";
 "Recent" = "Recentes";
+"Recent changes by agents" = "Alterações recentes feitas por agentes";
 "Recent generations" = "Gerações recentes";
 "Reconnect" = "Reconectar";
 "Record Capture Trace (60 s)" = "Gravar rastreamento de captura (60 s)";
@@ -758,6 +774,7 @@
 "Remove from List" = "Remover da lista";
 "Remove the other side from your microphone track" = "Remover a voz dos outros da sua faixa de microfone";
 "Remove…" = "Remover…";
+"Removes: %@" = "Remove: %@";
 "Rename" = "Renomear";
 "Rename…" = "Renomear…";
 "Repair Agent Mode" = "Reparar Modo Agente";
@@ -879,8 +896,11 @@
 "Session preview" = "Prévia da sessão";
 "Sessions" = "Sessões";
 "Set by the model" = "Definido pelo modelo";
+"Set up LokalBot with your agent" = "Configurar o LokalBot com seu agente";
+"Set Up with Your Agent" = "Configurar com seu agente";
 "Settings" = "Ajustes";
 "Settings categories" = "Categorias de ajustes";
+"Settings changed from the terminal. Undo restores the earlier value while the setting still holds the agent's." = "Ajustes alterados pelo terminal. Desfazer restaura o valor anterior enquanto o ajuste ainda tiver o valor do agente.";
 "Settings navigation" = "Navegação dos ajustes";
 "Settings…" = "Ajustes…";
 "Setup progress" = "Progresso da configuração";
@@ -954,7 +974,7 @@
 "Summarization" = "Geração de resumos";
 "Summarize automatically after transcription" = "Resumir automaticamente após a transcrição";
 "Summary" = "Resumo";
-"Symlinks the bundled CLI at ~/.local/bin/lokalbot-cli and the skill into ~/.agents/skills and ~/.claude/skills. Read-only by design." = "Cria links simbólicos da CLI incluída em ~/.local/bin/lokalbot-cli e da habilidade em ~/.agents/skills e ~/.claude/skills. Projetado para somente leitura.";
+"Symlinks the bundled CLI at ~/.local/bin/lokalbot-cli and the skill into ~/.agents/skills and ~/.claude/skills. Library access is read-only; changing settings needs its own toggle under Privacy." = "Cria links simbólicos da CLI incluída em ~/.local/bin/lokalbot-cli e da habilidade em ~/.agents/skills e ~/.claude/skills. O acesso à biblioteca é somente leitura; alterar ajustes exige uma opção própria em Privacidade.";
 "System" = "Sistema";
 "System audio input level" = "Nível de entrada de áudio do sistema";
 "System default" = "Padrão do sistema";
@@ -1083,6 +1103,8 @@
 "Voice" = "Voz";
 "Wait before stopping" = "Aguardar antes de parar";
 "Waiting for models" = "Aguardando modelos";
+"wants to change LokalBot settings." = "quer alterar os ajustes do LokalBot.";
+"wants to save an API key in LokalBot." = "quer salvar uma chave de API no LokalBot.";
 "Weekly log day" = "Dia do registro semanal";
 "Weekly work log" = "Registro semanal de trabalho";
 "Welcome to LokalBot" = "Boas-vindas ao LokalBot";
