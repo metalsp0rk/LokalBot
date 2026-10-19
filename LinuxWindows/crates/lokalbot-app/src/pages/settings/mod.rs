@@ -2,12 +2,14 @@
 //! a title and grouped form on the right, and search across every category.
 
 pub mod advanced;
+mod calendar;
 pub mod catalog;
 mod day_memory;
 mod dictation;
 mod general;
 pub mod meetings;
 pub mod models;
+mod plans;
 mod privacy;
 pub mod writing;
 
@@ -140,6 +142,7 @@ pub struct SettingsPage {
     screen_access: Option<Option<ScreenScope>>,
     cli_installed: Option<bool>,
     models: models::ModelsState,
+    calendar: calendar::CalendarState,
     last_settings: Settings,
     _subscriptions: Vec<Subscription>,
 }
@@ -410,6 +413,8 @@ impl SettingsPage {
 
         let models = models::ModelsState::new(&settings, window, cx);
         subscriptions.extend(models::ModelsState::subscribe(&models, window, cx));
+        let calendar = calendar::CalendarState::new(&settings, window, cx);
+        subscriptions.extend(calendar::CalendarState::subscribe(&calendar, window, cx));
         let mut page = Self {
             data,
             search,
@@ -437,6 +442,7 @@ impl SettingsPage {
             screen_access: None,
             cli_installed: None,
             models,
+            calendar,
             last_settings: settings,
             _subscriptions: subscriptions,
         };
@@ -525,6 +531,7 @@ impl SettingsPage {
             cx,
         );
         self.models.sync(&old, &settings, window, cx);
+        self.calendar.sync(&old, &settings, window, cx);
         cx.notify();
     }
 
@@ -536,7 +543,7 @@ impl SettingsPage {
                     (
                         lokalbot_core::access::meetings_access_enabled(&paths),
                         lokalbot_core::access::screen_access_scope(&paths),
-                        advanced::cli_install_path().exists(),
+                        lokalbot_cli::install::installed_for_current_user(),
                     )
                 })
                 .await;

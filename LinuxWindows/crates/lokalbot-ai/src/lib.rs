@@ -4,11 +4,14 @@
 //! - [`download`]: verified, resumable HTTPS downloads and archive extraction.
 //! - [`runtime`]: prebuilt llama.cpp `llama-server` subprocesses, one per role.
 //! - [`think`]: chat, embedding and raw-completion clients with the consent gate.
+//! - [`anthropic`]: Claude through Anthropic's Messages API.
+//! - [`plans`]: Think on the user's ChatGPT or Claude plan.
 //! - [`ocr`]: on-device screen text recognition (ocrs).
 //!
 //! Errors are `anyhow::Error`; the ones callers act on are [`AiError`] values
 //! inside it (`err.downcast_ref::<AiError>()`).
 
+pub mod anthropic;
 pub mod ask;
 pub mod autocomplete;
 pub mod catalog;
@@ -23,12 +26,14 @@ pub mod json;
 pub mod language;
 pub mod notes;
 pub mod ocr;
+pub mod plans;
 mod process;
 pub mod project_status;
 pub mod prompts;
 pub mod runtime;
 pub mod sanitize;
 pub mod think;
+pub mod upcoming;
 
 #[cfg(test)]
 mod test_support;

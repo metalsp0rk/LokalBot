@@ -141,6 +141,65 @@ pub(crate) fn get(agent: &ureq::Agent, url: &str, bearer: Option<&str>) -> Resul
     finish(url, request.call())
 }
 
+/// A JSON POST with explicit headers (Anthropic's `x-api-key`, a plan's
+/// bearer token). Header values are never logged.
+pub(crate) fn post_json_with(
+    agent: &ureq::Agent,
+    url: &str,
+    headers: &[(&str, String)],
+    body: &Value,
+) -> Result<Reply> {
+    let bytes = serde_json::to_vec(body)?;
+    let mut request = agent.post(url).header("Content-Type", "application/json");
+    for (name, value) in headers {
+        request = request.header(*name, value.as_str());
+    }
+    finish(url, request.send(&bytes[..]))
+}
+
+/// A GET with explicit headers.
+pub(crate) fn get_with(
+    agent: &ureq::Agent,
+    url: &str,
+    headers: &[(&str, String)],
+) -> Result<Reply> {
+    let mut request = agent.get(url);
+    for (name, value) in headers {
+        request = request.header(*name, value.as_str());
+    }
+    finish(url, request.call())
+}
+
+/// An `application/x-www-form-urlencoded` POST (OAuth token endpoints).
+/// Fields are sent in key order, every value percent-encoded.
+pub(crate) fn post_form(agent: &ureq::Agent, url: &str, fields: &[(&str, &str)]) -> Result<Reply> {
+    let mut sorted = fields.to_vec();
+    sorted.sort_by(|a, b| a.0.cmp(b.0));
+    let body = sorted
+        .iter()
+        .map(|(key, value)| format!("{key}={}", form_escaped(value)))
+        .collect::<Vec<_>>()
+        .join("&");
+    let request = agent
+        .post(url)
+        .header("Content-Type", "application/x-www-form-urlencoded")
+        .header("Accept", "application/json");
+    finish(url, request.send(body.as_bytes()))
+}
+
+/// Percent-encodes everything outside RFC 3986's unreserved characters.
+pub(crate) fn form_escaped(value: &str) -> String {
+    let mut out = String::with_capacity(value.len());
+    for byte in value.bytes() {
+        if byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'.' | b'_' | b'~') {
+            out.push(byte as char);
+        } else {
+            out.push_str(&format!("%{byte:02X}"));
+        }
+    }
+    out
+}
+
 /// A response whose body is read line by line (SSE, NDJSON).
 pub(crate) struct LineStream {
     pub status: u16,
@@ -180,13 +239,28 @@ pub(crate) fn post_stream(
     bearer: Option<&str>,
     body: &Value,
 ) -> Result<LineStream> {
+    let headers: Vec<(&str, String)> = bearer
+        .filter(|t| !t.is_empty())
+        .map(|token| ("Authorization", format!("Bearer {token}")))
+        .into_iter()
+        .collect();
+    post_stream_with(agent, url, &headers, body)
+}
+
+/// [`post_stream`] with explicit headers.
+pub(crate) fn post_stream_with(
+    agent: &ureq::Agent,
+    url: &str,
+    headers: &[(&str, String)],
+    body: &Value,
+) -> Result<LineStream> {
     let bytes = serde_json::to_vec(body)?;
     let mut request = agent
         .post(url)
         .header("Content-Type", "application/json")
         .header("Accept", "text/event-stream");
-    if let Some(token) = bearer.filter(|t| !t.is_empty()) {
-        request = request.header("Authorization", format!("Bearer {token}"));
+    for (name, value) in headers {
+        request = request.header(*name, value.as_str());
     }
     let response = request
         .send(&bytes[..])
@@ -247,6 +321,8 @@ pub(crate) mod testing {
         Text(u16, String),
         /// Server-sent events: each item is written as `data: <item>\n\n`.
         Sse(Vec<String>),
+        /// A raw `text/event-stream` body, written as given.
+        RawSse(String),
         /// Newline-delimited JSON, one value per line.
         Lines(Vec<String>),
         /// A file honouring HEAD and `Range: bytes=a-b` / `bytes=a-`.
@@ -390,6 +466,11 @@ pub(crate) mod testing {
                     std::thread::sleep(Duration::from_millis(2));
                 }
                 Ok(())
+            }
+            Reply::RawSse(body) => {
+                out.write_all(b"HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nConnection: close\r\n\r\n")?;
+                out.write_all(body.as_bytes())?;
+                out.flush()
             }
             Reply::File(bytes) => {
                 let total = bytes.len() as u64;

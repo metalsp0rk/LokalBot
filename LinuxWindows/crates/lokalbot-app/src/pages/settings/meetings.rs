@@ -268,6 +268,17 @@ impl SettingsPage {
                     |s, v| s.summary_language = v.to_string(),
                     cx,
                 ),
+            )
+            .row(
+                "settings.meetingNotesUseCalendarContext",
+                self.toggle(
+                    "settings.meetingNotesUseCalendarContext",
+                    lokalbot_i18n::tr("Give notes the calendar title and invited names"),
+                    Some(lokalbot_i18n::tr("Helps spell names and relate the discussion to the meeting. Names only; email addresses are never included. The transcript stays the only evidence for decisions and actions.")),
+                    settings.meeting_notes_use_calendar_context,
+                    |s, v| s.meeting_notes_use_calendar_context = v,
+                    cx,
+                ),
             );
 
         let speakers = Section::new(lokalbot_i18n::tr("Speaker names"))
@@ -294,7 +305,8 @@ impl SettingsPage {
                 ),
             );
 
-        vec![meetings, processing, summarization, speakers]
+        let calendar = self.calendar_section(cx);
+        vec![meetings, calendar, processing, summarization, speakers]
     }
 }
 

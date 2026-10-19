@@ -110,6 +110,8 @@ impl SettingsPage {
         } else {
             let backend = match settings.summarizer_backend {
                 SummarizerBackend::Ollama => lokalbot_i18n::tr("Ollama"),
+                SummarizerBackend::ChatGptPlan => lokalbot_i18n::tr("ChatGPT plan"),
+                SummarizerBackend::ClaudePlan => lokalbot_i18n::tr("Claude plan"),
                 _ => lokalbot_i18n::tr("OpenAI-compatible server"),
             };
             lokalbot_i18n::format(

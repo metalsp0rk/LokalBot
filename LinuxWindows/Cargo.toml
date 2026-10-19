@@ -13,6 +13,7 @@ repository = "https://github.com/stevyhacker/lokalbot"
 
 [workspace.dependencies]
 lokalbot-core = { path = "crates/lokalbot-core" }
+lokalbot-cli = { path = "crates/lokalbot-cli" }
 lokalbot-ai = { path = "crates/lokalbot-ai" }
 lokalbot-audio = { path = "crates/lokalbot-audio" }
 lokalbot-speech = { path = "crates/lokalbot-speech" }

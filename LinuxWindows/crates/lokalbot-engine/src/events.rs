@@ -41,6 +41,35 @@ pub enum Command {
     /// "Capture Screen Now": capture the window in front, or the next one
     /// to come to the front within a few seconds when LokalBot itself is.
     CaptureScreenNow,
+    /// Today's Record on a calendar event: record now, stamped with it.
+    RecordCalendarEvent(Box<lokalbot_core::calendar::CalendarEvent>),
+    /// Saves the private calendar links in the credential store (replacing
+    /// the saved ones) and reads them.
+    SetCalendarLinks(Vec<String>),
+    /// Reads every calendar again now.
+    RefreshCalendar,
+    /// Gathers what LokalBot knows for an upcoming meeting; with `generate`,
+    /// also writes the brief with the on-device Think model.
+    PrepareMeeting {
+        event: Box<lokalbot_core::calendar::CalendarEvent>,
+        generate: bool,
+    },
+    /// The detector found a call to record (automatic mode). Unlike
+    /// `StartRecording`, it is suppressed for an event the user just stopped.
+    StartDetectedRecording {
+        title: String,
+        app_name: String,
+        calendar: Option<Box<lokalbot_core::calendar::CalendarEvent>>,
+    },
+    /// The call the detector started recording ended on its own.
+    CallEnded,
+    /// The next calendar event began within the call the detector is
+    /// recording: stop this recording and start one for the next event.
+    SplitForCalendarHandoff {
+        title: String,
+        app_name: String,
+        calendar: Box<lokalbot_core::calendar::CalendarEvent>,
+    },
     Shutdown,
 }
 
@@ -100,6 +129,21 @@ pub enum EngineEvent {
     /// The whole live transcript preview, sent on every change.
     LivePreview(LivePreview),
     Screen(ScreenStatus),
+    /// The cached calendar after a refresh.
+    Calendar(crate::calendar::CalendarSnapshot),
+    /// Preparation for an upcoming meeting (`UpcomingMeetingPreparationModel`).
+    MeetingPreparation(MeetingPreparation),
+}
+
+/// What Today shows under the next meeting. The brief stays in memory only.
+#[derive(Clone, Debug, PartialEq)]
+pub struct MeetingPreparation {
+    pub event_id: String,
+    pub evidence: lokalbot_ai::upcoming::UpcomingEvidence,
+    /// The model's brief, when one was written for this evidence.
+    pub brief: Option<String>,
+    pub generating: bool,
+    pub error: Option<String>,
 }
 
 /// The opt-in live transcript preview while recording (`LiveMeetingTranscriber`).

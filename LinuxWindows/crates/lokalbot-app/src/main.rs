@@ -394,7 +394,6 @@ fn handle_event(data: &Entity<AppData>, event: &AppEvent, window: &mut Window, c
         AppEvent::MeetingDetected { app_name, title } => {
             desktop::notify_meeting_detected(app_name.clone(), title.clone(), cx)
         }
-        AppEvent::InstallCli => install_cli(data, cx),
         AppEvent::SaveApiKey(key) => {
             let key = key.clone();
             let data = data.clone();
@@ -443,53 +442,6 @@ fn apply_launch_at_login(data: &Entity<AppData>, cx: &mut App) {
             }
             Err(err) => log::warn!("could not find the LokalBot executable: {err}"),
         }
-    })
-    .detach();
-}
-
-/// Runs the bundled `lokalbot-cli install-skill`, which puts the CLI on PATH
-/// and installs the agent skill.
-fn install_cli(data: &Entity<AppData>, cx: &mut App) {
-    let data = data.clone();
-    cx.spawn(async move |cx| {
-        let result = cx
-            .background_spawn(async move {
-                let exe = std::env::current_exe()?;
-                let name = if cfg!(windows) {
-                    "lokalbot-cli.exe"
-                } else {
-                    "lokalbot-cli"
-                };
-                let cli = exe.with_file_name(name);
-                anyhow::ensure!(
-                    cli.is_file(),
-                    "{} was not found next to LokalBot",
-                    cli.display()
-                );
-                let output = std::process::Command::new(&cli)
-                    .arg("install-skill")
-                    .output()?;
-                let text = String::from_utf8_lossy(&output.stdout).trim().to_string();
-                if output.status.success() {
-                    Ok(text)
-                } else {
-                    anyhow::bail!("{}", String::from_utf8_lossy(&output.stderr).trim())
-                }
-            })
-            .await;
-        data.update(cx, |data, cx| match result {
-            Ok(_) => data.show_message(
-                lokalbot_i18n::tr("Installed lokalbot-cli for your coding agents."),
-                cx,
-            ),
-            Err(err) => data.show_error(
-                lokalbot_i18n::format(
-                    "Installing lokalbot-cli failed: {err}",
-                    &[("err", format!("{:#}", err))],
-                ),
-                cx,
-            ),
-        });
     })
     .detach();
 }

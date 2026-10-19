@@ -84,6 +84,19 @@ pub struct Settings {
     pub openai_base_url: String,
     #[serde(rename = "openAIModel")]
     pub openai_model: String,
+    /// OpenRouter's per-request provider policy for Think and Autocomplete.
+    /// Private routing stays the default; following the account's policy is
+    /// an explicit opt-in (`openRouterDataPolicy`).
+    pub open_router_data_policy: OpenRouterDataPolicy,
+    /// Model slug for the ChatGPT plan, from the signed-in account's list.
+    #[serde(rename = "chatGPTPlanModel")]
+    pub chatgpt_plan_model: String,
+    /// Model for the Claude plan: an alias Claude Code accepts ("sonnet") or a
+    /// full model id. Empty uses Claude Code's own default.
+    pub claude_plan_model: String,
+    /// The one-time "You're using your ChatGPT plan" notice was dismissed.
+    #[serde(rename = "chatGPTPlanNoticeAcknowledged")]
+    pub chatgpt_plan_notice_acknowledged: bool,
     pub think_reasoning_level: ReasoningLevel,
     /// Agent Mode's own reasoning level, chosen in the Agent composer; `None`
     /// follows Think (`agentReasoningLevel`).
@@ -125,6 +138,29 @@ pub struct Settings {
     /// Let suggestions use relevant facts from saved meetings. A grant of
     /// its own, off by default, as on macOS.
     pub cotyping_use_meeting_memory: bool,
+
+    // Calendar (macOS `AppSettings` keys). Feed links are secrets and live in
+    // the system credential store, never here.
+    /// Read the user's calendars to confirm meetings and title recordings.
+    /// Off by default: calendar contents are sensitive.
+    pub calendar_detection_enabled: bool,
+    /// Prefer the matched event's title over the app-derived name.
+    pub use_calendar_titles: bool,
+    /// Only auto-record a browser call backed by an active calendar event
+    /// with a meeting link.
+    pub require_calendar_for_browser: bool,
+    /// Read the invitation agenda (notes without joining details) and save
+    /// it with calendar-matched recordings. Off by default.
+    pub use_calendar_agenda: bool,
+    /// Meeting notes may use the calendar title and invited names as
+    /// secondary context.
+    pub meeting_notes_use_calendar_context: bool,
+    /// Linux: also read calendars from Evolution Data Server, which includes
+    /// GNOME Online Accounts. Local; makes no network request of its own.
+    pub calendar_evolution_enabled: bool,
+    /// The user's own addresses, comma-separated, so feeds can tell the user
+    /// from other attendees and skip invitations the user declined.
+    pub calendar_my_email_addresses: String,
 }
 
 impl Default for Settings {
@@ -186,6 +222,10 @@ impl Default for Settings {
             ollama_model: String::new(),
             openai_base_url: "http://localhost:1234/v1".into(),
             openai_model: String::new(),
+            open_router_data_policy: OpenRouterDataPolicy::PrivateOnly,
+            chatgpt_plan_model: String::new(),
+            claude_plan_model: String::new(),
+            chatgpt_plan_notice_acknowledged: false,
             think_reasoning_level: ReasoningLevel::Automatic,
             agent_reasoning_level: None,
             semantic_search_enabled: true,
@@ -213,6 +253,14 @@ impl Default for Settings {
             cotyping_excluded_domains: String::new(),
             cotyping_use_visible_context: true,
             cotyping_use_meeting_memory: false,
+
+            calendar_detection_enabled: false,
+            use_calendar_titles: true,
+            require_calendar_for_browser: false,
+            use_calendar_agenda: false,
+            meeting_notes_use_calendar_context: true,
+            calendar_evolution_enabled: true,
+            calendar_my_email_addresses: String::new(),
         }
     }
 }
@@ -276,7 +324,13 @@ impl Settings {
             SummarizerBackend::OpenAICompatible => {
                 crate::access::is_loopback_url(&self.openai_base_url)
             }
+            SummarizerBackend::ChatGptPlan | SummarizerBackend::ClaudePlan => false,
         }
+    }
+
+    /// The subscription plan Think runs on, if any.
+    pub fn think_plan(&self) -> Option<SubscriptionPlan> {
+        SubscriptionPlan::for_backend(self.summarizer_backend)
     }
 
     pub fn excluded_app_list(&self) -> Vec<String> {
@@ -418,16 +472,185 @@ pub enum SummarizerBackend {
     Ollama,
     #[serde(rename = "OpenAI-compatible server")]
     OpenAICompatible,
+    /// The user's ChatGPT plan through Sign in with ChatGPT.
+    #[serde(rename = "ChatGPT plan")]
+    ChatGptPlan,
+    /// The user's Claude plan through their own Claude Code installation.
+    #[serde(rename = "Claude plan")]
+    ClaudePlan,
 }
 
 impl SummarizerBackend {
-    pub const ALL: [SummarizerBackend; 3] = [Self::BuiltIn, Self::Ollama, Self::OpenAICompatible];
+    pub const ALL: [SummarizerBackend; 5] = [
+        Self::BuiltIn,
+        Self::Ollama,
+        Self::OpenAICompatible,
+        Self::ChatGptPlan,
+        Self::ClaudePlan,
+    ];
 
     pub fn label(self) -> &'static str {
         match self {
             Self::BuiltIn => "Built-in (no setup)",
             Self::Ollama => "Ollama",
             Self::OpenAICompatible => "OpenAI-compatible server",
+            Self::ChatGptPlan => "ChatGPT plan",
+            Self::ClaudePlan => "Claude plan",
+        }
+    }
+}
+
+/// Think backends that run on the user's own ChatGPT or Claude plan instead
+/// of an API key (`SubscriptionPlan.swift`). Requests count toward that
+/// plan's usage limits.
+///
+/// Each plan has its own entry in `approved_remote_inference_origins`. The
+/// entries are not URL origins, so approving an API server
+/// (`https://api.openai.com` with a key) never approves plan usage, and the
+/// reverse: the two run under different provider terms.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum SubscriptionPlan {
+    ChatGpt,
+    Claude,
+}
+
+impl SubscriptionPlan {
+    pub const ALL: [SubscriptionPlan; 2] = [Self::ChatGpt, Self::Claude];
+
+    pub fn for_backend(backend: SummarizerBackend) -> Option<Self> {
+        match backend {
+            SummarizerBackend::ChatGptPlan => Some(Self::ChatGpt),
+            SummarizerBackend::ClaudePlan => Some(Self::Claude),
+            SummarizerBackend::BuiltIn
+            | SummarizerBackend::Ollama
+            | SummarizerBackend::OpenAICompatible => None,
+        }
+    }
+
+    pub fn backend(self) -> SummarizerBackend {
+        match self {
+            Self::ChatGpt => SummarizerBackend::ChatGptPlan,
+            Self::Claude => SummarizerBackend::ClaudePlan,
+        }
+    }
+
+    /// "ChatGPT plan", "Claude plan" (shared interface keys).
+    pub fn title(self) -> &'static str {
+        match self {
+            Self::ChatGpt => "ChatGPT plan",
+            Self::Claude => "Claude plan",
+        }
+    }
+
+    pub fn provider_name(self) -> &'static str {
+        match self {
+            Self::ChatGpt => "OpenAI",
+            Self::Claude => "Anthropic",
+        }
+    }
+
+    /// Where Think content goes. Claude requests travel through the user's
+    /// own Claude Code installation, which sends them to Anthropic.
+    pub fn destination_host(self) -> &'static str {
+        match self {
+            Self::ChatGpt => "api.openai.com",
+            Self::Claude => "api.anthropic.com",
+        }
+    }
+
+    /// The approval entry, the same string the Mac stores.
+    pub fn consent_key(self) -> &'static str {
+        match self {
+            Self::ChatGpt => "chatgpt-plan://api.openai.com",
+            Self::Claude => "claude-plan://api.anthropic.com",
+        }
+    }
+
+    /// The provider's own page for checking and capping plan usage.
+    pub fn manage_usage_url(self) -> &'static str {
+        match self {
+            Self::ChatGpt => "https://chatgpt.com/settings/usage",
+            Self::Claude => "https://claude.ai/settings/usage",
+        }
+    }
+
+    pub fn for_consent_key(key: &str) -> Option<Self> {
+        Self::ALL
+            .into_iter()
+            .find(|plan| plan.consent_key().eq_ignore_ascii_case(key.trim()))
+    }
+
+    pub fn is_approved(self, settings: &Settings) -> bool {
+        settings
+            .approved_remote_inference_origins
+            .iter()
+            .any(|entry| entry.eq_ignore_ascii_case(self.consent_key()))
+    }
+
+    /// Approves or revokes this plan, leaving every other entry alone.
+    pub fn set_approved(self, settings: &mut Settings, approved: bool) {
+        settings
+            .approved_remote_inference_origins
+            .retain(|entry| !entry.eq_ignore_ascii_case(self.consent_key()));
+        if approved {
+            settings
+                .approved_remote_inference_origins
+                .push(self.consent_key().to_string());
+        }
+    }
+
+    pub fn model(self, settings: &Settings) -> &str {
+        match self {
+            Self::ChatGpt => settings.chatgpt_plan_model.trim(),
+            Self::Claude => settings.claude_plan_model.trim(),
+        }
+    }
+
+    /// Why Think cannot use this plan yet (`SubscriptionPlanError`).
+    pub fn approval_required_message(self) -> String {
+        format!(
+            "Allow sending context to {} with your {} under Settings → Models → Think before Think uses it.",
+            self.provider_name(),
+            self.title()
+        )
+    }
+
+    /// The approval list shows a plan entry by name rather than its key.
+    pub fn approval_display_name(entry: &str) -> String {
+        match Self::for_consent_key(entry) {
+            Some(plan) => format!("{} · {}", plan.title(), plan.destination_host()),
+            None => entry.to_string(),
+        }
+    }
+}
+
+/// OpenRouter's request-level provider preference (`OpenRouterDataPolicy`).
+/// Account, API-key, workspace and guardrail filters apply after it.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum OpenRouterDataPolicy {
+    /// Only providers that do not collect inference data.
+    #[default]
+    PrivateOnly,
+    /// Whatever the OpenRouter account, key, workspace or guardrail allows.
+    AccountPolicy,
+}
+
+impl OpenRouterDataPolicy {
+    pub const ALL: [OpenRouterDataPolicy; 2] = [Self::PrivateOnly, Self::AccountPolicy];
+
+    /// `provider.data_collection` on every OpenRouter request.
+    pub fn data_collection(self) -> &'static str {
+        match self {
+            Self::PrivateOnly => "deny",
+            Self::AccountPolicy => "allow",
+        }
+    }
+
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::PrivateOnly => "Private endpoints only (Recommended)",
+            Self::AccountPolicy => "Follow my OpenRouter privacy settings",
         }
     }
 }
@@ -533,6 +756,107 @@ mod tests {
         assert_eq!(back, Settings::default());
         assert!(json.contains("\"autoRecordMode\":\"Ask via notification\""));
         assert!(json.contains("\"builtInModelID\":\"qwen3.5-4b\""));
+    }
+
+    #[test]
+    fn provider_choices_round_trip_with_the_mac_keys() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("settings.json");
+        // As the Mac writes them, beside keys this port does not know.
+        std::fs::write(
+            &path,
+            r#"{"summarizerBackend":"Claude plan","claudePlanModel":"sonnet","chatGPTPlanModel":"gpt-5.5","chatGPTPlanNoticeAcknowledged":true,"openRouterDataPolicy":"accountPolicy","approvedRemoteInferenceOrigins":["claude-plan://api.anthropic.com","https://openrouter.ai"],"diarizationModel":"nemotron3"}"#,
+        )
+        .unwrap();
+        let settings = Settings::load(&path);
+        assert_eq!(settings.summarizer_backend, SummarizerBackend::ClaudePlan);
+        assert_eq!(settings.claude_plan_model, "sonnet");
+        assert_eq!(settings.chatgpt_plan_model, "gpt-5.5");
+        assert!(settings.chatgpt_plan_notice_acknowledged);
+        assert_eq!(
+            settings.open_router_data_policy,
+            OpenRouterDataPolicy::AccountPolicy
+        );
+        assert_eq!(settings.think_plan(), Some(SubscriptionPlan::Claude));
+        assert!(!settings.think_is_local());
+        assert!(SubscriptionPlan::Claude.is_approved(&settings));
+        assert!(!SubscriptionPlan::ChatGpt.is_approved(&settings));
+        settings.save(&path).unwrap();
+        let saved: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+        assert_eq!(saved["summarizerBackend"], "Claude plan");
+        assert_eq!(saved["claudePlanModel"], "sonnet");
+        assert_eq!(saved["chatGPTPlanModel"], "gpt-5.5");
+        assert_eq!(saved["chatGPTPlanNoticeAcknowledged"], true);
+        assert_eq!(saved["openRouterDataPolicy"], "accountPolicy");
+
+        // New installs and libraries written before these settings.
+        let fresh = serde_json::to_value(Settings::default()).unwrap();
+        assert_eq!(fresh["openRouterDataPolicy"], "privateOnly");
+        assert_eq!(
+            Settings::default()
+                .open_router_data_policy
+                .data_collection(),
+            "deny"
+        );
+        std::fs::write(&path, r#"{"summarizerBackend":"ChatGPT plan"}"#).unwrap();
+        let older = Settings::load(&path);
+        assert_eq!(older.summarizer_backend, SummarizerBackend::ChatGptPlan);
+        assert_eq!(
+            older.open_router_data_policy,
+            OpenRouterDataPolicy::PrivateOnly
+        );
+        std::fs::write(&path, r#"{"openRouterDataPolicy":"sometimes"}"#).unwrap();
+        assert_eq!(
+            Settings::load(&path).open_router_data_policy,
+            OpenRouterDataPolicy::PrivateOnly
+        );
+    }
+
+    #[test]
+    fn plan_approval_is_its_own_entry() {
+        let mut settings = Settings {
+            approved_remote_inference_origins: vec!["https://api.openai.com".into()],
+            ..Settings::default()
+        };
+        // An API-server approval for the same company never covers a plan.
+        assert!(!SubscriptionPlan::ChatGpt.is_approved(&settings));
+        SubscriptionPlan::ChatGpt.set_approved(&mut settings, true);
+        SubscriptionPlan::ChatGpt.set_approved(&mut settings, true);
+        assert_eq!(
+            settings.approved_remote_inference_origins,
+            vec![
+                "https://api.openai.com".to_string(),
+                "chatgpt-plan://api.openai.com".to_string()
+            ]
+        );
+        assert!(
+            crate::access::remote_block_reason(
+                "https://api.openai.com/v1",
+                &["chatgpt-plan://api.openai.com".to_string()]
+            )
+            .is_some()
+        );
+        assert_eq!(
+            SubscriptionPlan::approval_display_name("chatgpt-plan://api.openai.com"),
+            "ChatGPT plan · api.openai.com"
+        );
+        assert_eq!(
+            SubscriptionPlan::approval_display_name("https://openrouter.ai"),
+            "https://openrouter.ai"
+        );
+        SubscriptionPlan::ChatGpt.set_approved(&mut settings, false);
+        assert_eq!(
+            settings.approved_remote_inference_origins,
+            vec!["https://api.openai.com".to_string()]
+        );
+        for plan in SubscriptionPlan::ALL {
+            assert_eq!(SubscriptionPlan::for_backend(plan.backend()), Some(plan));
+            assert_eq!(
+                SubscriptionPlan::for_consent_key(plan.consent_key()),
+                Some(plan)
+            );
+        }
     }
 
     #[test]
