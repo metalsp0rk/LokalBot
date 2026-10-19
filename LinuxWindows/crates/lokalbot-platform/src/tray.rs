@@ -51,6 +51,18 @@ pub struct TrayMenuState {
     pub day_memory_paused: bool,
     /// Screen context is on: offer "Capture Screen Now".
     pub screen_capture: bool,
+    /// A newer LokalBot is on offer.
+    pub update: Option<TrayUpdate>,
+}
+
+/// The update row (Sparkle's "Install Update…").
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct TrayUpdate {
+    pub version: String,
+    /// LokalBot can replace itself; otherwise the row opens the download.
+    pub installable: bool,
+    /// Downloading or installing.
+    pub busy: bool,
 }
 
 /// Menu item ids used by [`standard_items`].
@@ -63,12 +75,14 @@ pub mod item_ids {
     pub const PAUSE_DAY_MEMORY: &str = "pause-day-memory";
     pub const RESUME_DAY_MEMORY: &str = "resume-day-memory";
     pub const CAPTURE_SCREEN: &str = "capture-screen";
+    pub const INSTALL_UPDATE: &str = "install-update";
+    pub const DOWNLOAD_UPDATE: &str = "download-update";
     pub const QUIT: &str = "quit";
 }
 
 /// The macOS menu bar extra as a menu: status, Record Now / Stop Recording,
 /// Ask, Open LokalBot, Settings…, Pause/Resume day memory, Capture Screen
-/// Now while screen context is on, Quit LokalBot.
+/// Now while screen context is on, the update on offer, Quit LokalBot.
 pub fn standard_items(state: &TrayMenuState) -> Vec<TrayItem> {
     use item_ids::*;
     use lokalbot_i18n::tr;
@@ -102,6 +116,24 @@ pub fn standard_items(state: &TrayMenuState) -> Vec<TrayItem> {
         items.push(TrayItem::action(CAPTURE_SCREEN, tr("Capture Screen Now")));
     }
     items.push(TrayItem::Separator);
+    if let Some(update) = &state.update {
+        let version = [("version", update.version.clone())];
+        items.push(match (update.busy, update.installable) {
+            (true, _) => TrayItem::Action {
+                id: INSTALL_UPDATE.into(),
+                label: lokalbot_i18n::format("Installing LokalBot {version}…", &version),
+                enabled: false,
+            },
+            (false, true) => TrayItem::action(
+                INSTALL_UPDATE,
+                &lokalbot_i18n::format("Install LokalBot {version} and Relaunch", &version),
+            ),
+            (false, false) => TrayItem::action(
+                DOWNLOAD_UPDATE,
+                &lokalbot_i18n::format("Download LokalBot {version}…", &version),
+            ),
+        });
+    }
     items.push(TrayItem::action(QUIT, tr("Quit LokalBot")));
     items
 }
@@ -623,6 +655,47 @@ mod tests {
             item_ids::CAPTURE_SCREEN,
             "Capture Screen Now"
         )));
+    }
+
+    #[test]
+    fn an_offered_update_sits_above_quit() {
+        let update = |installable, busy| {
+            standard_items(&TrayMenuState {
+                update: Some(TrayUpdate {
+                    version: "0.10.11".into(),
+                    installable,
+                    busy,
+                }),
+                ..Default::default()
+            })
+        };
+        let items = update(true, false);
+        let count = items.len();
+        assert_eq!(
+            items[count - 2],
+            TrayItem::action(
+                item_ids::INSTALL_UPDATE,
+                "Install LokalBot 0.10.11 and Relaunch"
+            )
+        );
+        assert_eq!(
+            items[count - 1],
+            TrayItem::action(item_ids::QUIT, "Quit LokalBot")
+        );
+        assert!(update(false, false).contains(&TrayItem::action(
+            item_ids::DOWNLOAD_UPDATE,
+            "Download LokalBot 0.10.11…"
+        )));
+        assert!(update(true, true).contains(&TrayItem::Action {
+            id: item_ids::INSTALL_UPDATE.into(),
+            label: "Installing LokalBot 0.10.11…".into(),
+            enabled: false,
+        }));
+        assert!(
+            !standard_items(&TrayMenuState::default())
+                .iter()
+                .any(|item| matches!(item, TrayItem::Action { id, .. } if id.contains("update")))
+        );
     }
 
     #[test]

@@ -147,6 +147,15 @@ jobs:
           path: LinuxWindows/dist/*.tar.gz*
           retention-days: 14
 
+      # Installs the archive with install.sh into a scratch home, then has it
+      # update itself from a signed feed on 127.0.0.1 and relaunch.
+      - name: Check updating from a local feed
+        run: |
+          cargo build --release --locked -p lokalbot-update --bin lokalbot-update-feed
+          archive=$(ls dist/LokalBot-*-linux-x86_64.tar.gz)
+          scripts/ci/update-e2e.sh "$archive" "$archive" \
+            "${CARGO_TARGET_DIR:-target}/release/lokalbot-update-feed" "$RUNNER_TEMP/update-e2e"
+
       - name: Capture the app
         run: |
           if [ "$RUNNER_ENVIRONMENT" = github-hosted ]; then
@@ -247,13 +256,18 @@ jobs:
           cargo build --release --locked -p lokalbot-app -p lokalbot-engine -p lokalbot-platform `
             --example autocomplete_probe --example screen_capture --example screen_text
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          cargo build --release --locked -p lokalbot-update --bin lokalbot-update-feed
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
           $target = if ($env:CARGO_TARGET_DIR) { $env:CARGO_TARGET_DIR } else { "target" }
           $bin = Join-Path $env:RUNNER_TEMP "desktop-bin"
-          New-Item -ItemType Directory -Force (Join-Path $bin "examples") | Out-Null
+          New-Item -ItemType Directory -Force (Join-Path $bin "examples"), (Join-Path $bin "update") | Out-Null
           Copy-Item (Join-Path $target "release\lokalbot.exe") $bin
           foreach ($name in "autocomplete_probe", "screen_capture", "screen_text") {
             Copy-Item (Join-Path $target "release\examples\$name.exe") (Join-Path $bin "examples")
           }
+          # The update check installs the packaged archive and updates it.
+          Copy-Item (Join-Path $target "release\lokalbot-update-feed.exe") (Join-Path $bin "update")
+          Copy-Item dist\LokalBot-*-windows-x86_64.zip (Join-Path $bin "update")
 
       # The desktop checks take over the screen, so on a self-hosted runner
       # they run in the next job, on GitHub's runner, with these programs.

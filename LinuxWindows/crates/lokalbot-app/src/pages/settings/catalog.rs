@@ -105,10 +105,17 @@ pub const ENTRIES: &[Entry] = &[
         value: |s| s.quick_recall_shortcut.clone(),
     },
     Entry {
+        id: "settings.checkForUpdates",
+        title: "Check for updates automatically",
+        category: General,
+        aliases: "update updates upgrade automatic daily release github",
+        value: |s| on_off(s.check_for_updates),
+    },
+    Entry {
         id: "settings.currentVersion",
         title: "Current version",
         category: General,
-        aliases: "version about release update updates",
+        aliases: "version about release update updates upgrade check install relaunch",
         value: |_| env!("CARGO_PKG_VERSION").into(),
     },
     Entry {
@@ -659,8 +666,12 @@ mod tests {
         assert!(autocomplete.contains(&"settings.cotypingEnabled"));
         assert!(autocomplete.contains(&"settings.cotypingBuiltInModelID"));
         assert!(!autocomplete.contains(&"settings.autocompleteAvailability"));
+        // Updates check, download and install here too.
         let updates: Vec<&str> = search("updates").iter().map(|e| e.id).collect();
-        assert_eq!(updates, ["settings.currentVersion"]);
+        assert_eq!(
+            updates,
+            ["settings.checkForUpdates", "settings.currentVersion"]
+        );
     }
 
     #[test]

@@ -1,10 +1,10 @@
-//! General: startup, appearance, the Ask shortcut and about. There is no
-//! update checker on Linux and Windows yet, so "Check for updates" is not
-//! shown; the About section links to the releases instead.
+//! General: startup, appearance, the Ask shortcut, updates and about.
 
 use crate::i18n::h_flex;
-use gpui_kit::component::button::Button;
-use gpui_kit::component::{Icon, Sizable as _};
+use crate::updates;
+use gpui_kit::component::button::{Button, ButtonVariants as _};
+use gpui_kit::component::{Disableable as _, Icon, Sizable as _};
+use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{Context, IntoElement as _, ParentElement as _, SharedString, Styled as _, div, px};
 use lokalbot_core::settings::{AppTheme, TextSize};
 
@@ -168,27 +168,8 @@ impl SettingsPage {
                 ),
             );
 
+        let updates = self.updates_section(&settings, cx);
         let about = Section::new(lokalbot_i18n::tr("About"))
-            .row(
-                "settings.currentVersion",
-                settings_row::row(
-                    "settings.currentVersion",
-                    lokalbot_i18n::tr("Current version"),
-                    Some(lokalbot_i18n::tr("LokalBot doesn't check for updates on its own. New versions are listed on GitHub.").into()),
-                    h_flex()
-                        .gap(px(10.))
-                        .items_center()
-                        .child(settings_row::value(env!("CARGO_PKG_VERSION"), cx))
-                        .child(settings_row::link_button(
-                            "settings-releases",
-                            lokalbot_i18n::tr("Releases"),
-                            |_, cx| cx.open_url(&format!("{REPOSITORY}/releases")),
-                            cx,
-                        )),
-                    self.is_focused("settings.currentVersion"),
-                    cx,
-                ),
-            )
             .row(
                 "settings.githubStar",
                 settings_row::row(
@@ -210,6 +191,116 @@ impl SettingsPage {
                 ),
             );
 
-        vec![general, appearance, shortcut, about]
+        vec![general, appearance, shortcut, updates, about]
+    }
+
+    /// Mirrors macOS Settings → General → Updates: the automatic-check
+    /// switch, the version with Check for Updates…, and the update on offer.
+    fn updates_section(
+        &mut self,
+        settings: &lokalbot_core::Settings,
+        cx: &mut Context<Self>,
+    ) -> Section {
+        let Some(entity) = updates::global(cx) else {
+            return Section::new(lokalbot_i18n::tr("Updates"));
+        };
+        let updates = entity.read(cx);
+        let enabled = updates.enabled();
+        let busy = updates.status.busy();
+        let status = updates::status_text(updates);
+        let offer = updates.status.release().cloned().map(|release| {
+            (
+                updates::offer_text(updates, &release),
+                updates.can_install(&release),
+                release,
+            )
+        });
+        let mut section = Section::new(lokalbot_i18n::tr("Updates"));
+        if enabled {
+            section = section.row(
+                "settings.checkForUpdates",
+                self.toggle(
+                    "settings.checkForUpdates",
+                    lokalbot_i18n::tr("Check for updates automatically"),
+                    Some(lokalbot_i18n::tr("Checks GitHub when LokalBot starts and once a day. Nothing is downloaded until you choose to install.")),
+                    settings.check_for_updates,
+                    |s, v| s.check_for_updates = v,
+                    cx,
+                ),
+            );
+        }
+        let check = entity.clone();
+        section = section.row(
+            "settings.currentVersion",
+            settings_row::row(
+                "settings.currentVersion",
+                lokalbot_i18n::tr("Current version"),
+                Some(status),
+                h_flex()
+                    .gap(px(10.))
+                    .items_center()
+                    .child(settings_row::value(env!("CARGO_PKG_VERSION"), cx))
+                    .when(enabled, |row| {
+                        row.child(
+                            Button::new("settings-check-updates")
+                                .outline()
+                                .small()
+                                .label(lokalbot_i18n::tr("Check for Updates…"))
+                                .disabled(busy)
+                                .on_click(move |_, _, cx| {
+                                    check.update(cx, |updates, cx| updates.check(true, cx))
+                                }),
+                        )
+                    })
+                    .child(settings_row::link_button(
+                        "settings-releases",
+                        lokalbot_i18n::tr("Releases"),
+                        |_, cx| cx.open_url(&format!("{REPOSITORY}/releases")),
+                        cx,
+                    )),
+                self.is_focused("settings.currentVersion"),
+                cx,
+            ),
+        );
+        if let Some((help, installable, release)) = offer {
+            let install = entity.clone();
+            let notes = release.feed.release_notes_url.clone();
+            let action = if installable {
+                Button::new("settings-install-update")
+                    .primary()
+                    .small()
+                    .label(lokalbot_i18n::tr("Install and Relaunch"))
+                    .disabled(busy)
+                    .on_click(move |_, _, cx| install.update(cx, |updates, cx| updates.install(cx)))
+            } else {
+                Button::new("settings-download-update")
+                    .outline()
+                    .small()
+                    .label(lokalbot_i18n::tr("Download"))
+                    .on_click(|_, _, cx| updates::open_release_page(cx))
+            };
+            section = section.row(
+                "settings.updateAvailable",
+                settings_row::row(
+                    "settings.updateAvailable",
+                    lokalbot_i18n::format(
+                        "LokalBot {version} is available",
+                        &[("version", release.version.to_string())],
+                    ),
+                    Some(help),
+                    h_flex().gap(px(10.)).items_center().child(action).child(
+                        settings_row::link_button(
+                            "settings-release-notes",
+                            lokalbot_i18n::tr("Release Notes"),
+                            move |_, cx| cx.open_url(&notes),
+                            cx,
+                        ),
+                    ),
+                    self.is_focused("settings.updateAvailable"),
+                    cx,
+                ),
+            );
+        }
+        section
     }
 }

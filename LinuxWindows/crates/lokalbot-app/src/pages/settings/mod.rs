@@ -64,7 +64,7 @@ fn category_icon(category: SettingsCategory) -> Ico {
 fn category_subtitle(category: SettingsCategory) -> &'static str {
     match category {
         SettingsCategory::General => {
-            lokalbot_i18n::tr("Startup, appearance, the Ask shortcut, and the version.")
+            lokalbot_i18n::tr("Startup, appearance, the Ask shortcut, and updates.")
         }
         SettingsCategory::Meetings => {
             lokalbot_i18n::tr("Meeting capture, detection, processing, and summaries.")
@@ -397,6 +397,9 @@ impl SettingsPage {
         subscriptions.push(cx.observe(&practice, |this, _, cx| this.practice_sync(cx)));
         if let Some(autocomplete) = crate::autocomplete::global(cx) {
             subscriptions.push(cx.observe(&autocomplete, |_, _, cx| cx.notify()));
+        }
+        if let Some(updates) = crate::updates::global(cx) {
+            subscriptions.push(cx.observe(&updates, |_, _, cx| cx.notify()));
         }
         subscriptions.push(cx.subscribe_in(
             &interval_slider,

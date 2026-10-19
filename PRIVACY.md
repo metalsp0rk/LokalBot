@@ -857,8 +857,6 @@ platform differences:
   addresses you enter as your own are kept in settings to leave you out of
   attendee lists and skip invitations you declined. The pre-meeting brief on
   Today is written only by a Think model on this computer and is not saved.
-- **Network access** is limited to model and runtime downloads you request,
-  Agent Mode setup, AI servers you approve, and the calendar links you add.
 - **Remote Think** is off until you choose a server or plan under Settings →
   Models → Connections and turn on its approval. The built-in model on this
   PC stays the default.
@@ -885,8 +883,16 @@ platform differences:
     It uses the same isolation flags and empty private temporary folder as on
     macOS, with content on stdin. `claude auth status` is read to show the
     account email and plan, never credentials.
+- **Updates.** While "Check for updates automatically" is on (the default),
+  LokalBot reads one small update feed for its platform from GitHub Releases
+  when it starts and once a day; "Check for Updates…" reads it on request.
+  The request carries LokalBot's version in its user agent and no library
+  data. The update archive downloads only when you choose Install and
+  Relaunch, and is checked against its pinned size, SHA-256 and the release
+  signature before it is unpacked.
 - **Network access** is limited to model and runtime downloads you request,
-  Agent Mode setup, and AI servers and subscription plans you approve.
+  Agent Mode setup, update checks, AI servers and subscription plans you
+  approve, and the calendar links you add.
 
 ## Security and changes
 
