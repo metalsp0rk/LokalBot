@@ -34,6 +34,12 @@ zip = { version = "9", default-features = false, features = ["deflate-flate2"] }
 tar = "0.4"
 flate2 = "1"
 bzip2 = "0.6"
+# ChatGPT plan sign-in: PKCE, the system random source, and ID-token
+# signatures (RS256, ES256). ring already backs rustls here.
+ring = "0.17"
+base64 = "0.22"
+# Claude plan requests run in a private, temporary working folder.
+tempfile.workspace = true
 # Screen text recognition (`ocr`): a pure-Rust engine and its ONNX models.
 ocrs = { version = "0.13", default-features = false, features = ["onnx"] }
 rten = { version = "0.26", default-features = false, features = ["onnx_format"] }
@@ -52,5 +58,4 @@ windows-sys = { version = "0.61", features = [
 ] }
 
 [dev-dependencies]
-tempfile.workspace = true
 env_logger.workspace = true

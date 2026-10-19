@@ -32,6 +32,39 @@ pub fn openai_api_key() -> Option<String> {
         .filter(|k| !k.trim().is_empty())
 }
 
+/// The ChatGPT plan's session, registration and per-install id, under the
+/// account names the Mac uses in its Keychain (`chatgpt-plan-*`). They are
+/// kept nowhere else: without a credential store the sign-in fails.
+pub struct PlanStore;
+
+impl lokalbot_ai::plans::chatgpt::Store for PlanStore {
+    fn get(&self, account: &str) -> Result<Option<String>> {
+        match entry(account)?.get_password() {
+            Ok(value) => Ok(Some(value)),
+            Err(keyring::Error::NoEntry) => Ok(None),
+            Err(err) => Err(err).context("reading the ChatGPT sign-in"),
+        }
+    }
+
+    fn set(&self, account: &str, value: Option<&str>) -> Result<()> {
+        let entry = entry(account)?;
+        match value {
+            Some(value) => entry
+                .set_password(value)
+                .context("saving the ChatGPT sign-in"),
+            None => match entry.delete_credential() {
+                Ok(()) | Err(keyring::Error::NoEntry) => Ok(()),
+                Err(err) => Err(err).context("removing the ChatGPT sign-in"),
+            },
+        }
+    }
+}
+
+/// Lets Think and Settings keep the ChatGPT plan in the credential store.
+pub fn install_plan_store() {
+    lokalbot_ai::plans::chatgpt::install_store(std::sync::Arc::new(PlanStore));
+}
+
 const SCREENSHOT_KEY: &str = "screenshot-key";
 
 /// The per-install key that seals screen images (`ScreenshotService.encryptionKey`,

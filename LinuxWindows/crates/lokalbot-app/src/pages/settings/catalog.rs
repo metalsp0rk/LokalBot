@@ -405,7 +405,7 @@ pub const ENTRIES: &[Entry] = &[
         id: "settings.summarizerBackend",
         title: "Connections",
         category: Models,
-        aliases: "ollama openai server remote api key url",
+        aliases: "ollama openai server remote api key url chatgpt claude plan subscription anthropic openrouter",
         value: |s| lokalbot_i18n::tr(s.summarizer_backend.label()).into(),
     },
     Entry {

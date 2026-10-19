@@ -19,7 +19,9 @@ use gpui_kit::{
     Styled as _, Subscription, Window, div, px,
 };
 use lokalbot_core::Settings;
-use lokalbot_core::settings::{GenerationBudget, ReasoningLevel, SummarizerBackend};
+use lokalbot_core::settings::{
+    GenerationBudget, ReasoningLevel, SubscriptionPlan, SummarizerBackend,
+};
 
 use super::{Section, SettingsPage};
 use crate::state::{AppData, AppEvent};
@@ -284,8 +286,10 @@ impl ModelsPage {
 /// The Models subpage and the connection form drafts.
 pub struct ModelsState {
     pub page: ModelsPage,
-    /// The server form shown: Ollama or OpenAI-compatible.
+    /// The connection form shown: OpenAI-compatible, Ollama, or a plan.
     connection: SummarizerBackend,
+    /// ChatGPT and Claude plan accounts, loaded when their form shows.
+    pub(super) plans: super::plans::PlansState,
     openai_url: Entity<InputState>,
     openai_model: Entity<InputState>,
     api_key: Entity<InputState>,
@@ -309,11 +313,11 @@ impl ModelsState {
         };
         Self {
             page: ModelsPage::Active,
-            connection: if settings.summarizer_backend == SummarizerBackend::Ollama {
-                SummarizerBackend::Ollama
-            } else {
-                SummarizerBackend::OpenAICompatible
+            connection: match settings.summarizer_backend {
+                SummarizerBackend::BuiltIn => SummarizerBackend::OpenAICompatible,
+                other => other,
             },
+            plans: Default::default(),
             openai_url: field(
                 "https://example.com/v1",
                 &settings.openai_base_url,
@@ -402,7 +406,12 @@ impl ModelsState {
             SummarizerBackend::Ollama => {
                 url != settings.ollama_base_url || model != settings.ollama_model
             }
-            _ => url != settings.openai_base_url || model != settings.openai_model,
+            SummarizerBackend::OpenAICompatible => {
+                url != settings.openai_base_url || model != settings.openai_model
+            }
+            SummarizerBackend::BuiltIn
+            | SummarizerBackend::ChatGptPlan
+            | SummarizerBackend::ClaudePlan => false,
         }
     }
 }
@@ -492,11 +501,17 @@ impl SettingsPage {
                     settings.openai_model.clone()
                 }
             }
+            SummarizerBackend::ChatGptPlan | SummarizerBackend::ClaudePlan => {
+                plan_model_name(&settings)
+            }
         };
         let think_location = match settings.summarizer_backend {
             SummarizerBackend::BuiltIn => None,
             SummarizerBackend::Ollama => Some(settings.ollama_base_url.clone()),
             SummarizerBackend::OpenAICompatible => Some(settings.openai_base_url.clone()),
+            SummarizerBackend::ChatGptPlan | SummarizerBackend::ClaudePlan => settings
+                .think_plan()
+                .map(|plan| format!("https://{}", plan.destination_host())),
         };
         // What each role downloads: Transcribe with voice detection (and speaker
         // separation when on); built-in Think with the llama.cpp runtime.
@@ -754,6 +769,14 @@ impl SettingsPage {
         for origin in settings.approved_remote_inference_origins.clone() {
             let data = self.data.clone();
             let revoke = origin.clone();
+            let shown = match SubscriptionPlan::for_consent_key(&origin) {
+                Some(plan) => format!(
+                    "{} · {}",
+                    lokalbot_i18n::tr(plan.title()),
+                    plan.destination_host()
+                ),
+                None => origin.clone(),
+            };
             remote = remote.row(
                 "settings.remoteOrigin",
                 settings_row::content_row(
@@ -765,7 +788,7 @@ impl SettingsPage {
                                 .gap(px(8.))
                                 .items_center()
                                 .child(ui::icon(Ico::Network, px(15.), lb.attention_text))
-                                .child(div().flex_1().min_w_0().text_size(ty::BODY).text_color(lb.text).child(origin.clone()))
+                                .child(div().flex_1().min_w_0().text_size(ty::BODY).text_color(lb.text).child(shown))
                                 .child(Button::new(SharedString::from(format!("revoke-{origin}"))).outline().small().label(lokalbot_i18n::tr("Revoke…")).on_click(
                                     move |_, window, cx| confirm_revoke(data.clone(), revoke.clone(), window, cx),
                                 )),
@@ -1088,6 +1111,13 @@ impl SettingsPage {
                         s.summarizer_backend = SummarizerBackend::OpenAICompatible
                     }),
                 ));
+                for plan in SubscriptionPlan::ALL {
+                    items.push((
+                        lokalbot_i18n::tr(plan.title()).into(),
+                        settings.summarizer_backend == plan.backend(),
+                        Box::new(move |s: &mut Settings| s.summarizer_backend = plan.backend()),
+                    ));
+                }
                 items
             }
             RoleChoices::Autocomplete => lokalbot_ai::catalog::autocomplete_entries(Some(
@@ -1297,6 +1327,7 @@ impl SettingsPage {
         let page = cx.entity();
         let connection = self.models.connection;
         let is_ollama = connection == SummarizerBackend::Ollama;
+        let plan = SubscriptionPlan::for_backend(connection);
         let used = settings.summarizer_backend == connection;
         let (draft_url, _) = self.models.draft(cx);
         let has_changes = self.models.has_changes(&settings, cx);
@@ -1323,26 +1354,32 @@ impl SettingsPage {
             .child(settings_row::help(lokalbot_i18n::tr("Manage servers and credentials. Choose which provider Think uses under Core Roles."), cx));
 
         let tab_page = page.clone();
+        const TABS: [SummarizerBackend; 4] = [
+            SummarizerBackend::OpenAICompatible,
+            SummarizerBackend::Ollama,
+            SummarizerBackend::ChatGptPlan,
+            SummarizerBackend::ClaudePlan,
+        ];
         let tabs = settings_row::segmented(
             "settings-connection",
             &[
                 lokalbot_i18n::tr("OpenAI-compatible"),
                 lokalbot_i18n::tr("Ollama"),
+                lokalbot_i18n::tr("ChatGPT plan"),
+                lokalbot_i18n::tr("Claude plan"),
             ],
-            usize::from(is_ollama),
+            TABS.iter().position(|tab| *tab == connection).unwrap_or(0),
             move |index, _, cx| {
                 tab_page.update(cx, |page, cx| {
-                    page.models.connection = if index == 1 {
-                        SummarizerBackend::Ollama
-                    } else {
-                        SummarizerBackend::OpenAICompatible
-                    };
+                    page.models.connection = TABS[index];
                     page.models.saved = None;
                     cx.notify();
                 })
             },
             cx,
         );
+        // A plan is used only once its own consent is on.
+        let usable = plan.is_none_or(|plan| plan.is_approved(&settings));
         let use_data = self.data.clone();
         let used_row = h_flex()
             .gap(px(8.))
@@ -1368,6 +1405,7 @@ impl SettingsPage {
                         .outline()
                         .xsmall()
                         .label(lokalbot_i18n::tr("Use for Think"))
+                        .disabled(!usable)
                         .on_click(move |_, _, cx| {
                             use_data.update(cx, |data, cx| {
                                 data.update_settings(|s| s.summarizer_backend = connection, cx)
@@ -1388,6 +1426,24 @@ impl SettingsPage {
                 .child(Input::new(input))
         };
         let mut form = v_flex().w_full().gap(px(14.)).child(tabs).child(used_row);
+        if let Some(plan) = plan {
+            let form = form.child(self.plan_form(plan, cx));
+            return vec![
+                Section::new(None).row(
+                    "settings.connectionsHeader",
+                    settings_row::content_row("settings.connectionsHeader", header, false, cx),
+                ),
+                Section::new(None).row(
+                    "settings.summarizerBackend",
+                    settings_row::content_row(
+                        "settings.summarizerBackend",
+                        form.py(px(4.)),
+                        self.is_focused("settings.summarizerBackend"),
+                        cx,
+                    ),
+                ),
+            ];
+        }
         if is_ollama {
             form = form
                 .child(field(
@@ -1425,6 +1481,16 @@ impl SettingsPage {
                         )
                         .child(settings_row::help(lokalbot_i18n::tr("Kept in the system credential store only when you choose Save key. Leave empty for a server that needs no key."), cx)),
                 );
+        }
+        if !is_ollama {
+            if lokalbot_ai::think::Dialect::inferred(&draft_url)
+                == lokalbot_ai::think::Dialect::OpenRouter
+            {
+                form = form.child(super::plans::openrouter_policy(self.data.clone(), cx));
+            }
+            if lokalbot_ai::anthropic::is_anthropic(&draft_url) {
+                form = form.child(super::plans::anthropic_note(cx));
+            }
         }
         form = form.child(self.endpoint_disclosure(&draft_url, cx));
 
@@ -1568,6 +1634,20 @@ impl SettingsPage {
         );
         self.models.saved = Some(lokalbot_i18n::tr("Saved").into());
         cx.notify();
+    }
+}
+
+/// "gpt-5.5 · ChatGPT plan", or the plan alone before a model is chosen.
+fn plan_model_name(settings: &Settings) -> String {
+    let Some(plan) = settings.think_plan() else {
+        return String::new();
+    };
+    let title = lokalbot_i18n::tr(plan.title());
+    let model = plan.model(settings);
+    if model.is_empty() {
+        title.to_string()
+    } else {
+        format!("{model} · {title}")
     }
 }
 
