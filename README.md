@@ -4,9 +4,9 @@
 
 # LokalBot
 
-**Your personal context engine for macOS.**
+**Your personal context engine.**
 
-Private meeting notes, workday recall, dictation, and autocomplete—with AI that runs on your Mac.<br />
+Private meeting notes, workday recall, dictation, and autocomplete—with AI that runs on your computer.<br />
 Your AI agents can search it too, from Claude Code, Codex, or any MCP client.<br />
 Free and open source. No account. Nothing joins your calls.
 
