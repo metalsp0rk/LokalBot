@@ -2,12 +2,15 @@
 // LOKALBOT_PINNED_RUNTIME_ROOT=/path/to/runtime bash Scripts/tests/run-pi-runtime-tests.sh
 import { expect, test } from "bun:test";
 import { SessionManager } from "@earendil-works/pi-coding-agent";
-import { mkdir, mkdtemp, readFile, realpath, rm, stat, symlink, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { existsSync } from "node:fs";
+import { mkdir, mkdtemp, readdir, readFile, realpath, rm, stat, symlink, writeFile } from "node:fs/promises";
+import { homedir, tmpdir } from "node:os";
 import { resolve, join } from "node:path";
+import { pathToFileURL } from "node:url";
 import lokalbotExtension, {
   applyReasoningLevel, inferenceFetchForOrigin, readReasoningLevel, retryRejectedReasoning,
 } from "../../LokalBot/Resources/pi/lokalbot-extension/index";
+import * as boundary from "../../LokalBot/Resources/pi/lokalbot-extension/index";
 
 const runtime = process.env.LOKALBOT_PINNED_RUNTIME_ROOT;
 const repo = resolve(import.meta.dir, "../..");
@@ -84,7 +87,8 @@ test("Agent fetch rejects same-origin redirects and preserves normal response st
 // be returned even if the fake UI would approve every request.
 async function withExtensionFixture(run: (fixture: {
   root: string; workspace: string; library: string;
-  call: (toolName: string, input: unknown) => Promise<any>;
+  // `cwd` is the session folder pi resolves tool paths against (ctx.cwd).
+  call: (toolName: string, input: unknown, cwd?: string) => Promise<any>;
   approvals: any[];
   provider: any;
 }) => Promise<void>, baseUrl = "http://127.0.0.1:1234/v1", extraEnvironment: Record<string, string> = {}) {
@@ -107,7 +111,8 @@ async function withExtensionFixture(run: (fixture: {
       if (name === "tool_call") handler = callback;
     } } as any);
     const approvals: any[] = [];
-    const call = (toolName: string, input: unknown) => handler({ toolName, input }, {
+    const call = (toolName: string, input: unknown, cwd?: string) => handler({ toolName, input }, {
+      cwd,
       ui: { confirm: async (_title: string, message: string) => {
         approvals.push(JSON.parse(message)); return true;
       } },
@@ -201,6 +206,125 @@ test("workspace symlinks do not turn private-library reads into implicit access"
   });
 });
 
+// pi's file tools rewrite a requested path before opening it (pi 1.0.3
+// utils/paths.js and core/tools/path-utils.js). Checked as typed, each of
+// these named a missing file inside the workspace and ran without asking.
+
+test("a leading @ is removed before the boundary check, as pi removes it", async () => {
+  await withExtensionFixture(async ({ workspace, library, call, approvals }) => {
+    await writeFile(join(library, "transcript.txt"), "synthetic transcript");
+    await writeFile(join(workspace, "notes.txt"), "synthetic notes");
+    await call("read", { path: "@" + join(library, "transcript.txt") });
+    await call("read", { path: "@../private-library/transcript.txt" });
+    expect(approvals.map(approval => approval.path)).toEqual([
+      join(library, "transcript.txt"), join(library, "transcript.txt"),
+    ]);
+    expect(await call("read", { path: "@notes.txt" })).toBeUndefined();
+    expect(approvals).toHaveLength(2);
+  });
+});
+
+test("~ and @~ reach the home folder, as pi expands them", async () => {
+  await withExtensionFixture(async ({ call, approvals }) => {
+    const home = await realpath(homedir());
+    for (const path of ["~/lokalbot-agent-synthetic-missing.txt", "@~/lokalbot-agent-synthetic-missing.txt", "@~"]) {
+      await call("read", { path });
+    }
+    expect(approvals.map(approval => approval.path)).toEqual([
+      join(home, "lokalbot-agent-synthetic-missing.txt"), join(home, "lokalbot-agent-synthetic-missing.txt"), home,
+    ]);
+  });
+});
+
+test("file URLs are checked as the file pi opens", async () => {
+  await withExtensionFixture(async ({ library, call, approvals }) => {
+    await writeFile(join(library, "transcript.txt"), "synthetic transcript");
+    const url = pathToFileURL(join(library, "transcript.txt")).href;
+    await call("read", { path: url });
+    await call("read", { path: "@" + url });
+    expect(approvals.map(approval => approval.path)).toEqual([
+      join(library, "transcript.txt"), join(library, "transcript.txt"),
+    ]);
+    // A path pi cannot resolve is never treated as a workspace name.
+    await call("read", { path: "file://remote.example/etc/hosts" });
+    expect(approvals).toHaveLength(3);
+  });
+});
+
+test("Unicode spaces are checked as the plain spaces pi opens", async () => {
+  await withExtensionFixture(async ({ workspace, library, call, approvals }) => {
+    await writeFile(join(workspace, "two words.txt"), "synthetic");
+    expect(await call("read", { path: "two\u00A0words.txt" })).toBeUndefined();
+    expect(approvals).toHaveLength(0);
+    await writeFile(join(library, "transcript.txt"), "synthetic transcript");
+    await symlink(library, join(workspace, "linked library"));
+    await call("read", { path: "linked\u00A0library/transcript.txt" });
+    expect(approvals).toHaveLength(1);
+    expect(approvals[0].path).toBe(join(library, "transcript.txt"));
+    await call("write", { path: "new\u2009file.txt", content: "x" });
+    expect(approvals.at(-1).path).toBe(join(workspace, "new file.txt"));
+  });
+});
+
+test("a missing name is checked as the look-alike file pi opens instead", async () => {
+  await withExtensionFixture(async ({ workspace, library, call, approvals }) => {
+    await writeFile(join(library, "transcript.txt"), "synthetic transcript");
+    // pi retries a missing name with a narrow no-break space before AM/PM,
+    // in NFD, and with curly apostrophes.
+    await symlink(library, join(workspace, "it\u2019s"));
+    await symlink(library, join(workspace, "Shot 9.41\u202FAM.d"));
+    await call("read", { path: "it's/transcript.txt" });
+    await call("read", { path: "Shot 9.41 AM.d/transcript.txt" });
+    expect(approvals.map(approval => approval.path)).toEqual([
+      join(library, "transcript.txt"), join(library, "transcript.txt"),
+    ]);
+    await writeFile(join(library, "Capture d\u2019ecran.txt"), "synthetic");
+    await call("read", { path: "it's/Capture d'ecran.txt" });
+    expect(approvals.at(-1).path).toBe(join(library, "Capture d\u2019ecran.txt"));
+  });
+});
+
+test("relative paths resolve against pi's session folder", async () => {
+  await withExtensionFixture(async ({ root, library, call, approvals }) => {
+    await writeFile(join(library, "transcript.txt"), "synthetic transcript");
+    // pi resolves against ctx.cwd: a resumed session keeps the folder it was saved with.
+    await call("read", { path: "private-library/transcript.txt" }, root);
+    expect(approvals).toHaveLength(1);
+    expect(approvals[0].path).toBe(join(library, "transcript.txt"));
+  });
+});
+
+test("a differently cased library path is still the private library", async () => {
+  await withExtensionFixture(async ({ root, library, call, approvals }) => {
+    await writeFile(join(library, "transcript.txt"), "synthetic transcript");
+    const variant = join(root, "PRIVATE-LIBRARY", "transcript.txt");
+    // On a case-sensitive volume pi cannot open the variant either.
+    if (!existsSync(variant)) return;
+    process.chdir(root);
+    await call("read", { path: variant });
+    expect(approvals).toHaveLength(1);
+    expect(approvals[0].path).toBe(join(library, "transcript.txt"));
+  });
+});
+
+test.skipIf(!runtime)("the boundary resolves paths exactly as the pinned pi does", async () => {
+  const pi = await import(join(runtime!, "pi/node_modules/@earendil-works/pi-coding-agent/dist/core/tools/path-utils.js"));
+  await withExtensionFixture(async ({ workspace, library }) => {
+    await writeFile(join(workspace, "it\u2019s.txt"), "x");
+    await writeFile(join(workspace, "Shot 9.41\u202FAM.png"), "x");
+    await writeFile(join(workspace, "cafe\u0301.txt"), "x");
+    const inputs = ["notes.txt", "@notes.txt", "@@notes.txt", "@/etc/hosts", "~", "~/x", "@~/x", "@~", "~x",
+      "../x", "@../x", "/a/../x", "file:///tmp/x", "@file:///tmp/x", "a\u00A0b\u3000c", "@\u2009x",
+      "it's.txt", "Shot 9.41 AM.png", "caf\u00E9.txt", join(library, "x")];
+    for (const cwd of [workspace, library]) {
+      for (const input of inputs) {
+        expect([input, boundary.resolveReadPath(input, cwd)]).toEqual([input, pi.resolveReadPath(input, cwd)]);
+        expect([input, boundary.resolveToCwd(input, cwd)]).toEqual([input, pi.resolveToCwd(input, cwd)]);
+      }
+    }
+  });
+});
+
 test("the entire shell command at the length boundary is sent for approval", async () => {
   await withExtensionFixture(async ({ call, approvals }) => {
     const command = "#".repeat(65_536);
@@ -254,6 +378,7 @@ test("arguments of a tool without a preview must fit in full before approval", a
 async function piTurn(options: {
   workspace: string; toolCall: { name: string; arguments: unknown }; approved: boolean;
   extensions?: string[]; piConfig?: string; beforeAnswer?: (payload: any) => Promise<void>;
+  home?: string; tmp?: string; privateRoots?: string[];
 }) {
   const requests: any[] = [];
   const server = Bun.serve({
@@ -288,9 +413,13 @@ async function piTurn(options: {
     "--session-dir", join(options.workspace, "sessions"), "--offline",
   ], {
     cwd: options.workspace, stdin: "pipe", stdout: "pipe", stderr: "pipe",
-    env: { PATH: process.env.PATH, HOME: options.workspace,
+    env: { PATH: process.env.PATH, HOME: options.home ?? options.workspace,
+      ...(options.tmp ? { TMPDIR: options.tmp } : {}),
       PI_SKIP_VERSION_CHECK: "1", PI_TELEMETRY: "0",
+      // As in PiLaunchPlanner: no compiled copies outside the runtime.
+      BUN_RUNTIME_TRANSPILER_CACHE_PATH: "0", NODE_DISABLE_COMPILE_CACHE: "1", JITI_FS_CACHE: "false",
       PI_CODING_AGENT_DIR: options.piConfig ?? join(options.workspace, "pi-config"),
+      LOKALBOT_AGENT_PRIVATE_ROOTS: JSON.stringify(options.privateRoots ?? []),
       LOKALBOT_LLM_BASE_URL: `http://127.0.0.1:${server.port}/v1`,
       LOKALBOT_LLM_MODEL: "stub-model", LOKALBOT_LLM_CTX: "16384" },
   });
@@ -415,6 +544,54 @@ for (const approved of [false, true]) {
     }
   }, 25_000);
 }
+
+test.skipIf(!runtime)("Pi asks before an @ path reads outside the workspace or the private library", async () => {
+  const root = await realpath(await mkdtemp(join(tmpdir(), "lokalbot-pi-read-")));
+  const workspace = join(root, "workspace");
+  const library = join(workspace, "library");
+  const home = join(root, "home");
+  try {
+    await mkdir(library, { recursive: true });
+    await mkdir(join(home, ".ssh"), { recursive: true });
+    await writeFile(join(home, ".ssh", "id_rsa"), "SYNTHETIC-KEY");
+    await writeFile(join(root, "outside.txt"), "SYNTHETIC-OUTSIDE");
+    await writeFile(join(library, "transcript.txt"), "SYNTHETIC-TRANSCRIPT");
+    for (const [path, file, secret] of [
+      ["@~/.ssh/id_rsa", join(home, ".ssh", "id_rsa"), "SYNTHETIC-KEY"],
+      ["@" + join(root, "outside.txt"), join(root, "outside.txt"), "SYNTHETIC-OUTSIDE"],
+      ["@library/transcript.txt", join(library, "transcript.txt"), "SYNTHETIC-TRANSCRIPT"],
+    ]) {
+      const turn = await piTurn({ workspace, home, privateRoots: [library], approved: false,
+        toolCall: { name: "read", arguments: { path } } });
+      expect(turn.approvals.map(approval => approval.path)).toEqual([file]);
+      expect(turn.reply).toBe(true);
+      expect(JSON.stringify(turn.requests)).not.toContain(secret);
+    }
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+}, 75_000);
+
+test.skipIf(!runtime)("Pi keeps no compiled copies of itself or the extension outside the runtime", async () => {
+  const root = await realpath(await mkdtemp(join(tmpdir(), "lokalbot-pi-cache-")));
+  const workspace = join(root, "workspace");
+  const home = join(root, "home");
+  const tmp = join(root, "tmp");
+  try {
+    await mkdir(workspace); await mkdir(home); await mkdir(tmp);
+    await writeFile(join(workspace, "notes.txt"), "synthetic notes");
+    const turn = await piTurn({ workspace, home, tmp, approved: true,
+      toolCall: { name: "read", arguments: { path: "notes.txt" } } });
+    expect(turn.approvals).toHaveLength(0);
+    expect(turn.reply).toBe(true);
+    // Otherwise Bun's transpiler cache is written to ~/Library/Caches/bun, and
+    // pi's compile cache and jiti's extension cache to the temporary folder.
+    expect(await readdir(home)).toEqual([]);
+    expect(await readdir(tmp)).toEqual([]);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+}, 25_000);
 
 test("Pi resumes append-only context edits without overwriting visible history", async () => {
   const workspace = await mkdtemp(join(tmpdir(), "lokalbot-pi-context-upgrade-"));

@@ -328,16 +328,24 @@ scripts that must not start background services.
 
 **Approval flow**
 
-1. A widening request returns
-   `{"status": "needs_approval", "request_id": "…"}`.
+1. A request with a widening change waits, whole, for the person. It returns
+   `[needs_approval]` with the request in `details`: its `id`, every change,
+   and, for a shorter retention policy, what the cleanup deletes. An
+   identical request still waiting is reused, and at most five wait at once.
 2. The app posts a notification and shows an approval card naming:
    - the caller;
-   - the exact change;
-   - the disclosure copy Settings already uses for that choice.
-3. `--wait [seconds]` blocks until the request is approved, denied, or
-   expires. Exit codes distinguish the three.
+   - every change in the request, marking the widening ones;
+   - each widening setting's description.
+3. `--wait <seconds>` (up to 300) polls `settings.request` until the request
+   is approved, denied, or expires, and `config request <id>` asks later.
+   Exit codes: 0 approved, 3 still waiting, 4 denied, 5 expired.
 4. A multi-key import lists every change on one card.
-5. Requests expire after a few minutes and cannot be approved in bulk later.
+5. Requests expire after five minutes and cannot be approved in bulk later.
+   Turning the settings grant off declines every request still waiting.
+6. Approving re-plans the request against the settings as they are then, and
+   asks for the permissions the Settings controls would. A shorter retention
+   policy applies only the cleanup the card showed; if that changed, the card
+   shows the new review and waits.
 
 **Audit and undo**
 
@@ -370,7 +378,7 @@ lokalbot-cli config set trackingEnabled=true --wait 120    # needs approval in t
 lokalbot-cli config reset cotypingMaxWords   # back to the default
 lokalbot-cli config export > lokalbot-settings.json
 lokalbot-cli config import lokalbot-settings.json --dry-run  # diff + tiers, then apply
-lokalbot-cli secret set openai-compatible --stdin           # write-only; needs approval
+printf %s "$KEY" | lokalbot-cli secret set openai-compatible  # key on stdin; needs approval
 lokalbot-cli open settings dictationShortcut  # Settings, focused on that control, for what
                                               # only the person can do (permissions, sign-in)
 ```
@@ -392,6 +400,7 @@ lokalbot-cli open settings dictationShortcut  # Settings, focused on that contro
   - `[needs_approval]`
   - `[denied]`
   - `[expired]`
+  - `[unknown_request]`, `[too_many_requests]`, `[unknown_secret]`
   - `[app_not_running]`: `--no-launch` was given, the launch failed, or the
     CLI is not inside an app bundle
   - `[app_outdated]`: the running app predates the CLI's protocol version
@@ -597,13 +606,14 @@ launch-at-login choices. It has the same shape as `config import`.
 
 ### What has to land first
 
-- **Side effects in `AppState`.** Phase 2's move of Settings-view side effects
-  into `AppState`. Turning on Day Memory, calendar detection, or a capture
-  mode requests permissions from `SettingsView` closures today, so a write over
-  the socket would skip those prompts.
-- **Richer `status`.** It needs model readiness and onboarding state.
+- **Side effects in `AppState`.** Turning on Day Memory, calendar detection,
+  or a capture mode used to request permissions from `SettingsView` closures,
+  so a write over the socket would have skipped those prompts. Done in
+  Phase 3.
+- **Richer `status`.** It needs model readiness and onboarding state. Done in
+  Phase 2.
 - **Wider `open`.** It needs to accept the Settings destinations that are not
-  registry keys (`permissions`, `models`, and the three grants).
+  registry keys (`permissions`, `models`, and the grants). Done in Phase 2.
 
 ## Implementation status
 
@@ -616,8 +626,60 @@ Phase 1, with the registry part of Phase 0, is implemented on branch
   their titles and categories equal.
 - The settings grant, the control socket, background launch, and
   `config schema|describe|search|list|get`, `status`, and `open` are in place.
-- Moving the UI couplings into `AppState` is deferred to Phase 2, because
-  only writes need them.
+- Moving the UI couplings into `AppState` waited for writes, which need
+  them; Phase 3 moved them.
+
+Phase 2 is implemented in PR #288:
+
+- `config set|reset|export|import` and `settings.set`: all or nothing, with
+  dry run. Preference and narrowing changes apply; widening ones return
+  `needs_approval` with the changes in `details`, and read-only ones
+  `read_only`.
+- `SettingsChangeApplier` validates through the real decoder and applies the
+  narrowing couplings (tracking off resets the capture mode, the capture mode
+  drives `screenshotsEnabled`, dreaming keeps its start day). The permission
+  requests that the Settings view fires when a feature is turned on move with
+  Phase 3, because only approved widening changes trigger them.
+- Audit log in `diagnostics/settings-changes.jsonl` with the caller's name,
+  and a "Recent changes by agents" list with Undo under the toggle.
+- `status` reports model readiness and onboarding; `open` accepts the
+  non-setting Settings sections.
+
+Phase 3 is implemented in PR #288 as well:
+
+- `SettingsApprovals` queues requests with widening changes and new API keys.
+  The app posts a notification, opens the approval window when notifications
+  are off, and shows a menu bar row; the window has one card per request.
+- `settings.request`, `--wait`, and `config request` report the answer with
+  distinct exit codes.
+- `secret list|set|clear` (`AppSecret`): keys go in on stdin, wait for
+  approval, are held in memory only until answered, and are never read back.
+  The card shows the last four characters.
+- The Settings controls' couplings and permission prompts moved into
+  `AppState` (`changeSettings`, `coupledSettings`,
+  `requestPermissions(forChangeFrom:to:)`), as did the retention cleanup
+  (`applyRetentionReview`). The tracking, capture mode, and calendar controls,
+  approved requests, and Undo all use them.
+- Undo is not offered for retention changes, which could delete without a
+  review. `screenshotsEnabled` became read-only: it follows the capture mode.
+
+Phase 4 is implemented in the follow-up PR:
+
+- `setup start` (`AgentSetup`, `AgentSetupRequests`): the request file, the
+  `agent-setup` window (shown instead of the onboarding wizard on a new
+  install; declining opens the wizard), separate read-access boxes off by
+  default, and the answer file `--wait` reads. Only Allow writes markers.
+- `setup plan` (current values for `SetupPlan.keys`, the preset suited to this
+  Mac's memory, and the settings that need approval) and `setup apply`
+  (preferences directly, consent changes on one card, then the model preset
+  and launch at login), `setup finish`, and `setup launch-at-login`.
+- `models status|preset|download|cancel`, `permissions [request <name>]`,
+  `restart` (refused while recording), and `doctor` (exits 1 while something
+  the person turned on is blocked).
+- `/lokalbot:setup` in the Claude Code plugin, `AGENT_SETUP.md`, and a
+  "Setting up LokalBot" section in the skill.
+- Not done: "Review individually" on the consent card, `models
+  list|recommend|check`, and a website copy of `AGENT_SETUP.md`.
 
 ## Phases
 
@@ -625,8 +687,8 @@ Phase 1, with the registry part of Phase 0, is implemented on branch
 | --- | --- | --- |
 | 0 | Registry and coverage tests. Done in PR #281, except building `SettingDescriptor` from the registry and moving couplings, which go with Phase 2 | Done (part) |
 | 1 | `config schema/describe/search`, settings grant and marker, control socket, background launch, `config list/get`, `status`, `open` | Done in PR #281 |
-| 2 | Preference writes, audit log, Undo list. Settings-view side effects (permission requests, couplings) moved into `AppState`. `status` gains model readiness and onboarding state; `open` accepts non-registry destinations | Medium |
-| 3 | Approval requests (notification, menu bar, approval window), one combined card for multi-change requests, `--wait`, `secret set`, retention review through approval | Medium |
+| 2 | Preference writes, audit log, Undo list. `status` gains model readiness and onboarding state; `open` accepts non-registry destinations | Done in PR #288 |
+| 3 | Approval requests (notification, menu bar, approval window), one combined card for multi-change requests, `--wait`, `secret set`, retention review through approval. Settings-view side effects (permission requests, couplings) moved into `AppState` | Done in PR #288 |
 | 4 | Agent-led setup: `setup start` (bootstrap request in onboarding), `setup plan/apply`, `models`, `permissions`, `restart`, `setup finish`, `doctor`. Plus `/lokalbot:setup`, `AGENT_SETUP.md`, and the skill section | Medium–large |
 | 5 | MCP tools; optional App Intents generated from the registry | Small–medium |
 | Later | Other actions over the socket (recording, processing, digest, Dream); headless flags forward to a running app | Medium–large |
