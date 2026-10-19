@@ -136,7 +136,9 @@ impl CalendarParticipantIdentity {
 
     /// Deduplicates by address first, and by name only when an address is
     /// missing. A same-name, different-address pair stays two people.
-    pub fn normalized(identities: &[CalendarParticipantIdentity]) -> Vec<CalendarParticipantIdentity> {
+    pub fn normalized(
+        identities: &[CalendarParticipantIdentity],
+    ) -> Vec<CalendarParticipantIdentity> {
         let mut result: Vec<CalendarParticipantIdentity> = Vec::new();
         for input in identities {
             let Some(identity) = Self::new(
@@ -156,7 +158,9 @@ impl CalendarParticipantIdentity {
             }
             if let Some(name_key) = identity.name.as_deref().map(name_key) {
                 let same_name: Vec<usize> = (0..result.len())
-                    .filter(|&i| result[i].name.as_deref().map(self::name_key) == Some(name_key.clone()))
+                    .filter(|&i| {
+                        result[i].name.as_deref().map(self::name_key) == Some(name_key.clone())
+                    })
                     .collect();
                 if identity.email_address.is_some()
                     && let Some(&index) = same_name
@@ -205,7 +209,10 @@ pub fn resolved_meeting_identities(
     );
     if structured.is_empty() {
         CalendarParticipantIdentity::from_legacy_names(
-            meeting.participant_name_hints.as_deref().unwrap_or_default(),
+            meeting
+                .participant_name_hints
+                .as_deref()
+                .unwrap_or_default(),
         )
     } else {
         structured
@@ -237,7 +244,10 @@ pub(crate) fn name_key(name: &str) -> String {
 fn capitalize(word: &str) -> String {
     let mut chars = word.chars();
     match chars.next() {
-        Some(first) => first.to_uppercase().chain(chars.flat_map(char::to_lowercase)).collect(),
+        Some(first) => first
+            .to_uppercase()
+            .chain(chars.flat_map(char::to_lowercase))
+            .collect(),
         None => String::new(),
     }
 }

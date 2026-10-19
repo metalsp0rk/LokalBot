@@ -12,7 +12,13 @@ fn now() -> DateTime<Utc> {
     Utc.timestamp_opt(2_000_000_000, 0).unwrap()
 }
 
-fn event(id: &str, title: &str, starts_in: i64, duration: i64, participants: &[&str]) -> CalendarEvent {
+fn event(
+    id: &str,
+    title: &str,
+    starts_in: i64,
+    duration: i64,
+    participants: &[&str],
+) -> CalendarEvent {
     let start = now() + chrono::Duration::seconds(starts_in);
     CalendarEvent {
         provider: "test".into(),
@@ -61,7 +67,10 @@ fn action(text: &str, due: &str) -> ActionItem {
 fn outcomes(actions: Vec<ActionItem>, decisions: &[&str]) -> MeetingOutcomes {
     MeetingOutcomes {
         action_items: actions,
-        decision_records: decisions.iter().map(|d| Decision::new(d, Vec::new())).collect(),
+        decision_records: decisions
+            .iter()
+            .map(|d| Decision::new(d, Vec::new()))
+            .collect(),
         ..Default::default()
     }
 }
@@ -132,15 +141,29 @@ fn compiler_uses_participant_history_outcomes_and_project_memory() {
             "evidence": []
         }]),
     );
-    let upcoming = event("atlas-review", "Atlas launch review", 1_200, 1_800, &["Ana Petrovic"]);
+    let upcoming = event(
+        "atlas-review",
+        "Atlas launch review",
+        1_200,
+        1_800,
+        &["Ana Petrovic"],
+    );
 
     let evidence = compile(&upcoming, &library, now(), false);
 
-    let ids: Vec<Uuid> = evidence.related_meetings.iter().map(|m| m.meeting_id).collect();
+    let ids: Vec<Uuid> = evidence
+        .related_meetings
+        .iter()
+        .map(|m| m.meeting_id)
+        .collect();
     assert_eq!(ids, [related.id]);
     let decisions: Vec<&str> = evidence.decisions.iter().map(|d| d.text.as_str()).collect();
     assert_eq!(decisions, ["Keep the Atlas rollout staged."]);
-    let commitments: Vec<&str> = evidence.commitments.iter().map(|c| c.text.as_str()).collect();
+    let commitments: Vec<&str> = evidence
+        .commitments
+        .iter()
+        .map(|c| c.text.as_str())
+        .collect();
     assert_eq!(commitments, ["Send the rollout checklist"]);
     assert_eq!(evidence.commitments[0].owner.as_deref(), Some("Me"));
     assert!(evidence.commitments[0].is_for_user);
@@ -149,7 +172,11 @@ fn compiler_uses_participant_history_outcomes_and_project_memory() {
     let brief = evidence.fallback_brief();
     assert!(brief.contains("Keep the Atlas rollout staged"), "{brief}");
     assert!(brief.contains("Owner: You."), "{brief}");
-    assert!(evidence.prompt_context().contains("using saved corrections and status"));
+    assert!(
+        evidence
+            .prompt_context()
+            .contains("using saved corrections and status")
+    );
 }
 
 #[test]
@@ -198,7 +225,10 @@ fn compiler_deduplicates_commitments_and_keeps_latest_correction() {
     );
 
     assert_eq!(evidence.commitments.len(), 1, "{:?}", evidence.commitments);
-    assert_eq!(evidence.commitments[0].text, "Send Acme the revised launch proposal");
+    assert_eq!(
+        evidence.commitments[0].text,
+        "Send Acme the revised launch proposal"
+    );
     assert_eq!(evidence.commitments[0].due.as_deref(), Some("Tuesday"));
     assert_eq!(evidence.commitments[0].source_meeting_count, 2);
 }
@@ -222,7 +252,10 @@ fn compiler_falls_back_to_recurring_calendar_title_without_participants() {
         false,
     );
     assert_eq!(evidence.related_meetings[0].meeting_id, prior.id);
-    assert_eq!(evidence.decisions[0].text, "Keep onboarding as the first milestone.");
+    assert_eq!(
+        evidence.decisions[0].text,
+        "Keep onboarding as the first milestone."
+    );
 }
 
 #[test]
@@ -255,10 +288,13 @@ fn compiler_does_not_pull_unrelated_recent_work() {
 fn compiler_matches_structured_attendees_and_keeps_the_agenda_only_when_asked() {
     let (_dir, library) = library();
     let started = now() - chrono::Duration::days(3);
-    let mut prior = library.create_meeting("Customer call", "Zoom", started).unwrap();
+    let mut prior = library
+        .create_meeting("Customer call", "Zoom", started)
+        .unwrap();
     prior.ended_at = Some(started + chrono::Duration::seconds(600));
     prior.calendar_participant_identities = Some(vec![
-        CalendarParticipantIdentity::new("x", Some("Jordan Lee"), Some("jordan@example.com")).unwrap(),
+        CalendarParticipantIdentity::new("x", Some("Jordan Lee"), Some("jordan@example.com"))
+            .unwrap(),
     ]);
     library.save_meeting(&prior).unwrap();
     let mut upcoming = event("next", "Renewal", 600, 1_800, &["Jordan Lee"]);
@@ -269,11 +305,19 @@ fn compiler_matches_structured_attendees_and_keeps_the_agenda_only_when_asked() 
     assert_eq!(without.related_meetings[0].participant_matches, 1);
     assert_eq!(without.agenda, None);
     let with = compile(&upcoming, &library, now(), true);
-    assert_eq!(with.agenda.as_deref(), Some("Renewal terms\nPricing questions"));
+    assert_eq!(
+        with.agenda.as_deref(),
+        Some("Renewal terms\nPricing questions")
+    );
     assert_ne!(with.signature(), without.signature());
 }
 
-fn reference(kind: ReferenceKind, text: String, meeting: &RelatedMeeting, index: usize) -> UpcomingReference {
+fn reference(
+    kind: ReferenceKind,
+    text: String,
+    meeting: &RelatedMeeting,
+    index: usize,
+) -> UpcomingReference {
     UpcomingReference {
         id: format!("{}-{index}", meeting.meeting_id),
         kind,
@@ -307,7 +351,10 @@ fn generator_returns_bounded_structured_brief() {
             serde_json::json!({"choices": [{"message": {"role": "assistant", "content": "{\"brief\":\"The staged rollout is still the key decision. Confirm the review status before expanding access.\"}"}, "finish_reason": "stop"}]}),
         ),
         "/tokenize" => Reply::Json(200, serde_json::json!({"tokens": [1, 2, 3]})),
-        "/props" => Reply::Json(200, serde_json::json!({"default_generation_settings": {"n_ctx": 8192}})),
+        "/props" => Reply::Json(
+            200,
+            serde_json::json!({"default_generation_settings": {"n_ctx": 8192}}),
+        ),
         _ => Reply::Text(404, "nope".into()),
     });
     let think = ThinkClient::llama_server(&server.url("/v1"), "token", "qwen3.5-4b");
@@ -349,7 +396,8 @@ fn long_prior_summaries_leave_room_for_decisions_commitments_and_projects() {
         .chars()
         .take(1_600)
         .collect();
-    let detail = " The owners confirmed the region list, the rollback plan, and the dashboard thresholds.";
+    let detail =
+        " The owners confirmed the region list, the rollback plan, and the dashboard thresholds.";
     let priors: Vec<RelatedMeeting> = (0..6).map(|i| prior(i, &summary)).collect();
     let mut evidence = empty_evidence(event("next", "Atlas review", 600, 1_800, &[]));
     for index in 0..5 {
@@ -380,8 +428,14 @@ fn long_prior_summaries_leave_room_for_decisions_commitments_and_projects() {
 
     assert!(context.chars().count() <= PROMPT_CONTEXT_CHARACTERS);
     for index in 0..5 {
-        assert!(context.contains(&format!("Decision {index}:")), "decision {index} was cut");
-        assert!(context.contains(&format!("Commitment {index}:")), "commitment {index} was cut");
+        assert!(
+            context.contains(&format!("Decision {index}:")),
+            "decision {index} was cut"
+        );
+        assert!(
+            context.contains(&format!("Commitment {index}:")),
+            "commitment {index} was cut"
+        );
     }
     assert!(context.contains("Project 2:"), "project context was cut");
     for prior in &priors {

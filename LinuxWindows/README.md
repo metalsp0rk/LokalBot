@@ -31,7 +31,8 @@ More screenshots of both apps are in [docs/screenshots](docs/screenshots).
 | Live transcript preview while recording | ✓ | ✓ | Opt-in from the live meeting view. Each track is transcribed in 4–12 s chunks cut at a pause, as Me and Remote speaker; the full transcript replaces it after the meeting. |
 | Autocomplete in other apps | X11 (GTK; Qt, Chromium/Electron and Firefox once system accessibility is on); Wayland: the practice editor in Settings only | ✓ (apps whose fields support UI Automation) | Off until you turn it on in Settings → Writing. LFM2.5 1.2B on this computer by default, about 250 ms to a suggestion on CPU. Tab accepts a word, Esc dismisses. Password fields, terminals and excluded apps are never read, and nothing is stored. |
 | Agent Mode | ✓ | ✓ (Git Bash, or PowerShell without it) | Runs the pi coding agent with your Think model. Setup downloads Bun and pi (pinned and checksum-verified, about 65 MB on Linux and 70 MB on Windows). File changes and commands need your approval. |
-| Calendar, meeting merge and boundaries, spoken summaries, coding-agent sessions in day memory | — | — | macOS only for now. |
+| Calendar | ✓ (private iCal/CalDAV links; Evolution Data Server, including GNOME Online Accounts) | ✓ (private iCal/CalDAV links) | Off until you turn it on in Settings → Meetings. Titles and stamps recordings like macOS, backs browser calls with the event's meeting link, splits back-to-back meetings, suggests attendee names for speakers, and lists today's meetings on Today with Join, Record and a pre-meeting brief from the local Think model. Links are kept in the system credential store. |
+| Meeting merge and boundaries, spoken summaries, coding-agent sessions in day memory | — | — | macOS only for now. |
 
 ## Install
 

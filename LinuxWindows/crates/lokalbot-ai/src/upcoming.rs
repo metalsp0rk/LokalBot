@@ -147,7 +147,10 @@ impl UpcomingEvidence {
         if let Some(commitment) = self.commitments.first() {
             let mut detail = sentence(&commitment.text);
             if let Some(owner) = non_empty(commitment.owner.as_deref()) {
-                detail.push_str(&format!(" Owner: {}.", owner_label(owner, commitment.is_for_user)));
+                detail.push_str(&format!(
+                    " Owner: {}.",
+                    owner_label(owner, commitment.is_for_user)
+                ));
             }
             if let Some(due) = non_empty(commitment.due.as_deref()) {
                 detail.push_str(&format!(" Due: {due}."));
@@ -191,7 +194,10 @@ impl UpcomingEvidence {
             ),
         ];
         if !self.event.participant_names.is_empty() {
-            head.push(format!("Participants: {}", self.event.participant_names.join(", ")));
+            head.push(format!(
+                "Participants: {}",
+                self.event.participant_names.join(", ")
+            ));
         }
         if let Some(agenda) = &self.agenda {
             head.push(format!("Agenda from the invitation:\n{agenda}"));
@@ -210,17 +216,25 @@ impl UpcomingEvidence {
                 .chars()
                 .count()
                 + 2;
-            let share = PROMPT_CONTEXT_CHARACTERS.saturating_sub(fixed) / self.related_meetings.len();
+            let share =
+                PROMPT_CONTEXT_CHARACTERS.saturating_sub(fixed) / self.related_meetings.len();
             let rows: Vec<String> = self
                 .related_meetings
                 .iter()
                 .map(|related| {
-                    let row = format!("- {} · {}", abbreviated_date(related.started_at), related.title);
+                    let row = format!(
+                        "- {} · {}",
+                        abbreviated_date(related.started_at),
+                        related.title
+                    );
                     let room = share as i64 - row.chars().count() as i64 - 4;
                     if related.summary.is_empty() || room < 80 {
                         row
                     } else {
-                        format!("{row}\n  {}", sanitize(&related.summary, Some(room as usize)))
+                        format!(
+                            "{row}\n  {}",
+                            sanitize(&related.summary, Some(room as usize))
+                        )
                     }
                 })
                 .collect();
@@ -255,7 +269,10 @@ impl UpcomingEvidence {
                         metadata.push(format!("due: {due}"));
                     }
                     if reference.source_meeting_count > 1 {
-                        metadata.push(format!("sources: {} meetings", reference.source_meeting_count));
+                        metadata.push(format!(
+                            "sources: {} meetings",
+                            reference.source_meeting_count
+                        ));
                     }
                     if metadata.is_empty() {
                         format!("- {}", reference.text)
@@ -274,7 +291,10 @@ impl UpcomingEvidence {
                 "Recent project context:\n{}",
                 self.projects
                     .iter()
-                    .map(|p| format!("- {}: {} (last active {})", p.name, p.status, p.last_active_day))
+                    .map(|p| format!(
+                        "- {}: {} (last active {})",
+                        p.name, p.status, p.last_active_day
+                    ))
                     .collect::<Vec<_>>()
                     .join("\n")
             ));
@@ -305,7 +325,15 @@ pub fn compile(
             .unwrap_or_default()
     };
     let memory = read_projects(library);
-    compile_with(event, &meetings, &summaries, library, &memory, now, include_agenda)
+    compile_with(
+        event,
+        &meetings,
+        &summaries,
+        library,
+        &memory,
+        now,
+        include_agenda,
+    )
 }
 
 fn compile_with(
@@ -389,7 +417,10 @@ fn compile_with(
         };
         for (index, decision) in projection.outcomes.decision_records.iter().enumerate() {
             decisions.push(UpcomingReference {
-                id: format!("{}-decision-{index}", lokalbot_core::ids::uuid_upper(&meeting.id)),
+                id: format!(
+                    "{}-decision-{index}",
+                    lokalbot_core::ids::uuid_upper(&meeting.id)
+                ),
                 kind: ReferenceKind::Decision,
                 text: decision.text.clone(),
                 meeting_id: meeting.id,
@@ -403,25 +434,26 @@ fn compile_with(
         }
         action_references.extend(projection.action_references());
     }
-    let commitments: Vec<UpcomingReference> = lokalbot_core::actions::cluster_threads(action_references)
-        .into_iter()
-        .filter(|thread| thread.status() != ActionStatus::Done)
-        .map(|thread| {
-            let source = thread.latest();
-            UpcomingReference {
-                id: thread.id.clone(),
-                kind: ReferenceKind::Commitment,
-                text: thread.text.clone(),
-                meeting_id: source.meeting_id,
-                meeting_title: source.meeting_title.clone(),
-                meeting_date: source.meeting_started_at,
-                owner: thread.owner.clone(),
-                is_for_user: thread.is_for_user(),
-                due: thread.due.clone(),
-                source_meeting_count: thread.meeting_count(),
-            }
-        })
-        .collect();
+    let commitments: Vec<UpcomingReference> =
+        lokalbot_core::actions::cluster_threads(action_references)
+            .into_iter()
+            .filter(|thread| thread.status() != ActionStatus::Done)
+            .map(|thread| {
+                let source = thread.latest();
+                UpcomingReference {
+                    id: thread.id.clone(),
+                    kind: ReferenceKind::Commitment,
+                    text: thread.text.clone(),
+                    meeting_id: source.meeting_id,
+                    meeting_title: source.meeting_title.clone(),
+                    meeting_date: source.meeting_started_at,
+                    owner: thread.owner.clone(),
+                    is_for_user: thread.is_for_user(),
+                    due: thread.due.clone(),
+                    source_meeting_count: thread.meeting_count(),
+                }
+            })
+            .collect();
     let related: Vec<RelatedMeeting> = scored.into_iter().map(|(related, _)| related).collect();
     let projects = project_context(memory, &event_terms, &related);
     decisions.truncate(MAXIMUM_REFERENCES_PER_KIND);
@@ -489,10 +521,16 @@ fn project_context(
             if direct == 0 && contextual == 0 {
                 return None;
             }
-            Some((direct * 100 + contextual * 20 + if project.pinned { 5 } else { 0 }, project))
+            Some((
+                direct * 100 + contextual * 20 + if project.pinned { 5 } else { 0 },
+                project,
+            ))
         })
         .collect();
-    scored.sort_by(|a, b| b.0.cmp(&a.0).then(b.1.last_active_day.cmp(&a.1.last_active_day)));
+    scored.sort_by(|a, b| {
+        b.0.cmp(&a.0)
+            .then(b.1.last_active_day.cmp(&a.1.last_active_day))
+    });
     scored
         .into_iter()
         .take(MAXIMUM_PROJECTS)

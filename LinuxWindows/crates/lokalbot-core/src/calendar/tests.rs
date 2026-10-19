@@ -44,7 +44,9 @@ fn detects_zoom_subdomain() {
 
 #[test]
 fn detects_teams_and_webex() {
-    assert!(is_meeting_url("https://teams.microsoft.com/l/meetup-join/x"));
+    assert!(is_meeting_url(
+        "https://teams.microsoft.com/l/meetup-join/x"
+    ));
     assert!(is_meeting_url("https://acme.webex.com/meet/jane"));
 }
 
@@ -88,7 +90,9 @@ fn finds_links_in_invitation_markup_and_without_a_scheme() {
     let outlook = "Join: <https://teams.microsoft.com/l/meetup-join/19%3ameeting_x%40thread.v2/0?context=%7b%7d>.";
     assert_eq!(
         first_meeting_url(Some(outlook)).as_deref(),
-        Some("https://teams.microsoft.com/l/meetup-join/19%3ameeting_x%40thread.v2/0?context=%7b%7d")
+        Some(
+            "https://teams.microsoft.com/l/meetup-join/19%3ameeting_x%40thread.v2/0?context=%7b%7d"
+        )
     );
     assert_eq!(
         first_meeting_url(Some("Dial zoom.us/j/123456789, or call.")).as_deref(),
@@ -127,11 +131,41 @@ fn rejects_all_day_canceled_declined_empty_ooo() {
     let check = |event: RawCalendarEvent, label: &str| {
         assert!(!is_recordable_meeting(&event), "{label}");
     };
-    check(RawCalendarEvent { is_all_day: true, ..raw() }, "all-day");
-    check(RawCalendarEvent { is_canceled: true, ..raw() }, "canceled");
-    check(RawCalendarEvent { is_declined_by_me: true, ..raw() }, "declined");
-    check(RawCalendarEvent { title: Some("   ".into()), ..raw() }, "blank title");
-    check(RawCalendarEvent { title: None, ..raw() }, "nil title");
+    check(
+        RawCalendarEvent {
+            is_all_day: true,
+            ..raw()
+        },
+        "all-day",
+    );
+    check(
+        RawCalendarEvent {
+            is_canceled: true,
+            ..raw()
+        },
+        "canceled",
+    );
+    check(
+        RawCalendarEvent {
+            is_declined_by_me: true,
+            ..raw()
+        },
+        "declined",
+    );
+    check(
+        RawCalendarEvent {
+            title: Some("   ".into()),
+            ..raw()
+        },
+        "blank title",
+    );
+    check(
+        RawCalendarEvent {
+            title: None,
+            ..raw()
+        },
+        "nil title",
+    );
     check(
         RawCalendarEvent {
             availability_unavailable: true,
@@ -287,7 +321,13 @@ fn allows_different_event_and_first_recording() {
         "different event"
     );
     assert!(
-        !should_suppress_repeat(Some("evt#1"), None, None, at(10_000), Duration::from_secs(300)),
+        !should_suppress_repeat(
+            Some("evt#1"),
+            None,
+            None,
+            at(10_000),
+            Duration::from_secs(300)
+        ),
         "no prior recording"
     );
 }
@@ -308,14 +348,26 @@ fn does_not_split_for_same_or_missing_calendar_event() {
         Some("evt#standup"),
         Some("evt#standup")
     ));
-    assert!(!should_split_for_calendar_handoff(None, Some("evt#planning")));
-    assert!(!should_split_for_calendar_handoff(Some("evt#standup"), None));
+    assert!(!should_split_for_calendar_handoff(
+        None,
+        Some("evt#planning")
+    ));
+    assert!(!should_split_for_calendar_handoff(
+        Some("evt#standup"),
+        None
+    ));
 }
 
 #[test]
 fn next_calendar_event_records_after_the_user_stopped_the_previous_one() {
-    assert_eq!(switch_action(CALENDAR_HANDOFF, true, true), SwitchAction::Split);
-    assert_eq!(switch_action(CALENDAR_HANDOFF, false, false), SwitchAction::Start);
+    assert_eq!(
+        switch_action(CALENDAR_HANDOFF, true, true),
+        SwitchAction::Split
+    );
+    assert_eq!(
+        switch_action(CALENDAR_HANDOFF, false, false),
+        SwitchAction::Start
+    );
     assert_eq!(
         switch_action(CALENDAR_HANDOFF, false, true),
         SwitchAction::Ignore,
@@ -347,7 +399,10 @@ fn recording_title_falls_back_when_titles_off() {
 
 #[test]
 fn recording_title_falls_back_when_no_calendar_title() {
-    assert_eq!(recording_title(Some("  "), true, Some("Zoom")), "Zoom meeting");
+    assert_eq!(
+        recording_title(Some("  "), true, Some("Zoom")),
+        "Zoom meeting"
+    );
     assert_eq!(recording_title(None, true, None), "Manual recording");
     assert_eq!(meeting_title("Google Meet meeting"), "Google Meet meeting");
 }
@@ -393,8 +448,12 @@ fn planning_event() -> CalendarEvent {
         source_calendar_title: Some("Work".into()),
         participant_names: vec!["Ana".into(), "Stevan".into()],
         participant_identities: vec![
-            CalendarParticipantIdentity::new("ana-calendar-id", Some("Ana"), Some("ana@example.com"))
-                .unwrap(),
+            CalendarParticipantIdentity::new(
+                "ana-calendar-id",
+                Some("Ana"),
+                Some("ana@example.com"),
+            )
+            .unwrap(),
             CalendarParticipantIdentity::new("", Some("Stevan"), None).unwrap(),
         ],
         agenda: Some("Review the sprint goals\nPick the release owner".into()),
@@ -412,12 +471,19 @@ fn stamped_calendar_fields_use_the_macos_keys_and_round_trip() {
     assert_eq!(json["scheduledStartAt"], "2023-11-14T22:13:20Z");
     assert_eq!(json["scheduledEndAt"], "2023-11-14T23:13:20Z");
     assert_eq!(json["meetingURL"], "https://meet.google.com/abc-defg-hij");
-    assert_eq!(json["participantNameHints"], serde_json::json!(["Ana", "Stevan"]));
+    assert_eq!(
+        json["participantNameHints"],
+        serde_json::json!(["Ana", "Stevan"])
+    );
     assert_eq!(
         json["calendarParticipantIdentities"][0],
         serde_json::json!({"id": "ana-calendar-id", "name": "Ana", "emailAddress": "ana@example.com"})
     );
-    assert!(json["calendarParticipantIdentities"][1].get("emailAddress").is_none());
+    assert!(
+        json["calendarParticipantIdentities"][1]
+            .get("emailAddress")
+            .is_none()
+    );
     assert!(
         json.get("calendarAgenda").is_none(),
         "agendas stay out unless agenda use is on"
@@ -466,11 +532,17 @@ fn decodes_calendar_metadata_written_by_the_mac_app() {
 }"#;
     let meeting: Meeting = serde_json::from_str(json).unwrap();
     assert_eq!(meeting.calendar_provider.as_deref(), Some("eventkit"));
-    assert_eq!(meeting.meeting_url.as_deref(), Some("https://meet.google.com/abc-defg-hij"));
+    assert_eq!(
+        meeting.meeting_url.as_deref(),
+        Some("https://meet.google.com/abc-defg-hij")
+    );
     assert_eq!(meeting.scheduled_start_at, Some(at(1_700_000_000)));
     let identities = resolved_meeting_identities(&meeting);
     assert_eq!(identities.len(), 2);
-    assert_eq!(identities[1].suggested_speaker_name().as_deref(), Some("Jordan"));
+    assert_eq!(
+        identities[1].suggested_speaker_name().as_deref(),
+        Some("Jordan")
+    );
     assert!(identities[1].name.is_none());
 }
 
@@ -554,8 +626,12 @@ fn missing_calendar_names_offer_editable_email_suggestions_without_changing_meta
 #[test]
 fn display_names_win_and_ambiguous_mailbox_handles_need_manual_names() {
     let named =
-        CalendarParticipantIdentity::new("", Some("Ana Petrović"), Some("alias@example.com")).unwrap();
-    assert_eq!(named.suggested_speaker_name().as_deref(), Some("Ana Petrović"));
+        CalendarParticipantIdentity::new("", Some("Ana Petrović"), Some("alias@example.com"))
+            .unwrap();
+    assert_eq!(
+        named.suggested_speaker_name().as_deref(),
+        Some("Ana Petrović")
+    );
     for address in [
         "support@example.com",
         "no-reply@example.com",
@@ -597,7 +673,8 @@ fn extracts_and_normalizes_mailto_address() {
 
 #[test]
 fn deduplicates_by_email_and_prefers_available_name() {
-    let email_only = CalendarParticipantIdentity::new("first", None, Some("ANA@example.com")).unwrap();
+    let email_only =
+        CalendarParticipantIdentity::new("first", None, Some("ANA@example.com")).unwrap();
     let named =
         CalendarParticipantIdentity::new("second", Some(" Ana Petrović "), Some("ana@example.com"))
             .unwrap();
@@ -611,10 +688,15 @@ fn deduplicates_by_email_and_prefers_available_name() {
 #[test]
 fn same_name_with_different_emails_remains_distinct() {
     let first =
-        CalendarParticipantIdentity::new("first", Some("Alex Kim"), Some("alex@one.example")).unwrap();
+        CalendarParticipantIdentity::new("first", Some("Alex Kim"), Some("alex@one.example"))
+            .unwrap();
     let second =
-        CalendarParticipantIdentity::new("second", Some("Alex Kim"), Some("alex@two.example")).unwrap();
-    assert_eq!(CalendarParticipantIdentity::normalized(&[first, second]).len(), 2);
+        CalendarParticipantIdentity::new("second", Some("Alex Kim"), Some("alex@two.example"))
+            .unwrap();
+    assert_eq!(
+        CalendarParticipantIdentity::normalized(&[first, second]).len(),
+        2
+    );
 }
 
 #[test]
@@ -631,8 +713,14 @@ fn display_names_drop_role_suffixes_and_reject_addresses() {
             .as_deref(),
         Some("Ana Petrović")
     );
-    assert_eq!(CalendarParticipantIdentity::normalized_display_name("ana@example.com"), None);
-    assert_eq!(CalendarParticipantIdentity::normalized_display_name("x"), None);
+    assert_eq!(
+        CalendarParticipantIdentity::normalized_display_name("ana@example.com"),
+        None
+    );
+    assert_eq!(
+        CalendarParticipantIdentity::normalized_display_name("x"),
+        None
+    );
 }
 
 // ------------------------------------------------------------------ Agenda
@@ -685,8 +773,18 @@ fn schedule_includes_ended_and_distant_meetings_across_the_whole_day() {
     let events = [
         scheduled("late", "Late review", local(day, 17, 0), 30),
         scheduled("early", "Early sync", local(day, 8, 0), 30),
-        scheduled("yesterday", "Yesterday", local(day.pred_opt().unwrap(), 10, 0), 30),
-        scheduled("tomorrow", "Tomorrow", local(day.succ_opt().unwrap(), 10, 0), 30),
+        scheduled(
+            "yesterday",
+            "Yesterday",
+            local(day.pred_opt().unwrap(), 10, 0),
+            30,
+        ),
+        scheduled(
+            "tomorrow",
+            "Tomorrow",
+            local(day.succ_opt().unwrap(), 10, 0),
+            30,
+        ),
     ];
     let ids: Vec<String> = upcoming::schedule(&events, day)
         .into_iter()
@@ -731,10 +829,21 @@ fn today_leaves_out_personal_appointments_and_keeps_solo_meetings_without_record
 
 #[test]
 fn meeting_titles_are_recognized_without_matching_inside_other_words() {
-    for title in ["Weekly sync", "1:1 with Ana", "Sastanak tima", "Design review", "Kick-off"] {
+    for title in [
+        "Weekly sync",
+        "1:1 with Ana",
+        "Sastanak tima",
+        "Design review",
+        "Kick-off",
+    ] {
         assert!(upcoming::looks_like_meeting(title), "{title}");
     }
-    for title in ["Dentist", "Pick up groceries", "Recalls paperwork", "Syncope check"] {
+    for title in [
+        "Dentist",
+        "Pick up groceries",
+        "Recalls paperwork",
+        "Syncope check",
+    ] {
         assert!(!upcoming::looks_like_meeting(title), "{title}");
     }
 }
@@ -756,5 +865,8 @@ fn presentation_labels_past_meeting_as_ended() {
     assert_eq!(upcoming::status(&soon, now), EventStatus::StartingNow);
     let mut many = scheduled("w", "Sync", now, 30);
     many.participant_names = ["A", "B", "C", "D", "E", "F"].map(String::from).to_vec();
-    assert_eq!(upcoming::participant_label(&many).as_deref(), Some("A, B, C, D +2"));
+    assert_eq!(
+        upcoming::participant_label(&many).as_deref(),
+        Some("A, B, C, D +2")
+    );
 }

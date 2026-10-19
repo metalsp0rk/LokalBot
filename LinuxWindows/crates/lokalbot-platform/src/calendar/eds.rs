@@ -58,7 +58,7 @@ pub fn fetch(options: &ParseOptions) -> Result<Option<Vec<CalendarEvent>>> {
             ),
         }
     }
-    events.sort_by(|a, b| a.start.cmp(&b.start));
+    events.sort_by_key(|a| a.start);
     events.dedup_by(|a, b| a.external_id == b.external_id);
     Ok(Some(events))
 }
@@ -175,9 +175,7 @@ fn newest_name(bus: &Connection, prefix: &str) -> Result<Option<String>> {
         name.strip_prefix(prefix)
             .is_some_and(|v| !v.is_empty() && v.chars().all(|c| c.is_ascii_digit()))
     });
-    names.sort_by_key(|name| {
-        name[prefix.len()..].parse::<u32>().unwrap_or(0)
-    });
+    names.sort_by_key(|name| name[prefix.len()..].parse::<u32>().unwrap_or(0));
     Ok(names.pop())
 }
 
@@ -341,11 +339,15 @@ mod tests {
         );
         files.insert(
             "off-collection".to_string(),
-            KeyFile::parse("[Data Source]\nDisplayName=Off\n\n[Collection]\nCalendarEnabled=false\n"),
+            KeyFile::parse(
+                "[Data Source]\nDisplayName=Off\n\n[Collection]\nCalendarEnabled=false\n",
+            ),
         );
         files.insert(
             "off-child".to_string(),
-            KeyFile::parse("[Data Source]\nDisplayName=Child\nParent=off-collection\n\n[Calendar]\n"),
+            KeyFile::parse(
+                "[Data Source]\nDisplayName=Child\nParent=off-collection\n\n[Calendar]\n",
+            ),
         );
         files.insert(
             "tasks".to_string(),
@@ -389,10 +391,14 @@ mod tests {
             calendar_title: None,
             default_zone: None,
         };
-        let events = fetch(&options).unwrap().expect("Evolution Data Server is installed");
+        let events = fetch(&options)
+            .unwrap()
+            .expect("Evolution Data Server is installed");
         eprintln!("{events:#?}");
-        let standup: Vec<&CalendarEvent> =
-            events.iter().filter(|e| e.title == "Daily standup").collect();
+        let standup: Vec<&CalendarEvent> = events
+            .iter()
+            .filter(|e| e.title == "Daily standup")
+            .collect();
         assert!(standup.len() >= 2, "found {standup:?}");
         assert!(standup.iter().all(|e| e.provider == "eds"));
         assert_eq!(standup[0].participant_names, ["Ana Petrović"]);
@@ -406,7 +412,10 @@ mod tests {
         let zones: Vec<String> = referenced_zones(&objects).into_iter().collect();
         assert_eq!(
             zones,
-            ["/freeassociation.sourceforge.net/Europe/Belgrade", "Customized Time Zone"]
+            [
+                "/freeassociation.sourceforge.net/Europe/Belgrade",
+                "Customized Time Zone"
+            ]
         );
         let properties: Vec<String> = ["cal-email-address", "'ana@example.com'", "online", "true"]
             .map(String::from)

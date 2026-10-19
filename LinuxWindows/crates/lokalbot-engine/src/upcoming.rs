@@ -104,11 +104,12 @@ fn run(shared: Arc<Shared>, models: Models, jobs: Receiver<Job>) {
             Err(err) => {
                 log::warn!("pre-meeting brief fallback: {err:#}");
                 briefs.lock().failed.insert(signature);
-                let message = if job.generate && !shared.think(&settings).is_ok_and(|t| t.is_local()) {
-                    "Choose an on-device Think model to generate this brief."
-                } else {
-                    "AI brief unavailable; showing saved context."
-                };
+                let message =
+                    if job.generate && !shared.think(&settings).is_ok_and(|t| t.is_local()) {
+                        "Choose an on-device Think model to generate this brief."
+                    } else {
+                        "AI brief unavailable; showing saved context."
+                    };
                 emit(&shared, &evidence, cached, false, Some(message.to_string()));
             }
         }

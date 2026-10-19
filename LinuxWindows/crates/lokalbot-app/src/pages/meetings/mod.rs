@@ -9,6 +9,7 @@ mod list;
 mod live;
 pub mod model;
 mod playback;
+mod speaker_suggestions;
 mod transcript;
 
 use std::cell::Cell;

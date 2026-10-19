@@ -200,7 +200,10 @@ fn refresh(shared: &Shared, cache: &mut Cache, force: bool) {
 
     let options = window(&settings, today);
     let stale = |entry: &Option<(Instant, SourceResult)>, interval: Duration| {
-        force || entry.as_ref().is_none_or(|(at, _)| at.elapsed() >= interval)
+        force
+            || entry
+                .as_ref()
+                .is_none_or(|(at, _)| at.elapsed() >= interval)
     };
     if links.is_empty() {
         cache.links = None;
@@ -314,7 +317,8 @@ mod tests {
     #[test]
     fn my_addresses_are_split_and_normalized() {
         let settings = Settings {
-            calendar_my_email_addresses: " Ana@Example.com, ana.work@example.org;\nnot-an-address".into(),
+            calendar_my_email_addresses: " Ana@Example.com, ana.work@example.org;\nnot-an-address"
+                .into(),
             ..Settings::default()
         };
         assert_eq!(

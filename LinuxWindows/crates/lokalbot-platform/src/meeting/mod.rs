@@ -807,7 +807,10 @@ mod tests {
         assert!(run(&mut core, start, 10, 60, &call).is_empty());
         assert!(core.active.is_some());
         // A Meet link names Google Meet.
-        assert_eq!(link_kind("https://meet.google.com/abc-defg-hij"), Some(AppKind::Meet));
+        assert_eq!(
+            link_kind("https://meet.google.com/abc-defg-hij"),
+            Some(AppKind::Meet)
+        );
         assert_eq!(link_kind("https://docs.example.com/x"), None);
     }
 
@@ -835,7 +838,13 @@ mod tests {
         let start = Instant::now();
         let mut core = Core::new(1);
         core.calendar.active = true;
-        let events = run(&mut core, start, 0, 0, &evidence(&[stream(9, "ms-teams.exe")]));
+        let events = run(
+            &mut core,
+            start,
+            0,
+            0,
+            &evidence(&[stream(9, "ms-teams.exe")]),
+        );
         assert!(matches!(&events[..], [(0, DetectorEvent::Started(m))] if m.app_name == "Teams"));
     }
 
@@ -849,7 +858,10 @@ mod tests {
         let quiet = Evidence::default();
         assert!(run(&mut core, start, 2, 180, &quiet).is_empty());
         let events = run(&mut core, start, 182, 184, &quiet);
-        assert!(matches!(&events[..], [(182, DetectorEvent::Ended(_))]), "{events:?}");
+        assert!(
+            matches!(&events[..], [(182, DetectorEvent::Ended(_))]),
+            "{events:?}"
+        );
     }
 
     #[test]

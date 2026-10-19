@@ -132,7 +132,7 @@ fn caldav_query(
             Err(err) => log::debug!("skipping an unreadable CalDAV object: {err:#}"),
         }
     }
-    events.sort_by(|a, b| a.start.cmp(&b.start));
+    events.sort_by_key(|a| a.start);
     events.dedup_by(|a, b| a.external_id == b.external_id);
     Ok(events)
 }
@@ -201,7 +201,10 @@ fn split_credentials(url: &str) -> (String, Option<String>) {
     };
     let decoded = percent_decode(userinfo);
     let token = base64_encode(decoded.as_bytes());
-    (format!("{scheme}://{host}{path}"), Some(format!("Basic {token}")))
+    (
+        format!("{scheme}://{host}{path}"),
+        Some(format!("Basic {token}")),
+    )
 }
 
 fn percent_decode(text: &str) -> String {
@@ -253,7 +256,9 @@ mod tests {
         );
         assert!(normalize("ftp://example.com/cal.ics").is_err());
         assert_eq!(
-            redacted("https://calendar.google.com/calendar/ical/me%40gmail.com/private-0123/basic.ics"),
+            redacted(
+                "https://calendar.google.com/calendar/ical/me%40gmail.com/private-0123/basic.ics"
+            ),
             "https://calendar.google.com/…"
         );
         assert_eq!(
@@ -265,7 +270,8 @@ mod tests {
 
     #[test]
     fn credentials_move_into_a_basic_header() {
-        let (url, auth) = split_credentials("https://ana%40example.com:pa%3Ass@dav.example.com/cal/x?y=1");
+        let (url, auth) =
+            split_credentials("https://ana%40example.com:pa%3Ass@dav.example.com/cal/x?y=1");
         assert_eq!(url, "https://dav.example.com/cal/x?y=1");
         assert_eq!(auth.as_deref(), Some("Basic YW5hQGV4YW1wbGUuY29tOnBhOnNz"));
         let (url, auth) = split_credentials("https://example.com/a@b");

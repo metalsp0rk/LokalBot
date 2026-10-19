@@ -61,7 +61,9 @@ pub fn sanitize_agenda(notes: Option<&str>) -> Option<String> {
     let text = TAGS.replace_all(&text, " ");
     let text = text.replace("&nbsp;", " ").replace("&amp;", "&");
     let lines: Vec<String> = text
-        .split(['\n', '\r', '\u{0B}', '\u{0C}', '\u{85}', '\u{2028}', '\u{2029}'])
+        .split([
+            '\n', '\r', '\u{0B}', '\u{0C}', '\u{85}', '\u{2028}', '\u{2029}',
+        ])
         .filter_map(|raw| {
             let line = LINKS.replace_all(raw, "");
             let line = EMAILS.replace_all(&line, "");

@@ -5,6 +5,7 @@
 mod actions;
 pub(crate) mod digest;
 pub(crate) mod threads;
+mod upcoming;
 
 use std::cell::Cell;
 use std::collections::HashSet;
@@ -52,6 +53,8 @@ pub struct TodayPage {
     pending_actions: bool,
     actions: Entity<ActionsWorkspace>,
     bounds: Rc<Cell<Option<Bounds<Pixels>>>>,
+    /// Today's calendar meetings and the next one's preparation.
+    upcoming: upcoming::UpcomingState,
     tick: Option<Task<()>>,
     _refresh: Task<()>,
     _subscriptions: Vec<Subscription>,
@@ -95,6 +98,7 @@ impl TodayPage {
             pending_actions: false,
             actions,
             bounds: Rc::new(Cell::new(None)),
+            upcoming: Default::default(),
             tick: None,
             _refresh: refresh,
             _subscriptions: subscriptions,
@@ -787,6 +791,7 @@ impl Render for TodayPage {
                 .into_any_element(),
             self.render_now(cx),
         ];
+        sections.extend(self.render_upcoming(cx));
         match self.model.take() {
             Some(model) => {
                 sections.extend(self.render_attention(&model, cx));

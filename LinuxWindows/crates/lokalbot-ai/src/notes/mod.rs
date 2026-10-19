@@ -374,7 +374,8 @@ fn context_items(
         calendar_lines(meeting, &mut lines);
     }
     if settings.use_calendar_agenda
-        && let Some(agenda) = lokalbot_core::calendar::sanitize_agenda(meeting.calendar_agenda.as_deref())
+        && let Some(agenda) =
+            lokalbot_core::calendar::sanitize_agenda(meeting.calendar_agenda.as_deref())
     {
         lines.push(format!("Agenda from the calendar invitation:\n{agenda}"));
     }

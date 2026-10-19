@@ -120,7 +120,9 @@ fn name_unknown_zones(calendar: &mut ICalendar, default_name: Option<&str>) {
             .or_else(|| iana_time_zone::get_timezone().ok());
         let name = match daylight.filter(|d| *d != standard) {
             Some(daylight) => local
-                .filter(|name| zone_offsets(name) == Some((standard.min(daylight), standard.max(daylight))))
+                .filter(|name| {
+                    zone_offsets(name) == Some((standard.min(daylight), standard.max(daylight)))
+                })
                 .or_else(|| fixed_zone_name(standard)),
             None => fixed_zone_name(standard),
         };
@@ -196,7 +198,10 @@ fn events_in(calendar: &ICalendar, options: &ParseOptions) -> Vec<CalendarEvent>
             order.push(uid.clone());
             Series::default()
         });
-        if component.property(&ICalendarProperty::RecurrenceId).is_some() {
+        if component
+            .property(&ICalendarProperty::RecurrenceId)
+            .is_some()
+        {
             entry.overrides.push(index);
         } else if entry.master.is_none() {
             entry.master = Some(index);
@@ -256,7 +261,10 @@ impl Context<'_> {
             .iter()
             .map(|&i| {
                 let component = &calendar.components[i];
-                (self.recurrence_instant(component, group, calendar), component)
+                (
+                    self.recurrence_instant(component, group, calendar),
+                    component,
+                )
             })
             .collect();
         let mut result = Vec::new();
@@ -345,7 +353,11 @@ impl Context<'_> {
         loop {
             let expansion = single.expand_dates(default_zone, limit);
             for error in &expansion.errors {
-                log::debug!("calendar series {} could not be expanded: {:?}", short(uid), error.error);
+                log::debug!(
+                    "calendar series {} could not be expanded: {:?}",
+                    short(uid),
+                    error.error
+                );
             }
             let instances: Vec<(DateTime<Utc>, DateTime<Utc>)> = expansion
                 .events
@@ -359,9 +371,7 @@ impl Context<'_> {
                     Some((start, end.max(start)))
                 })
                 .collect();
-            let passed_window = instances
-                .iter()
-                .any(|(start, _)| *start >= self.options.to);
+            let passed_window = instances.iter().any(|(start, _)| *start >= self.options.to);
             if passed_window || instances.len() == previous || limit >= MAX_OCCURRENCES {
                 return instances;
             }
@@ -463,7 +473,9 @@ impl Context<'_> {
                     .as_ref()
                     .is_none_or(|email| !self.my_addresses.contains(email))
             })
-            .filter_map(|a| CalendarParticipantIdentity::new("", a.name.as_deref(), a.email.as_deref()))
+            .filter_map(|a| {
+                CalendarParticipantIdentity::new("", a.name.as_deref(), a.email.as_deref())
+            })
             .collect();
         let identities = CalendarParticipantIdentity::normalized(&identities);
         Some(CalendarEvent {
@@ -514,7 +526,10 @@ fn attendees(component: &ICalendarComponent) -> Vec<Attendee> {
                 .parameters(&ICalendarParameterName::Cutype)
                 .any(|value| match value {
                     ICalendarParameterValue::Cutype(kind) => {
-                        matches!(kind, ICalendarUserTypes::Room | ICalendarUserTypes::Resource)
+                        matches!(
+                            kind,
+                            ICalendarUserTypes::Room | ICalendarUserTypes::Resource
+                        )
                     }
                     other => other.as_text().is_some_and(|t| {
                         t.eq_ignore_ascii_case("ROOM") || t.eq_ignore_ascii_case("RESOURCE")
@@ -628,12 +643,15 @@ fn text_property(component: &ICalendarComponent, property: &ICalendarProperty) -
 
 /// An `X-` property, by case-insensitive name.
 fn other_text(component: &ICalendarComponent, name: &str) -> Option<String> {
-    component.entries.iter().find_map(|entry| match &entry.name {
-        ICalendarProperty::Other(other) if other.eq_ignore_ascii_case(name) => {
-            entry.values.first().and_then(value_text)
-        }
-        _ => None,
-    })
+    component
+        .entries
+        .iter()
+        .find_map(|entry| match &entry.name {
+            ICalendarProperty::Other(other) if other.eq_ignore_ascii_case(name) => {
+                entry.values.first().and_then(value_text)
+            }
+            _ => None,
+        })
 }
 
 fn parameter_text(entry: &ICalendarEntry, name: &ICalendarParameterName) -> Option<String> {
@@ -666,7 +684,9 @@ mod tests {
     const EDGE_CASES: &str = include_str!("../../tests/fixtures/calendar/edge-cases.ics");
 
     fn at(text: &str) -> DateTime<Utc> {
-        DateTime::parse_from_rfc3339(text).unwrap().with_timezone(&Utc)
+        DateTime::parse_from_rfc3339(text)
+            .unwrap()
+            .with_timezone(&Utc)
     }
 
     fn options(from: &str, to: &str) -> ParseOptions {
@@ -683,7 +703,12 @@ mod tests {
     fn summary(events: &[CalendarEvent]) -> Vec<(String, String)> {
         events
             .iter()
-            .map(|e| (e.title.clone(), e.start.format("%Y-%m-%dT%H:%MZ").to_string()))
+            .map(|e| {
+                (
+                    e.title.clone(),
+                    e.start.format("%Y-%m-%dT%H:%MZ").to_string(),
+                )
+            })
             .collect()
     }
 
@@ -696,8 +721,11 @@ mod tests {
 
     #[test]
     fn google_feed_applies_overrides_exdates_cancellations_and_dst() {
-        let events =
-            parse_events(GOOGLE, &options("2026-10-19T00:00:00Z", "2026-10-27T00:00:00Z")).unwrap();
+        let events = parse_events(
+            GOOGLE,
+            &options("2026-10-19T00:00:00Z", "2026-10-27T00:00:00Z"),
+        )
+        .unwrap();
         assert_eq!(
             summary(&events),
             pairs(&[
@@ -718,10 +746,16 @@ mod tests {
         let standup = events.last().unwrap();
         assert_eq!(
             standup.external_id,
-            format!("standup-123@google.com#{}", at("2026-10-26T09:00:00Z").timestamp())
+            format!(
+                "standup-123@google.com#{}",
+                at("2026-10-26T09:00:00Z").timestamp()
+            )
         );
         assert_eq!(standup.end, at("2026-10-26T09:15:00Z"));
-        assert_eq!(standup.meeting_url.as_deref(), Some("https://meet.google.com/abc-defg-hij"));
+        assert_eq!(
+            standup.meeting_url.as_deref(),
+            Some("https://meet.google.com/abc-defg-hij")
+        );
         // The owner (named by X-WR-CALNAME), the room and the guest who
         // declined are not participants.
         assert_eq!(standup.participant_names, ["Maya Lin"]);
@@ -729,8 +763,14 @@ mod tests {
             standup.participant_identities[0].email_address.as_deref(),
             Some("maya@example.com")
         );
-        assert_eq!(standup.source_calendar_title.as_deref(), Some("ana.owner@example.com"));
-        assert_eq!(standup.agenda.as_deref(), Some("Standup notes\nAgenda:\nBlockers first"));
+        assert_eq!(
+            standup.source_calendar_title.as_deref(),
+            Some("ana.owner@example.com")
+        );
+        assert_eq!(
+            standup.agenda.as_deref(),
+            Some("Standup notes\nAgenda:\nBlockers first")
+        );
         assert_eq!(standup.provider, "ics");
         let review = &events[1];
         assert_eq!(
@@ -742,8 +782,11 @@ mod tests {
 
     #[test]
     fn outlook_feed_reads_windows_zone_names_and_busy_status() {
-        let events =
-            parse_events(OUTLOOK, &options("2026-10-19T00:00:00Z", "2026-10-27T00:00:00Z")).unwrap();
+        let events = parse_events(
+            OUTLOOK,
+            &options("2026-10-19T00:00:00Z", "2026-10-27T00:00:00Z"),
+        )
+        .unwrap();
         // Out of office and a free hold without guests or a link are dropped.
         assert_eq!(
             summary(&events),
@@ -754,18 +797,18 @@ mod tests {
             ])
         );
         let planning = &events[0];
-        assert!(
-            planning
-                .meeting_url
-                .as_deref()
-                .is_some_and(|url| url.starts_with("https://teams.microsoft.com/l/meetup-join/19%3ameeting_abc"))
-        );
+        assert!(planning.meeting_url.as_deref().is_some_and(|url| {
+            url.starts_with("https://teams.microsoft.com/l/meetup-join/19%3ameeting_abc")
+        }));
         assert_eq!(planning.agenda.as_deref(), Some("Quarterly numbers"));
         assert_eq!(planning.source_calendar_title.as_deref(), Some("Calendar"));
 
         // US daylight saving time ends on November 1st.
-        let events =
-            parse_events(OUTLOOK, &options("2026-10-30T00:00:00Z", "2026-11-03T00:00:00Z")).unwrap();
+        let events = parse_events(
+            OUTLOOK,
+            &options("2026-10-30T00:00:00Z", "2026-11-03T00:00:00Z"),
+        )
+        .unwrap();
         assert_eq!(
             summary(&events),
             pairs(&[
@@ -835,6 +878,12 @@ mod tests {
 
     #[test]
     fn unreadable_text_is_an_error() {
-        assert!(parse_events("hello", &options("2026-10-19T00:00:00Z", "2026-10-27T00:00:00Z")).is_err());
+        assert!(
+            parse_events(
+                "hello",
+                &options("2026-10-19T00:00:00Z", "2026-10-27T00:00:00Z")
+            )
+            .is_err()
+        );
     }
 }

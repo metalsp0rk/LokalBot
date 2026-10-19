@@ -177,9 +177,7 @@ fn title(
     event: Option<&CalendarEvent>,
 ) -> String {
     let calendar_title = event.map(|e| e.title.as_str());
-    if settings.use_calendar_titles
-        && calendar_title.is_some_and(|t| !t.trim().is_empty())
-    {
+    if settings.use_calendar_titles && calendar_title.is_some_and(|t| !t.trim().is_empty()) {
         return policy::recording_title(calendar_title, true, Some(&meeting.app_name));
     }
     meeting
@@ -233,9 +231,15 @@ mod tests {
     fn titles_prefer_the_calendar_then_the_tab_then_the_app() {
         let mut settings = lokalbot_core::Settings::default();
         let planning = event("Sprint planning");
-        assert_eq!(title(&settings, &meet(Some("Weekly sync")), Some(&planning)), "Sprint planning");
+        assert_eq!(
+            title(&settings, &meet(Some("Weekly sync")), Some(&planning)),
+            "Sprint planning"
+        );
         settings.use_calendar_titles = false;
-        assert_eq!(title(&settings, &meet(Some("Weekly sync")), Some(&planning)), "Weekly sync");
+        assert_eq!(
+            title(&settings, &meet(Some("Weekly sync")), Some(&planning)),
+            "Weekly sync"
+        );
         assert_eq!(title(&settings, &meet(None), None), "Google Meet meeting");
     }
 

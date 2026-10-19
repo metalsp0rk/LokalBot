@@ -209,6 +209,10 @@ pub struct AppData {
     pub live_preview: lokalbot_engine::LivePreview,
     /// Screen context capture, as the engine reports it.
     pub screen: lokalbot_engine::ScreenStatus,
+    /// The user's calendars, as the engine last read them.
+    pub calendar: lokalbot_engine::CalendarSnapshot,
+    /// Today's preparation for the next meeting (in memory only).
+    pub meeting_preparation: Option<lokalbot_engine::MeetingPreparation>,
 }
 
 /// A follow-up being rewritten with Think (`FollowUpDraftSheet`).
@@ -344,6 +348,8 @@ impl AppData {
             audio_inputs: Vec::new(),
             shortcut_recording: false,
             screen: Default::default(),
+            calendar: Default::default(),
+            meeting_preparation: None,
         }
     }
 
@@ -723,6 +729,16 @@ pub enum AppEvent {
     SaveApiKey(String),
     /// "Capture Screen Now" (tray and Timeline).
     CaptureScreenNow,
+    /// Today's Record on a calendar event.
+    RecordCalendarEvent(Box<lokalbot_core::calendar::CalendarEvent>),
+    /// Replace the private calendar links kept in the credential store.
+    SetCalendarLinks(Vec<String>),
+    RefreshCalendar,
+    /// Gather (and with `generate`, write a brief for) an upcoming meeting.
+    PrepareMeeting {
+        event: Box<lokalbot_core::calendar::CalendarEvent>,
+        generate: bool,
+    },
 }
 
 impl gpui_kit::EventEmitter<AppEvent> for AppData {}

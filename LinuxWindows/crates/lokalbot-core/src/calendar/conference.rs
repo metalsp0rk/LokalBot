@@ -31,7 +31,8 @@ pub const CONFERENCE_HOSTS: [&str; 18] = [
 /// `http(s)` links, stopping at whitespace, angle brackets, quotes and CJK
 /// punctuation (invitations write "会议：https://…" without a space).
 static SCHEME_LINK: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r#"(?i)https?://[^\s<>"'`\x{3000}-\x{303F}\x{FF00}-\x{FFEF}]+"#).expect("valid regex")
+    Regex::new(r#"(?i)https?://[^\s<>"'`\x{3000}-\x{303F}\x{FF00}-\x{FFEF}]+"#)
+        .expect("valid regex")
 });
 
 /// A bare `host/path` link without a scheme ("zoom.us/j/123").

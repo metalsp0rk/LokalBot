@@ -7,6 +7,7 @@
 mod agenda;
 mod conference;
 mod identity;
+mod suggestion;
 pub mod upcoming;
 
 #[cfg(test)]
@@ -21,6 +22,7 @@ use crate::model::{CalendarParticipantIdentity, Meeting};
 pub use agenda::{MAX_AGENDA_CHARACTERS, sanitize_agenda};
 pub use conference::{CONFERENCE_HOSTS, first_meeting_url, is_meeting_url, url_host};
 pub use identity::resolved_meeting_identities;
+pub use suggestion::{SpeakerSuggestion, SuggestionSource};
 
 /// Look-around window of the detector: a meeting joined up to 15 min late
 /// still matches, and one starting within 90 min is visible early.
