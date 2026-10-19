@@ -40,9 +40,12 @@ struct RemoteTranscriptionConfiguration: Hashable, Sendable {
     /// Models checked to return word times for `response_format=verbose_json`
     /// with `timestamp_granularities[]=word`, by origin. Other servers keep
     /// plain `json`: several reject those fields (OpenAI's gpt-4o-transcribe
-    /// models accept only `json` and `text`).
+    /// models accept only `json` and `text`). On OpenRouter, 2026-10-19, these
+    /// two placed every speaker turn within 0.15 s of its onset in 30 s
+    /// windows; eight other models answered `verbose_json` with HTTP 400, and
+    /// the rest were not checked.
     static let wordTimingModels: [String: Set<String>] = [
-        "https://openrouter.ai": ["microsoft/mai-transcribe-2"],
+        "https://openrouter.ai": ["microsoft/mai-transcribe-2", "google/gemini-3.5-transcribe"],
     ]
 
     /// The server times words itself, so speaker attribution needs no local
