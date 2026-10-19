@@ -1288,3 +1288,9 @@
 "The model repeated text it was given, so its answer is hidden." = "모델이 받은 텍스트를 반복해 답변을 숨겼습니다.";
 "The answer did not fit at the cursor, so it is hidden." = "답변이 커서 위치에 맞지 않아 숨겼습니다.";
 "The model was unsure of the next word, so it suggested nothing." = "모델이 다음 단어를 확신하지 못해 아무것도 제안하지 않았습니다.";
+"Download models from" = "모델 다운로드 출처";
+"HF-Mirror (hf-mirror.com)" = "HF-Mirror (hf-mirror.com)";
+"ModelScope (modelscope.cn)" = "ModelScope (modelscope.cn)";
+"Downloads from huggingface.co, where the models are published." = "모델이 게시된 huggingface.co에서 다운로드합니다.";
+"A community mirror of Hugging Face that works in mainland China. If it fails, LokalBot tries Hugging Face." = "중국 본토에서 작동하는 Hugging Face 커뮤니티 미러입니다. 실패하면 LokalBot이 Hugging Face를 시도합니다.";
+"Alibaba's model hub in mainland China, for files it carries unchanged. Other files come from HF-Mirror, then Hugging Face." = "중국 본토의 Alibaba 모델 허브로, 원본 그대로 제공하는 파일에 사용합니다. 다른 파일은 HF-Mirror에서, 그다음 Hugging Face에서 받습니다.";

@@ -1288,3 +1288,9 @@
 "The model repeated text it was given, so its answer is hidden." = "Model je ponovio tekst koji je dobio, pa je njegov odgovor sakriven.";
 "The answer did not fit at the cursor, so it is hidden." = "Odgovor se nije uklopio na mestu kursora, pa je sakriven.";
 "The model was unsure of the next word, so it suggested nothing." = "Model nije bio siguran u sledeću reč, pa nije ništa predložio.";
+"Download models from" = "Izvor za preuzimanje modela";
+"HF-Mirror (hf-mirror.com)" = "HF-Mirror (hf-mirror.com)";
+"ModelScope (modelscope.cn)" = "ModelScope (modelscope.cn)";
+"Downloads from huggingface.co, where the models are published." = "Preuzima sa huggingface.co, gde se modeli objavljuju.";
+"A community mirror of Hugging Face that works in mainland China. If it fails, LokalBot tries Hugging Face." = "Mirror Hugging Face-a koji održava zajednica i koji radi u kontinentalnoj Kini. Ako ne uspe, LokalBot pokušava preko Hugging Face-a.";
+"Alibaba's model hub in mainland China, for files it carries unchanged. Other files come from HF-Mirror, then Hugging Face." = "Alibabin centar modela u kontinentalnoj Kini, za datoteke koje nudi neizmenjene. Ostale datoteke stižu sa HF-Mirror-a, pa sa Hugging Face-a.";

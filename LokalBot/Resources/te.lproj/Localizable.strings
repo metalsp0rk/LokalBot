@@ -1288,3 +1288,9 @@
 "The model repeated text it was given, so its answer is hidden." = "మోడల్ ఇచ్చిన వచనాన్నే పునరావృతం చేసింది, అందుకే సమాధానం దాచబడింది.";
 "The answer did not fit at the cursor, so it is hidden." = "సమాధానం కర్సర్ వద్ద సరిపోలలేదు, అందుకే దాచబడింది.";
 "The model was unsure of the next word, so it suggested nothing." = "తదుపరి పదం గురించి మోడల్‌కు నిశ్చయత లేదు, అందుకే ఏదీ సూచించలేదు.";
+"Download models from" = "మోడల్ డౌన్‌లోడ్ మూలం";
+"HF-Mirror (hf-mirror.com)" = "HF-Mirror (hf-mirror.com)";
+"ModelScope (modelscope.cn)" = "ModelScope (modelscope.cn)";
+"Downloads from huggingface.co, where the models are published." = "మోడళ్లు ప్రచురించబడే huggingface.co నుండి డౌన్‌లోడ్ అవుతుంది.";
+"A community mirror of Hugging Face that works in mainland China. If it fails, LokalBot tries Hugging Face." = "చైనా ప్రధాన భూభాగంలో పనిచేసే Hugging Face కమ్యూనిటీ మిర్రర్. అది విఫలమైతే LokalBot Hugging Faceను ప్రయత్నిస్తుంది.";
+"Alibaba's model hub in mainland China, for files it carries unchanged. Other files come from HF-Mirror, then Hugging Face." = "చైనా ప్రధాన భూభాగంలోని Alibaba మోడల్ హబ్, అది మార్పు లేకుండా అందించే ఫైల్‌ల కోసం. ఇతర ఫైల్‌లు HF-Mirror నుండి, ఆ తర్వాత Hugging Face నుండి వస్తాయి.";

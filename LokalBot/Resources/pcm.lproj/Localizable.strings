@@ -1288,3 +1288,9 @@
 "The model repeated text it was given, so its answer is hidden." = "Model repeat text wey dem give am, so im answer don hide.";
 "The answer did not fit at the cursor, so it is hidden." = "The answer no fit where cursor dey, so e don hide.";
 "The model was unsure of the next word, so it suggested nothing." = "Model no sure of the next word, so e no suggest anything.";
+"Download models from" = "Download models from";
+"HF-Mirror (hf-mirror.com)" = "HF-Mirror (hf-mirror.com)";
+"ModelScope (modelscope.cn)" = "ModelScope (modelscope.cn)";
+"Downloads from huggingface.co, where the models are published." = "E dey download from huggingface.co, where dem dey publish the models.";
+"A community mirror of Hugging Face that works in mainland China. If it fails, LokalBot tries Hugging Face." = "Community mirror of Hugging Face wey dey work for mainland China. If e fail, LokalBot go try Hugging Face.";
+"Alibaba's model hub in mainland China, for files it carries unchanged. Other files come from HF-Mirror, then Hugging Face." = "Alibaba model hub for mainland China, for files wey e carry without change. Other files dey come from HF-Mirror, then Hugging Face.";

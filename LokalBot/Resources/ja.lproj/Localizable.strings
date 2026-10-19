@@ -1288,3 +1288,9 @@
 "The model repeated text it was given, so its answer is hidden." = "モデルが与えられたテキストを繰り返したため、回答を非表示にしました。";
 "The answer did not fit at the cursor, so it is hidden." = "カーソル位置に合わない回答のため、非表示にしました。";
 "The model was unsure of the next word, so it suggested nothing." = "モデルが次の単語を確信できなかったため、候補を表示しませんでした。";
+"Download models from" = "モデルのダウンロード元";
+"HF-Mirror (hf-mirror.com)" = "HF-Mirror (hf-mirror.com)";
+"ModelScope (modelscope.cn)" = "ModelScope (modelscope.cn)";
+"Downloads from huggingface.co, where the models are published." = "モデルが公開されているhuggingface.coからダウンロードします。";
+"A community mirror of Hugging Face that works in mainland China. If it fails, LokalBot tries Hugging Face." = "中国本土で使えるHugging Faceのコミュニティミラーです。失敗した場合、LokalBotはHugging Faceを試します。";
+"Alibaba's model hub in mainland China, for files it carries unchanged. Other files come from HF-Mirror, then Hugging Face." = "中国本土にあるAlibabaのモデルハブで、元のまま提供されているファイルに使います。その他のファイルはHF-Mirror、次にHugging Faceから取得します。";

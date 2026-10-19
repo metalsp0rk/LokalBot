@@ -1288,3 +1288,9 @@
 "The model repeated text it was given, so its answer is hidden." = "Model mengulangi teks yang diberikan, sehingga jawabannya disembunyikan.";
 "The answer did not fit at the cursor, so it is hidden." = "Jawaban tidak sesuai pada posisi kursor, sehingga disembunyikan.";
 "The model was unsure of the next word, so it suggested nothing." = "Model tidak yakin dengan kata berikutnya, sehingga tidak memberikan saran.";
+"Download models from" = "Sumber unduhan model";
+"HF-Mirror (hf-mirror.com)" = "HF-Mirror (hf-mirror.com)";
+"ModelScope (modelscope.cn)" = "ModelScope (modelscope.cn)";
+"Downloads from huggingface.co, where the models are published." = "Mengunduh dari huggingface.co, tempat model dipublikasikan.";
+"A community mirror of Hugging Face that works in mainland China. If it fails, LokalBot tries Hugging Face." = "Mirror komunitas Hugging Face yang berfungsi di Tiongkok daratan. Jika gagal, LokalBot mencoba Hugging Face.";
+"Alibaba's model hub in mainland China, for files it carries unchanged. Other files come from HF-Mirror, then Hugging Face." = "Hub model Alibaba di Tiongkok daratan, untuk file yang disediakannya tanpa perubahan. File lain diambil dari HF-Mirror, lalu Hugging Face.";

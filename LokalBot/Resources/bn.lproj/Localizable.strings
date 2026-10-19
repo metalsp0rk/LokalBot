@@ -1288,3 +1288,9 @@
 "The model repeated text it was given, so its answer is hidden." = "মডেল তাকে দেওয়া পাঠ্যই আবার লিখেছে, তাই উত্তরটি লুকানো হয়েছে।";
 "The answer did not fit at the cursor, so it is hidden." = "উত্তরটি কার্সরের জায়গায় মানানসই হয়নি, তাই লুকানো হয়েছে।";
 "The model was unsure of the next word, so it suggested nothing." = "মডেল পরের শব্দ সম্পর্কে নিশ্চিত ছিল না, তাই কোনো প্রস্তাব দেয়নি।";
+"Download models from" = "মডেল ডাউনলোডের উৎস";
+"HF-Mirror (hf-mirror.com)" = "HF-Mirror (hf-mirror.com)";
+"ModelScope (modelscope.cn)" = "ModelScope (modelscope.cn)";
+"Downloads from huggingface.co, where the models are published." = "huggingface.co থেকে ডাউনলোড হয়, যেখানে মডেলগুলো প্রকাশিত হয়।";
+"A community mirror of Hugging Face that works in mainland China. If it fails, LokalBot tries Hugging Face." = "Hugging Face-এর একটি কমিউনিটি মিরর, যা চীনের মূল ভূখণ্ডে কাজ করে। এটি ব্যর্থ হলে LokalBot Hugging Face চেষ্টা করে।";
+"Alibaba's model hub in mainland China, for files it carries unchanged. Other files come from HF-Mirror, then Hugging Face." = "চীনের মূল ভূখণ্ডে Alibaba-র মডেল হাব, যেসব ফাইল এটি অপরিবর্তিত রাখে সেগুলোর জন্য। অন্য ফাইল আসে HF-Mirror থেকে, তারপর Hugging Face থেকে।";

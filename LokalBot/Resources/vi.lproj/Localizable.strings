@@ -1288,3 +1288,9 @@
 "The model repeated text it was given, so its answer is hidden." = "Mô hình lặp lại văn bản được cung cấp nên câu trả lời bị ẩn.";
 "The answer did not fit at the cursor, so it is hidden." = "Câu trả lời không phù hợp tại con trỏ nên bị ẩn.";
 "The model was unsure of the next word, so it suggested nothing." = "Mô hình chưa chắc về từ tiếp theo nên không gợi ý gì.";
+"Download models from" = "Nguồn tải mô hình";
+"HF-Mirror (hf-mirror.com)" = "HF-Mirror (hf-mirror.com)";
+"ModelScope (modelscope.cn)" = "ModelScope (modelscope.cn)";
+"Downloads from huggingface.co, where the models are published." = "Tải xuống từ huggingface.co, nơi các mô hình được phát hành.";
+"A community mirror of Hugging Face that works in mainland China. If it fails, LokalBot tries Hugging Face." = "Bản sao cộng đồng của Hugging Face hoạt động ở Trung Quốc đại lục. Nếu thất bại, LokalBot sẽ thử Hugging Face.";
+"Alibaba's model hub in mainland China, for files it carries unchanged. Other files come from HF-Mirror, then Hugging Face." = "Kho mô hình của Alibaba ở Trung Quốc đại lục, dùng cho các tệp được cung cấp nguyên vẹn. Các tệp khác lấy từ HF-Mirror, rồi Hugging Face.";

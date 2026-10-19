@@ -1288,3 +1288,9 @@
 "The model repeated text it was given, so its answer is hidden." = "النموذج كرر النص اللي اتداله، عشان كده إجابته مستخبية.";
 "The answer did not fit at the cursor, so it is hidden." = "الإجابة مش مناسبة لمكان المؤشر، عشان كده مستخبية.";
 "The model was unsure of the next word, so it suggested nothing." = "النموذج مش متأكد من الكلمة اللي بعدها، فمقترحش حاجة.";
+"Download models from" = "مصدر تنزيل النماذج";
+"HF-Mirror (hf-mirror.com)" = "HF-Mirror (hf-mirror.com)";
+"ModelScope (modelscope.cn)" = "ModelScope (modelscope.cn)";
+"Downloads from huggingface.co, where the models are published." = "بينزّل من huggingface.co، المكان اللي النماذج بتتنشر عليه.";
+"A community mirror of Hugging Face that works in mainland China. If it fails, LokalBot tries Hugging Face." = "مرآة مجتمعية لـ Hugging Face شغّالة في البر الرئيسي للصين. لو فشلت، LokalBot بيجرّب Hugging Face.";
+"Alibaba's model hub in mainland China, for files it carries unchanged. Other files come from HF-Mirror, then Hugging Face." = "مركز نماذج Alibaba في البر الرئيسي للصين، للملفات اللي بيوفّرها من غير تعديل. باقي الملفات بتيجي من HF-Mirror، وبعدين من Hugging Face.";
