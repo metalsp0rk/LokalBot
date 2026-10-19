@@ -11,6 +11,7 @@ mod dictation;
 mod digest;
 pub mod events;
 mod indexing;
+pub mod library_ops;
 mod live;
 mod models;
 mod pipeline;

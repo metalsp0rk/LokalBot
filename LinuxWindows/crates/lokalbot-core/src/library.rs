@@ -234,6 +234,42 @@ impl Library {
         Ok(restored)
     }
 
+    /// Keeps only `range` of a finished meeting (`AppState.setMeetingBoundaries`):
+    /// the transcript keeps the segments inside it, generated notes move aside
+    /// to `*.previous.*` until they are written again, and the raw audio stays
+    /// as recorded. The caller re-indexes and queues transcription and notes.
+    pub fn set_meeting_boundaries(&self, meeting: &Meeting, range: ContentRange) -> Result<Meeting> {
+        if self.is_read_only() {
+            bail!("the library is open read-only");
+        }
+        let duration = meeting.duration_seconds();
+        if meeting.is_live() || !range.is_valid() || range.end > duration + 0.001 {
+            bail!(BoundaryError);
+        }
+        let mut updated = meeting.clone();
+        updated.content_range = Some(range);
+        updated.content_range_source = Some(ContentRangeSource::UserReviewed);
+        let dir = self.meeting_dir(&updated);
+        let transcript = self.transcript(meeting)?;
+        // Withdraw what was built from the old range even when no segment survives.
+        crate::evidence::with_meeting_mutation(self.paths().root(), &[meeting], || {
+            invalidate_generated_notes(&dir)?;
+            if let Some(mut transcript) = transcript {
+                range.apply(&mut transcript);
+                write_json(&dir.join(TRANSCRIPT_FILE), &transcript)?;
+                write_atomic(&dir.join(TRANSCRIPT_MD_FILE), transcript.markdown().as_bytes())?;
+            }
+            self.save_meeting(&updated)
+        })?;
+        let id = ids::uuid_upper(&updated.id);
+        self.with_db(|db| {
+            db.execute("DELETE FROM embeddings WHERE meeting_id = ?1", [&id])?;
+            db.execute("DELETE FROM embedded_meetings WHERE meeting_id = ?1", [&id])?;
+            Ok(())
+        })?;
+        Ok(updated)
+    }
+
     pub fn meeting(&self, id: Uuid) -> Result<Option<Meeting>> {
         Ok(self.list_all_meetings()?.into_iter().find(|m| m.id == id))
     }
@@ -294,6 +330,16 @@ impl Library {
         app_name: &str,
         started_at: DateTime<Utc>,
     ) -> Result<Meeting> {
+        let relative = self.reserve_meeting_folder(title, started_at)?;
+        let meeting = Meeting::new(title, app_name, started_at, &relative);
+        self.save_meeting(&meeting)?;
+        Ok(meeting)
+    }
+
+    /// Creates an empty `meetings/YYYY/MM/DD-<slug>[-N]` folder and returns
+    /// its relative path. A library scan ignores it until `meta.json` is
+    /// written, so imports and merges write that last.
+    pub fn reserve_meeting_folder(&self, title: &str, started_at: DateTime<Utc>) -> Result<String> {
         let local = started_at.with_timezone(&Local);
         let base = format!(
             "meetings/{:04}/{:02}/{:02}-{}",
@@ -304,39 +350,23 @@ impl Library {
         );
         let mut relative = base.clone();
         let mut n = 2;
-        while self.paths().meeting_dir(&relative).exists() {
-            relative = format!("{base}-{n}");
-            n += 1;
+        loop {
+            let dir = self.paths().meeting_dir(&relative);
+            let made = match dir.parent() {
+                Some(parent) => fs::create_dir_all(parent).and_then(|()| fs::create_dir(&dir)),
+                None => fs::create_dir(&dir),
+            };
+            match made {
+                Ok(()) => return Ok(relative),
+                Err(err) if err.kind() == std::io::ErrorKind::AlreadyExists => {
+                    relative = format!("{base}-{n}");
+                    n += 1;
+                }
+                Err(err) => {
+                    return Err(err).with_context(|| format!("creating {relative}"));
+                }
+            }
         }
-        let meeting = Meeting {
-            id: Uuid::new_v4(),
-            title: title.to_string(),
-            app_name: app_name.to_string(),
-            started_at,
-            ended_at: None,
-            relative_path: relative,
-            has_system_track: false,
-            calendar_provider: None,
-            calendar_event_id: None,
-            calendar_title: None,
-            scheduled_start_at: None,
-            scheduled_end_at: None,
-            meeting_url: None,
-            participant_name_hints: None,
-            calendar_participant_identities: None,
-            calendar_agenda: None,
-            merged_source_meeting_ids: None,
-            merged_into_meeting_id: None,
-            imported_file_names: None,
-            recorded_duration: None,
-            content_range: None,
-            content_range_source: None,
-            capture_intent: None,
-            extra: Default::default(),
-        };
-        fs::create_dir_all(self.meeting_dir(&meeting))?;
-        self.save_meeting(&meeting)?;
-        Ok(meeting)
     }
 
     pub fn save_meeting(&self, meeting: &Meeting) -> Result<()> {
@@ -411,21 +441,29 @@ impl Library {
         Ok(ordered)
     }
 
-    /// Tombstones one meeting in the indexes, then removes its folder.
-    fn remove_meeting(&self, meeting: &Meeting) -> Result<()> {
-        let id = ids::uuid_upper(&meeting.id);
+    /// Takes meetings out of search, meaning search and the processing queue,
+    /// with a tombstone, as deleting or folding them into a merge does.
+    pub fn tombstone_meetings(&self, meetings: &[Meeting]) -> Result<()> {
         self.with_db(|db| {
-            db.execute(
-                "INSERT OR REPLACE INTO deleted_meetings(meeting_id, deleted_at) VALUES (?1, ?2)",
-                rusqlite::params![id, crate::time::to_epoch(Utc::now())],
-            )?;
-            crate::search::delete_documents(db, &id)?;
-            db.execute("DELETE FROM indexed_meetings WHERE meeting_id = ?1", [&id])?;
-            db.execute("DELETE FROM embeddings WHERE meeting_id = ?1", [&id])?;
-            db.execute("DELETE FROM embedded_meetings WHERE meeting_id = ?1", [&id])?;
-            db.execute("DELETE FROM pipeline_jobs WHERE meeting_id = ?1", [&id])?;
+            for meeting in meetings {
+                let id = ids::uuid_upper(&meeting.id);
+                db.execute(
+                    "INSERT OR REPLACE INTO deleted_meetings(meeting_id, deleted_at) VALUES (?1, ?2)",
+                    rusqlite::params![id, crate::time::to_epoch(Utc::now())],
+                )?;
+                crate::search::delete_documents(db, &id)?;
+                db.execute("DELETE FROM indexed_meetings WHERE meeting_id = ?1", [&id])?;
+                db.execute("DELETE FROM embeddings WHERE meeting_id = ?1", [&id])?;
+                db.execute("DELETE FROM embedded_meetings WHERE meeting_id = ?1", [&id])?;
+                db.execute("DELETE FROM pipeline_jobs WHERE meeting_id = ?1", [&id])?;
+            }
             Ok(())
-        })?;
+        })
+    }
+
+    /// Tombstones one meeting in the indexes, then removes its folder.
+    pub(crate) fn remove_meeting(&self, meeting: &Meeting) -> Result<()> {
+        self.tombstone_meetings(std::slice::from_ref(meeting))?;
         let dir = self.meeting_dir(meeting);
         if dir.starts_with(self.paths().meetings_dir()) && dir.is_dir() {
             fs::remove_dir_all(&dir).with_context(|| format!("removing {}", dir.display()))?;
@@ -640,6 +678,44 @@ impl Library {
 // ------------------------------------------------------------------ helpers
 
 /// SHA-256 hex, as `ContentFingerprint.digest`.
+/// Asked for a range outside the recording.
+#[derive(Debug, thiserror::Error)]
+#[error("Choose a start and end within the recorded audio, with the end after the start.")]
+pub struct BoundaryError;
+
+/// Present while generated notes predate the transcript (`MeetingAttributionArtifacts`).
+pub const REFRESH_MARKER: &str = "attribution-refresh-needed.json";
+
+/// `MeetingAttributionArtifacts.invalidate`: summary, claims and outcomes
+/// move to their `*.previous.*` names, the refresh marker is written and
+/// unfinished notes are dropped.
+fn invalidate_generated_notes(dir: &Path) -> Result<()> {
+    for (current, previous) in [
+        (SUMMARY_FILE, "summary.previous.md"),
+        ("summary-claims.json", "summary-claims.previous.json"),
+        (OUTCOMES_FILE, "outcomes.previous.json"),
+    ] {
+        let path = dir.join(current);
+        if path.is_file() {
+            write_atomic(&dir.join(previous), &fs::read(&path)?)?;
+            fs::remove_file(&path)?;
+        }
+    }
+    write_atomic(&dir.join(REFRESH_MARKER), br#"{"needs_refresh":true}"#)?;
+    for partial in [
+        "notes.parts.partial.json",
+        "summary.parts.partial.json",
+        "outcomes.parts.partial.json",
+        "summary.partial.md",
+        "outcomes.partial.json",
+        "summary.claims.partial.json",
+        "notes.partial.json",
+    ] {
+        let _ = fs::remove_file(dir.join(partial));
+    }
+    Ok(())
+}
+
 /// `Meeting.resolvingMergeRelationships`: the merged meeting each meeting is
 /// folded into, in the same order. A source marker holds only while its
 /// merged meeting still lists it; otherwise whichever merged meeting lists it

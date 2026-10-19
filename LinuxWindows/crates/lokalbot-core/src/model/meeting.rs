@@ -160,6 +160,41 @@ const GENERIC_TITLES: &[&str] = &[
 ];
 
 impl Meeting {
+    /// A new meeting with a fresh ID, still recording until `ended_at` is set.
+    pub fn new(
+        title: &str,
+        app_name: &str,
+        started_at: DateTime<Utc>,
+        relative_path: &str,
+    ) -> Self {
+        Self {
+            id: Uuid::new_v4(),
+            title: title.to_string(),
+            app_name: app_name.to_string(),
+            started_at,
+            ended_at: None,
+            relative_path: relative_path.to_string(),
+            has_system_track: false,
+            calendar_provider: None,
+            calendar_event_id: None,
+            calendar_title: None,
+            scheduled_start_at: None,
+            scheduled_end_at: None,
+            meeting_url: None,
+            participant_name_hints: None,
+            calendar_participant_identities: None,
+            calendar_agenda: None,
+            merged_source_meeting_ids: None,
+            merged_into_meeting_id: None,
+            imported_file_names: None,
+            recorded_duration: None,
+            content_range: None,
+            content_range_source: None,
+            capture_intent: None,
+            extra: Default::default(),
+        }
+    }
+
     pub fn is_live(&self) -> bool {
         self.ended_at.is_none()
     }

@@ -109,13 +109,22 @@ pub struct CompressedReader {
 
 impl CompressedReader {
     pub fn open(path: &Path) -> io::Result<Self> {
-        let stream = Stream::open(path)?;
+        Self::open_track(path, None)
+    }
+
+    /// One audio track of a file with several, such as a screen recording's
+    /// microphone and system audio; `None` is the default track.
+    pub fn open_track(path: &Path, track: Option<u32>) -> io::Result<Self> {
+        let stream = Stream::open(path, track)?;
         let rate = stream.rate;
-        let edit = is_mp4(path).then(|| mp4_edit(path, rate)).flatten();
+        // The MP4 edit list read here describes the first audio track.
+        let edit = (is_mp4(path) && (track.is_none() || stream.is_default))
+            .then(|| mp4_edit(path, rate))
+            .flatten();
         let delay = edit.map_or(0, |edit| edit.delay);
         let total = match stream.total {
             Some(total) => total,
-            None => count_frames(path)?,
+            None => count_frames(path, stream.track_id)?,
         };
         let available = total.saturating_sub(delay);
         let playable = edit
@@ -147,7 +156,7 @@ impl CompressedReader {
         let target = self.delay + to_source(frame, self.stream.rate);
         // A fresh reader every time: Symphonia's MP4 reader cannot seek once
         // it has read to the end, and the decoder starts clean.
-        self.stream = Stream::open(&self.path)?;
+        self.stream = Stream::open(&self.path, Some(self.stream.track_id))?;
         let from = target.saturating_sub(PRE_ROLL);
         if from > 0 {
             let to = SeekTo::Timestamp {
@@ -160,7 +169,7 @@ impl CompressedReader {
                     "{}: seek failed ({err}), decoding from the start",
                     self.path.display()
                 );
-                self.stream = Stream::open(&self.path)?;
+                self.stream = Stream::open(&self.path, Some(self.stream.track_id))?;
             }
         }
         self.skip_until = target;
@@ -264,30 +273,72 @@ struct Stream {
     format: Box<dyn FormatReader>,
     decoder: Box<dyn AudioDecoder>,
     track_id: u32,
+    /// The container's default audio track.
+    is_default: bool,
     rate: u32,
     /// Frames in the stream, priming included, when the container says.
     total: Option<u64>,
 }
 
+fn probe(path: &Path) -> io::Result<Box<dyn FormatReader>> {
+    let source = MediaSourceStream::new(Box::new(File::open(path)?), Default::default());
+    let mut hint = Hint::new();
+    if let Some(extension) = path.extension().and_then(|e| e.to_str()) {
+        hint.with_extension(extension);
+    }
+    symphonia::default::get_probe()
+        .probe(
+            &hint,
+            source,
+            FormatOptions::default(),
+            MetadataOptions::default(),
+        )
+        .map_err(invalid)
+}
+
+/// The IDs of a file's audio tracks that can be decoded, the default first.
+/// Commentary and described-video tracks are left out.
+pub fn audio_track_ids(path: &Path) -> io::Result<Vec<u32>> {
+    use symphonia::core::formats::TrackFlags;
+    let format = probe(path)?;
+    let default = format.default_track(TrackType::Audio).map(|t| t.id);
+    let codecs = symphonia::default::get_codecs();
+    let mut ids: Vec<u32> = format
+        .tracks()
+        .iter()
+        .filter(|track| {
+            !track
+                .flags
+                .intersects(TrackFlags::COMMENTARY | TrackFlags::VISUALLY_IMPAIRED | TrackFlags::TEXT_DESCRIPTIONS)
+        })
+        .filter(|track| {
+            track
+                .codec_params
+                .as_ref()
+                .and_then(|params| params.audio())
+                .is_some_and(|params| {
+                    params.sample_rate.is_some_and(|rate| rate > 0)
+                        && codecs
+                            .make_audio_decoder(params, &AudioDecoderOptions::default())
+                            .is_ok()
+                })
+        })
+        .map(|track| track.id)
+        .collect();
+    ids.sort_by_key(|id| Some(*id) != default);
+    Ok(ids)
+}
+
 impl Stream {
-    fn open(path: &Path) -> io::Result<Self> {
-        let source = MediaSourceStream::new(Box::new(File::open(path)?), Default::default());
-        let mut hint = Hint::new();
-        if let Some(extension) = path.extension().and_then(|e| e.to_str()) {
-            hint.with_extension(extension);
-        }
-        let format = symphonia::default::get_probe()
-            .probe(
-                &hint,
-                source,
-                FormatOptions::default(),
-                MetadataOptions::default(),
-            )
-            .map_err(invalid)?;
+    fn open(path: &Path, track: Option<u32>) -> io::Result<Self> {
+        let format = probe(path)?;
+        let default = format.default_track(TrackType::Audio).map(|t| t.id);
         let (track_id, rate, total, decoder) = {
-            let track = format
-                .default_track(TrackType::Audio)
-                .ok_or_else(|| invalid("no audio track"))?;
+            let track = match track {
+                Some(id) => format.tracks().iter().find(|t| t.id == id),
+                None => format.default_track(TrackType::Audio),
+            }
+            .ok_or_else(|| invalid("no audio track"))?;
             let params = track
                 .codec_params
                 .as_ref()
@@ -306,6 +357,7 @@ impl Stream {
             format,
             decoder,
             track_id,
+            is_default: Some(track_id) == default,
             rate,
             total,
         })
@@ -313,8 +365,8 @@ impl Stream {
 }
 
 /// Frames in a stream whose container doesn't say, from its packets.
-fn count_frames(path: &Path) -> io::Result<u64> {
-    let mut stream = Stream::open(path)?;
+fn count_frames(path: &Path, track: u32) -> io::Result<u64> {
+    let mut stream = Stream::open(path, Some(track))?;
     let mut frames = 0;
     loop {
         match stream.format.next_packet() {
@@ -434,6 +486,26 @@ fn itunes_gapless(moov: &[u8]) -> Option<Edit> {
 }
 
 /// The body of the top-level `moov` box, wherever it sits in the file.
+/// When an MP4 or QuickTime file says it was recorded: the movie header's
+/// creation time, which `AVAsset.creationDate` reports on macOS. Zero
+/// means unset.
+pub fn mp4_creation_time(path: &Path) -> Option<std::time::SystemTime> {
+    if !is_mp4(path) {
+        return None;
+    }
+    let moov = read_moov(path)?;
+    let mvhd = child(&moov, b"mvhd")?;
+    let version = *mvhd.first()?;
+    let seconds = if version == 1 {
+        u64::from_be_bytes(mvhd.get(4..12)?.try_into().ok()?)
+    } else {
+        u64::from(u32::from_be_bytes(mvhd.get(4..8)?.try_into().ok()?))
+    };
+    // Seconds since 1904-01-01 UTC.
+    let unix = seconds.checked_sub(2_082_844_800).filter(|_| seconds > 0)?;
+    Some(std::time::UNIX_EPOCH + std::time::Duration::from_secs(unix))
+}
+
 fn read_moov(path: &Path) -> Option<Vec<u8>> {
     let mut file = File::open(path).ok()?;
     let len = file.metadata().ok()?.len();

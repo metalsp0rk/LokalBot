@@ -289,6 +289,13 @@ impl Inner {
             if let Some(range) = meeting.valid_content_range() {
                 range.apply(&mut transcript);
             }
+            if meeting.is_merged_meeting() {
+                transcript = lokalbot_core::merge::preserve_transcript_only_sources(
+                    library.transcript(&meeting)?.as_ref(),
+                    &library.meeting_dir(&meeting),
+                    transcript,
+                )?;
+            }
             library.save_transcript(&meeting, &transcript)?;
             library.mark_transcription_completed(meeting.id)?;
             library.reindex_meeting(&meeting)?;
@@ -334,6 +341,12 @@ impl Inner {
                 &library.meeting_dir(&meeting).join("summary-claims.json"),
                 &notes.claims,
             )?;
+            // Notes match the transcript again (`MeetingAttributionArtifacts`).
+            let _ = std::fs::remove_file(
+                library
+                    .meeting_dir(&meeting)
+                    .join(lokalbot_core::library::REFRESH_MARKER),
+            );
             library.reindex_meeting(&meeting)?;
             if settings.semantic_search_enabled
                 && self
