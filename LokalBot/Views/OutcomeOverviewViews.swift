@@ -11,12 +11,22 @@ struct NeedsAttentionSection: View {
     /// Today offers planning the open threads with Agent; Timeline's day view
     /// keeps the section to review only.
     var showsPlanInAgent = false
+    var style: Style = .panel
+
+    enum Style {
+        /// A grouped panel with the review actions beneath it.
+        case panel
+        /// Rows on the page itself, with Review Actions beside the heading.
+        case plain
+    }
 
     /// Nothing to act on means no card at all — an empty "Needs attention"
     /// section is dead weight on a glanceable page (the Timeline test pins the
     /// same rule for its day view).
     var body: some View {
-        if !threads.isEmpty {
+        if !threads.isEmpty, style == .plain {
+            plainBody
+        } else if !threads.isEmpty {
             WorkspaceSection(title: title, icon: "exclamationmark.circle") {
                 VStack(spacing: 0) {
                     ForEach(Array(threads.prefix(limit))) { thread in
@@ -43,6 +53,35 @@ struct NeedsAttentionSection: View {
                 }
             }
         }
+    }
+
+    private var plainBody: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(LocalizedStringKey(title))
+                    .font(.scaled(.headline))
+                    .accessibilityAddTraits(.isHeader)
+                Text(threads.count, format: .number)
+                    .font(AppFont.scaled(.callout).monospacedDigit())
+                    .foregroundStyle(.secondary)
+                Spacer(minLength: 8)
+                Button("Review Actions…") {
+                    app.openActions()
+                }
+                .buttonStyle(.workspaceLink)
+                .font(AppFont.scaled(.callout))
+                .accessibilityIdentifier("outcomes.review")
+            }
+            .padding(.bottom, 4)
+            VStack(spacing: 0) {
+                ForEach(Array(threads.prefix(limit))) { thread in
+                    ActionThreadRow(thread: thread)
+                        .padding(.vertical, 8)
+                    if thread.id != threads.prefix(limit).last?.id { Divider() }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func planInAgent() {
