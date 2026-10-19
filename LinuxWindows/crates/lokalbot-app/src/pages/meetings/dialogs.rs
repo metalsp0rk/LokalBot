@@ -741,6 +741,7 @@ impl Render for MergeSheet {
                     .child(
                         v_flex()
                             .flex_1()
+                            .min_w_0()
                             .gap(px(2.))
                             .child(
                                 div()
@@ -783,6 +784,7 @@ impl Render for MergeSheet {
                     .child(
                         div()
                             .flex_1()
+                            .min_w_0()
                             .text_size(ty::CAPTION)
                             .text_color(lb.text_secondary)
                             .child(crate::ui::text::paragraph(lokalbot_i18n::tr(

@@ -369,25 +369,29 @@ impl MeetingsPage {
         let merge_bar = (selection.len() > 1).then(|| {
             let page = cx.entity().downgrade();
             let meetings = selection.clone();
-            h_flex()
+            // The column is narrow: the action shares the title row and the
+            // explanation gets the full width below it.
+            v_flex()
                 .flex_none()
-                .m(metric::PANEL_PADDING)
+                .mx(px(10.))
+                .mb(px(10.))
                 .px(px(12.))
                 .py(px(9.))
-                .gap(px(10.))
-                .items_center()
+                .gap(px(4.))
                 .rounded(metric::ROW_RADIUS)
                 .border_1()
                 .border_color(lb.accent_fill.opacity(0.22))
                 .bg(lb.hover)
-                .child(ui::icon(Ico::Group, px(16.), lb.accent_text))
                 .child(
-                    v_flex()
-                        .flex_1()
-                        .min_w_0()
-                        .gap(px(1.))
+                    h_flex()
+                        .gap(px(8.))
+                        .items_center()
+                        .child(ui::icon(Ico::Group, px(16.), lb.accent_text))
                         .child(
                             div()
+                                .flex_1()
+                                .min_w_0()
+                                .truncate()
                                 .text_size(ty::BODY)
                                 .font_weight(FontWeight::SEMIBOLD)
                                 .text_color(lb.text)
@@ -397,34 +401,31 @@ impl MeetingsPage {
                                 )),
                         )
                         .child(
-                            div()
-                                .text_size(ty::SECONDARY)
-                                .text_color(lb.text_secondary)
-                                .child(crate::ui::text::paragraph(if can_merge {
-                                    lokalbot_i18n::tr(
-                                        "Create one timeline and fold the originals into it",
-                                    )
-                                } else {
-                                    lokalbot_i18n::tr(
-                                        "Select completed meetings that are not processing",
-                                    )
-                                })),
+                            ui::controls::bordered("meetings-merge", lokalbot_i18n::tr("Merge…"))
+                                .small()
+                                .disabled(!can_merge)
+                                .on_click(move |_, window, cx| {
+                                    let meetings = meetings.clone();
+                                    let _ = page.update(cx, |this, cx| {
+                                        dialogs::MergeSheet::open(
+                                            this.data.clone(),
+                                            meetings,
+                                            window,
+                                            cx,
+                                        )
+                                    });
+                                }),
                         ),
                 )
                 .child(
-                    ui::controls::bordered_icon(
-                        "meetings-merge",
-                        Ico::Group,
-                        lokalbot_i18n::tr("Merge…"),
-                    )
-                    .small()
-                    .disabled(!can_merge)
-                    .on_click(move |_, window, cx| {
-                        let meetings = meetings.clone();
-                        let _ = page.update(cx, |this, cx| {
-                            dialogs::MergeSheet::open(this.data.clone(), meetings, window, cx)
-                        });
-                    }),
+                    div()
+                        .text_size(ty::SECONDARY)
+                        .text_color(lb.text_secondary)
+                        .child(crate::ui::text::paragraph(if can_merge {
+                            lokalbot_i18n::tr("Create one timeline and fold the originals into it")
+                        } else {
+                            lokalbot_i18n::tr("Select completed meetings that are not processing")
+                        })),
                 )
         });
 
