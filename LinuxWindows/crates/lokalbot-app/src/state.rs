@@ -714,8 +714,6 @@ pub enum AppEvent {
     /// Start, pause, resume or retry the live transcript preview.
     LivePreview(lokalbot_engine::LivePreviewCommand),
     OpenOnboarding,
-    /// Install `lokalbot-cli` for coding agents (PATH + skill folders).
-    InstallCli,
     /// Start or stop dictation from the UI ("Try here").
     ToggleDictation,
     CancelDictation,

@@ -58,8 +58,8 @@ Agent Mode runs on the built-in model, Ollama or an OpenAI-compatible server, no
 
 ## Install
 
-Download the archive for your platform from the latest CI run (`lokalbot-linux-x86_64`,
-`lokalbot-windows-x86_64`) or release:
+Download the archive for your platform from [GitHub Releases](https://github.com/stevyhacker/lokalbot/releases).
+No release includes the Linux and Windows archives yet; until one does, [build from source](#build-from-source).
 
 - **Linux** (x86_64): extract `LokalBot-<version>-linux-x86_64.tar.gz` and run `./install.sh`. It installs
   `lokalbot` and `lokalbot-cli` into `~/.local/bin` and adds LokalBot to your applications menu.
@@ -73,6 +73,31 @@ default transcription, Think and search models.
 Your library lives in `~/.local/share/LokalBot` on Linux and `%LOCALAPPDATA%\LokalBot` on Windows.
 Set `LOKALBOT_STORAGE_ROOT` or pass `--lokalbot-storage-root <dir>` to use another folder. Logs are in
 the library's `logs` folder (Settings → Advanced → Logs).
+
+### Coding agents
+
+To let Claude Code, Codex and other coding agents read your library, turn on "Allow external agents to read
+your meeting library" in Settings → Privacy & Data, then click **Install for your coding agent…** in
+Settings → Advanced → Agent CLI. It installs the LokalBot skill into `~/.agents/skills` and `~/.claude/skills`
+(under your user folder on Windows) and puts `lokalbot-cli` here:
+
+- **Linux**: `~/.local/bin/lokalbot-cli`. If you used `install.sh`, the CLI is already there and is left as
+  it is. If `~/.local/bin` isn't on your PATH, add it to `~/.bashrc` (or `~/.zshrc`):
+
+  ```bash
+  echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+  ```
+
+- **Windows**: `%LOCALAPPDATA%\Programs\LokalBot\bin\lokalbot-cli.exe`. Add that folder to your PATH from
+  PowerShell, then open a new terminal:
+
+  ```powershell
+  [Environment]::SetEnvironmentVariable('Path', [Environment]::GetEnvironmentVariable('Path', 'User') + ";$env:LOCALAPPDATA\Programs\LokalBot\bin", 'User')
+  ```
+
+The same section has Copy buttons for the MCP setup commands (Claude Code, Codex and other MCP clients), which
+use the full path above. Try it in a terminal with `lokalbot-cli brief`. Without the app,
+`lokalbot-cli install-skill` does the same, and `lokalbot-cli install-skill --uninstall` removes what it installed.
 
 ## Build from source
 
