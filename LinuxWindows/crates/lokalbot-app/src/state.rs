@@ -730,10 +730,18 @@ impl gpui_kit::EventEmitter<AppEvent> for AppData {}
 /// The sidebar storage card's AI line and remote hosts.
 pub fn inference_presentation(settings: &Settings) -> (SharedString, Vec<SharedString>) {
     use lokalbot_core::settings::SummarizerBackend;
+    if let Some(plan) = settings.think_plan() {
+        return (
+            lokalbot_i18n::tr("AI: local + remote").into(),
+            vec![plan.destination_host().into()],
+        );
+    }
     let url = match settings.summarizer_backend {
-        SummarizerBackend::BuiltIn => None,
         SummarizerBackend::Ollama => Some(settings.ollama_base_url.as_str()),
         SummarizerBackend::OpenAICompatible => Some(settings.openai_base_url.as_str()),
+        SummarizerBackend::BuiltIn
+        | SummarizerBackend::ChatGptPlan
+        | SummarizerBackend::ClaudePlan => None,
     };
     match url {
         Some(url) if !lokalbot_core::access::is_loopback_url(url) => {

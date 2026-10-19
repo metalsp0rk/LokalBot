@@ -561,13 +561,11 @@ fn request(
         return Err(AiError::BadResponse("Notes request cannot fit the model's input allowance. Source-linked progress was saved.".into()).into());
     }
     budget.reserve(u64::from(input), u64::from(tokens))?;
-    let user = context
-        .iter()
-        .cloned()
-        .chain(std::iter::once(prompt.to_string()))
-        .collect::<Vec<_>>()
-        .join("\n\n");
-    let request = ChatRequest::new(system, user)
+    // The transcript travels as context, so a server with prompt caching
+    // (Anthropic) reuses it across this meeting's requests; every other
+    // server gets it joined in front of the instruction as before.
+    let request = ChatRequest::new(system, prompt)
+        .context(context.to_vec())
         .max_tokens(tokens)
         .reasoning_budget(0)
         .temperature(0.0)
