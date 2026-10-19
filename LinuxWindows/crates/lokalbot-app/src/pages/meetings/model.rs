@@ -201,7 +201,7 @@ pub fn display_label(name: &str, is_user: bool) -> String {
         .strip_prefix("them ")
         .filter(|n| n.chars().all(|c| c.is_ascii_digit()) && !n.is_empty())
     {
-        return lokalbot_i18n::format("Speaker {n}", &[("n", format!("{}", n))]);
+        return lokalbot_i18n::format("Speaker {n}", &[("n", n.to_string())]);
     }
     trimmed.to_string()
 }
@@ -655,17 +655,17 @@ pub fn row_detail(meeting: &Meeting, live: bool) -> String {
         lokalbot_i18n::format(
             "{time} · {duration}",
             &[
-                ("time", format!("{}", time)),
-                ("duration", format!("{}", duration)),
+                ("time", time.to_string()),
+                ("duration", duration.to_string()),
             ],
         )
     } else {
         lokalbot_i18n::format(
             "{0} · {time} · {duration}",
             &[
-                ("0", format!("{}", meeting.app_name)),
-                ("time", format!("{}", time)),
-                ("duration", format!("{}", duration)),
+                ("0", meeting.app_name.to_string()),
+                ("time", time.to_string()),
+                ("duration", duration.to_string()),
             ],
         )
     }

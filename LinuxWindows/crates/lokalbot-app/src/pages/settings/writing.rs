@@ -137,12 +137,12 @@ impl SettingsPage {
         let summary_detail = if settings.cotyping_enabled && other_apps {
             lokalbot_i18n::format(
                 "{model_name} · suggestions appear as you type in other apps.",
-                &[("model_name", format!("{}", model_name))],
+                &[("model_name", model_name.to_string())],
             )
         } else if settings.cotyping_enabled {
             lokalbot_i18n::format(
                 "{model_name} · suggestions appear in the practice editor below.",
-                &[("model_name", format!("{}", model_name))],
+                &[("model_name", model_name.to_string())],
             )
         } else if model_ready {
             lokalbot_i18n::tr("The model is ready. Turn on autocomplete to start.").into()
@@ -176,7 +176,7 @@ impl SettingsPage {
                             .icon(Icon::new(Ico::CircleArrowDown))
                             .label(lokalbot_i18n::format(
                                 "Download · {size}",
-                                &[("size", format!("{}", size))],
+                                &[("size", size.to_string())],
                             ))
                             .on_click(move |_, _, cx| {
                                 download_data.update(cx, |data, cx| {

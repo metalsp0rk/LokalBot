@@ -134,7 +134,7 @@ impl AgentModel {
         self.phase = InstallPhase::Downloading {
             name: lokalbot_i18n::format(
                 "Bun {0}",
-                &[("0", format!("{}", lokalbot_agent::manifest::BUN_VERSION))],
+                &[("0", lokalbot_agent::manifest::BUN_VERSION.to_string())],
             ),
             progress: Some(0.0),
         };

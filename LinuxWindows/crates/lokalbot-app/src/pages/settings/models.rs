@@ -202,8 +202,8 @@ impl Preset {
         lokalbot_i18n::format(
             "Transcribe: {0}, Think: {1}",
             &[
-                ("0", format!("{}", model_name(speech))),
-                ("1", format!("{}", model_name(think))),
+                ("0", model_name(speech).to_string()),
+                ("1", model_name(think).to_string()),
             ],
         )
     }
@@ -465,8 +465,8 @@ impl SettingsPage {
                             .child(crate::ui::text::paragraph(lokalbot_i18n::format(
                                 "{setup} · {location}",
                                 &[
-                                    ("setup", format!("{}", setup)),
-                                    ("location", format!("{}", location)),
+                                    ("setup", setup.to_string()),
+                                    ("location", location.to_string()),
                                 ],
                             ))),
                     ),
@@ -894,7 +894,7 @@ impl SettingsPage {
                                         .child(crate::ui::text::paragraph(lokalbot_i18n::tr("Not used by your current settings"))),
                                 )
                                 .child(settings_row::help(
-                                    lokalbot_i18n::format("Removing all of them frees about {0}. You can download any of them again later.", &[("0", format!("{}", size_label(total)))]),
+                                    lokalbot_i18n::format("Removing all of them frees about {0}. You can download any of them again later.", &[("0", size_label(total).to_string())]),
                                     cx,
                                 )),
                         )
@@ -939,7 +939,7 @@ impl SettingsPage {
                     "Applies to every Think model — built-in and servers. {0}",
                     &[(
                         "0",
-                        format!("{}", budget_detail(settings.generation_budget_preset)),
+                        budget_detail(settings.generation_budget_preset).to_string(),
                     )],
                 ),
                 cx,
@@ -1002,7 +1002,7 @@ impl SettingsPage {
         let location: SharedString = match (&remote, row.ready) {
             (Some(url), _) => {
                 let host = lokalbot_core::access::origin_of(url).unwrap_or_else(|| url.clone());
-                lokalbot_i18n::format("Remote · {host}", &[("host", format!("{}", host))]).into()
+                lokalbot_i18n::format("Remote · {host}", &[("host", host.to_string())]).into()
             }
             (None, true) => lokalbot_i18n::tr("On this PC · Downloaded").into(),
             (None, false) => lokalbot_i18n::tr("On this PC").into(),
@@ -1028,7 +1028,7 @@ impl SettingsPage {
                 (None, false, None) if missing_bytes > 0 => Some((
                     lokalbot_i18n::format(
                         "Download required · {0}",
-                        &[("0", format!("{}", size_label(missing_bytes)))],
+                        &[("0", size_label(missing_bytes).to_string())],
                     )
                     .into(),
                     lb.attention_text,
@@ -1526,14 +1526,14 @@ impl SettingsPage {
                     .gap(px(8.))
                     .items_center()
                     .child(ui::icon(Ico::Network, px(14.), lb.attention_text))
-                    .child(div().text_size(ty::BODY).font_weight(FontWeight::SEMIBOLD).text_color(lb.text).child(crate::ui::text::paragraph(lokalbot_i18n::format("Remote processing · {host}", &[("host", format!("{}", host))])))),
+                    .child(div().text_size(ty::BODY).font_weight(FontWeight::SEMIBOLD).text_color(lb.text).child(crate::ui::text::paragraph(lokalbot_i18n::format("Remote processing · {host}", &[("host", host.to_string())])))),
             )
             .child(settings_row::help(lokalbot_i18n::tr("Think may send meeting transcripts, Ask questions with their sources, and dictation requests to this server when you use those features. Scheduled daily summaries also run here and can send activity titles and meeting evidence without a prompt each time."), cx))
             .child(
                 h_flex()
                     .gap(px(10.))
                     .items_center()
-                    .child(div().flex_1().min_w_0().text_size(ty::BODY).text_color(lb.text).child(crate::ui::text::paragraph(lokalbot_i18n::format("Allow sending context to {origin}", &[("origin", format!("{}", origin))]))))
+                    .child(div().flex_1().min_w_0().text_size(ty::BODY).text_color(lb.text).child(crate::ui::text::paragraph(lokalbot_i18n::format("Allow sending context to {origin}", &[("origin", origin.to_string())]))))
                     .child(settings_row::switch("settings-remote-consent", approved, move |on, _, cx| {
                         let origin = toggle_origin.clone();
                         data.update(cx, |data, cx| {
@@ -1632,14 +1632,14 @@ fn confirm_preset(
         lokalbot_i18n::format(
             "{0} Estimated new download: {1}. Existing models are kept.",
             &[
-                ("0", format!("{}", preset.summary())),
-                ("1", format!("{}", size_label(download))),
+                ("0", preset.summary().to_string()),
+                ("1", size_label(download).to_string()),
             ],
         )
     } else {
         lokalbot_i18n::format(
             "{0} Every model is already on this PC.",
-            &[("0", format!("{}", preset.summary()))],
+            &[("0", preset.summary().to_string())],
         )
     };
     window.open_alert_dialog(cx, move |alert, _, _| {
@@ -1647,7 +1647,7 @@ fn confirm_preset(
         alert
             .title(lokalbot_i18n::format(
                 "Use {0}?",
-                &[("0", format!("{}", preset.title()))],
+                &[("0", preset.title().to_string())],
             ))
             .description(detail.clone())
             .confirm()
@@ -1677,8 +1677,8 @@ fn confirm_remove(data: Entity<AppData>, id: String, window: &mut Window, cx: &m
         let data = data.clone();
         let id = id.clone();
         alert
-            .title(lokalbot_i18n::format("Remove {name}?", &[("name", format!("{}", name))]))
-            .description(lokalbot_i18n::format("This deletes {name} ({size}) from this PC. Your current settings don't use it, and you can download it again later.", &[("name", format!("{}", name)), ("size", format!("{}", size))]))
+            .title(lokalbot_i18n::format("Remove {name}?", &[("name", name.to_string())]))
+            .description(lokalbot_i18n::format("This deletes {name} ({size}) from this PC. Your current settings don't use it, and you can download it again later.", &[("name", name.to_string()), ("size", size.to_string())]))
             .confirm()
             .ok_text(lokalbot_i18n::tr("Remove"))
             .ok_variant(ButtonVariant::Danger)
@@ -1701,7 +1701,7 @@ fn confirm_revoke(data: Entity<AppData>, origin: String, window: &mut Window, cx
         let data = data.clone();
         let origin = origin.clone();
         alert
-            .title(lokalbot_i18n::format("Revoke access to {origin}?", &[("origin", format!("{}", origin))]))
+            .title(lokalbot_i18n::format("Revoke access to {origin}?", &[("origin", origin.to_string())]))
             .description(lokalbot_i18n::tr("This also revokes scheduled processing for this origin. Any model using it will require approval again."))
             .confirm()
             .ok_text(lokalbot_i18n::tr("Revoke Access"))

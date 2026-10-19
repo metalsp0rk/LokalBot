@@ -170,6 +170,8 @@ impl Element for Paragraph {
 }
 
 /// Contiguous source ranges: no reordering, lost spaces or split graphemes.
+// One line covering the whole text is a single range, not the range's items.
+#[allow(clippy::single_range_in_vec_init)]
 fn wrap_ranges(
     text: &str,
     width: Option<f32>,

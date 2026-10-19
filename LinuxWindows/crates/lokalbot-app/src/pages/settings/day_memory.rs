@@ -261,7 +261,7 @@ impl SettingsPage {
                     "settings.dayDigestHour",
                     lokalbot_i18n::format(
                         "Generate at {0}",
-                        &[("0", format!("{}", hour_label(hour)))],
+                        &[("0", hour_label(hour).to_string())],
                     ),
                     None,
                     settings_row::stepper(
@@ -332,16 +332,14 @@ impl SettingsPage {
             (Some(at), source) => lokalbot_i18n::format(
                 "Last capture {0}{1}",
                 &[
-                    ("0", format!("{}", lokalbot_core::time::clock_time(*at))),
+                    ("0", lokalbot_core::time::clock_time(*at).to_string()),
                     (
                         "1",
-                        format!(
-                            "{}",
-                            source
-                                .as_deref()
-                                .map(|s| format!(" · {}", text_source_label(s)))
-                                .unwrap_or_default()
-                        ),
+                        source
+                            .as_deref()
+                            .map(|s| format!(" · {}", text_source_label(s)))
+                            .unwrap_or_default()
+                            .to_string(),
                     ),
                 ],
             ),
@@ -355,7 +353,7 @@ impl SettingsPage {
                 Ico::CircleAlert,
                 lokalbot_i18n::format(
                     "The last capture failed: {error}",
-                    &[("error", format!("{}", error))],
+                    &[("error", error.to_string())],
                 ),
                 true,
             ));
@@ -409,8 +407,8 @@ impl SettingsPage {
         let help = lokalbot_i18n::format(
             "Reads text from the window's pixels on this PC when accessibility shows little. ocrs, {size}, models under {0}. Latin script only.",
             &[
-                ("size", format!("{}", size)),
-                ("0", format!("{}", lokalbot_ai::ocr::OCR_MODEL_LICENSE)),
+                ("size", size.to_string()),
+                ("0", lokalbot_ai::ocr::OCR_MODEL_LICENSE.to_string()),
             ],
         );
         let data = self.data.clone();
@@ -430,7 +428,7 @@ impl SettingsPage {
                 .icon(Icon::new(Ico::CircleArrowDown))
                 .label(lokalbot_i18n::format(
                     "Download · {size}",
-                    &[("size", format!("{}", size))],
+                    &[("size", size.to_string())],
                 ))
                 .on_click(move |_, _, cx| {
                     data.update(cx, |data, cx| {
@@ -449,10 +447,7 @@ impl SettingsPage {
             Some(match failed {
                 Some(error) => lokalbot_i18n::format(
                     "{help} The download failed: {error}",
-                    &[
-                        ("help", format!("{}", help)),
-                        ("error", format!("{}", error)),
-                    ],
+                    &[("help", help.to_string()), ("error", format!("{}", error))],
                 )
                 .into(),
                 None => help.into(),
@@ -481,7 +476,7 @@ fn text_source_label(source: &str) -> String {
         }
     };
     if base.is_some() {
-        lokalbot_i18n::format("{label}, redacted", &[("label", format!("{}", label))])
+        lokalbot_i18n::format("{label}, redacted", &[("label", label.to_string())])
     } else {
         label
     }

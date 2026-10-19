@@ -40,8 +40,8 @@ impl Hit {
                     Some(speaker) => lokalbot_i18n::format(
                         "▶ {stamp} · {speaker}",
                         &[
-                            ("stamp", format!("{}", stamp)),
-                            ("speaker", format!("{}", speaker)),
+                            ("stamp", stamp.to_string()),
+                            ("speaker", speaker.to_string()),
                         ],
                     ),
                     None => format!("▶ {stamp}"),
@@ -250,7 +250,7 @@ pub fn speaker_label(name: &str) -> String {
         && !number.is_empty()
         && number.bytes().all(|b| b.is_ascii_digit())
     {
-        return lokalbot_i18n::format("Speaker {number}", &[("number", format!("{}", number))]);
+        return lokalbot_i18n::format("Speaker {number}", &[("number", number.to_string())]);
     }
     trimmed.to_string()
 }
