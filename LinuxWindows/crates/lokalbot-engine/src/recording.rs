@@ -10,6 +10,7 @@ use parking_lot::Mutex;
 
 use chrono::{DateTime, Utc};
 use lokalbot_audio::{Recorder, RecorderOptions};
+use lokalbot_core::calendar::{self as calendar_policy, CalendarEvent};
 use lokalbot_core::{Library, Meeting, Settings};
 use uuid::Uuid;
 
@@ -20,6 +21,10 @@ pub struct Recording {
     shared: Arc<Shared>,
     pipeline: Pipeline,
     active: Arc<Mutex<Option<Active>>>,
+    /// The calendar event of the last recording the user stopped, and when,
+    /// so detection cannot immediately restart a meeting they ended
+    /// (`lastCalendarEventID`, `calendarRepeatCooldown`).
+    last_stopped_event: Mutex<Option<(String, DateTime<Utc>)>>,
 }
 
 struct Active {
@@ -27,6 +32,29 @@ struct Active {
     recorder: Recorder,
     ticker_stop: Arc<AtomicBool>,
     ticker: Option<JoinHandle<()>>,
+    /// Started by the detector; its call's end may stop it.
+    automatic: bool,
+}
+
+/// What a recording is for (`MeetingDetectionContext`).
+#[derive(Clone, Debug, Default)]
+pub struct RecordingStart {
+    pub title: Option<String>,
+    pub app_name: Option<String>,
+    /// The calendar event it is stamped with.
+    pub calendar: Option<CalendarEvent>,
+    pub source: StartSource,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum StartSource {
+    /// Record Now, the tray, a notification or Today.
+    #[default]
+    User,
+    /// Automatic mode; suppressed for an event the user just stopped.
+    Detector,
+    /// The next event of a call the detector is recording.
+    CalendarHandoff,
 }
 
 impl Recording {
@@ -35,15 +63,31 @@ impl Recording {
             shared,
             pipeline,
             active: Arc::new(Mutex::new(None)),
+            last_stopped_event: Mutex::new(None),
         }
     }
 
-    pub fn start(&self, title: Option<String>, app_name: Option<String>) {
+    pub fn start(&self, request: RecordingStart) {
         if self.active.lock().is_some() {
-            self.shared.message("LokalBot is already recording.");
+            if request.source == StartSource::User {
+                self.shared.message("LokalBot is already recording.");
+            }
             return;
         }
-        if let Err(err) = self.try_start(title, app_name) {
+        if request.source == StartSource::Detector {
+            let last = self.last_stopped_event.lock().clone();
+            if calendar_policy::should_suppress_repeat(
+                request.calendar.as_ref().map(|e| e.external_id.as_str()),
+                last.as_ref().map(|(id, _)| id.as_str()),
+                last.as_ref().map(|(_, at)| *at),
+                Utc::now(),
+                calendar_policy::REPEAT_COOLDOWN,
+            ) {
+                log::info!("not recording again a calendar event the user just stopped");
+                return;
+            }
+        }
+        if let Err(err) = self.try_start(request) {
             log::error!("could not start recording: {err:#}");
             self.shared
                 .emit(EngineEvent::Recording(RecordingUpdate::Failed {
@@ -52,13 +96,30 @@ impl Recording {
         }
     }
 
-    fn try_start(&self, title: Option<String>, app_name: Option<String>) -> Result<()> {
+    fn try_start(&self, request: RecordingStart) -> Result<()> {
         let settings = self.shared.settings();
         let library = &self.shared.library;
-        let title = title.unwrap_or_else(|| "Manual recording".to_string());
-        let app_name = app_name.unwrap_or_else(|| "Recording".to_string());
-        let meeting =
+        let calendar_title = request
+            .calendar
+            .as_ref()
+            .filter(|_| settings.use_calendar_titles)
+            .map(|event| event.title.trim())
+            .filter(|title| !title.is_empty());
+        let title = match calendar_title {
+            Some(title) => title.to_string(),
+            None => request.title.clone().unwrap_or_else(|| {
+                calendar_policy::recording_title(None, false, request.app_name.as_deref())
+            }),
+        };
+        let app_name = request.app_name.unwrap_or_else(|| "Recording".to_string());
+        let mut meeting =
             library.create_meeting(&title, &app_name, lokalbot_core::time::now_seconds())?;
+        if let Some(event) = &request.calendar {
+            calendar_policy::stamp_meeting(&mut meeting, event, settings.use_calendar_agenda);
+            if let Err(err) = library.save_meeting(&meeting) {
+                log::warn!("could not save the calendar details of the recording: {err:#}");
+            }
+        }
         let options = RecorderOptions {
             mic_device: Some(settings.microphone_device.clone()).filter(|d| !d.is_empty()),
             capture_system: settings.record_system_audio,
@@ -108,12 +169,62 @@ impl Recording {
             recorder,
             ticker_stop,
             ticker: Some(ticker),
+            automatic: request.source != StartSource::User,
         });
         Ok(())
     }
 
+    /// The user stopped the recording: detection may not restart its
+    /// calendar event for a while.
     pub fn stop(&self) {
+        let event = self
+            .active
+            .lock()
+            .as_ref()
+            .and_then(|active| active.meeting.calendar_event_id.clone());
+        if let Some(event) = event {
+            *self.last_stopped_event.lock() = Some((event, Utc::now()));
+        }
         self.finish(true);
+    }
+
+    /// The recording was started by the detector (or a calendar handoff).
+    pub fn is_automatic(&self) -> bool {
+        self.active.lock().as_ref().is_some_and(|a| a.automatic)
+    }
+
+    /// The detector's call ended on its own: stop the recording it started.
+    /// A call that ended this way never starts the repeat cooldown.
+    pub fn call_ended(&self) {
+        let automatic = self.active.lock().as_ref().is_some_and(|a| a.automatic);
+        if automatic {
+            *self.last_stopped_event.lock() = None;
+            self.finish(true);
+        }
+    }
+
+    /// Back-to-back events in one call (`splitForCalendarHandoff`): the
+    /// recording the detector started ends and the next event's begins.
+    pub fn split_for_calendar_handoff(&self, next: RecordingStart) {
+        let current = self
+            .active
+            .lock()
+            .as_ref()
+            .map(|active| (active.automatic, active.meeting.calendar_event_id.clone()));
+        let Some((true, current_event)) = current else {
+            return;
+        };
+        let next_event = next.calendar.as_ref().map(|e| e.external_id.as_str());
+        if !calendar_policy::should_split_for_calendar_handoff(current_event.as_deref(), next_event)
+        {
+            return;
+        }
+        log::info!("calendar handoff: starting a new recording for the next event");
+        self.finish(true);
+        self.start(RecordingStart {
+            source: StartSource::CalendarHandoff,
+            ..next
+        });
     }
 
     /// The folder of the meeting being recorded, if any.

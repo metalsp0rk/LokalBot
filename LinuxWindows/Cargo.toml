@@ -4,7 +4,7 @@ members = ["crates/*"]
 default-members = ["crates/lokalbot-app", "crates/lokalbot-cli"]
 
 [workspace.package]
-version = "0.1.0"
+version = "0.10.10"
 edition = "2024"
 license = "GPL-3.0-only"
 publish = false
@@ -13,6 +13,7 @@ repository = "https://github.com/stevyhacker/lokalbot"
 
 [workspace.dependencies]
 lokalbot-core = { path = "crates/lokalbot-core" }
+lokalbot-cli = { path = "crates/lokalbot-cli" }
 lokalbot-ai = { path = "crates/lokalbot-ai" }
 lokalbot-audio = { path = "crates/lokalbot-audio" }
 lokalbot-speech = { path = "crates/lokalbot-speech" }
@@ -20,6 +21,7 @@ lokalbot-platform = { path = "crates/lokalbot-platform" }
 lokalbot-engine = { path = "crates/lokalbot-engine" }
 lokalbot-agent = { path = "crates/lokalbot-agent" }
 lokalbot-i18n = { path = "crates/lokalbot-i18n" }
+lokalbot-update = { path = "crates/lokalbot-update", default-features = false }
 
 # UI. GPUI Kit pins the exact GPUI snapshot it was released against; see
 # docs/dependency-provenance.md before changing either version.

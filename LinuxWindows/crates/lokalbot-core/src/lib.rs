@@ -9,6 +9,7 @@
 
 pub mod access;
 pub mod actions;
+pub mod calendar;
 pub mod demo;
 pub mod digest;
 pub mod due;

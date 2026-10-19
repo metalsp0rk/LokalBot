@@ -1,6 +1,6 @@
 # LokalBot Privacy Policy
 
-Effective: October 18, 2026
+Effective: October 19, 2026
 
 LokalBot is a local-first macOS application. It has no LokalBot account,
 analytics service, advertising SDK, or telemetry backend. The project does not
@@ -813,8 +813,9 @@ platform differences:
 
 - **Storage.** The library is in `~/.local/share/LokalBot` on Linux and
   `%LOCALAPPDATA%\LokalBot` on Windows, with logs in its `logs` folder. API
-  keys and the screen-image key are kept in the system credential store
-  (Secret Service on Linux, Windows Credential Manager).
+  keys, the ChatGPT plan sign-in, and the screen-image key are kept in the
+  system credential store (Secret Service on Linux, Windows Credential
+  Manager).
 - **Imported recordings** are read without being changed or moved, as on
   macOS, but their audio is kept as a 16 kHz WAV copy rather than AAC. Merged
   meetings also keep WAV tracks. A Mac reads these tracks too.
@@ -844,8 +845,57 @@ platform differences:
 - **The live transcript preview** runs only when you start it during a
   recording. It uses the local transcription model and is not saved; the
   full transcript replaces it after the meeting.
+- **Calendar** is off until you turn on **Use calendar to improve detection**
+  in Settings → Meetings. Instead of the Mac Calendar it reads:
+  - private calendar links you add (an iCal feed such as Google Calendar's
+    secret address or a published Outlook calendar, or a CalDAV collection).
+    Each link is fetched from its own server every five minutes while
+    calendar use is on. Links can carry credentials, so they are kept only in
+    the system credential store, and only their host appears in Settings and
+    in logs;
+  - on Linux, the calendars of Evolution Data Server (including GNOME Online
+    Accounts), read on this computer over D-Bus.
+  Events stay in memory. Matched recordings keep the same metadata as on
+  macOS, including the agenda only with **Use invitation agendas**. The
+  addresses you enter as your own are kept in settings to leave you out of
+  attendee lists and skip invitations you declined. The pre-meeting brief on
+  Today is written only by a Think model on this computer and is not saved.
+- **Remote Think** is off until you choose a server or plan under Settings →
+  Models → Connections and turn on its approval. The built-in model on this
+  PC stays the default.
+  - An Anthropic API URL (`api.anthropic.com`) uses its Messages API with
+    prompt caching, as described above; Agent Mode reaches the same origin
+    through Anthropic's OpenAI-compatible endpoint.
+  - With OpenRouter, every Think request asks for private endpoints only:
+    providers that do not collect inference data. **Follow my OpenRouter
+    privacy settings** asks you to confirm, then leaves provider eligibility
+    to your OpenRouter account, API key, workspace and guardrail settings.
+    Reading OpenRouter's endpoint list for the model's context window sends
+    only the model id, with no API key and no content.
+  - The ChatGPT and Claude plans each need their own approval, separate from
+    any API-server approval for the same company, and Agent Mode does not use
+    them. ChatGPT sign-in returns to a listener on `127.0.0.1` (port 1455, or
+    a free port when that one is taken). Its tokens, app registration and
+    random per-install id are kept only in the system credential store,
+    split across several entries where an entry is small; without a
+    credential store the sign-in fails before your browser opens, and nothing
+    is written anywhere else.
+  - The Claude plan runs the Claude Code you installed and signed in to
+    yourself: `claude` on your PATH or in `~/.local/bin`, or npm's
+    `claude.cmd` on Windows, which LokalBot runs through the script it names.
+    It uses the same isolation flags and empty private temporary folder as on
+    macOS, with content on stdin. `claude auth status` is read to show the
+    account email and plan, never credentials.
+- **Updates.** While "Check for updates automatically" is on (the default),
+  LokalBot reads one small update feed for its platform from GitHub Releases
+  when it starts and once a day; "Check for Updates…" reads it on request.
+  The request carries LokalBot's version in its user agent and no library
+  data. The update archive downloads only when you choose Install and
+  Relaunch, and is checked against its pinned size, SHA-256 and the release
+  signature before it is unpacked.
 - **Network access** is limited to model and runtime downloads you request,
-  Agent Mode setup, and AI servers you approve.
+  Agent Mode setup, update checks, AI servers and subscription plans you
+  approve, and the calendar links you add.
 
 ## Security and changes
 

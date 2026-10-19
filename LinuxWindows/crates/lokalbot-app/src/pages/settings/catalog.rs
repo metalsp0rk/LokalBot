@@ -105,10 +105,17 @@ pub const ENTRIES: &[Entry] = &[
         value: |s| s.quick_recall_shortcut.clone(),
     },
     Entry {
+        id: "settings.checkForUpdates",
+        title: "Check for updates automatically",
+        category: General,
+        aliases: "update updates upgrade automatic daily release github",
+        value: |s| on_off(s.check_for_updates),
+    },
+    Entry {
         id: "settings.currentVersion",
         title: "Current version",
         category: General,
-        aliases: "version about release update updates",
+        aliases: "version about release update updates upgrade check install relaunch",
         value: |_| env!("CARGO_PKG_VERSION").into(),
     },
     Entry {
@@ -151,6 +158,48 @@ pub const ENTRIES: &[Entry] = &[
         },
     },
     Entry {
+        id: "settings.calendarDetectionEnabled",
+        title: "Use calendar to improve detection",
+        category: Meetings,
+        aliases: "calendar ical caldav google outlook evolution gnome schedule",
+        value: |s| on_off(s.calendar_detection_enabled),
+    },
+    Entry {
+        id: "settings.calendarLinks",
+        title: "Calendar links",
+        category: Meetings,
+        aliases: "calendar ical caldav webcal feed google outlook link",
+        value: details,
+    },
+    Entry {
+        id: "settings.calendarMyEmailAddresses",
+        title: "My email addresses",
+        category: Meetings,
+        aliases: "calendar email address attendee declined",
+        value: |s| text(&s.calendar_my_email_addresses),
+    },
+    Entry {
+        id: "settings.useCalendarTitles",
+        title: "Use calendar titles for recordings",
+        category: Meetings,
+        aliases: "calendar title name recording",
+        value: |s| on_off(s.use_calendar_titles),
+    },
+    Entry {
+        id: "settings.requireCalendarForBrowser",
+        title: "Require a calendar match for browser auto-recording",
+        category: Meetings,
+        aliases: "calendar browser google meet strict",
+        value: |s| on_off(s.require_calendar_for_browser),
+    },
+    Entry {
+        id: "settings.useCalendarAgenda",
+        title: "Use invitation agendas",
+        category: Meetings,
+        aliases: "calendar agenda invitation notes",
+        value: |s| on_off(s.use_calendar_agenda),
+    },
+    Entry {
         id: "settings.autoTranscribe",
         title: "Transcribe automatically after each meeting",
         category: Meetings,
@@ -177,6 +226,13 @@ pub const ENTRIES: &[Entry] = &[
         category: Meetings,
         aliases: "summary translate language",
         value: |s| super::meetings::summary_language_label(&s.summary_language),
+    },
+    Entry {
+        id: "settings.meetingNotesUseCalendarContext",
+        title: "Give notes the calendar title and invited names",
+        category: Meetings,
+        aliases: "calendar notes context attendees",
+        value: |s| on_off(s.meeting_notes_use_calendar_context),
     },
     Entry {
         id: "settings.multiSpeakerDiarization",
@@ -405,7 +461,7 @@ pub const ENTRIES: &[Entry] = &[
         id: "settings.summarizerBackend",
         title: "Connections",
         category: Models,
-        aliases: "ollama openai server remote api key url",
+        aliases: "ollama openai server remote api key url chatgpt claude plan subscription anthropic openrouter",
         value: |s| lokalbot_i18n::tr(s.summarizer_backend.label()).into(),
     },
     Entry {
@@ -610,8 +666,12 @@ mod tests {
         assert!(autocomplete.contains(&"settings.cotypingEnabled"));
         assert!(autocomplete.contains(&"settings.cotypingBuiltInModelID"));
         assert!(!autocomplete.contains(&"settings.autocompleteAvailability"));
+        // Updates check, download and install here too.
         let updates: Vec<&str> = search("updates").iter().map(|e| e.id).collect();
-        assert_eq!(updates, ["settings.currentVersion"]);
+        assert_eq!(
+            updates,
+            ["settings.checkForUpdates", "settings.currentVersion"]
+        );
     }
 
     #[test]

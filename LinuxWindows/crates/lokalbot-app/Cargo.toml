@@ -20,12 +20,14 @@ rust-i18n = "4.2"
 unicode-linebreak = "0.1"
 unicode-segmentation = "1"
 lokalbot-core.workspace = true
+lokalbot-cli.workspace = true
 lokalbot-ai.workspace = true
 lokalbot-agent.workspace = true
 lokalbot-audio.workspace = true
 lokalbot-engine.workspace = true
 lokalbot-platform.workspace = true
 lokalbot-speech.workspace = true
+lokalbot-update = { workspace = true, features = ["client"] }
 gpui-kit.workspace = true
 anyhow.workspace = true
 log.workspace = true

@@ -1,6 +1,6 @@
-//! API keys and the screen image key live in the system credential store
-//! (Windows Credential Manager, the Secret Service on Linux), never in
-//! `settings.json` or the library.
+//! API keys, private calendar links and the screen image key live in the
+//! system credential store (Windows Credential Manager, the Secret Service on
+//! Linux), never in `settings.json` or the library.
 
 use anyhow::{Context as _, Result};
 
@@ -30,6 +30,43 @@ pub fn openai_api_key() -> Option<String> {
         .get_password()
         .ok()
         .filter(|k| !k.trim().is_empty())
+}
+
+/// The ChatGPT plan's session, registration and per-install id, under the
+/// account names the Mac uses in its Keychain (`chatgpt-plan-*`). They are
+/// kept nowhere else: without a credential store the sign-in fails.
+pub struct PlanStore;
+
+impl lokalbot_ai::plans::chatgpt::Store for PlanStore {
+    fn get(&self, account: &str) -> Result<Option<String>> {
+        match entry(account)?.get_password() {
+            Ok(value) => Ok(Some(value)),
+            Err(keyring::Error::NoEntry) => Ok(None),
+            Err(err) => Err(err).context("reading the ChatGPT sign-in"),
+        }
+    }
+
+    fn set(&self, account: &str, value: Option<&str>) -> Result<()> {
+        let entry = entry(account)?;
+        match value {
+            Some(value) => entry
+                .set_password(value)
+                .context("saving the ChatGPT sign-in"),
+            None => match entry.delete_credential() {
+                Ok(()) | Err(keyring::Error::NoEntry) => Ok(()),
+                Err(err) => Err(err).context("removing the ChatGPT sign-in"),
+            },
+        }
+    }
+}
+
+/// Lets Think and Settings keep the ChatGPT plan in the credential store.
+/// Tokens are split across items: Credential Manager keeps at most 1,280
+/// characters in one.
+pub fn install_plan_store() {
+    lokalbot_ai::plans::chatgpt::install_store(std::sync::Arc::new(
+        lokalbot_ai::plans::chatgpt::Chunked::new(PlanStore),
+    ));
 }
 
 const SCREENSHOT_KEY: &str = "screenshot-key";
@@ -74,4 +111,43 @@ pub fn screen_image_key(create: bool) -> Result<[u8; lokalbot_core::screen::IMAG
 
 fn decode_key(stored: &str) -> Option<[u8; lokalbot_core::screen::IMAGE_KEY_BYTES]> {
     hex::decode(stored.trim()).ok()?.try_into().ok()
+}
+
+const CALENDAR_LINKS: &str = "calendar-links";
+
+/// Private calendar links (iCal feeds and CalDAV collections), one per line.
+/// They grant read access to the user's calendar, so like API keys they live
+/// only in the credential store.
+pub fn calendar_links() -> Result<Vec<String>> {
+    match entry(CALENDAR_LINKS)?.get_password() {
+        Ok(stored) => Ok(stored
+            .lines()
+            .map(str::trim)
+            .filter(|line| !line.is_empty())
+            .map(str::to_string)
+            .collect()),
+        Err(keyring::Error::NoEntry) => Ok(Vec::new()),
+        Err(err) => Err(err).context("reading the calendar links"),
+    }
+}
+
+/// Saves the links, or removes the entry when there are none.
+pub fn save_calendar_links(links: &[String]) -> Result<()> {
+    let entry = entry(CALENDAR_LINKS)?;
+    let joined = links
+        .iter()
+        .map(|link| link.trim())
+        .filter(|link| !link.is_empty())
+        .collect::<Vec<_>>()
+        .join("\n");
+    if joined.is_empty() {
+        match entry.delete_credential() {
+            Ok(()) | Err(keyring::Error::NoEntry) => Ok(()),
+            Err(err) => Err(err).context("removing the calendar links"),
+        }
+    } else {
+        entry
+            .set_password(&joined)
+            .context("saving the calendar links")
+    }
 }

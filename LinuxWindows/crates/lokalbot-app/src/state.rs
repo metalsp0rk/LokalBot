@@ -211,6 +211,10 @@ pub struct AppData {
     pub live_preview: lokalbot_engine::LivePreview,
     /// Screen context capture, as the engine reports it.
     pub screen: lokalbot_engine::ScreenStatus,
+    /// The user's calendars, as the engine last read them.
+    pub calendar: lokalbot_engine::CalendarSnapshot,
+    /// Today's preparation for the next meeting (in memory only).
+    pub meeting_preparation: Option<lokalbot_engine::MeetingPreparation>,
 }
 
 /// A follow-up being rewritten with Think (`FollowUpDraftSheet`).
@@ -347,6 +351,8 @@ impl AppData {
             shortcut_recording: false,
             screen: Default::default(),
             importing: Vec::new(),
+            calendar: Default::default(),
+            meeting_preparation: None,
         }
     }
 
@@ -830,8 +836,6 @@ pub enum AppEvent {
     /// Start, pause, resume or retry the live transcript preview.
     LivePreview(lokalbot_engine::LivePreviewCommand),
     OpenOnboarding,
-    /// Install `lokalbot-cli` for coding agents (PATH + skill folders).
-    InstallCli,
     /// Start or stop dictation from the UI ("Try here").
     ToggleDictation,
     CancelDictation,
@@ -845,6 +849,16 @@ pub enum AppEvent {
     SaveApiKey(String),
     /// "Capture Screen Now" (tray and Timeline).
     CaptureScreenNow,
+    /// Today's Record on a calendar event.
+    RecordCalendarEvent(Box<lokalbot_core::calendar::CalendarEvent>),
+    /// Replace the private calendar links kept in the credential store.
+    SetCalendarLinks(Vec<String>),
+    RefreshCalendar,
+    /// Gather (and with `generate`, write a brief for) an upcoming meeting.
+    PrepareMeeting {
+        event: Box<lokalbot_core::calendar::CalendarEvent>,
+        generate: bool,
+    },
 }
 
 impl gpui_kit::EventEmitter<AppEvent> for AppData {}
@@ -852,10 +866,18 @@ impl gpui_kit::EventEmitter<AppEvent> for AppData {}
 /// The sidebar storage card's AI line and remote hosts.
 pub fn inference_presentation(settings: &Settings) -> (SharedString, Vec<SharedString>) {
     use lokalbot_core::settings::SummarizerBackend;
+    if let Some(plan) = settings.think_plan() {
+        return (
+            lokalbot_i18n::tr("AI: local + remote").into(),
+            vec![plan.destination_host().into()],
+        );
+    }
     let url = match settings.summarizer_backend {
-        SummarizerBackend::BuiltIn => None,
         SummarizerBackend::Ollama => Some(settings.ollama_base_url.as_str()),
         SummarizerBackend::OpenAICompatible => Some(settings.openai_base_url.as_str()),
+        SummarizerBackend::BuiltIn
+        | SummarizerBackend::ChatGptPlan
+        | SummarizerBackend::ClaudePlan => None,
     };
     match url {
         Some(url) if !lokalbot_core::access::is_loopback_url(url) => {

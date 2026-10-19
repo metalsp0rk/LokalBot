@@ -4,6 +4,8 @@
 //! The built-in backend leases the local `llama-server` for each request.
 //! Ollama and OpenAI-compatible servers on another machine are refused until
 //! the user approves their exact origin (`access::remote_block_reason`).
+//! Anthropic's API speaks its own Messages API ([`crate::anthropic`]). A
+//! ChatGPT or Claude plan ([`crate::plans`]) needs its own approval entry.
 
 use std::ops::Range;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -16,12 +18,16 @@ use serde_json::{Value, json};
 
 use lokalbot_core::Settings;
 use lokalbot_core::access::{is_loopback_url, remote_block_reason};
-use lokalbot_core::settings::{ReasoningLevel, SummarizerBackend};
+use lokalbot_core::settings::{
+    OpenRouterDataPolicy, ReasoningLevel, SubscriptionPlan, SummarizerBackend,
+};
 
+use crate::anthropic;
 use crate::catalog::{self, ModelEntry};
 use crate::error::AiError;
 use crate::http;
 use crate::json as model_json;
+use crate::plans;
 use crate::runtime::{Lease, RuntimeManager};
 
 /// The built-in model's default thinking ceiling (`highReasoningBudgetTokens`).
@@ -39,6 +45,10 @@ const CHAT_TIMEOUT: Duration = Duration::from_secs(900);
 pub struct ChatRequest {
     pub system: String,
     pub user: String,
+    /// Shared material that comes before `user`, such as a transcript.
+    /// Servers that cache prompts (Anthropic) mark its end; every other
+    /// server gets it joined in front of `user` with blank lines.
+    pub context: Vec<String>,
     pub max_tokens: Option<u32>,
     pub temperature: Option<f32>,
     /// Thinking tokens for this task; `Some(0)` disables thinking.
@@ -82,6 +92,26 @@ impl ChatRequest {
     pub fn keep_truncated(mut self) -> Self {
         self.keep_truncated = true;
         self
+    }
+
+    /// Material placed before the instruction in `user` (see [`Self::context`]).
+    pub fn context(mut self, blocks: Vec<String>) -> Self {
+        self.context = blocks;
+        self
+    }
+
+    /// The whole user message: context blocks, then `user`, joined with
+    /// blank lines.
+    pub fn user_text(&self) -> String {
+        if self.context.is_empty() {
+            return self.user.clone();
+        }
+        self.context
+            .iter()
+            .chain(std::iter::once(&self.user))
+            .cloned()
+            .collect::<Vec<_>>()
+            .join("\n\n")
     }
 }
 
@@ -140,11 +170,17 @@ enum Backend {
         model: String,
         api_key: Option<String>,
         dialect: Dialect,
+        /// OpenRouter's provider data policy (other dialects ignore it).
+        data_policy: OpenRouterDataPolicy,
     },
     Ollama {
         base: String,
         model: String,
     },
+    /// Claude on Anthropic's Messages API.
+    Anthropic(anthropic::Engine),
+    ChatGptPlan(plans::chatgpt::Engine),
+    ClaudePlan(plans::claude::Engine),
 }
 
 struct Inner {
@@ -203,11 +239,43 @@ impl ThinkClient {
                 if settings.openai_model.trim().is_empty() {
                     return Err(AiError::NoModel.into());
                 }
-                Backend::Server {
-                    dialect: Dialect::inferred(&base),
-                    base,
-                    model: settings.openai_model.trim().to_string(),
-                    api_key: None,
+                if anthropic::is_anthropic(&base) {
+                    // Claude's native Messages API: structured output within
+                    // its schema subset, effort, refusals and prompt caching.
+                    Backend::Anthropic(anthropic::Engine {
+                        base,
+                        model: settings.openai_model.trim().to_string(),
+                        api_key: None,
+                        level: settings.think_reasoning_level,
+                    })
+                } else {
+                    Backend::Server {
+                        dialect: Dialect::inferred(&base),
+                        base,
+                        model: settings.openai_model.trim().to_string(),
+                        api_key: None,
+                        data_policy: settings.open_router_data_policy,
+                    }
+                }
+            }
+            SummarizerBackend::ChatGptPlan | SummarizerBackend::ClaudePlan => {
+                let plan = settings
+                    .think_plan()
+                    .expect("a plan backend names its plan");
+                if !plan.is_approved(settings) {
+                    return Err(AiError::ConsentRequired(plan.approval_required_message()).into());
+                }
+                match plan {
+                    SubscriptionPlan::ChatGpt => Backend::ChatGptPlan(plans::chatgpt::Engine {
+                        model: settings.chatgpt_plan_model.trim().to_string(),
+                        level: settings.think_reasoning_level,
+                        account: plans::chatgpt::shared(),
+                    }),
+                    SubscriptionPlan::Claude => Backend::ClaudePlan(plans::claude::Engine {
+                        model: settings.claude_plan_model.trim().to_string(),
+                        level: settings.think_reasoning_level,
+                        runner: Arc::new(plans::claude::LiveRunner::default()),
+                    }),
                 }
             }
         };
@@ -227,6 +295,7 @@ impl ThinkClient {
                 model: model_id.to_string(),
                 api_key: Some(token.to_string()),
                 dialect: Dialect::LlamaServer,
+                data_policy: OpenRouterDataPolicy::PrivateOnly,
             },
             ReasoningLevel::Automatic,
         )
@@ -240,12 +309,24 @@ impl ThinkClient {
     ) -> Result<Self> {
         let base = trimmed_base(base_url);
         consent(&base, approved)?;
+        if anthropic::is_anthropic(&base) {
+            return Ok(Self::from_backend(
+                Backend::Anthropic(anthropic::Engine {
+                    base,
+                    model: model.to_string(),
+                    api_key,
+                    level: ReasoningLevel::Automatic,
+                }),
+                ReasoningLevel::Automatic,
+            ));
+        }
         Ok(Self::from_backend(
             Backend::Server {
                 dialect: Dialect::inferred(&base),
                 base,
                 model: model.to_string(),
                 api_key,
+                data_policy: OpenRouterDataPolicy::PrivateOnly,
             },
             ReasoningLevel::Automatic,
         ))
@@ -289,40 +370,69 @@ impl ThinkClient {
             .then(|| EmbeddingClient::new(runtime))
     }
 
-    /// Sets the API key for an OpenAI-compatible server (no effect otherwise).
+    /// Sets the API key for an OpenAI-compatible server or Anthropic's API
+    /// (no effect otherwise).
     pub fn with_api_key(self, key: Option<String>) -> Self {
         let mut backend = self.inner.backend.clone();
-        if let Backend::Server {
-            api_key, dialect, ..
-        } = &mut backend
-            && *dialect != Dialect::LlamaServer
-        {
-            *api_key = key.filter(|k| !k.trim().is_empty());
+        let key = key.filter(|k| !k.trim().is_empty());
+        match &mut backend {
+            Backend::Server {
+                api_key, dialect, ..
+            } if *dialect != Dialect::LlamaServer => *api_key = key,
+            Backend::Anthropic(engine) => engine.api_key = key,
+            _ => {}
+        }
+        Self::with_runtime(backend, self.inner.level, self.inner.runtime.clone())
+    }
+
+    /// Sets OpenRouter's provider data policy (no effect on other servers).
+    pub fn with_openrouter_data_policy(self, policy: OpenRouterDataPolicy) -> Self {
+        let mut backend = self.inner.backend.clone();
+        if let Backend::Server { data_policy, .. } = &mut backend {
+            *data_policy = policy;
         }
         Self::with_runtime(backend, self.inner.level, self.inner.runtime.clone())
     }
 
     pub fn with_reasoning_level(self, level: ReasoningLevel) -> Self {
-        Self::with_runtime(
-            self.inner.backend.clone(),
-            level,
-            self.inner.runtime.clone(),
-        )
+        let mut backend = self.inner.backend.clone();
+        match &mut backend {
+            Backend::Anthropic(engine) => engine.level = level,
+            Backend::ChatGptPlan(engine) => engine.level = level,
+            Backend::ClaudePlan(engine) => engine.level = level,
+            _ => {}
+        }
+        Self::with_runtime(backend, level, self.inner.runtime.clone())
+    }
+
+    /// The subscription plan this client runs on, if any.
+    pub fn plan(&self) -> Option<SubscriptionPlan> {
+        match &self.inner.backend {
+            Backend::ChatGptPlan(_) => Some(SubscriptionPlan::ChatGpt),
+            Backend::ClaudePlan(_) => Some(SubscriptionPlan::Claude),
+            _ => None,
+        }
     }
 
     // ---------------------------------------------------------- identity
 
     /// The model's name: "Qwen3.5 4B", "llama3.1:8b", "gpt-4.1-mini".
     pub fn model_label(&self) -> String {
+        let named = |model: &str, fallback: &str| {
+            if model.trim().is_empty() {
+                fallback.to_string()
+            } else {
+                model.trim().to_string()
+            }
+        };
         match &self.inner.backend {
             Backend::BuiltIn { entry, .. } => entry.display_name.to_string(),
             Backend::Server { model, .. } | Backend::Ollama { model, .. } => {
-                if model.is_empty() {
-                    "default model".into()
-                } else {
-                    model.clone()
-                }
+                named(model, "default model")
             }
+            Backend::Anthropic(engine) => named(&engine.model, "default model"),
+            Backend::ChatGptPlan(engine) => named(&engine.model, SubscriptionPlan::ChatGpt.title()),
+            Backend::ClaudePlan(engine) => named(&engine.model, "Claude Code default"),
         }
     }
 
@@ -337,12 +447,23 @@ impl ThinkClient {
                     crate::http::host_label(base)
                 }
             }
+            Backend::Anthropic(engine) => crate::http::host_label(&engine.base),
+            Backend::ChatGptPlan(_) => SubscriptionPlan::ChatGpt.destination_host().into(),
+            Backend::ClaudePlan(_) => SubscriptionPlan::Claude.destination_host().into(),
         }
     }
 
     /// "Qwen3.5 4B · on this PC", "llama3.1:8b · Ollama on this PC",
     /// "gpt-4.1 · api.openai.com".
     pub fn display_name(&self) -> String {
+        if let Some(plan) = self.plan() {
+            let model = self.model_label();
+            return if model == plan.title() {
+                model
+            } else {
+                format!("{model} · {}", plan.title())
+            };
+        }
         match &self.inner.backend {
             Backend::Ollama { .. } if self.is_local() => {
                 format!("{} · Ollama on this PC", self.model_label())
@@ -359,6 +480,7 @@ impl ThinkClient {
         match &self.inner.backend {
             Backend::BuiltIn { .. } => true,
             Backend::Server { base, .. } | Backend::Ollama { base, .. } => is_loopback_url(base),
+            Backend::Anthropic(_) | Backend::ChatGptPlan(_) | Backend::ClaudePlan(_) => false,
         }
     }
 
@@ -388,11 +510,23 @@ impl ThinkClient {
                 ..
             } => format!("server|{base}|{model}|{dialect:?}"),
             Backend::Ollama { base, model } => format!("ollama|{base}|{model}"),
+            Backend::Anthropic(engine) => {
+                format!("anthropic|{}|{}|messages", engine.base, engine.model)
+            }
+            Backend::ChatGptPlan(engine) => format!("chatgpt-plan|{}|responses", engine.model),
+            Backend::ClaudePlan(engine) => format!("claude-plan|{}|claude-code", engine.model),
         }
     }
 
     /// The privacy sentence the chat prompts carry (`inferencePrivacy`).
     pub fn inference_privacy(&self) -> String {
+        if let Some(plan) = self.plan() {
+            return format!(
+                "This response uses the user's {} with {}, which the user approved. Questions and supplied context are sent there; do not claim that all processing stays on this PC.",
+                plan.title(),
+                plan.provider_name()
+            );
+        }
         if self.is_local() {
             "This response uses a server on this PC. Its operator controls any onward processing."
                 .into()
@@ -409,6 +543,11 @@ impl ThinkClient {
     pub fn structured_output_enum_limit(&self) -> Option<usize> {
         match &self.inner.backend {
             Backend::BuiltIn { .. } | Backend::Ollama { .. } => None,
+            // Anthropic publishes no enum limit, only that oversized schemas
+            // fail to compile; keep the ceiling used for other hosted servers.
+            Backend::Anthropic(_) | Backend::ClaudePlan(_) => Some(500),
+            // OpenAI documents 1,000 enum values for strict structured outputs.
+            Backend::ChatGptPlan(_) => Some(1_000),
             Backend::Server { dialect, base, .. } => match dialect {
                 Dialect::LlamaServer => None,
                 Dialect::OpenAi => Some(1_000),
@@ -420,7 +559,19 @@ impl ThinkClient {
 
     /// Output space a structured reply needs beyond its content.
     pub fn minimum_structured_output_tokens(&self) -> u32 {
-        512
+        match &self.inner.backend {
+            // A reasoning model that cannot turn reasoning off spends part of
+            // the output on it.
+            Backend::ChatGptPlan(engine) => {
+                let support = plans::chatgpt::Engine::reasoning_support(&engine.model);
+                if support.levels.is_empty() || support.levels.contains(&ReasoningLevel::Off) {
+                    512
+                } else {
+                    2_048
+                }
+            }
+            _ => 512,
+        }
     }
 
     /// The model's context window (`MeetingSummaryGenerator.contextTokenLimit`).
@@ -436,12 +587,19 @@ impl ThinkClient {
                     model,
                     api_key,
                     dialect,
+                    ..
                 } => discover_context(base, model, api_key.as_deref(), *dialect).unwrap_or(
                     match dialect {
                         Dialect::LlamaServer => BUILT_IN_CONTEXT_TOKENS,
                         _ => FALLBACK_CONTEXT_TOKENS,
                     },
                 ),
+                Backend::Anthropic(engine) => {
+                    engine.discover_context().unwrap_or(FALLBACK_CONTEXT_TOKENS)
+                }
+                Backend::ChatGptPlan(engine) => plans::chatgpt::context_tokens(&engine.model),
+                // Claude Code's default window on subscription plans.
+                Backend::ClaudePlan(_) => 200_000,
             })
     }
 
@@ -539,16 +697,20 @@ impl ThinkClient {
                 model,
                 api_key,
                 dialect,
+                data_policy,
             } => {
                 let default_thinking =
                     (*dialect == Dialect::LlamaServer).then_some(DEFAULT_THINKING_BUDGET);
-                let body = chat_body(
-                    *dialect,
-                    model,
-                    request,
-                    self.request_level(request),
-                    default_thinking,
-                    &[],
+                let body = with_data_policy(
+                    chat_body(
+                        *dialect,
+                        model,
+                        request,
+                        self.request_level(request),
+                        default_thinking,
+                        &[],
+                    ),
+                    *data_policy,
                 );
                 with_retry(|| post_chat(base, api_key.as_deref(), &body))
             }
@@ -557,6 +719,11 @@ impl ThinkClient {
                 let body = ollama_body(&model, request, self.request_level(request), false);
                 with_retry(|| post_ollama(base, &body))
             }
+            Backend::Anthropic(engine) => engine.complete(request),
+            Backend::ChatGptPlan(engine) => {
+                with_retry(|| engine.respond(request, None, &mut |_| {}))
+            }
+            Backend::ClaudePlan(engine) => with_retry(|| engine.respond(request, None, None)),
         }
     }
 
@@ -609,16 +776,20 @@ impl ThinkClient {
                 model,
                 api_key,
                 dialect,
+                data_policy,
             } => {
                 let default_thinking =
                     (*dialect == Dialect::LlamaServer).then_some(DEFAULT_THINKING_BUDGET);
-                let body = chat_body(
-                    *dialect,
-                    model,
-                    request,
-                    self.request_level(request),
-                    default_thinking,
-                    &[],
+                let body = with_data_policy(
+                    chat_body(
+                        *dialect,
+                        model,
+                        request,
+                        self.request_level(request),
+                        default_thinking,
+                        &[],
+                    ),
+                    *data_policy,
                 );
                 match stream_chat(base, api_key.as_deref(), &body, cancel, on_delta) {
                     Err(err) if is_stream_unsupported(&err) => {
@@ -634,6 +805,9 @@ impl ThinkClient {
                 let body = ollama_body(&model, request, self.request_level(request), true);
                 stream_ollama(base, &body, cancel, on_delta)
             }
+            Backend::Anthropic(engine) => engine.stream(request, cancel, on_delta),
+            Backend::ChatGptPlan(engine) => engine.respond(request, cancel, on_delta),
+            Backend::ClaudePlan(engine) => engine.respond(request, cancel, Some(on_delta)),
         }
     }
 
@@ -653,6 +827,10 @@ impl ThinkClient {
                 ..
             } => ReasoningSupport::known(*dialect, base, model),
             Backend::Ollama { model, .. } => ReasoningSupport::ollama(model),
+            // These engines pick their own effort per request.
+            Backend::Anthropic(_) | Backend::ChatGptPlan(_) | Backend::ClaudePlan(_) => {
+                return None;
+            }
         };
         support.request_level(self.inner.level, request.reasoning_budget)
     }
@@ -705,7 +883,7 @@ fn finish_text(completion: Completion, request: &ChatRequest) -> Result<String> 
 
 /// One replay for transient failures (408/409/425/429/5xx, transport),
 /// after the server's Retry-After (≤60 s) or about a second.
-fn with_retry<T>(mut call: impl FnMut() -> Result<T>) -> Result<T> {
+pub(crate) fn with_retry<T>(mut call: impl FnMut() -> Result<T>) -> Result<T> {
     match call() {
         Err(err) => {
             let Some(ai) = err.downcast_ref::<AiError>() else {
@@ -748,7 +926,7 @@ fn level_rank(level: ReasoningLevel) -> u8 {
 }
 
 /// `reasoning_effort` spells Off as "none".
-fn effort_value(level: ReasoningLevel) -> &'static str {
+pub(crate) fn effort_value(level: ReasoningLevel) -> &'static str {
     match level {
         ReasoningLevel::Automatic => "medium",
         ReasoningLevel::Off => "none",
@@ -762,7 +940,7 @@ fn effort_value(level: ReasoningLevel) -> &'static str {
 }
 
 /// The most reasoning a task's own budget allows.
-fn ceiling_for_budget(tokens: u32) -> ReasoningLevel {
+pub(crate) fn ceiling_for_budget(tokens: u32) -> ReasoningLevel {
     match tokens {
         0 => ReasoningLevel::Off,
         1..=512 => ReasoningLevel::Low,
@@ -773,13 +951,13 @@ fn ceiling_for_budget(tokens: u32) -> ReasoningLevel {
 
 /// The reasoning levels one model accepts on one server (`ReasoningSupport`).
 #[derive(Clone, Debug, PartialEq)]
-struct ReasoningSupport {
-    levels: Vec<ReasoningLevel>,
-    default_level: Option<ReasoningLevel>,
+pub(crate) struct ReasoningSupport {
+    pub levels: Vec<ReasoningLevel>,
+    pub default_level: Option<ReasoningLevel>,
 }
 
 impl ReasoningSupport {
-    fn new(levels: &[ReasoningLevel], default_level: Option<ReasoningLevel>) -> Self {
+    pub(crate) fn new(levels: &[ReasoningLevel], default_level: Option<ReasoningLevel>) -> Self {
         Self {
             levels: levels.to_vec(),
             default_level,
@@ -838,9 +1016,12 @@ impl ReasoningSupport {
             .then(|| Self::new(&[Low, Medium, High], Some(Medium)))
     }
 
-    fn known(dialect: Dialect, base: &str, model: &str) -> Self {
+    pub(crate) fn known(dialect: Dialect, base: &str, model: &str) -> Self {
         use ReasoningLevel::*;
         let name = model.to_lowercase();
+        if anthropic::is_anthropic(base) {
+            return anthropic::ModelTraits::new(&name).reasoning_support();
+        }
         match dialect {
             Dialect::LlamaServer => Self::new(&[Off, Low, Medium, High], None),
             Dialect::OpenAi => Self::openai(&name),
@@ -875,7 +1056,7 @@ impl ReasoningSupport {
         }
     }
 
-    fn clamp(&self, level: ReasoningLevel) -> Option<ReasoningLevel> {
+    pub(crate) fn clamp(&self, level: ReasoningLevel) -> Option<ReasoningLevel> {
         if level == ReasoningLevel::Automatic || self.levels.is_empty() {
             return None;
         }
@@ -889,7 +1070,7 @@ impl ReasoningSupport {
     /// The chosen level, no higher than the task's budget allows, clamped to
     /// what the model accepts. Automatic leaves the server's default, except
     /// that a no-reasoning task never goes to a model that reasons by default.
-    fn request_level(
+    pub(crate) fn request_level(
         &self,
         level: ReasoningLevel,
         task_budget: Option<u32>,
@@ -930,6 +1111,10 @@ pub fn reasoning_choices(settings: &Settings) -> (Vec<ReasoningLevel>, Option<Re
                 settings.openai_model.trim(),
             )
         }
+        SummarizerBackend::ChatGptPlan => {
+            plans::chatgpt::Engine::reasoning_support(settings.chatgpt_plan_model.trim())
+        }
+        SummarizerBackend::ClaudePlan => plans::claude::traits(&settings.claude_plan_model).0,
     };
     (support.levels, support.default_level)
 }
@@ -959,7 +1144,7 @@ pub(crate) fn chat_body(
         "model": model,
         "messages": [
             {"role": "system", "content": request.system},
-            {"role": "user", "content": request.user},
+            {"role": "user", "content": request.user_text()},
         ],
     });
     if let Some(schema) = &request.json_schema {
@@ -1068,6 +1253,15 @@ pub(crate) fn chat_body(
         body[*key] = json!(value);
     }
     model_json::sort_keys(body)
+}
+
+/// OpenRouter's `provider.data_collection` from the user's policy. Bodies
+/// without a provider block (other dialects) are unchanged.
+pub(crate) fn with_data_policy(mut body: Value, policy: OpenRouterDataPolicy) -> Value {
+    if let Some(provider) = body.get_mut("provider").and_then(Value::as_object_mut) {
+        provider.insert("data_collection".into(), json!(policy.data_collection()));
+    }
+    body
 }
 
 fn parse_chat_completion(json: &Value) -> Result<Completion> {
@@ -1297,7 +1491,7 @@ fn ollama_body(
         "stream": stream,
         "messages": [
             {"role": "system", "content": request.system},
-            {"role": "user", "content": request.user},
+            {"role": "user", "content": request.user_text()},
         ],
     });
     if let Some(schema) = &request.json_schema {
@@ -1427,8 +1621,9 @@ fn discover_context(
 ) -> Option<u32> {
     let agent = http::agent(base, Duration::from_secs(5));
     if dialect == Dialect::OpenRouter {
+        // The model id alone: no API key and no content (PRIVACY.md).
         let url = format!("https://openrouter.ai/api/v1/models/{model}/endpoints");
-        let json = http::get(&agent, &url, api_key)
+        let json = http::get(&agent, &url, None)
             .ok()
             .filter(|r| r.ok())?
             .json()
@@ -1715,6 +1910,7 @@ enum CompletionTarget {
         model: String,
         api_key: Option<String>,
         dialect: Dialect,
+        data_policy: OpenRouterDataPolicy,
     },
 }
 
@@ -1760,24 +1956,39 @@ impl CompletionClient {
                 base,
                 model: model.to_string(),
                 api_key,
+                data_policy: OpenRouterDataPolicy::PrivateOnly,
             },
         })
     }
 
+    /// Sets OpenRouter's provider data policy (Think's choice applies to
+    /// autocomplete too).
+    pub fn with_openrouter_data_policy(mut self, policy: OpenRouterDataPolicy) -> Self {
+        if let CompletionTarget::Server { data_policy, .. } = &mut self.target {
+            *data_policy = policy;
+        }
+        self
+    }
+
     fn body(&self, request: &CompletionRequest, stream: bool) -> Value {
-        let (model, llama_extensions, dialect) = match &self.target {
-            CompletionTarget::BuiltIn { entry, .. } => {
-                (entry.id.to_string(), true, Dialect::LlamaServer)
-            }
+        let (model, llama_extensions, dialect, data_policy) = match &self.target {
+            CompletionTarget::BuiltIn { entry, .. } => (
+                entry.id.to_string(),
+                true,
+                Dialect::LlamaServer,
+                OpenRouterDataPolicy::PrivateOnly,
+            ),
             CompletionTarget::Server {
                 model,
                 dialect,
                 base,
+                data_policy,
                 ..
             } => (
                 model.clone(),
                 *dialect == Dialect::LlamaServer || is_loopback_url(base),
                 *dialect,
+                *data_policy,
             ),
         };
         let mut body = json!({
@@ -1798,7 +2009,7 @@ impl CompletionClient {
             body["stop"] = json!(request.stop);
         }
         if dialect == Dialect::OpenRouter {
-            body["provider"] = json!({"data_collection": "deny"});
+            body["provider"] = json!({"data_collection": data_policy.data_collection()});
         }
         body
     }
@@ -2383,6 +2594,144 @@ mod tests {
         assert_eq!(body["stop"][0], "\n");
         assert_eq!(CompletionRequest::cotyping("x", 100, true).max_tokens, 120);
         assert!(CompletionClient::server("https://typing.example.com/v1", "m", None, &[]).is_err());
+    }
+
+    #[test]
+    fn context_blocks_join_in_front_of_the_instruction_elsewhere() {
+        let request =
+            ChatRequest::new("s", "Instruction").context(vec!["Transcript".into(), String::new()]);
+        assert_eq!(request.user_text(), "Transcript\n\n\n\nInstruction");
+        let body = chat_body(Dialect::Generic, "m", &request, None, None, &[]);
+        assert_eq!(body["messages"][1]["content"], request.user_text());
+        let ollama = ollama_body("m", &request, None, false);
+        assert_eq!(ollama["messages"][1]["content"], request.user_text());
+        assert_eq!(ChatRequest::new("s", "u").user_text(), "u");
+    }
+
+    #[test]
+    fn openrouter_follows_the_chosen_data_policy() {
+        let request = ChatRequest::new("s", "u");
+        let body = chat_body(Dialect::OpenRouter, "m", &request, None, None, &[]);
+        assert_eq!(
+            with_data_policy(body.clone(), OpenRouterDataPolicy::PrivateOnly)["provider"]["data_collection"],
+            "deny"
+        );
+        let allowed = with_data_policy(body, OpenRouterDataPolicy::AccountPolicy);
+        assert_eq!(allowed["provider"]["data_collection"], "allow");
+        // Other dialects carry no provider block, and get none.
+        let generic = with_data_policy(
+            chat_body(Dialect::Generic, "m", &request, None, None, &[]),
+            OpenRouterDataPolicy::AccountPolicy,
+        );
+        assert!(generic.get("provider").is_none());
+
+        let dir = tempfile::tempdir().unwrap();
+        let mut settings = Settings {
+            summarizer_backend: SummarizerBackend::OpenAICompatible,
+            openai_base_url: "https://openrouter.ai/api/v1".into(),
+            openai_model: "meta/llama".into(),
+            approved_remote_inference_origins: vec!["https://openrouter.ai".into()],
+            ..Settings::default()
+        };
+        let runtime = RuntimeManager::new(lokalbot_core::LibraryPaths::new(dir.path()), &settings);
+        let policy = |client: &ThinkClient| match &client.inner.backend {
+            Backend::Server { data_policy, .. } => *data_policy,
+            _ => panic!("not a server"),
+        };
+        assert_eq!(
+            policy(&ThinkClient::new(&runtime, &settings).unwrap()),
+            OpenRouterDataPolicy::PrivateOnly
+        );
+        settings.open_router_data_policy = OpenRouterDataPolicy::AccountPolicy;
+        let client = ThinkClient::new(&runtime, &settings)
+            .unwrap()
+            .with_api_key(Some("k".into()));
+        assert_eq!(policy(&client), OpenRouterDataPolicy::AccountPolicy);
+
+        let completion = CompletionClient::server(
+            "https://openrouter.ai/api/v1",
+            "m",
+            None,
+            &["https://openrouter.ai".into()],
+        )
+        .unwrap();
+        let body = completion.body(&CompletionRequest::cotyping("x", 4, false), false);
+        assert_eq!(body["provider"]["data_collection"], "deny");
+        let body = completion
+            .with_openrouter_data_policy(OpenRouterDataPolicy::AccountPolicy)
+            .body(&CompletionRequest::cotyping("x", 4, false), false);
+        assert_eq!(body["provider"]["data_collection"], "allow");
+    }
+
+    #[test]
+    fn anthropic_urls_use_the_messages_api_with_the_saved_key() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut settings = Settings {
+            summarizer_backend: SummarizerBackend::OpenAICompatible,
+            openai_base_url: "https://api.anthropic.com".into(),
+            openai_model: "claude-opus-5-5".into(),
+            ..Settings::default()
+        };
+        let runtime = RuntimeManager::new(lokalbot_core::LibraryPaths::new(dir.path()), &settings);
+        assert!(
+            ThinkClient::new(&runtime, &settings).is_err(),
+            "needs approval"
+        );
+        settings.approved_remote_inference_origins = vec!["https://api.anthropic.com".into()];
+        let client = ThinkClient::new(&runtime, &settings)
+            .unwrap()
+            .with_api_key(Some("sk-ant".into()))
+            .with_reasoning_level(ReasoningLevel::High);
+        match &client.inner.backend {
+            Backend::Anthropic(engine) => {
+                assert_eq!(engine.api_key.as_deref(), Some("sk-ant"));
+                assert_eq!(engine.level, ReasoningLevel::High);
+                assert_eq!(engine.base, "https://api.anthropic.com");
+            }
+            _ => panic!("not the Messages API"),
+        }
+        assert!(!client.is_local());
+        let (levels, default) = reasoning_choices(&settings);
+        assert_eq!(levels.last(), Some(&ReasoningLevel::Max));
+        assert_eq!(default, Some(ReasoningLevel::Medium));
+    }
+
+    #[test]
+    fn plans_need_their_own_approval() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut settings = Settings {
+            summarizer_backend: SummarizerBackend::ChatGptPlan,
+            chatgpt_plan_model: "gpt-5.5".into(),
+            // An API approval for the same company does not cover the plan.
+            approved_remote_inference_origins: vec!["https://api.openai.com".into()],
+            ..Settings::default()
+        };
+        let runtime = RuntimeManager::new(lokalbot_core::LibraryPaths::new(dir.path()), &settings);
+        let err = ThinkClient::new(&runtime, &settings).err().unwrap();
+        assert!(matches!(
+            err.downcast_ref::<AiError>(),
+            Some(AiError::ConsentRequired(reason)) if reason.contains("ChatGPT plan")
+        ));
+        SubscriptionPlan::ChatGpt.set_approved(&mut settings, true);
+        let client = ThinkClient::new(&runtime, &settings).unwrap();
+        assert_eq!(client.plan(), Some(SubscriptionPlan::ChatGpt));
+        assert_eq!(client.display_name(), "gpt-5.5 · ChatGPT plan");
+        assert_eq!(client.location(), "api.openai.com");
+        assert!(!client.is_local() && !client.is_built_in());
+        assert!(client.inference_privacy().contains("ChatGPT plan"));
+        assert_eq!(client.context_tokens(), 128_000);
+        assert_eq!(client.structured_output_enum_limit(), Some(1_000));
+
+        settings.summarizer_backend = SummarizerBackend::ClaudePlan;
+        assert!(ThinkClient::new(&runtime, &settings).is_err());
+        SubscriptionPlan::Claude.set_approved(&mut settings, true);
+        let client = ThinkClient::new(&runtime, &settings).unwrap();
+        assert_eq!(client.display_name(), "Claude Code default · Claude plan");
+        assert_eq!(client.context_tokens(), 200_000);
+        let (levels, _) = reasoning_choices(&settings);
+        assert_eq!(levels.first(), Some(&ReasoningLevel::Low));
+        settings.claude_plan_model = "claude-haiku-4-5".into();
+        assert!(reasoning_choices(&settings).0.is_empty());
     }
 
     #[test]

@@ -37,6 +37,8 @@ pub enum IpcCommand {
     ToggleDictation,
     /// Show a meeting by id.
     OpenMeeting(String),
+    /// `lokalbot install-update`: install the offered update and relaunch.
+    InstallUpdate,
 }
 
 impl IpcCommand {
@@ -49,6 +51,7 @@ impl IpcCommand {
             Self::StopDictation => "dictation-stop".into(),
             Self::ToggleDictation => "dictation-toggle".into(),
             Self::OpenMeeting(id) => format!("open-meeting {id}"),
+            Self::InstallUpdate => "install-update".into(),
         }
     }
 
@@ -65,6 +68,7 @@ impl IpcCommand {
             ("dictation-stop", None) => Self::StopDictation,
             ("dictation-toggle", None) => Self::ToggleDictation,
             ("open-meeting", Some(id)) if !id.is_empty() => Self::OpenMeeting(id.to_string()),
+            ("install-update", None) => Self::InstallUpdate,
             _ => return None,
         })
     }
@@ -398,6 +402,7 @@ mod tests {
             IpcCommand::StopDictation,
             IpcCommand::ToggleDictation,
             IpcCommand::OpenMeeting("4F1A-22".into()),
+            IpcCommand::InstallUpdate,
         ];
         for command in all {
             assert_eq!(IpcCommand::decode(&command.encode()), Some(command));

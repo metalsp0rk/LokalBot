@@ -146,7 +146,10 @@ impl PiLauncher {
         // keyring can block for a long time when no secret service answers.
         let api_key = match request.settings.summarizer_backend {
             SummarizerBackend::OpenAICompatible => (self.api_key)(),
-            SummarizerBackend::BuiltIn | SummarizerBackend::Ollama => None,
+            SummarizerBackend::BuiltIn
+            | SummarizerBackend::Ollama
+            | SummarizerBackend::ChatGptPlan
+            | SummarizerBackend::ClaudePlan => None,
         };
         match endpoint::resolve(&request.settings, api_key) {
             Resolution::Unsupported(reason) => Err(LaunchError::Configuration(reason)),

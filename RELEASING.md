@@ -1,7 +1,9 @@
 # Releasing LokalBot (Sparkle)
 
 Practical runbook for cutting a notarized LokalBot release and publishing a
-Sparkle update. The release tooling lives in `Scripts/`:
+Sparkle update. The same tag also ships the Linux and Windows app with its own
+signed update feeds ([Linux and Windows](#linux-and-windows)). The release
+tooling lives in `Scripts/`:
 
 | File | Role |
 | --- | --- |
@@ -10,6 +12,8 @@ Sparkle update. The release tooling lives in `Scripts/`:
 | `Scripts/generate_appcast.py` | sign the DMG + render `appcast.xml` |
 | `Scripts/appcast.template.xml` | Sparkle 2 feed skeleton |
 | `Scripts/clean_local.sh` | wipe local build/derived/DMG artifacts |
+| `Scripts/bump-version.py` | set the version in every file one tag ships it from |
+| `LinuxWindows/scripts/release-feeds.sh` | sign the Linux/Windows archives and write their update feeds |
 
 ---
 
@@ -161,11 +165,20 @@ no fixture.
 
 ### 1. Bump the version
 
-Edit both `project.yml` and `LokalBot/Info.plist`:
+One tag ships macOS, Linux and Windows, so the marketing version lives in
+`LokalBot/Info.plist` (the source of truth), `project.yml`, and the Linux and
+Windows workspace (`LinuxWindows/Cargo.toml` and its crates in
+`LinuxWindows/Cargo.lock`). Set all of them at once:
 
-- `CFBundleShortVersionString` → marketing version, e.g. `1.0.0`
+```sh
+python3 Scripts/bump-version.py 1.0.0 100
+```
+
+- `CFBundleShortVersionString` and the workspace version → marketing version, e.g. `1.0.0`
 - `CFBundleVersion` → build number, e.g. `100` (monotonic; Sparkle compares this)
 
+`release-preflight.py` (also in every XcodeGen CI run) fails when any of these
+disagree, or when the Linux/Windows update key differs from `SUPublicEDKey`.
 Then regenerate the project:
 
 ```sh
@@ -175,18 +188,19 @@ xcodegen generate
 Prepare `Scripts/release-notes/v<version>.md` at the same time, including a
 human-readable summary and the full comparison from the previous stable tag.
 Before committing a stable release candidate, fetch current tags and validate
-the three metadata files together (replace the version below):
+the metadata files together (replace the version below):
 
 ```sh
 git fetch origin --tags
-git add project.yml LokalBot/Info.plist Scripts/release-notes/v0.8.1.md
+git add project.yml LokalBot/Info.plist LinuxWindows/Cargo.toml LinuxWindows/Cargo.lock \
+  Scripts/release-notes/v0.8.1.md
 python3 Scripts/release-preflight.py --version 0.8.1 --candidate --staged
 git diff --cached
 ```
 
-This read-only preflight checks both version sources, the notes and changelog
+This read-only preflight checks every version source, the notes and changelog
 base, increasing build numbers, local/remote tag availability, and that the
-staged snapshot contains exactly the three validated metadata files. Complete
+staged snapshot contains exactly the five validated metadata files. Complete
 feature/fix commits separately before preparing this candidate. It never
 commits, tags, or publishes. Without `--candidate --staged`, the script checks
 metadata consistency and stable-release notes, including for already-released
@@ -405,6 +419,75 @@ on GitHub and won't become "Latest"; tag without a suffix for a stable release.
 
 ---
 
+## Linux and Windows
+
+The tag that releases macOS also builds and publishes the Linux and Windows
+app. `release.yml` calls `linux-windows-release.yml`, which builds
+`LokalBot-<version>-linux-x86_64.tar.gz` and `LokalBot-<version>-windows-x86_64.zip`
+with `LinuxWindows/scripts/package.sh` from the tag, without secrets or a
+compiled-output cache, while the macOS job runs. Its tag check fails when
+`LinuxWindows/Cargo.toml` does not name the tag's version.
+
+After the macOS job has published the release (so its release gates passed),
+`linux-windows-publish` builds `lokalbot-update-feed`, then writes
+`SPARKLE_PRIVATE_KEY` to a temporary file and runs
+`LinuxWindows/scripts/release-feeds.sh`. It refuses a key that does not belong
+to `SUPublicEDKey` in `Info.plist`, signs each archive's bytes with Ed25519
+(the same signature Sparkle's `sign_update` makes; both Sparkle key formats
+work), checks each feed against its archive, and attaches to the release:
+
+| Asset | What it is |
+| --- | --- |
+| `LokalBot-<version>-linux-x86_64.tar.gz` (+ `.sha256`) | Linux archive with `install.sh` |
+| `LokalBot-<version>-windows-x86_64.zip` (+ `.sha256`) | Windows archive |
+| `linux-x86_64.json`, `windows-x86_64.json` | update feeds |
+
+A feed names the version, the minimum installed version that may install it
+(default `0.0.0`, any; set `MINIMUM_VERSION` when a release must be installed
+by hand), the archive's URL, size, SHA-256, the base64 signature and the
+release notes URL. Installed copies read
+`https://github.com/stevyhacker/lokalbot/releases/latest/download/<platform>.json`,
+so, like `appcast.xml`, a feed takes effect when its release becomes Latest;
+pre-release tags attach feeds that no copy reads. The app verifies size,
+SHA-256 and the signature before unpacking, and refuses an archive whose
+`LokalBot-<version>-<platform>` folder does not match the feed's version.
+
+If the macOS release succeeded but a Linux/Windows job failed, fix the cause
+and use **Re-run failed jobs**: the publish job uploads with `--clobber`.
+
+### Dry run
+
+```sh
+gh workflow run linux-windows-release.yml --ref BRANCH
+```
+
+builds the same archives from the branch, signs their feeds with a throwaway
+key through the same `release-feeds.sh`, checks that the release key refuses
+them, and keeps archives and feeds as the `dry-run-release-assets` artifact.
+It never reads `SPARKLE_PRIVATE_KEY` and publishes nothing. The **Linux &
+Windows** CI workflow also installs each packaged archive and has it update
+itself from a signed feed on `127.0.0.1` (`scripts/ci/update-e2e.sh`,
+`update-e2e.ps1`). To try an update by hand, serve a feed on this computer
+and start LokalBot with `LOKALBOT_UPDATE_FEED_URL` (loopback HTTP is allowed
+only there) and `LOKALBOT_UPDATE_PUBLIC_KEY` (honored only with a loopback
+feed); `LOKALBOT_UPDATE_CURRENT_VERSION` makes that one process act older.
+
+### Checks after publishing
+
+```sh
+cd LinuxWindows
+cargo run --release -p lokalbot-update --no-default-features --bin lokalbot-update-feed -- \
+  verify --feed linux-x86_64.json --archive LokalBot-1.0.0-linux-x86_64.tar.gz
+```
+
+`verify` uses the embedded `SUPublicEDKey` unless `--public-key` is given.
+
+### Rollback
+
+Like Sparkle, installed copies follow the feeds of the Latest release. To stop
+an update, re-upload the previous release's `linux-x86_64.json` and
+`windows-x86_64.json` to the Latest release (or mark an older release Latest).
+
 ## Homebrew synchronization after a stable release
 
 The public `stevyhacker/homebrew-tap` owns an hourly `Sync LokalBot release`
@@ -431,12 +514,16 @@ then is deleted. The DMG uses a separate short-lived keychain that is deleted
 immediately after `codesign`, before notarization. The workflow then notarizes
 and staples, downloads the Sparkle tarball for `sign_update`, runs
 `generate_appcast.py`, and uploads `LokalBot.dmg` + `appcast.xml` to the Release.
+Jobs beside it build, sign and attach the Linux and Windows archives and feeds
+([Linux and Windows](#linux-and-windows)); the manual steps above cover macOS
+only.
 Required repo secrets:
 
 - `MACOS_CERTIFICATE`, `MACOS_CERTIFICATE_PWD`, `KEYCHAIN_PWD`
 - `NOTARY_APPLE_ID`, `NOTARY_APPLE_TEAM_ID`, `NOTARY_APPLE_PWD`
 - `SPARKLE_PRIVATE_KEY` (the base64 Ed25519 private key; written to a temp file
-  and passed to `generate_appcast.py --ed-key-file`)
+  and passed to `generate_appcast.py --ed-key-file`, and to
+  `LinuxWindows/scripts/release-feeds.sh` for the Linux and Windows feeds)
 
 Set the certificate and credential secrets without pasting them into source or
 shell history. `gh secret set NAME` prompts for the value securely:
@@ -488,6 +575,8 @@ hdiutil attach build/LokalBot.dmg
 - Never lose the Sparkle private key → you can't ship a trusted update again.
 - Never rotate the key casually → existing installs reject updates signed by a new key.
 - Never commit the private key.
+- Never sign Linux/Windows feeds with any key but `SPARKLE_PRIVATE_KEY`; copies
+  verify against the embedded `SUPublicEDKey`.
 - Always Sparkle-sign **after** the final DMG exists (no edits after signing).
 - Always publish `appcast.xml` **after** the Release asset exists.
 - Always pass the real `owner/repo` slug when generating the appcast.

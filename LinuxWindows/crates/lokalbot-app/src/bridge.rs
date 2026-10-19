@@ -96,6 +96,13 @@ pub fn handle_request(event: &AppEvent, cx: &mut App) -> bool {
         AppEvent::ToggleDictation => Command::Dictation(DictationCommand::Toggle),
         AppEvent::CancelDictation => Command::Dictation(DictationCommand::Cancel),
         AppEvent::CaptureScreenNow => Command::CaptureScreenNow,
+        AppEvent::RecordCalendarEvent(event) => Command::RecordCalendarEvent(event.clone()),
+        AppEvent::SetCalendarLinks(links) => Command::SetCalendarLinks(links.clone()),
+        AppEvent::RefreshCalendar => Command::RefreshCalendar,
+        AppEvent::PrepareMeeting { event, generate } => Command::PrepareMeeting {
+            event: event.clone(),
+            generate: *generate,
+        },
         AppEvent::SettingsChanged => {
             let settings = AppData::global(cx).read(cx).settings.clone();
             Command::UpdateSettings(Box::new(settings))
@@ -291,6 +298,10 @@ fn apply(data: &mut AppData, event: EngineEvent, cx: &mut Context<AppData>) {
         EngineEvent::Autocomplete(update) => crate::autocomplete::engine_update(update, cx),
         EngineEvent::LivePreview(preview) => data.live_preview = preview,
         EngineEvent::Screen(status) => data.screen = status,
+        EngineEvent::Calendar(snapshot) => data.calendar = snapshot,
+        EngineEvent::MeetingPreparation(preparation) => {
+            data.meeting_preparation = Some(preparation)
+        }
         EngineEvent::FollowUp(update) => {
             data.follow_up = Some(match update {
                 FollowUpUpdate::Writing { meeting_id } => (meeting_id, FollowUpWriting::Writing),

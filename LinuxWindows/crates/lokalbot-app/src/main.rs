@@ -17,6 +17,7 @@ mod shell;
 mod state;
 mod theme;
 mod ui;
+mod updates;
 mod windows;
 
 use gpui_kit::component::TitleBar;
@@ -44,9 +45,11 @@ struct Options {
     /// Started at login: stay in the tray without opening the main window.
     autostart: bool,
     /// `lokalbot quick-recall`, `toggle-recording`, `dictate --toggle|--start|--stop`,
-    /// `show`: forwarded to a running LokalBot, or run after startup. This is
-    /// how Wayland users bind compositor shortcuts.
+    /// `show`, `install-update`: forwarded to a running LokalBot, or run after
+    /// startup. This is how Wayland users bind compositor shortcuts.
     command: Option<IpcCommand>,
+    /// Started by an update: the copy it replaced is still quitting.
+    after_update: bool,
 }
 
 fn parse_options() -> Options {
@@ -58,6 +61,9 @@ fn parse_options() -> Options {
     options.autostart = args
         .iter()
         .any(|a| a == lokalbot_platform::autostart::AUTOSTART_ARG);
+    options.after_update = args
+        .iter()
+        .any(|a| a == lokalbot_update::install::AFTER_UPDATE_ARG);
     // The subcommand is the first argument that is neither an option nor an
     // option's value, so `lokalbot --lokalbot-storage-root <dir> show` works too.
     let mut positional = None;
@@ -77,6 +83,7 @@ fn parse_options() -> Options {
         "quick-recall" => Some(IpcCommand::QuickRecall),
         "toggle-recording" => Some(IpcCommand::ToggleRecording),
         "show" => Some(IpcCommand::Show),
+        "install-update" => Some(IpcCommand::InstallUpdate),
         "dictate" => Some(match args.get(index + 1).map(String::as_str) {
             Some("--start") => IpcCommand::StartDictation,
             Some("--stop") => IpcCommand::StopDictation,
@@ -170,7 +177,7 @@ fn main() {
     }
     init_logging(&paths);
     // One LokalBot per library: a second launch hands its request to the first.
-    let instance = match lokalbot_platform::acquire_instance(paths.root()) {
+    let instance = match acquire_instance(&paths, options.after_update) {
         Ok(guard) => Some(guard),
         Err(InstanceError::AlreadyRunning) => {
             let command = options.command.clone().unwrap_or(IpcCommand::Show);
@@ -233,6 +240,7 @@ fn main() {
                 log::error!("the background engine could not start: {err:#}");
             }
             desktop::start(&data, paths.root(), cx);
+            updates::start(&data, cx);
             autocomplete::start(&data, cx);
             let first_launch = !data.read(cx).settings.onboarding_completed;
             if !options.autostart {
@@ -256,11 +264,43 @@ fn main() {
                     lokalbot_engine::Command::Dictation(lokalbot_engine::DictationCommand::Start),
                     cx,
                 ),
+                Some(IpcCommand::InstallUpdate) => {
+                    if let Some(updates) = updates::global(cx) {
+                        updates.update(cx, |updates, cx| updates.install_from_command(cx));
+                    }
+                }
                 _ => {}
             }
             // Keep the instance lock for the life of the process.
             std::mem::forget(instance);
         });
+}
+
+/// The instance lock. After an update, the copy that started this one holds
+/// it until it has quit, so wait for it instead of handing over.
+fn acquire_instance(
+    paths: &LibraryPaths,
+    after_update: bool,
+) -> Result<lokalbot_platform::InstanceGuard, InstanceError> {
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(60);
+    loop {
+        match lokalbot_platform::acquire_instance(paths.root()) {
+            Err(InstanceError::AlreadyRunning)
+                if after_update && std::time::Instant::now() < deadline =>
+            {
+                std::thread::sleep(std::time::Duration::from_millis(250));
+            }
+            result => {
+                if after_update && result.is_ok() {
+                    log::info!(
+                        "LokalBot {} started after an update",
+                        env!("CARGO_PKG_VERSION")
+                    );
+                }
+                return result;
+            }
+        }
+    }
 }
 
 fn bind_actions(cx: &mut App) {
@@ -354,7 +394,6 @@ fn handle_event(data: &Entity<AppData>, event: &AppEvent, window: &mut Window, c
         AppEvent::MeetingDetected { app_name, title } => {
             desktop::notify_meeting_detected(app_name.clone(), title.clone(), cx)
         }
-        AppEvent::InstallCli => install_cli(data, cx),
         AppEvent::SaveApiKey(key) => {
             let key = key.clone();
             let data = data.clone();
@@ -403,53 +442,6 @@ fn apply_launch_at_login(data: &Entity<AppData>, cx: &mut App) {
             }
             Err(err) => log::warn!("could not find the LokalBot executable: {err}"),
         }
-    })
-    .detach();
-}
-
-/// Runs the bundled `lokalbot-cli install-skill`, which puts the CLI on PATH
-/// and installs the agent skill.
-fn install_cli(data: &Entity<AppData>, cx: &mut App) {
-    let data = data.clone();
-    cx.spawn(async move |cx| {
-        let result = cx
-            .background_spawn(async move {
-                let exe = std::env::current_exe()?;
-                let name = if cfg!(windows) {
-                    "lokalbot-cli.exe"
-                } else {
-                    "lokalbot-cli"
-                };
-                let cli = exe.with_file_name(name);
-                anyhow::ensure!(
-                    cli.is_file(),
-                    "{} was not found next to LokalBot",
-                    cli.display()
-                );
-                let output = std::process::Command::new(&cli)
-                    .arg("install-skill")
-                    .output()?;
-                let text = String::from_utf8_lossy(&output.stdout).trim().to_string();
-                if output.status.success() {
-                    Ok(text)
-                } else {
-                    anyhow::bail!("{}", String::from_utf8_lossy(&output.stderr).trim())
-                }
-            })
-            .await;
-        data.update(cx, |data, cx| match result {
-            Ok(_) => data.show_message(
-                lokalbot_i18n::tr("Installed lokalbot-cli for your coding agents."),
-                cx,
-            ),
-            Err(err) => data.show_error(
-                lokalbot_i18n::format(
-                    "Installing lokalbot-cli failed: {err}",
-                    &[("err", format!("{:#}", err))],
-                ),
-                cx,
-            ),
-        });
     })
     .detach();
 }
