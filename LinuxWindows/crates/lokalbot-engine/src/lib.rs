@@ -138,6 +138,7 @@ impl Engine {
         on_event: impl Fn(EngineEvent) + Send + Sync + 'static,
     ) -> Result<Engine> {
         let runtime = lokalbot_ai::runtime::RuntimeManager::new(library.paths().clone(), &settings);
+        secrets::install_plan_store();
         let shared = Arc::new(Shared {
             library,
             settings: RwLock::new(settings),

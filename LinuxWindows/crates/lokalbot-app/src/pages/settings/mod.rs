@@ -9,6 +9,7 @@ mod dictation;
 mod general;
 pub mod meetings;
 pub mod models;
+mod plans;
 mod privacy;
 pub mod writing;
 

@@ -4296,6 +4296,7 @@ name = "lokalbot-ai"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "base64 0.22.1",
  "bzip2 0.6.1",
  "chrono",
  "env_logger",
@@ -4308,6 +4309,7 @@ dependencies = [
  "ocrs",
  "parking_lot",
  "regex",
+ "ring",
  "rten",
  "serde",
  "serde_json",

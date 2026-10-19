@@ -33,10 +33,34 @@ pub struct Inference {
 
 pub fn inference(cx: &App) -> Inference {
     let settings = &crate::state::AppData::global(cx).read(cx).settings;
+    if let Some(plan) = settings.think_plan() {
+        // A plan has its own approval entry, never a URL origin.
+        return if plan.is_approved(settings) {
+            Inference {
+                icon: Ico::Network,
+                label: lokalbot_i18n::format(
+                    "Remote · {host}",
+                    &[("host", plan.destination_host().to_string())],
+                )
+                .into(),
+                remote: true,
+                blocked: false,
+            }
+        } else {
+            Inference {
+                icon: Ico::TriangleAlert,
+                label: lokalbot_i18n::tr("Model connection blocked").into(),
+                remote: false,
+                blocked: true,
+            }
+        };
+    }
     let url = match settings.summarizer_backend {
-        SummarizerBackend::BuiltIn => None,
         SummarizerBackend::Ollama => Some(settings.ollama_base_url.clone()),
         SummarizerBackend::OpenAICompatible => Some(settings.openai_base_url.clone()),
+        SummarizerBackend::BuiltIn
+        | SummarizerBackend::ChatGptPlan
+        | SummarizerBackend::ClaudePlan => None,
     };
     let Some(url) = url.filter(|url| !lokalbot_core::access::is_loopback_url(url)) else {
         return Inference {

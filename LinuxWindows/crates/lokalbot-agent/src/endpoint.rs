@@ -152,6 +152,17 @@ pub fn resolve(settings: &Settings, api_key: Option<String>) -> Resolution {
                 reasoning_dialect: ReasoningDialect::inferred(base),
             })
         }
+        // pi speaks chat completions with a key it can hold; plan usage
+        // offers neither (`ThinkExecution.agentResolution`).
+        SummarizerBackend::ChatGptPlan | SummarizerBackend::ClaudePlan => {
+            let title = settings
+                .think_plan()
+                .map(|plan| plan.title())
+                .unwrap_or("subscription plan");
+            Resolution::Unsupported(format!(
+                "Agent Mode can't run on your {title} yet. Switch the Think model to a built-in model, Ollama, or an OpenAI-compatible server under Settings → Models."
+            ))
+        }
     }
 }
 
@@ -279,6 +290,10 @@ fn think_display_name(settings: &Settings) -> String {
             .unwrap_or_else(|| settings.built_in_model_id.clone()),
         SummarizerBackend::Ollama => settings.ollama_model.clone(),
         SummarizerBackend::OpenAICompatible => settings.openai_model.clone(),
+        SummarizerBackend::ChatGptPlan | SummarizerBackend::ClaudePlan => settings
+            .think_plan()
+            .map(|plan| plan.title().to_string())
+            .unwrap_or_default(),
     }
 }
 
@@ -290,6 +305,26 @@ mod tests {
         let mut settings = Settings::default();
         change(&mut settings);
         settings
+    }
+
+    #[test]
+    fn subscription_plans_are_not_agent_endpoints() {
+        for backend in [
+            SummarizerBackend::ChatGptPlan,
+            SummarizerBackend::ClaudePlan,
+        ] {
+            let mut plan = settings(|s| s.summarizer_backend = backend);
+            // Even an approved plan: pi needs chat completions and a key.
+            let entry = plan.think_plan().unwrap().consent_key().to_string();
+            plan.approved_remote_inference_origins = vec![entry];
+            match resolve(&plan, Some("key".into())) {
+                Resolution::Unsupported(reason) => {
+                    assert!(reason.starts_with("Agent Mode can't run on your"));
+                    assert!(reason.contains(plan.think_plan().unwrap().title()));
+                }
+                other => panic!("{other:?}"),
+            }
+        }
     }
 
     #[test]
