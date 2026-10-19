@@ -275,19 +275,14 @@ impl TimelinePage {
             &[
                 (
                     "0",
-                    format!(
-                        "{}",
-                        if moment.window_title.is_empty() {
-                            moment.app.as_str()
-                        } else {
-                            moment.window_title.as_str()
-                        }
-                    ),
+                    (if moment.window_title.is_empty() {
+                        moment.app.as_str()
+                    } else {
+                        moment.window_title.as_str()
+                    })
+                    .to_string(),
                 ),
-                (
-                    "1",
-                    format!("{}", lokalbot_core::time::clock_time(moment.ts)),
-                ),
+                ("1", lokalbot_core::time::clock_time(moment.ts).to_string()),
             ],
         );
         let actions = h_flex()

@@ -778,11 +778,9 @@ impl QuickRecall {
             })
             .child(div().flex_1().min_w_0())
             .when(!query.is_empty(), |this| {
-                let label: SharedString = lokalbot_i18n::format(
-                    "Ask about “{query}”",
-                    &[("query", format!("{}", query))],
-                )
-                .into();
+                let label: SharedString =
+                    lokalbot_i18n::format("Ask about “{query}”", &[("query", query.to_string())])
+                        .into();
                 this.child(
                     v_flex()
                         .items_end()
@@ -884,7 +882,7 @@ pub fn date_label(at: DateTime<Utc>, now: DateTime<Local>) -> String {
     };
     lokalbot_i18n::format(
         "{day} · {time}",
-        &[("day", format!("{}", day)), ("time", format!("{}", time))],
+        &[("day", day.to_string()), ("time", format!("{}", time))],
     )
 }
 

@@ -244,7 +244,7 @@ impl Render for FollowUpSheet {
         let source = lokalbot_i18n::format(
             "From {0} · {1}",
             &[
-                ("0", format!("{}", self.meeting.display_title())),
+                ("0", self.meeting.display_title().to_string()),
                 (
                     "1",
                     format!(

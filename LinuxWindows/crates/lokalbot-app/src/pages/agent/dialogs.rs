@@ -531,7 +531,7 @@ impl Render for SavedSessions {
             rows.push(note(
                 &lokalbot_i18n::format(
                     "Couldn’t load sessions: {error}",
-                    &[("error", format!("{}", error))],
+                    &[("error", error.to_string())],
                 ),
                 cx,
             ));

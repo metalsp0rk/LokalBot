@@ -187,7 +187,7 @@ impl Render for ShortcutField {
                                 .icon(Icon::new(Ico::RotateCcw))
                                 .tooltip(lokalbot_i18n::format(
                                     "Reset to {0}",
-                                    &[("0", format!("{}", self.default_value))],
+                                    &[("0", self.default_value.to_string())],
                                 ))
                                 .on_click(cx.listener(|this, _, _, cx| this.reset(cx))),
                         )

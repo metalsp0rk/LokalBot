@@ -90,7 +90,7 @@ impl AskPage {
             } else {
                 lokalbot_i18n::format(
                     "No questions match “{query}”.",
-                    &[("query", format!("{}", query))],
+                    &[("query", query.to_string())],
                 )
             };
             rows.push(
@@ -209,7 +209,7 @@ fn confirm_delete(
             .title(lokalbot_i18n::tr("Delete Question?"))
             .description(lokalbot_i18n::format(
                 "This removes “{title}” from Ask history.",
-                &[("title", format!("{}", title))],
+                &[("title", title.to_string())],
             ))
             .confirm()
             .ok_text(lokalbot_i18n::tr("Delete"))

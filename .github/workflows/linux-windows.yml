@@ -66,6 +66,9 @@ jobs:
       - name: Check localization parity with macOS
         run: python3 -m unittest discover -s scripts/tests
 
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+
       - name: Test
         run: cargo test --workspace --locked
 

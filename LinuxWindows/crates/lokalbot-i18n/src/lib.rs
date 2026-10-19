@@ -311,6 +311,22 @@ mod tests {
     use super::*;
 
     #[test]
+    fn every_catalog_table_is_sorted_for_binary_search() {
+        assert_eq!(catalogs::TABLES.len(), LANGUAGES.len());
+        for (code, table) in catalogs::TABLES {
+            assert!(
+                table.windows(2).all(|pair| pair[0].0 < pair[1].0),
+                "{code} is not strictly sorted"
+            );
+            for (key, value) in table.iter() {
+                assert_eq!(catalogs::lookup(code, key), Some(*value));
+            }
+        }
+        assert_eq!(catalogs::lookup("en", "no such key"), None);
+        assert_eq!(catalogs::lookup("xx", "Settings"), None);
+    }
+
+    #[test]
     fn matches_the_mac_language_and_region_rules() {
         for (system, expected) in [
             ("zh_TW.UTF-8", "zh-Hant"),

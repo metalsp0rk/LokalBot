@@ -603,7 +603,7 @@ impl TimelinePage {
                 lokalbot_i18n::format(
                     "{0} · +{rest}",
                     &[
-                        ("0", format!("{}", visible.join(" · "))),
+                        ("0", visible.join(" · ").to_string()),
                         ("rest", format!("{}", rest)),
                     ],
                 )

@@ -182,10 +182,7 @@ impl AgentPage {
             let message = if query.is_empty() {
                 lokalbot_i18n::tr("No tasks yet.").to_string()
             } else {
-                lokalbot_i18n::format(
-                    "No tasks match “{query}”.",
-                    &[("query", format!("{}", query))],
-                )
+                lokalbot_i18n::format("No tasks match “{query}”.", &[("query", query.to_string())])
             };
             list.push(
                 div()
