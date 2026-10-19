@@ -1,6 +1,6 @@
 # LokalBot Privacy Policy
 
-Effective: October 15, 2026
+Effective: October 18, 2026
 
 LokalBot is a local-first macOS application. It has no LokalBot account,
 analytics service, advertising SDK, or telemetry backend. The project does not
@@ -250,6 +250,12 @@ The app may make these outbound connections:
 - **Models:** model metadata and model files from Hugging Face or a model
   publisher's download host. Selected first-use models can download
   automatically; other downloads start when you request them.
+  If you choose HF-Mirror (hf-mirror.com) or ModelScope (modelscope.cn) under
+  Settings → Models, Hugging Face model files download from that source
+  instead, falling back to Hugging Face; with ModelScope, LokalBot also reads
+  ModelScope's file listings to find files identical to the pinned ones. Files
+  from every source are checked against the size and SHA-256 that LokalBot pins
+  before they are used. Browse Hugging Face still searches huggingface.co.
   Nemotron speaker diarization, the default on fresh installs, downloads its
   pinned CoreML model on first use. With Qwen3-ASR or a transcription server,
   speaker separation also downloads a pinned Qwen3 forced aligner (about 1 GB)

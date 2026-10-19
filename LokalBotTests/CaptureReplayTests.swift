@@ -333,6 +333,40 @@ final class CaptureReplayTests: XCTestCase {
         XCTAssertEqual(RecordingSystemAudioSource.find(for: unbound), .verified(call))
     }
 
+    /// Tencent Meeting was not a known app, so its calls never started a
+    /// recording and a hand-started one saved only the microphone. As a
+    /// dedicated conferencing app it now starts like Zoom: as soon as the call
+    /// is audible, with no sustained-audio wait.
+    func testTencentMeetingCallStartsWithoutTheChatAppWait() async throws {
+        let replay = try replay("tencent-meeting-call")
+        let detector = MeetingDetector()
+        var started: [(at: TimeInterval, bundleID: String?)] = []
+        detector.onMeetingStarted = { context in
+            started.append((replay.clock.elapsed, context.detectedApp?.bundleID))
+        }
+        for second in stride(from: 0.0, through: 260, by: 2) {
+            await replay.clock.advance(to: second)
+            await detector.tickForTesting()
+        }
+        XCTAssertEqual(started.count, 1)
+        XCTAssertEqual(started.first?.bundleID, "com.tencent.meeting")
+        XCTAssertLessThan(started.first?.at ?? .infinity,
+                          30 + MeetingDetector.nativeAudioMinimumConfirmationDuration,
+                          "a dedicated conferencing app does not wait out the chat-app gate")
+    }
+
+    /// Feishu plays calls through ByteDance-named Electron helpers outside the
+    /// `com.electron.lark` namespace. A hand-started recording must find the
+    /// call and tap the helper, not save only the microphone.
+    func testManualRecordingCapturesAFeishuCallOnItsHelper() throws {
+        _ = try replay("feishu-call-on-helper")
+        let feishu = MeetingDetector.DetectedApp(name: "Feishu", bundleID: "com.electron.lark", pid: 900)
+        let unbound = Meeting.CaptureIntent(systemAudioRequested: true)
+        XCTAssertEqual(RecordingSystemAudioSource.find(for: unbound), .verified(feishu))
+        XCTAssertEqual(MeetingDetector.currentCaptureTargetProcess(for: feishu)?.id, 910,
+                       "the tap goes on the helper that carries the call")
+    }
+
     /// Every scripted browser trace must replay to at least one text capture.
     func testScriptedBrowserTracesReplayToACapture() async throws {
         let folder = try XCTUnwrap(Bundle(for: Self.self).url(
