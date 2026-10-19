@@ -253,7 +253,7 @@ impl MeetingsPage {
                 lokalbot_i18n::tr("Preview paused. Recording continues; resume picks up where you left off.").into(),
             ),
             _ => preview.start.filter(|start| *start > 0.).map(|start| {
-                lokalbot_i18n::format("Preview starts at {0}. Earlier audio remains in the full recording.", &[("0", format!("{}", clock(start)))])
+                lokalbot_i18n::format("Preview starts at {0}. Earlier audio remains in the full recording.", &[("0", clock(start).to_string())])
                 .into()
             }),
         };

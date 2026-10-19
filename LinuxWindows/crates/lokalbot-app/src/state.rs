@@ -588,7 +588,7 @@ impl AppData {
                         lokalbot_i18n::format(
                             "{failure}: {err}",
                             &[
-                                ("failure", format!("{}", failure)),
+                                ("failure", failure.to_string()),
                                 ("err", format!("{:#}", err)),
                             ],
                         ),

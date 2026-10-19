@@ -165,6 +165,21 @@ class LocalizationTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, 'changed keyboard names'):
                     sync.read_desktop_catalogs(['en', 'zh-Hans'])
 
+    def test_invisible_characters_never_reach_the_rust_catalog(self):
+        # Clippy denies a literal zero-width space, soft hyphen or word joiner.
+        self.assertEqual(sync.rust_string('a\u200bb\u00adc\u2060d'), '"a\\u{200b}b\\u{ad}c\\u{2060}d"')
+        self.assertIsNone(sync.INVISIBLE.search(sync.OUTPUT.read_text()))
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            catalogs = root / 'LinuxWindows/localizations'
+            catalogs.mkdir(parents=True)
+            key = 'New lines appear as people speak.'
+            (catalogs / 'en.json').write_text(json.dumps({key: key}))
+            (catalogs / 'ur.json').write_text(json.dumps({key: 'نئی \u200b\u200bلکیریں'}))
+            with patch.object(sync, 'ROOT', root):
+                with self.assertRaisesRegex(ValueError, 'invisible character'):
+                    sync.read_desktop_catalogs(['en', 'ur'])
+
     def test_identifiers_are_not_localized(self):
         composer = (APP / 'pages/ask/composer.rs').read_text()
         self.assertNotIn('ask-date-{label}', composer)

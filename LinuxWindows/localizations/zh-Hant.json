@@ -35,7 +35,7 @@
   "Agents can read context from the rolling last seven days.": "客服人员可以从过去 7 天的滚动中读取上下文。",
   "Agents can read everything still inside the configured retention window.": "代理可以读取配置的保留窗口内的所有内容。",
   "Agents can read only context captured since local midnight.": "代理只能读取自当地时间午夜以来捕获的上下文。",
-  "All actions from this meeting. Only yours appear in My actions. Choose an owner to correct it, or a timestamp to check the source.": "本次会议的所有行动。只有你的出现在我的行​​动中。选择所有者来更正它，或选择时间戳来检查来源。",
+  "All actions from this meeting. Only yours appear in My actions. Choose an owner to correct it, or a timestamp to check the source.": "本次会议的所有行动。只有你的出现在我的行动中。选择所有者来更正它，或选择时间戳来检查来源。",
   "All reads run automatically, including outside the working folder. File changes and shell commands ask first.": "所有讀取都會自動執行，包括工作資料夾以外的讀取。文件更改和 shell 命令首先詢問。",
   "All sources": "所有来源",
   "Allow matching across meetings": "允许跨会议匹配",

@@ -377,7 +377,7 @@ impl Autocomplete {
                 log::warn!("autocomplete: unavailable: {reason}");
                 self.support = Support::Unavailable(lokalbot_i18n::format(
                     "Autocomplete could not start: {reason}",
-                    &[("reason", format!("{}", reason))],
+                    &[("reason", reason.to_string())],
                 ));
             }
         }

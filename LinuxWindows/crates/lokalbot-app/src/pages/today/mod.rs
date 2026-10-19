@@ -246,7 +246,7 @@ impl TodayPage {
                                 .text_color(lb.text)
                                 .child(crate::ui::text::paragraph(lokalbot_i18n::format(
                                     "Recording — {title}",
-                                    &[("title", format!("{}", title))],
+                                    &[("title", title.to_string())],
                                 ))),
                         )
                         .child(
