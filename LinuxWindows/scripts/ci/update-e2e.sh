@@ -51,7 +51,7 @@ XVFB=""
 cleanup() {
   pkill -f "$BIN/lokalbot" 2>/dev/null || true
   kill "$HTTP" 2>/dev/null || true
-  [ -n "$XVFB" ] && kill "$XVFB" 2>/dev/null || true
+  if [ -n "$XVFB" ]; then kill "$XVFB" 2>/dev/null || true; fi
 }
 trap cleanup EXIT
 
@@ -107,10 +107,12 @@ for binary in lokalbot lokalbot-cli; do
 done
 [ -f "$ICON" ] || { echo "the desktop icons were not refreshed" >&2; exit 1; }
 grep -q "^Exec=$BIN/lokalbot" "$DATA/applications/com.lokalbot.LokalBot.desktop"
-if ls "$BIN" | grep -E '\.(old|new)$'; then
-  echo "update leftovers remain in $BIN" >&2
-  exit 1
-fi
+for leftover in "$BIN"/*.old "$BIN"/*.new; do
+  if [ -e "$leftover" ]; then
+    echo "update leftover remains: $leftover" >&2
+    exit 1
+  fi
+done
 pgrep -f "$BIN/lokalbot --after-update" >/dev/null || { echo "the relaunched LokalBot is not running" >&2; exit 1; }
 grep "updates:\|after an update" "$LOG"
 echo "Updated $OLD_VERSION → $NEW_VERSION and relaunched."

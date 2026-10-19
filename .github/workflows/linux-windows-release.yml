@@ -1,11 +1,12 @@
 # Builds the Linux and Windows release archives (LinuxWindows/scripts/package.sh).
 #
 # Release (release.yml) calls this for a v* tag, next to the macOS job, and
-# signs and attaches what it builds once the macOS release exists. Run it by
-# hand for a dry run: it builds the same archives, signs their update feeds
-# with a throwaway key through the same scripts/release-feeds.sh, checks them,
-# and keeps everything as workflow artifacts. A dry run never reads
-# SPARKLE_PRIVATE_KEY and publishes nothing.
+# signs and attaches what it builds once the macOS release exists. Run by
+# hand, or on a pull request that changes this pipeline, it is a dry run: it
+# builds the same archives, signs their update feeds with a throwaway key
+# through the same scripts/release-feeds.sh, checks them, and keeps
+# everything as workflow artifacts. A dry run never reads SPARKLE_PRIVATE_KEY
+# and publishes nothing.
 #
 #   gh workflow run linux-windows-release.yml --ref BRANCH
 
@@ -24,6 +25,18 @@ on:
         description: "Tag the dry run signs for (default: v<workspace version>)"
         required: false
         type: string
+  pull_request:
+    branches: [master]
+    paths:
+      - ".github/workflows/linux-windows-release.yml"
+      - "LinuxWindows/scripts/package.sh"
+      - "LinuxWindows/scripts/release-feeds.sh"
+      - "LinuxWindows/crates/lokalbot-update/**"
+
+concurrency:
+  # A tag's run belongs to its Release run; dry runs replace older ones.
+  group: linux-windows-release-${{ github.event_name == 'pull_request' && github.head_ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -117,7 +130,7 @@ jobs:
 
   dry-run:
     name: Sign and check the feeds (throwaway key)
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request'
     needs: [linux, windows]
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -144,9 +157,9 @@ jobs:
           FEED_TOOL=target/release/lokalbot-update-feed \
             scripts/release-feeds.sh dist "${TAG:-v$version}" "$key_file"
           # The release key never signed these: the embedded key must refuse them.
-          for feed in dist/*.json; do
-            platform=$(basename "$feed" .json)
-            archive=$(ls dist/LokalBot-*-"$platform".{tar.gz,zip} 2>/dev/null | head -1)
+          for archive in dist/LokalBot-*-linux-x86_64.tar.gz dist/LokalBot-*-windows-x86_64.zip; do
+            platform=$(basename "$archive" | sed -E 's/^LokalBot-[0-9.]+-(.*)\.(tar\.gz|zip)$/\1/')
+            feed="dist/$platform.json"
             if target/release/lokalbot-update-feed verify --feed "$feed" --archive "$archive"; then
               echo "::error::$feed verified against the release key" >&2
               exit 1
