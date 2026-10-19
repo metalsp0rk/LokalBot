@@ -4,6 +4,7 @@
 "2. Review action owners" = "2. Duba masu alhakin matakai";
 "A domain excludes its subdomains too. A URL with a path excludes that URL prefix. Existing rules are kept until you remove them." = "Keɓance yanki yana keɓance ƙananan yankunansa ma. URL mai hanya yana keɓance duk URL da ya fara da wannan hanya. Dokokin da ke akwai suna nan har sai ka cire su.";
 "A newly granted permission may require a relaunch. Finish setup first; relaunch from Settings if the feature remains unavailable." = "Sabuwar izini na iya buƙatar sake buɗe manhajar. Kammala saiti tukuna; sake buɗewa daga Saituna idan fasalin bai samu ba.";
+"About" = "Game da";
 "Accept next" = "Karɓi na gaba";
 "Accept punctuation with the word" = "Karɓi alamar rubutu tare da kalmar";
 "Accepted" = "An karɓa";
@@ -58,6 +59,7 @@
 "All retained history" = "Duk tarihin da aka riƙe";
 "All three core models will run on this Mac." = "Dukkan manyan samfuran uku za su gudana a wannan Mac.";
 "Allow Once" = "Bada izini sau ɗaya";
+"Allow external agents to change LokalBot settings" = "Bari wakilan waje su canja saitunan LokalBot";
 "Allow external agents to read screen memory" = "Bari wakilan waje su karanta ƙwaƙwalwar allo";
 "Allow external agents to read your meeting library" = "Bari wakilan waje su karanta ɗakin tarukanka";
 "Allow multi-line suggestions" = "Bada shawarar rubutu mai layuka da yawa";
@@ -161,6 +163,7 @@
 "Choose actions to change together" = "Zaɓi matakan da za a canja tare";
 "Choose daily memory export folder" = "Zaɓi babban fayil na fitar da ƙwaƙwalwar rana";
 "Choose day" = "Zaɓi rana";
+"Choose meeting note export folder" = "Zaɓi babban fayil na fitar da bayanin kula na taro";
 "Choose routine output folder" = "Zaɓi babban fayil na sakamakon aikin yau da kullum";
 "Choose sources and result filters" = "Zaɓi kafofi da matatun sakamako";
 "Choose sources to include with your next message. Screen pixels are never attached." = "Zaɓi kafofin da za a haɗa da saƙonka na gaba. Ba a taɓa haɗa pixels na allo ba.";
@@ -333,10 +336,12 @@
 "Export Diagnostics…" = "Fitar da bayanan binciken matsala…";
 "Export Markdown" = "Fitar da Markdown";
 "Export a daily memory note" = "Fitar da bayanin ƙwaƙwalwar rana";
+"Export a note for each meeting" = "Fitar da bayanin kula ga kowane taro";
 "Export result" = "Fitar da sakamako";
 "External agents" = "Wakilan waje";
 "External meeting access" = "Damar taruka daga waje";
 "External screen access" = "Damar allo daga waje";
+"External settings access" = "Damar saituna daga waje";
 "Failed" = "Ya gaza";
 "Feature" = "Fasali";
 "Files…" = "Fayiloli…";
@@ -412,6 +417,7 @@
 "Images to remove" = "Hotunan da za a cire";
 "In progress" = "Ana yi";
 "Include saved moments" = "Haɗa lokutan da aka adana";
+"Include the transcript" = "Haɗa rubutun magana";
 "Includes scheduled daily summaries and overnight review, which can send activity titles, captured screen text, meeting evidence, and retained Dream memory to this origin without a prompt each time." = "Ya haɗa da taƙaitawar yau da kullum da bitar dare da aka tsara, waɗanda za su iya aika taken ayyuka, rubutun allo da aka ɗauka, shaidar taruka, da ƙwaƙwalwar Dream da aka riƙe zuwa wannan asali ba tare da tambaya a kowane lokaci ba.";
 "Increase Text Size" = "Ƙara girman rubutu";
 "Input Monitoring" = "Sa ido kan shigarwa";
@@ -453,6 +459,7 @@
 "Legacy rule · review" = "Tsohuwar doka · duba";
 "Lets MCP clients and the lokalbot-cli skill (Claude, Cursor, …) list, read, search, and ask about your meetings — read-only and localhost only. Off by default." = "Yana barin abokan MCP da ƙwarewar lokalbot-cli (Claude, Cursor, …) su jera, karanta, bincika, kuma tambaya game da tarukanka — karantawa kawai kuma localhost kawai. A kashe yake tun farko.";
 "Lets dictation and cotyping detect their global keyboard shortcuts." = "Yana barin faɗa don rubutawa da taimakon rubutu su gano gajerun hanyoyin maɓallansu a duk tsarin.";
+"Lets lokalbot-cli read your settings and app status, open Settings at a setting, and start LokalBot in the background. Separate from the other agent access toggles. Off by default." = "Yana barin lokalbot-cli ya karanta saitunanka da matsayin manhaja, ya buɗe Saituna a kan wani takamaiman saiti, kuma ya fara LokalBot a bango. Dabam yake da sauran maɓallan damar wakili. A kashe yake tun farko.";
 "Library" = "Ɗakin ajiya";
 "Library location" = "Wurin ɗakin ajiya";
 "Light" = "Haske";
@@ -472,6 +479,7 @@
 "Local models process on this Mac. Each remote server requires its own approval before context can leave the Mac." = "Samfuran gida suna sarrafawa a wannan Mac. Kowane sabar nesa yana buƙatar nasa amincewa kafin mahalli ya bar Mac.";
 "Logs, health reports, settings without secrets, and library counts. Never meeting audio, transcripts, notes, or screenshots." = "Kundin aiki, rahoton lafiya, saituna ba tare da sirri ba, da adadin ɗakin ajiya. Ba sa haɗa sautin taro, rubutun magana, bayanin kula, ko hoton allo.";
 "LokalBot detects meeting apps automatically, or start a recording now." = "LokalBot yana gano manhajojin taro kai tsaye, ko ka fara rikodi yanzu.";
+"LokalBot is free and built by one person. A GitHub star helps others find it." = "LokalBot kyauta ne kuma mutum ɗaya ne ya gina shi. Tauraro a GitHub yana taimaka wa wasu su same shi.";
 "LokalBot manages this model and rebuilds the local index when it changes." = "LokalBot yana sarrafa wannan samfuri kuma yana sake gina fihirisar gida idan ya canja.";
 "LokalBot never sends this. Copy it into your mail or chat app to send it yourself." = "LokalBot ba ya aika wannan. Kwafa shi zuwa manhajar imel ko hira ka aika da kanka.";
 "Looks done?" = "Yana kama da an gama?";
@@ -505,6 +513,7 @@
 "Meeting details" = "Bayanin taro";
 "Meeting library" = "Ɗakin taruka";
 "Meeting models" = "Samfuran taro";
+"Meeting note export" = "Fitar da bayanin kula na taro";
 "Meeting notes" = "Bayanin kula na taro";
 "Meeting notes, transcripts, and actions will look like this." = "Bayanin kula, rubutun magana, da matakan taro za su yi kama da haka.";
 "Meeting playback" = "Sake sauraron taro";
@@ -581,6 +590,7 @@
 "No transcript speakers are available yet." = "Masu magana na rubutun ba su samu ba tukuna.";
 "None yet" = "Babu tukuna";
 "Not connected" = "Ba a haɗa ba";
+"Not now" = "Ba yanzu ba";
 "Not Yet" = "Ba tukuna ba";
 "Not ready" = "Ba a shirye ba";
 "Not recording" = "Ba a yin rikodi";
@@ -625,6 +635,7 @@
 "Open in results" = "Buɗe a sakamako";
 "Open latest meeting" = "Buɗe taron ƙarshe";
 "Open meeting" = "Buɗe taro";
+"Open source" = "Buɗaɗɗen tushe";
 "Open the current recording" = "Buɗe rikodin yanzu";
 "Open this capture in Timeline" = "Buɗe wannan ɗaukar a Layin lokaci";
 "Open this moment in Timeline" = "Buɗe wannan lokacin a Layin lokaci";
@@ -906,6 +917,7 @@
 "Speech recognition runs on this Mac. No screen context or rewrite model is used." = "Gano magana yana gudana a wannan Mac. Ba a amfani da mahallin allo ko samfurin sake rubutawa ba.";
 "Speech speed" = "Saurin magana";
 "Speed" = "Sauri";
+"Star on GitHub" = "Ba da tauraro a GitHub";
 "Start" = "Fara";
 "Start (seconds)" = "Farko (daƙiƙu)";
 "Start Dictation" = "Fara faɗa don rubutawa";
@@ -973,7 +985,7 @@
 "These are captured window titles. Expand a title to inspect the activity behind it." = "Waɗannan taken tagogin da aka ɗauka ne. Faɗaɗa take don duba aikin da ke bayansa.";
 "These choices are applied on the final Review step." = "Ana aiwatar da waɗannan zaɓuɓɓuka a matakin Bita na ƙarshe.";
 "Think" = "Tunani";
-"Think may send meeting transcripts, screen text, Agent context, and inherited dictation requests to this server when you use those features. Scheduled daily summaries and overnight review also run here and can send activity titles, captured screen text, meeting evidence, and retained Dream memory without a prompt each time." = "Tunani na iya aika rubutun taro, rubutun allo, mahallin Wakili, da buƙatun faɗa don rubutawa masu bin saitinsa zuwa wannan sabar idan ka yi amfani da fasalolin. Taƙaitawar yau da kullum da bitar dare da aka tsara ma suna gudana a nan kuma suna iya aika taken ayyuka, rubutun allo da aka ɗauka, shaidar taruka, da ƙwaƙwalwar Dream da aka riƙe ba tare da tambaya a kowane lokaci ba.";
+"Think may send meeting transcripts, screen text, what you told Ask to remember about you, Agent context, and inherited dictation requests to this server when you use those features. Scheduled daily summaries and overnight review also run here and can send activity titles, captured screen text, meeting evidence, and retained Dream memory without a prompt each time." = "Tunani na iya aika rubutun taro, rubutun allo, abin da ka gaya wa Tambaya ya tuna game da kai, mahallin Wakili, da buƙatun faɗa don rubutawa masu bin saitinsa zuwa wannan sabar idan ka yi amfani da fasalolin. Taƙaitawar yau da kullum da bitar dare da aka tsara ma suna gudana a nan kuma suna iya aika taken ayyuka, rubutun allo da aka ɗauka, shaidar taruka, da ƙwaƙwalwar Dream da aka riƙe ba tare da tambaya a kowane lokaci ba.";
 "Think model" = "Samfurin Tunani";
 "Think model backend" = "Tsarin samfurin Tunani";
 "Think processing budget" = "Iyakar sarrafawar Tunani";
@@ -1093,6 +1105,7 @@
 "Workspace navigation" = "Kewayawa a wurin aiki";
 "Write" = "Rubuta";
 "Writes one unencrypted Markdown file per day with the digest, meeting links, app time, and saved moments. A day missed while your Mac was asleep is written later. Existing non-LokalBot content is never overwritten." = "Yana rubuta fayil Markdown ɗaya mara ɓoyewa a rana da taƙaitawa, hanyoyin taro, lokacin manhajoji, da lokutan da aka adana. Ana rubuta ranar da aka rasa yayin barcin Mac daga baya. Ba a taɓa maye gurbin abin da ba na LokalBot ba.";
+"Writes one unencrypted Markdown note per meeting, including meetings already recorded, to a folder you choose, such as an Obsidian vault. Each note has the summary, action items as you corrected them, and the people and tracked projects involved. A note you edit, move, or delete is yours: LokalBot leaves it alone." = "Yana rubuta bayanin kula na Markdown ɗaya mara ɓoyewa ga kowane taro, har da tarukan da aka riga aka yi rikodinsu, a babban fayil da ka zaɓa, kamar rumbun Obsidian. Kowane bayanin kula yana ɗauke da taƙaitawa, matakai kamar yadda ka gyara su, da mutane da ayyukan da ake bibiya da abin ya shafa. Bayanin kula da ka gyara, ka matsar, ko ka goge naka ne: LokalBot ba zai taɓa shi ba.";
 "Writes the Timeline digest to your local journal at the chosen time, then finalizes yesterday after midnight so late activity is included." = "Yana rubuta taƙaitawar Layin lokaci a kundinka na gida a lokacin da aka zaɓa, sannan yana kammala jiya bayan tsakar dare don haɗa ayyukan dare.";
 "Writing" = "Rubutu";
 "Writing for the focused app" = "Ana rubutawa don manhajar da ake aiki da ita";
@@ -1154,6 +1167,15 @@
 "Your subscription" = "Rajistarka";
 "Server" = "Sabar";
 "In use" = "Ana amfani da shi";
+"About you" = "Game da kai";
+"Remember what I tell Ask" = "Tuna abin da na gaya wa Tambaya";
+"Remembered" = "An tuna";
+"Not remembered" = "Ba a tuna ba";
+"Share with agents" = "Raba wa wakilai";
+"Share with Agents" = "Raba wa wakilai";
+"Stop Sharing with Agents" = "Daina raba wa wakilai";
+"Allow external agents to read what I shared about myself" = "Bari wakilan waje su karanta abin da na raba game da kaina";
+"Choose items…" = "Zaɓi abubuwa…";
 "Statistics" = "Ƙididdiga";
 "Autocomplete statistics" = "Ƙididdigar kammalawa kai tsaye";
 "Period" = "Lokaci";
@@ -1195,6 +1217,10 @@
 "Clear Statistics" = "Share ƙididdiga";
 "Deletes the daily and monthly counts. Usage and timing measurements are kept." = "Yana goge adadin rana da na wata. Ana riƙe ma'aunin amfani da lokaci.";
 "Counted on this Mac while you type in other apps: suggestions shown and accepted, the characters you type yourself where autocomplete works, and the pauses between them, by day, kind of app and model. No text, app names or window titles are kept. Time saved is the keystrokes you did not type at your measured speed, not counting time spent reading suggestions." = "Ana ƙidayawa a wannan Mac yayin rubutu a wasu manhajoji: shawarwarin da aka nuna da karɓa, haruffan da ka rubuta da kanka inda kammalawa ke aiki, da tsayawar da ke tsakaninsu, bisa rana, nau'in manhaja da samfuri. Ba a riƙe rubutu, sunayen manhajoji ko taken tagogi ba. Lokacin da aka rage shi ne na maɓallan da ba ka danna ba a saurinka da aka auna, ba tare da lokacin karanta shawarwari ba.";
+"Learn about me from my meetings and work" = "Koyi game da ni daga tarukana da aikina";
+"Learn from my dictation" = "Koyi daga faɗa don rubutawa da nake yi";
+"Keep" = "Riƙe";
+"Keep Even If the Meeting Is Deleted" = "Riƙe ko da an goge taron";
 "CPU" = "Na'urar sarrafawa";
 "Memory" = "Ƙwaƙwalwa";
 "Models loaded" = "Samfuran da aka loda";
@@ -1203,6 +1229,8 @@
 "%@ of RAM" = "%@ na RAM";
 "Updates every 2 seconds and counts LokalBot and its helpers. External Ollama and Apple Intelligence models aren't counted." = "Yana sabuntawa kowane daƙiƙa 2 kuma yana ƙidaya LokalBot da masu taimakonsa. Ba a ƙidaya samfuran Ollama na waje da Apple Intelligence ba.";
 "Diagnostics include logs, health reports, settings without secrets, and library counts. Never meeting audio, transcripts, notes, or screenshots." = "Bayanan gano matsala sun haɗa kundin aiki, rahoton lafiya, saituna ba tare da sirri ba, da adadin ɗakin ajiya. Ba su haɗa sautin taro, rubutun magana, bayanin kula, ko hoton allo ba.";
+"Keep Even If the Conversation Is Deleted" = "Riƙe ko da an goge tattaunawar";
+"Keep Even If the Source Is Deleted" = "Riƙe ko da an goge tushen";
 "Autocomplete server" = "Sabar kammalawa kai tsaye";
 "Think's server" = "Sabar Tunani";
 "Another server" = "Wata sabar";

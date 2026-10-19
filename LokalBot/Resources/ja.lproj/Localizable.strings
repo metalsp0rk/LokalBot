@@ -4,6 +4,7 @@
 "2. Review action owners" = "2. アクションの担当者を確認";
 "A domain excludes its subdomains too. A URL with a path excludes that URL prefix. Existing rules are kept until you remove them." = "ドメインを除外するとサブドメインも除外されます。パス付きのURLは、そのURLで始まるすべてのURLを除外します。既存のルールは削除するまで保持されます。";
 "A newly granted permission may require a relaunch. Finish setup first; relaunch from Settings if the feature remains unavailable." = "新しく許可した権限には再起動が必要な場合があります。まず設定を完了し、機能が使えない場合は設定から再起動してください。";
+"About" = "このアプリについて";
 "Accept next" = "次を採用";
 "Accept punctuation with the word" = "句読点を単語と一緒に採用";
 "Accepted" = "採用済み";
@@ -58,6 +59,7 @@
 "All retained history" = "保持されているすべての履歴";
 "All three core models will run on this Mac." = "3つの主要モデルはすべてこのMacで動作します。";
 "Allow Once" = "今回のみ許可";
+"Allow external agents to change LokalBot settings" = "外部エージェントにLokalBotの設定の変更を許可";
 "Allow external agents to read screen memory" = "外部エージェントに画面の記憶の読み取りを許可";
 "Allow external agents to read your meeting library" = "外部エージェントに会議ライブラリの読み取りを許可";
 "Allow multi-line suggestions" = "複数行の候補を許可";
@@ -161,6 +163,7 @@
 "Choose actions to change together" = "まとめて変更するアクションを選択";
 "Choose daily memory export folder" = "日次記憶のエクスポート先を選択";
 "Choose day" = "日付を選択";
+"Choose meeting note export folder" = "会議メモのエクスポート先を選択";
 "Choose routine output folder" = "ルーチンの出力先フォルダを選択";
 "Choose sources and result filters" = "ソースと結果フィルタを選択";
 "Choose sources to include with your next message. Screen pixels are never attached." = "次のメッセージに含めるソースを選びます。画面の画像は添付しません。";
@@ -333,10 +336,12 @@
 "Export Diagnostics…" = "診断情報をエクスポート…";
 "Export Markdown" = "Markdownをエクスポート";
 "Export a daily memory note" = "日次記憶のメモをエクスポート";
+"Export a note for each meeting" = "会議ごとにメモをエクスポート";
 "Export result" = "結果をエクスポート";
 "External agents" = "外部エージェント";
 "External meeting access" = "会議への外部アクセス";
 "External screen access" = "画面への外部アクセス";
+"External settings access" = "設定への外部アクセス";
 "Failed" = "失敗";
 "Feature" = "機能";
 "Files…" = "ファイル…";
@@ -412,6 +417,7 @@
 "Images to remove" = "削除する画像";
 "In progress" = "進行中";
 "Include saved moments" = "保存した場面を含める";
+"Include the transcript" = "文字起こしを含める";
 "Includes scheduled daily summaries and overnight review, which can send activity titles, captured screen text, meeting evidence, and retained Dream memory to this origin without a prompt each time." = "日次要約の定期実行と夜間レビューを含みます。毎回確認せずに、アクティビティのタイトル、取得した画面テキスト、会議の根拠、保持されたDreamの記憶をこのオリジンに送信する場合があります。";
 "Increase Text Size" = "文字を大きくする";
 "Input Monitoring" = "入力監視";
@@ -453,6 +459,7 @@
 "Legacy rule · review" = "旧ルール · 要確認";
 "Lets MCP clients and the lokalbot-cli skill (Claude, Cursor, …) list, read, search, and ask about your meetings — read-only and localhost only. Off by default." = "MCPクライアントとlokalbot-cliスキル（Claude、Cursorなど）が会議を一覧表示、読み取り、検索、質問できるようにします。読み取り専用でlocalhostのみを使います。デフォルトはオフです。";
 "Lets dictation and cotyping detect their global keyboard shortcuts." = "音声入力と入力支援がグローバルキーボードショートカットを検出できるようにします。";
+"Lets lokalbot-cli read your settings and app status, open Settings at a setting, and start LokalBot in the background. Separate from the other agent access toggles. Off by default." = "lokalbot-cliが設定とアプリの状態を読み取り、特定の設定項目を指定して設定を開き、LokalBotをバックグラウンドで起動できるようにします。ほかのエージェントアクセスのスイッチとは別です。デフォルトはオフです。";
 "Library" = "ライブラリ";
 "Library location" = "ライブラリの場所";
 "Light" = "ライト";
@@ -472,6 +479,7 @@
 "Local models process on this Mac. Each remote server requires its own approval before context can leave the Mac." = "ローカルモデルはこのMac上で処理します。コンテキストをMacの外に送信するには、リモートサーバーごとに承認が必要です。";
 "Logs, health reports, settings without secrets, and library counts. Never meeting audio, transcripts, notes, or screenshots." = "ログ、健全性レポート、秘密情報を除いた設定、ライブラリの件数です。会議の音声、文字起こし、メモ、スクリーンショットは含みません。";
 "LokalBot detects meeting apps automatically, or start a recording now." = "LokalBotは会議アプリを自動検出します。今すぐ録音を開始することもできます。";
+"LokalBot is free and built by one person. A GitHub star helps others find it." = "LokalBotは無料で、一人の開発者が作っています。GitHubのスターは、ほかの人がLokalBotを見つける手助けになります。";
 "LokalBot manages this model and rebuilds the local index when it changes." = "LokalBotがこのモデルを管理し、変更時にローカルインデックスを再構築します。";
 "LokalBot never sends this. Copy it into your mail or chat app to send it yourself." = "LokalBotはこれを送信しません。メールやチャットアプリにコピーして、自分で送信してください。";
 "Looks done?" = "完了したようですか？";
@@ -505,6 +513,7 @@
 "Meeting details" = "会議の詳細";
 "Meeting library" = "会議ライブラリ";
 "Meeting models" = "会議用モデル";
+"Meeting note export" = "会議メモのエクスポート";
 "Meeting notes" = "会議メモ";
 "Meeting notes, transcripts, and actions will look like this." = "会議のメモ、文字起こし、アクションはこのように表示されます。";
 "Meeting playback" = "会議の再生";
@@ -581,6 +590,7 @@
 "No transcript speakers are available yet." = "文字起こしの話者はまだ利用できません。";
 "None yet" = "まだありません";
 "Not connected" = "未接続";
+"Not now" = "今はしない";
 "Not Yet" = "まだしない";
 "Not ready" = "準備未完了";
 "Not recording" = "録音していません";
@@ -625,6 +635,7 @@
 "Open in results" = "結果で開く";
 "Open latest meeting" = "最新の会議を開く";
 "Open meeting" = "会議を開く";
+"Open source" = "オープンソース";
 "Open the current recording" = "現在の録音を開く";
 "Open this capture in Timeline" = "このキャプチャをタイムラインで開く";
 "Open this moment in Timeline" = "この場面をタイムラインで開く";
@@ -906,6 +917,7 @@
 "Speech recognition runs on this Mac. No screen context or rewrite model is used." = "音声認識はこのMacで実行します。画面コンテキストや書き換えモデルは使いません。";
 "Speech speed" = "読み上げ速度";
 "Speed" = "速度";
+"Star on GitHub" = "GitHubでスターを付ける";
 "Start" = "開始";
 "Start (seconds)" = "開始（秒）";
 "Start Dictation" = "音声入力を開始";
@@ -973,7 +985,7 @@
 "These are captured window titles. Expand a title to inspect the activity behind it." = "取得したウィンドウのタイトルです。タイトルを展開すると対応するアクティビティを確認できます。";
 "These choices are applied on the final Review step." = "これらの選択は最後の確認ステップで適用されます。";
 "Think" = "思考";
-"Think may send meeting transcripts, screen text, Agent context, and inherited dictation requests to this server when you use those features. Scheduled daily summaries and overnight review also run here and can send activity titles, captured screen text, meeting evidence, and retained Dream memory without a prompt each time." = "思考機能は、利用時に会議の文字起こし、画面テキスト、エージェントのコンテキスト、引き継いだ音声入力依頼をこのサーバーに送信する場合があります。日次要約の定期実行と夜間レビューもここで処理し、毎回確認せずにアクティビティのタイトル、取得した画面テキスト、会議の根拠、保持されたDreamの記憶を送信する場合があります。";
+"Think may send meeting transcripts, screen text, what you told Ask to remember about you, Agent context, and inherited dictation requests to this server when you use those features. Scheduled daily summaries and overnight review also run here and can send activity titles, captured screen text, meeting evidence, and retained Dream memory without a prompt each time." = "思考機能は、利用時に会議の文字起こし、画面テキスト、「質問」に記憶するよう伝えたあなたに関する情報、エージェントのコンテキスト、引き継いだ音声入力依頼をこのサーバーに送信する場合があります。日次要約の定期実行と夜間レビューもここで処理し、毎回確認せずにアクティビティのタイトル、取得した画面テキスト、会議の根拠、保持されたDreamの記憶を送信する場合があります。";
 "Think model" = "思考モデル";
 "Think model backend" = "思考モデルのバックエンド";
 "Think processing budget" = "思考の処理予算";
@@ -1093,6 +1105,7 @@
 "Workspace navigation" = "ワークスペースのナビゲーション";
 "Write" = "書く";
 "Writes one unencrypted Markdown file per day with the digest, meeting links, app time, and saved moments. A day missed while your Mac was asleep is written later. Existing non-LokalBot content is never overwritten." = "まとめ、会議リンク、アプリ利用時間、保存した場面を、暗号化されていないMarkdownファイルに1日1つ書き出します。Macのスリープ中に書き出せなかった日は後から処理します。LokalBot以外の既存の内容は上書きしません。";
+"Writes one unencrypted Markdown note per meeting, including meetings already recorded, to a folder you choose, such as an Obsidian vault. Each note has the summary, action items as you corrected them, and the people and tracked projects involved. A note you edit, move, or delete is yours: LokalBot leaves it alone." = "会議ごとに暗号化されていないMarkdownメモを1つずつ、選んだフォルダ（Obsidianの保管庫など）に書き出します。すでに録音済みの会議も対象です。各メモには、要約、修正内容を反映したアクション、関係する人物と追跡中のプロジェクトが含まれます。編集、移動、削除したメモはあなたのものです。LokalBotはそのメモに手を加えません。";
 "Writes the Timeline digest to your local journal at the chosen time, then finalizes yesterday after midnight so late activity is included." = "指定時刻にタイムラインのまとめをローカルジャーナルに書き出し、深夜0時以降に前日分を確定して遅い時間の活動も含めます。";
 "Writing" = "文章作成";
 "Writing for the focused app" = "フォーカス中のアプリ用に文章を作成中";
@@ -1154,6 +1167,15 @@
 "Your subscription" = "サブスクリプション";
 "Server" = "サーバー";
 "In use" = "使用中";
+"About you" = "あなたについて";
+"Remember what I tell Ask" = "「質問」に伝えたことを記憶";
+"Remembered" = "記憶しました";
+"Not remembered" = "記憶しませんでした";
+"Share with agents" = "エージェントと共有";
+"Share with Agents" = "エージェントと共有";
+"Stop Sharing with Agents" = "エージェントとの共有を停止";
+"Allow external agents to read what I shared about myself" = "外部エージェントに自分について共有した情報の読み取りを許可";
+"Choose items…" = "項目を選択…";
 "Statistics" = "統計";
 "Autocomplete statistics" = "自動補完の統計";
 "Period" = "期間";
@@ -1195,6 +1217,10 @@
 "Clear Statistics" = "統計を消去";
 "Deletes the daily and monthly counts. Usage and timing measurements are kept." = "日次と月次の集計を削除します。使用状況と時間の測定値は保持されます。";
 "Counted on this Mac while you type in other apps: suggestions shown and accepted, the characters you type yourself where autocomplete works, and the pauses between them, by day, kind of app and model. No text, app names or window titles are kept. Time saved is the keystrokes you did not type at your measured speed, not counting time spent reading suggestions." = "他のアプリで入力中、このMac上で、表示・採用した候補、自動補完が機能する場所で自分で入力した文字数、その間の待ち時間を、日付・アプリの種類・モデル別に集計します。テキスト、アプリ名、ウィンドウのタイトルは保持しません。節約時間は、測定した入力速度で省略できたキー入力の時間であり、候補を読む時間は含みません。";
+"Learn about me from my meetings and work" = "会議や仕事から自分について学習";
+"Learn from my dictation" = "自分の音声入力から学習";
+"Keep" = "保持";
+"Keep Even If the Meeting Is Deleted" = "会議が削除されても保持";
 "CPU" = "CPU";
 "Memory" = "メモリ";
 "Models loaded" = "読み込み済みモデル";
@@ -1203,6 +1229,8 @@
 "%@ of RAM" = "RAMの %@";
 "Updates every 2 seconds and counts LokalBot and its helpers. External Ollama and Apple Intelligence models aren't counted." = "2秒ごとに更新し、LokalBotと補助プロセスを集計します。外部のOllamaモデルとApple Intelligenceモデルは含みません。";
 "Diagnostics include logs, health reports, settings without secrets, and library counts. Never meeting audio, transcripts, notes, or screenshots." = "診断情報にはログ、健全性レポート、秘密情報を除いた設定、ライブラリの件数を含みます。会議の音声、文字起こし、メモ、スクリーンショットは含みません。";
+"Keep Even If the Conversation Is Deleted" = "会話が削除されても保持";
+"Keep Even If the Source Is Deleted" = "ソースが削除されても保持";
 "Autocomplete server" = "自動補完サーバー";
 "Think's server" = "思考のサーバー";
 "Another server" = "別のサーバー";

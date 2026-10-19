@@ -4,6 +4,7 @@
 "2. Review action owners" = "2. పనుల బాధ్యులను సమీక్షించండి";
 "A domain excludes its subdomains too. A URL with a path excludes that URL prefix. Existing rules are kept until you remove them." = "ఒక డొమైన్‌ను మినహాయిస్తే దాని సబ్‌డొమైన్‌లు కూడా మినహాయించబడతాయి. పాత్ ఉన్న URL ఆ ఉపసర్గతో మొదలయ్యే URLలను మినహాయిస్తుంది. మీరు తీసివేసే వరకు ప్రస్తుత నియమాలు ఉంటాయి.";
 "A newly granted permission may require a relaunch. Finish setup first; relaunch from Settings if the feature remains unavailable." = "కొత్త అనుమతి ఇచ్చిన తర్వాత యాప్‌ను మళ్లీ ప్రారంభించాల్సి రావచ్చు. ముందుగా సెటప్ పూర్తి చేయండి; సదుపాయం ఇంకా అందుబాటులో లేకపోతే సెట్టింగ్‌ల నుంచి మళ్లీ ప్రారంభించండి.";
+"About" = "పరిచయం";
 "Accept next" = "తదుపరిది ఆమోదించండి";
 "Accept punctuation with the word" = "పదంతో పాటు విరామ చిహ్నాలను ఆమోదించండి";
 "Accepted" = "ఆమోదించబడింది";
@@ -58,6 +59,7 @@
 "All retained history" = "ఉంచిన చరిత్ర అంతా";
 "All three core models will run on this Mac." = "మూడు ప్రధాన మోడళ్లు ఈ Macలో నడుస్తాయి.";
 "Allow Once" = "ఒక్కసారి అనుమతించండి";
+"Allow external agents to change LokalBot settings" = "బాహ్య ఏజెంట్లు LokalBot సెట్టింగ్‌లను మార్చడానికి అనుమతించండి";
 "Allow external agents to read screen memory" = "బాహ్య ఏజెంట్లు స్క్రీన్ జ్ఞాపకాన్ని చదవడానికి అనుమతించండి";
 "Allow external agents to read your meeting library" = "బాహ్య ఏజెంట్లు మీ సమావేశ లైబ్రరీని చదవడానికి అనుమతించండి";
 "Allow multi-line suggestions" = "బహుళ పంక్తుల సూచనలను అనుమతించండి";
@@ -161,6 +163,7 @@
 "Choose actions to change together" = "కలిపి మార్చాల్సిన పనులను ఎంచుకోండి";
 "Choose daily memory export folder" = "రోజువారీ జ్ఞాపక ఎగుమతి ఫోల్డర్ ఎంచుకోండి";
 "Choose day" = "రోజును ఎంచుకోండి";
+"Choose meeting note export folder" = "సమావేశ నోట్ ఎగుమతి ఫోల్డర్ ఎంచుకోండి";
 "Choose routine output folder" = "దినచర్య అవుట్‌పుట్ ఫోల్డర్ ఎంచుకోండి";
 "Choose sources and result filters" = "మూలాలు, ఫలితాల ఫిల్టర్‌లు ఎంచుకోండి";
 "Choose sources to include with your next message. Screen pixels are never attached." = "మీ తదుపరి సందేశంతో చేర్చే మూలాలను ఎంచుకోండి. స్క్రీన్ పిక్సెల్‌లను ఎప్పుడూ జోడించదు.";
@@ -333,10 +336,12 @@
 "Export Diagnostics…" = "నిర్ధారణ వివరాలను ఎగుమతి చేయండి…";
 "Export Markdown" = "Markdown ఎగుమతి చేయండి";
 "Export a daily memory note" = "రోజువారీ జ్ఞాపక నోట్‌ను ఎగుమతి చేయండి";
+"Export a note for each meeting" = "ప్రతి సమావేశానికి ఒక నోట్‌ను ఎగుమతి చేయండి";
 "Export result" = "ఫలితాన్ని ఎగుమతి చేయండి";
 "External agents" = "బాహ్య ఏజెంట్లు";
 "External meeting access" = "బాహ్య సమావేశ యాక్సెస్";
 "External screen access" = "బాహ్య స్క్రీన్ యాక్సెస్";
+"External settings access" = "బాహ్య సెట్టింగ్‌ల యాక్సెస్";
 "Failed" = "విఫలమైంది";
 "Feature" = "సదుపాయం";
 "Files…" = "ఫైల్‌లు…";
@@ -412,6 +417,7 @@
 "Images to remove" = "తీసివేయాల్సిన చిత్రాలు";
 "In progress" = "కొనసాగుతోంది";
 "Include saved moments" = "సేవ్ చేసిన క్షణాలను చేర్చండి";
+"Include the transcript" = "ట్రాన్స్‌క్రిప్ట్‌ను చేర్చండి";
 "Includes scheduled daily summaries and overnight review, which can send activity titles, captured screen text, meeting evidence, and retained Dream memory to this origin without a prompt each time." = "నిర్దేశిత రోజువారీ సారాంశాలు, రాత్రి సమీక్ష ఇందులో ఉంటాయి. అవి ప్రతిసారీ అడగకుండా కార్యకలాప శీర్షికలు, సంగ్రహించిన స్క్రీన్ వచనం, సమావేశ ఆధారాలు, ఉంచిన Dream జ్ఞాపకాన్ని ఈ మూల చిరునామాకు పంపవచ్చు.";
 "Increase Text Size" = "వచన పరిమాణం పెంచండి";
 "Input Monitoring" = "ఇన్‌పుట్ మానిటరింగ్";
@@ -453,6 +459,7 @@
 "Legacy rule · review" = "పాత నియమం · సమీక్షించండి";
 "Lets MCP clients and the lokalbot-cli skill (Claude, Cursor, …) list, read, search, and ask about your meetings — read-only and localhost only. Off by default." = "MCP క్లయింట్‌లు, lokalbot-cli నైపుణ్యం (Claude, Cursor, …) మీ సమావేశాల జాబితా చూడటానికి, చదవడానికి, వెతకడానికి, ప్రశ్నించడానికి అనుమతిస్తుంది — చదవడానికి మాత్రమే, localhostలో మాత్రమే. డిఫాల్ట్‌గా ఆఫ్.";
 "Lets dictation and cotyping detect their global keyboard shortcuts." = "డిక్టేషన్, సహరచన వాటి వ్యవస్థవ్యాప్త కీబోర్డ్ షార్ట్‌కట్‌లను గుర్తించడానికి అనుమతిస్తుంది.";
+"Lets lokalbot-cli read your settings and app status, open Settings at a setting, and start LokalBot in the background. Separate from the other agent access toggles. Off by default." = "మీ సెట్టింగ్‌లు, యాప్ స్థితిని చదవడానికి, సెట్టింగ్‌లలో నిర్దిష్ట సెట్టింగ్‌ను తెరవడానికి, LokalBotను నేపథ్యంలో ప్రారంభించడానికి lokalbot-cliకి అనుమతి ఇస్తుంది. ఇతర ఏజెంట్ యాక్సెస్ టోగుల్‌ల నుంచి వేరు. డిఫాల్ట్‌గా ఆఫ్.";
 "Library" = "లైబ్రరీ";
 "Library location" = "లైబ్రరీ స్థానం";
 "Light" = "లేత";
@@ -472,6 +479,7 @@
 "Local models process on this Mac. Each remote server requires its own approval before context can leave the Mac." = "స్థానిక మోడళ్లు ఈ Macలో ప్రాసెస్ చేస్తాయి. సందర్భం Mac బయటకు వెళ్లే ముందు ప్రతి రిమోట్ సర్వర్‌కు ప్రత్యేక ఆమోదం అవసరం.";
 "Logs, health reports, settings without secrets, and library counts. Never meeting audio, transcripts, notes, or screenshots." = "లాగ్‌లు, స్థితి నివేదికలు, రహస్యాలు లేని సెట్టింగ్‌లు, లైబ్రరీ లెక్కలు. సమావేశ ఆడియో, ట్రాన్స్‌క్రిప్ట్‌లు, నోట్స్ లేదా స్క్రీన్‌షాట్‌లు ఎప్పుడూ ఉండవు.";
 "LokalBot detects meeting apps automatically, or start a recording now." = "LokalBot సమావేశ యాప్‌లను స్వయంచాలకంగా గుర్తిస్తుంది, లేదా ఇప్పుడే రికార్డింగ్ ప్రారంభించండి.";
+"LokalBot is free and built by one person. A GitHub star helps others find it." = "LokalBot ఉచితం, దీన్ని ఒక్క వ్యక్తే రూపొందించారు. GitHubలో ఒక స్టార్ ఇతరులు దీన్ని కనుగొనడంలో సహాయపడుతుంది.";
 "LokalBot manages this model and rebuilds the local index when it changes." = "LokalBot ఈ మోడల్‌ను నిర్వహిస్తుంది, అది మారినప్పుడు స్థానిక సూచికను మళ్లీ నిర్మిస్తుంది.";
 "LokalBot never sends this. Copy it into your mail or chat app to send it yourself." = "LokalBot దీన్ని ఎప్పుడూ పంపదు. మీరే పంపడానికి మీ మెయిల్ లేదా చాట్ యాప్‌లో కాపీ చేయండి.";
 "Looks done?" = "పూర్తయినట్లు ఉందా?";
@@ -505,6 +513,7 @@
 "Meeting details" = "సమావేశ వివరాలు";
 "Meeting library" = "సమావేశ లైబ్రరీ";
 "Meeting models" = "సమావేశ మోడళ్లు";
+"Meeting note export" = "సమావేశ నోట్ ఎగుమతి";
 "Meeting notes" = "సమావేశ నోట్స్";
 "Meeting notes, transcripts, and actions will look like this." = "సమావేశ నోట్స్, ట్రాన్స్‌క్రిప్ట్‌లు, పనులు ఇలా కనిపిస్తాయి.";
 "Meeting playback" = "సమావేశ ప్లేబ్యాక్";
@@ -581,6 +590,7 @@
 "No transcript speakers are available yet." = "ట్రాన్స్‌క్రిప్ట్ వక్తలు ఇంకా అందుబాటులో లేరు.";
 "None yet" = "ఇంకా ఏవీ లేవు";
 "Not connected" = "కనెక్ట్ కాలేదు";
+"Not now" = "ఇప్పుడు కాదు";
 "Not Yet" = "ఇంకా కాదు";
 "Not ready" = "సిద్ధంగా లేదు";
 "Not recording" = "రికార్డ్ చేయడం లేదు";
@@ -625,6 +635,7 @@
 "Open in results" = "ఫలితాల్లో తెరవండి";
 "Open latest meeting" = "తాజా సమావేశాన్ని తెరవండి";
 "Open meeting" = "సమావేశాన్ని తెరవండి";
+"Open source" = "ఓపెన్ సోర్స్";
 "Open the current recording" = "ప్రస్తుత రికార్డింగ్ తెరవండి";
 "Open this capture in Timeline" = "ఈ సంగ్రహాన్ని కాలరేఖలో తెరవండి";
 "Open this moment in Timeline" = "ఈ క్షణాన్ని కాలరేఖలో తెరవండి";
@@ -906,6 +917,7 @@
 "Speech recognition runs on this Mac. No screen context or rewrite model is used." = "మాటల గుర్తింపు ఈ Macలో నడుస్తుంది. స్క్రీన్ సందర్భం లేదా తిరిగిరాసే మోడల్ వాడదు.";
 "Speech speed" = "మాటల వేగం";
 "Speed" = "వేగం";
+"Star on GitHub" = "GitHubలో స్టార్ ఇవ్వండి";
 "Start" = "ప్రారంభించండి";
 "Start (seconds)" = "ప్రారంభం (సెకన్లు)";
 "Start Dictation" = "డిక్టేషన్ ప్రారంభించండి";
@@ -973,7 +985,7 @@
 "These are captured window titles. Expand a title to inspect the activity behind it." = "ఇవి సంగ్రహించిన విండో శీర్షికలు. వాటి వెనుక ఉన్న కార్యకలాపాన్ని చూడటానికి శీర్షికను విస్తరించండి.";
 "These choices are applied on the final Review step." = "ఈ ఎంపికలు చివరి సమీక్ష దశలో వర్తిస్తాయి.";
 "Think" = "ఆలోచన";
-"Think may send meeting transcripts, screen text, Agent context, and inherited dictation requests to this server when you use those features. Scheduled daily summaries and overnight review also run here and can send activity titles, captured screen text, meeting evidence, and retained Dream memory without a prompt each time." = "ఈ సదుపాయాలు వాడినప్పుడు ఆలోచన సమావేశ ట్రాన్స్‌క్రిప్ట్‌లు, స్క్రీన్ వచనం, ఏజెంట్ సందర్భం, వారసత్వంగా వచ్చిన డిక్టేషన్ అభ్యర్థనలను ఈ సర్వర్‌కు పంపవచ్చు. నిర్దేశిత రోజువారీ సారాంశాలు, రాత్రి సమీక్ష కూడా ఇక్కడే నడుస్తాయి; ప్రతిసారీ అడగకుండా కార్యకలాప శీర్షికలు, సంగ్రహించిన స్క్రీన్ వచనం, సమావేశ ఆధారాలు, ఉంచిన Dream జ్ఞాపకాన్ని పంపవచ్చు.";
+"Think may send meeting transcripts, screen text, what you told Ask to remember about you, Agent context, and inherited dictation requests to this server when you use those features. Scheduled daily summaries and overnight review also run here and can send activity titles, captured screen text, meeting evidence, and retained Dream memory without a prompt each time." = "ఈ సదుపాయాలు వాడినప్పుడు ఆలోచన సమావేశ ట్రాన్స్‌క్రిప్ట్‌లు, స్క్రీన్ వచనం, మీ గురించి గుర్తుంచుకోమని మీరు అడగండికి చెప్పినవి, ఏజెంట్ సందర్భం, వారసత్వంగా వచ్చిన డిక్టేషన్ అభ్యర్థనలను ఈ సర్వర్‌కు పంపవచ్చు. నిర్దేశిత రోజువారీ సారాంశాలు, రాత్రి సమీక్ష కూడా ఇక్కడే నడుస్తాయి; ప్రతిసారీ అడగకుండా కార్యకలాప శీర్షికలు, సంగ్రహించిన స్క్రీన్ వచనం, సమావేశ ఆధారాలు, ఉంచిన Dream జ్ఞాపకాన్ని పంపవచ్చు.";
 "Think model" = "ఆలోచన మోడల్";
 "Think model backend" = "ఆలోచన మోడల్ బ్యాక్‌ఎండ్";
 "Think processing budget" = "ఆలోచన ప్రాసెసింగ్ బడ్జెట్";
@@ -1093,6 +1105,7 @@
 "Workspace navigation" = "వర్క్‌స్పేస్ నావిగేషన్";
 "Write" = "రాయండి";
 "Writes one unencrypted Markdown file per day with the digest, meeting links, app time, and saved moments. A day missed while your Mac was asleep is written later. Existing non-LokalBot content is never overwritten." = "ప్రతి రోజు సారాంశం, సమావేశ లింక్‌లు, యాప్ సమయం, సేవ్ చేసిన క్షణాలతో ఒక ఎన్‌క్రిప్ట్ చేయని Markdown ఫైల్ రాస్తుంది. Mac నిద్రలో ఉండగా మిస్సైన రోజును తర్వాత రాస్తుంది. ఇప్పటికే ఉన్న LokalBot కాని విషయాన్ని ఎప్పుడూ తిరగరాయదు.";
+"Writes one unencrypted Markdown note per meeting, including meetings already recorded, to a folder you choose, such as an Obsidian vault. Each note has the summary, action items as you corrected them, and the people and tracked projects involved. A note you edit, move, or delete is yours: LokalBot leaves it alone." = "ఇప్పటికే రికార్డ్ చేసిన సమావేశాలతో సహా ప్రతి సమావేశానికి ఒక ఎన్‌క్రిప్ట్ చేయని Markdown నోట్‌ను మీరు ఎంచుకున్న ఫోల్డర్‌లో (ఉదాహరణకు Obsidian వాల్ట్‌లో) రాస్తుంది. ప్రతి నోట్‌లో సారాంశం, మీరు సరిదిద్దిన విధంగా పనులు, సంబంధిత వ్యక్తులు, ట్రాక్ చేసిన ప్రాజెక్ట్‌లు ఉంటాయి. మీరు సవరించిన, తరలించిన లేదా తొలగించిన నోట్ మీదే: LokalBot దాని జోలికి వెళ్లదు.";
 "Writes the Timeline digest to your local journal at the chosen time, then finalizes yesterday after midnight so late activity is included." = "ఎంచుకున్న సమయంలో కాలరేఖ సారాంశాన్ని మీ స్థానిక జర్నల్‌లో రాస్తుంది, ఆలస్య కార్యకలాపం కూడా చేరేలా అర్ధరాత్రి తర్వాత నిన్నటిని ఖరారు చేస్తుంది.";
 "Writing" = "రచన";
 "Writing for the focused app" = "ఫోకస్ ఉన్న యాప్ కోసం రాస్తోంది";
@@ -1154,6 +1167,15 @@
 "Your subscription" = "మీ సభ్యత్వం";
 "Server" = "సర్వర్";
 "In use" = "వినియోగంలో";
+"About you" = "మీ గురించి";
+"Remember what I tell Ask" = "నేను అడగండికి చెప్పేది గుర్తుంచుకోండి";
+"Remembered" = "గుర్తుంచుకుంది";
+"Not remembered" = "గుర్తుంచుకోలేదు";
+"Share with agents" = "ఏజెంట్లతో పంచుకోండి";
+"Share with Agents" = "ఏజెంట్లతో పంచుకోండి";
+"Stop Sharing with Agents" = "ఏజెంట్లతో పంచుకోవడం ఆపండి";
+"Allow external agents to read what I shared about myself" = "బాహ్య ఏజెంట్లు నా గురించి నేను పంచుకున్నది చదవడానికి అనుమతించండి";
+"Choose items…" = "అంశాలను ఎంచుకోండి…";
 "Statistics" = "గణాంకాలు";
 "Autocomplete statistics" = "స్వయంపూర్తి గణాంకాలు";
 "Period" = "వ్యవధి";
@@ -1195,6 +1217,10 @@
 "Clear Statistics" = "గణాంకాలు తుడిచివేయండి";
 "Deletes the daily and monthly counts. Usage and timing measurements are kept." = "రోజువారీ, నెలవారీ లెక్కలను తొలగిస్తుంది. వినియోగం, సమయ కొలతలు ఉంచబడతాయి.";
 "Counted on this Mac while you type in other apps: suggestions shown and accepted, the characters you type yourself where autocomplete works, and the pauses between them, by day, kind of app and model. No text, app names or window titles are kept. Time saved is the keystrokes you did not type at your measured speed, not counting time spent reading suggestions." = "ఇతర యాప్‌లలో టైప్ చేస్తుండగా ఈ Macలో రోజు, యాప్ రకం, మోడల్ ప్రకారం లెక్కిస్తుంది: చూపిన, ఆమోదించిన సూచనలు, స్వయంపూర్తి పనిచేసే చోట మీరు స్వయంగా టైప్ చేసిన అక్షరాలు, వాటి మధ్య విరామాలు. వచనం, యాప్ పేర్లు లేదా విండో శీర్షికలు ఏవీ ఉంచదు. ఆదా అయిన సమయం మీ కొలిచిన వేగంలో మీరు నొక్కని కీల సమయం; సూచనలు చదవడానికి వెచ్చించిన సమయం ఇందులో ఉండదు.";
+"Learn about me from my meetings and work" = "నా సమావేశాలు, పని నుంచి నా గురించి తెలుసుకోండి";
+"Learn from my dictation" = "నా డిక్టేషన్ నుంచి నేర్చుకోండి";
+"Keep" = "ఉంచండి";
+"Keep Even If the Meeting Is Deleted" = "సమావేశాన్ని తొలగించినా ఉంచండి";
 "CPU" = "CPU";
 "Memory" = "మెమరీ";
 "Models loaded" = "లోడ్ చేసిన మోడళ్లు";
@@ -1203,6 +1229,8 @@
 "%@ of RAM" = "RAMలో %@";
 "Updates every 2 seconds and counts LokalBot and its helpers. External Ollama and Apple Intelligence models aren't counted." = "ప్రతి 2 సెకన్లకు నవీకరించి LokalBot, దాని సహాయకాలను లెక్కిస్తుంది. బాహ్య Ollama, Apple Intelligence మోడళ్లను లెక్కించదు.";
 "Diagnostics include logs, health reports, settings without secrets, and library counts. Never meeting audio, transcripts, notes, or screenshots." = "నిర్ధారణ వివరాల్లో లాగ్‌లు, స్థితి నివేదికలు, రహస్యాలు లేని సెట్టింగ్‌లు, లైబ్రరీ లెక్కలు ఉంటాయి. సమావేశ ఆడియో, ట్రాన్స్‌క్రిప్ట్‌లు, నోట్స్ లేదా స్క్రీన్‌షాట్‌లు ఎప్పుడూ ఉండవు.";
+"Keep Even If the Conversation Is Deleted" = "సంభాషణను తొలగించినా ఉంచండి";
+"Keep Even If the Source Is Deleted" = "మూలాన్ని తొలగించినా ఉంచండి";
 "Autocomplete server" = "స్వయంపూర్తి సర్వర్";
 "Think's server" = "ఆలోచన సర్వర్";
 "Another server" = "మరో సర్వర్";

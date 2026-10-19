@@ -4,6 +4,7 @@
 "2. Review action owners" = "2. Check who get each action";
 "A domain excludes its subdomains too. A URL with a path excludes that URL prefix. Existing rules are kept until you remove them." = "If you exclude domain, e go exclude im subdomains too. URL wey get path go exclude every URL wey start with that prefix. Rules wey dey go remain until you remove dem.";
 "A newly granted permission may require a relaunch. Finish setup first; relaunch from Settings if the feature remains unavailable." = "New permission fit need make you reopen app. Finish setup first; reopen am from Settings if the feature still no dey available.";
+"About" = "About";
 "Accept next" = "Accept the next one";
 "Accept punctuation with the word" = "Accept punctuation join the word";
 "Accepted" = "You don accept am";
@@ -58,6 +59,7 @@
 "All retained history" = "All history wey remain";
 "All three core models will run on this Mac." = "All three main models go run for this Mac.";
 "Allow Once" = "Allow This One Time";
+"Allow external agents to change LokalBot settings" = "Allow outside agents to change LokalBot settings";
 "Allow external agents to read screen memory" = "Allow outside agents to read screen memory";
 "Allow external agents to read your meeting library" = "Allow outside agents to read your meeting library";
 "Allow multi-line suggestions" = "Allow suggestions wey pass one line";
@@ -161,6 +163,7 @@
 "Choose actions to change together" = "Choose actions wey you wan change together";
 "Choose daily memory export folder" = "Choose folder for daily memory export";
 "Choose day" = "Choose day";
+"Choose meeting note export folder" = "Choose folder for meeting note export";
 "Choose routine output folder" = "Choose folder for routine output";
 "Choose sources and result filters" = "Choose sources and result filters";
 "Choose sources to include with your next message. Screen pixels are never attached." = "Choose sources to join your next message. Screen pixels no ever dey attached.";
@@ -333,10 +336,12 @@
 "Export Diagnostics…" = "Export Diagnostics…";
 "Export Markdown" = "Export Markdown";
 "Export a daily memory note" = "Export daily memory note";
+"Export a note for each meeting" = "Export one note for each meeting";
 "Export result" = "Export result";
 "External agents" = "Outside agents";
 "External meeting access" = "Outside access to meetings";
 "External screen access" = "Outside access to screen";
+"External settings access" = "Outside access to settings";
 "Failed" = "E fail";
 "Feature" = "Feature";
 "Files…" = "Files…";
@@ -412,6 +417,7 @@
 "Images to remove" = "Images wey you wan remove";
 "In progress" = "E dey go on";
 "Include saved moments" = "Include moments wey save";
+"Include the transcript" = "Include the transcript";
 "Includes scheduled daily summaries and overnight review, which can send activity titles, captured screen text, meeting evidence, and retained Dream memory to this origin without a prompt each time." = "E include scheduled daily summaries and overnight review. Dem fit send activity titles, captured screen text, meeting evidence, and Dream memory wey remain to this origin without asking every time.";
 "Increase Text Size" = "Make Text Bigger";
 "Input Monitoring" = "Input Monitoring";
@@ -453,6 +459,7 @@
 "Legacy rule · review" = "Old rule · review am";
 "Lets MCP clients and the lokalbot-cli skill (Claude, Cursor, …) list, read, search, and ask about your meetings — read-only and localhost only. Off by default." = "E dey let MCP clients and lokalbot-cli skill (Claude, Cursor, …) list, read, search, and ask about your meetings — na read-only and localhost only. E dey off by default.";
 "Lets dictation and cotyping detect their global keyboard shortcuts." = "E dey let dictation and cotyping detect their keyboard shortcuts wey work everywhere.";
+"Lets lokalbot-cli read your settings and app status, open Settings at a setting, and start LokalBot in the background. Separate from the other agent access toggles. Off by default." = "E dey let lokalbot-cli read your settings and app status, open Settings for one particular setting, and start LokalBot for background. E separate from the other agent access switches. E dey off by default.";
 "Library" = "Library";
 "Library location" = "Where library dey";
 "Light" = "Light";
@@ -472,6 +479,7 @@
 "Local models process on this Mac. Each remote server requires its own approval before context can leave the Mac." = "Local models dey process for this Mac. Each remote server need im own approval before context fit leave the Mac.";
 "Logs, health reports, settings without secrets, and library counts. Never meeting audio, transcripts, notes, or screenshots." = "Logs, health reports, settings wey no contain secrets, and library counts. No meeting audio, transcripts, notes, or screenshots, ever.";
 "LokalBot detects meeting apps automatically, or start a recording now." = "LokalBot dey detect meeting apps by itself, or you fit start recording now.";
+"LokalBot is free and built by one person. A GitHub star helps others find it." = "LokalBot na free and na one person build am. GitHub star dey help other people find am.";
 "LokalBot manages this model and rebuilds the local index when it changes." = "LokalBot dey manage this model and build the local index again when e change.";
 "LokalBot never sends this. Copy it into your mail or chat app to send it yourself." = "LokalBot no ever send this one. Copy am enter your mail or chat app make you send am yourself.";
 "Looks done?" = "E look like say e don finish?";
@@ -505,6 +513,7 @@
 "Meeting details" = "Details for meeting";
 "Meeting library" = "Meeting library";
 "Meeting models" = "Models for meeting";
+"Meeting note export" = "Meeting note export";
 "Meeting notes" = "Notes for meeting";
 "Meeting notes, transcripts, and actions will look like this." = "Meeting notes, transcripts, and actions go look like this.";
 "Meeting playback" = "Play meeting back";
@@ -581,6 +590,7 @@
 "No transcript speakers are available yet." = "No transcript speaker dey available yet.";
 "None yet" = "None yet";
 "Not connected" = "E never connect";
+"Not now" = "No be now";
 "Not Yet" = "Not Yet";
 "Not ready" = "E never ready";
 "Not recording" = "E no dey record";
@@ -625,6 +635,7 @@
 "Open in results" = "Open for results";
 "Open latest meeting" = "Open the latest meeting";
 "Open meeting" = "Open meeting";
+"Open source" = "Open source";
 "Open the current recording" = "Open the recording wey dey now";
 "Open this capture in Timeline" = "Open this capture for Timeline";
 "Open this moment in Timeline" = "Open this moment for Timeline";
@@ -906,6 +917,7 @@
 "Speech recognition runs on this Mac. No screen context or rewrite model is used." = "Speech recognition dey run for this Mac. E no dey use screen context or rewrite model.";
 "Speech speed" = "How fast speech dey go";
 "Speed" = "Speed";
+"Star on GitHub" = "Star am for GitHub";
 "Start" = "Start";
 "Start (seconds)" = "Start (seconds)";
 "Start Dictation" = "Start Dictation";
@@ -973,7 +985,7 @@
 "These are captured window titles. Expand a title to inspect the activity behind it." = "Na window titles wey capture be these. Expand title to inspect activity wey dey behind am.";
 "These choices are applied on the final Review step." = "These choices go apply for the last Review step.";
 "Think" = "Think";
-"Think may send meeting transcripts, screen text, Agent context, and inherited dictation requests to this server when you use those features. Scheduled daily summaries and overnight review also run here and can send activity titles, captured screen text, meeting evidence, and retained Dream memory without a prompt each time." = "Think fit send meeting transcripts, screen text, Agent context, and dictation requests wey follow im settings to this server when you use those features. Scheduled daily summaries and overnight review dey run here too; dem fit send activity titles, captured screen text, meeting evidence and Dream memory wey remain without asking every time.";
+"Think may send meeting transcripts, screen text, what you told Ask to remember about you, Agent context, and inherited dictation requests to this server when you use those features. Scheduled daily summaries and overnight review also run here and can send activity titles, captured screen text, meeting evidence, and retained Dream memory without a prompt each time." = "Think fit send meeting transcripts, screen text, wetin you tell Ask make e remember about you, Agent context, and dictation requests wey follow im settings to this server when you use those features. Scheduled daily summaries and overnight review dey run here too; dem fit send activity titles, captured screen text, meeting evidence and Dream memory wey remain without asking every time.";
 "Think model" = "Model for Think";
 "Think model backend" = "Backend for Think model";
 "Think processing budget" = "Processing budget for Think";
@@ -1093,6 +1105,7 @@
 "Workspace navigation" = "How to move through workspace";
 "Write" = "Write";
 "Writes one unencrypted Markdown file per day with the digest, meeting links, app time, and saved moments. A day missed while your Mac was asleep is written later. Existing non-LokalBot content is never overwritten." = "E dey write one unencrypted Markdown file each day with gist, meeting links, time for apps, and saved moments. If Mac sleep and miss one day, e go write am later. E no ever overwrite existing content wey no be LokalBot own.";
+"Writes one unencrypted Markdown note per meeting, including meetings already recorded, to a folder you choose, such as an Obsidian vault. Each note has the summary, action items as you corrected them, and the people and tracked projects involved. A note you edit, move, or delete is yours: LokalBot leaves it alone." = "E dey write one unencrypted Markdown note for each meeting, even meetings wey don record before, enter folder wey you choose, like Obsidian vault. Each note get the summary, action items as you don correct dem, and the people and tracked projects wey involve. Any note wey you edit, move, or delete na your own: LokalBot no go touch am.";
 "Writes the Timeline digest to your local journal at the chosen time, then finalizes yesterday after midnight so late activity is included." = "E dey write Timeline gist to your local journal for the time wey you choose, then finalize yesterday after midnight so late activity go join.";
 "Writing" = "Writing";
 "Writing for the focused app" = "Dey write for active app";
@@ -1154,6 +1167,15 @@
 "Your subscription" = "Your subscription";
 "Server" = "Server";
 "In use" = "E dey use am";
+"About you" = "About you";
+"Remember what I tell Ask" = "Remember wetin I tell Ask";
+"Remembered" = "E don remember";
+"Not remembered" = "E no remember";
+"Share with agents" = "Share with agents";
+"Share with Agents" = "Share with Agents";
+"Stop Sharing with Agents" = "Stop Sharing with Agents";
+"Allow external agents to read what I shared about myself" = "Allow outside agents to read wetin I share about myself";
+"Choose items…" = "Choose items…";
 "Statistics" = "Statistics";
 "Autocomplete statistics" = "Statistics for Auto-complete";
 "Period" = "Time period";
@@ -1195,6 +1217,10 @@
 "Clear Statistics" = "Clear Statistics";
 "Deletes the daily and monthly counts. Usage and timing measurements are kept." = "E dey delete daily and monthly counts. Usage and time measurements go remain.";
 "Counted on this Mac while you type in other apps: suggestions shown and accepted, the characters you type yourself where autocomplete works, and the pauses between them, by day, kind of app and model. No text, app names or window titles are kept. Time saved is the keystrokes you did not type at your measured speed, not counting time spent reading suggestions." = "E dey count for this Mac as you type for other apps: suggestions wey show and wey you accept, characters wey you type yourself where auto-complete dey work, and pauses between dem, by day, app type and model. E no dey keep text, app names or window titles. Time saved na the time for keys wey you no press at your measured speed; e no count time wey you spend reading suggestions.";
+"Learn about me from my meetings and work" = "Learn about me from my meetings and work";
+"Learn from my dictation" = "Learn from my dictation";
+"Keep" = "Keep am";
+"Keep Even If the Meeting Is Deleted" = "Keep Am Even If Dem Delete the Meeting";
 "CPU" = "CPU";
 "Memory" = "Memory";
 "Models loaded" = "Models wey load";
@@ -1203,6 +1229,8 @@
 "%@ of RAM" = "%@ of RAM";
 "Updates every 2 seconds and counts LokalBot and its helpers. External Ollama and Apple Intelligence models aren't counted." = "E dey update every 2 seconds and count LokalBot with im helpers. E no dey count outside Ollama and Apple Intelligence models.";
 "Diagnostics include logs, health reports, settings without secrets, and library counts. Never meeting audio, transcripts, notes, or screenshots." = "Diagnostics include logs, health reports, settings wey no contain secrets, and library counts. No meeting audio, transcripts, notes, or screenshots, ever.";
+"Keep Even If the Conversation Is Deleted" = "Keep Am Even If Dem Delete the Conversation";
+"Keep Even If the Source Is Deleted" = "Keep Am Even If Dem Delete the Source";
 "Autocomplete server" = "Server for Auto-complete";
 "Think's server" = "Server for Think";
 "Another server" = "Another server";

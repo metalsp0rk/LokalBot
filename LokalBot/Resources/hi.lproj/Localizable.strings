@@ -4,6 +4,7 @@
 "2. Review action owners" = "2. काम के ज़िम्मेदारों की समीक्षा करें";
 "A domain excludes its subdomains too. A URL with a path excludes that URL prefix. Existing rules are kept until you remove them." = "किसी डोमेन को बाहर रखने पर उसके सबडोमेन भी बाहर रहते हैं। पाथ वाले URL से उस उपसर्ग वाले URL बाहर रहते हैं। मौजूदा नियम आपके हटाने तक बने रहते हैं।";
 "A newly granted permission may require a relaunch. Finish setup first; relaunch from Settings if the feature remains unavailable." = "नई अनुमति मिलने के बाद ऐप फिर से खोलना पड़ सकता है। पहले सेटअप पूरा करें; सुविधा फिर भी उपलब्ध न हो तो सेटिंग्स से ऐप फिर खोलें।";
+"About" = "परिचय";
 "Accept next" = "अगला स्वीकारें";
 "Accept punctuation with the word" = "शब्द के साथ विराम चिह्न स्वीकारें";
 "Accepted" = "स्वीकार किया गया";
@@ -58,6 +59,7 @@
 "All retained history" = "पूरा रखा गया इतिहास";
 "All three core models will run on this Mac." = "तीनों मुख्य मॉडल इस Mac पर चलेंगे।";
 "Allow Once" = "एक बार अनुमति दें";
+"Allow external agents to change LokalBot settings" = "बाहरी एजेंटों को LokalBot सेटिंग्स बदलने दें";
 "Allow external agents to read screen memory" = "बाहरी एजेंटों को स्क्रीन स्मृति पढ़ने दें";
 "Allow external agents to read your meeting library" = "बाहरी एजेंटों को आपकी मीटिंग लाइब्रेरी पढ़ने दें";
 "Allow multi-line suggestions" = "कई पंक्तियों के सुझाव दें";
@@ -161,6 +163,7 @@
 "Choose actions to change together" = "एक साथ बदलने के लिए काम चुनें";
 "Choose daily memory export folder" = "दैनिक स्मृति के निर्यात का फ़ोल्डर चुनें";
 "Choose day" = "दिन चुनें";
+"Choose meeting note export folder" = "मीटिंग नोट के निर्यात का फ़ोल्डर चुनें";
 "Choose routine output folder" = "दिनचर्या के आउटपुट का फ़ोल्डर चुनें";
 "Choose sources and result filters" = "स्रोत और नतीजों के फ़िल्टर चुनें";
 "Choose sources to include with your next message. Screen pixels are never attached." = "अपने अगले संदेश में शामिल करने के लिए स्रोत चुनें। स्क्रीन पिक्सेल कभी संलग्न नहीं होते।";
@@ -333,10 +336,12 @@
 "Export Diagnostics…" = "निदान निर्यात करें…";
 "Export Markdown" = "Markdown निर्यात करें";
 "Export a daily memory note" = "दैनिक स्मृति नोट निर्यात करें";
+"Export a note for each meeting" = "हर मीटिंग का एक नोट निर्यात करें";
 "Export result" = "नतीजा निर्यात करें";
 "External agents" = "बाहरी एजेंट";
 "External meeting access" = "बाहरी मीटिंग पहुँच";
 "External screen access" = "बाहरी स्क्रीन पहुँच";
+"External settings access" = "बाहरी सेटिंग्स पहुँच";
 "Failed" = "विफल";
 "Feature" = "सुविधा";
 "Files…" = "फ़ाइलें…";
@@ -412,6 +417,7 @@
 "Images to remove" = "हटाने के लिए चित्र";
 "In progress" = "जारी है";
 "Include saved moments" = "सहेजे गए क्षण शामिल करें";
+"Include the transcript" = "लिप्यंतरण शामिल करें";
 "Includes scheduled daily summaries and overnight review, which can send activity titles, captured screen text, meeting evidence, and retained Dream memory to this origin without a prompt each time." = "इसमें तय समय पर दैनिक सार और रात की समीक्षा शामिल हैं, जो गतिविधियों के शीर्षक, कैप्चर किया हुआ स्क्रीन टेक्स्ट, मीटिंग के साक्ष्य और सहेजी गई Dream स्मृति हर बार पूछे बिना इस मूल पते पर भेज सकते हैं।";
 "Increase Text Size" = "टेक्स्ट का आकार बढ़ाएँ";
 "Input Monitoring" = "इनपुट निगरानी";
@@ -453,6 +459,7 @@
 "Legacy rule · review" = "पुराना नियम · समीक्षा करें";
 "Lets MCP clients and the lokalbot-cli skill (Claude, Cursor, …) list, read, search, and ask about your meetings — read-only and localhost only. Off by default." = "MCP क्लाइंट और lokalbot-cli कौशल (Claude, Cursor, …) को आपकी मीटिंग की सूची बनाने, पढ़ने, खोजने और उनके बारे में पूछने देता है — केवल पढ़ने के लिए और केवल localhost पर। डिफ़ॉल्ट रूप से बंद।";
 "Lets dictation and cotyping detect their global keyboard shortcuts." = "डिक्टेशन और सहलेखन को उनके वैश्विक कीबोर्ड शॉर्टकट पहचानने देता है।";
+"Lets lokalbot-cli read your settings and app status, open Settings at a setting, and start LokalBot in the background. Separate from the other agent access toggles. Off by default." = "lokalbot-cli को आपकी सेटिंग्स और ऐप की स्थिति पढ़ने, सेटिंग्स में किसी खास सेटिंग को खोलने और LokalBot को पृष्ठभूमि में शुरू करने देता है। एजेंट पहुँच के अन्य टॉगल से अलग। डिफ़ॉल्ट रूप से बंद।";
 "Library" = "लाइब्रेरी";
 "Library location" = "लाइब्रेरी का स्थान";
 "Light" = "हल्का";
@@ -472,6 +479,7 @@
 "Local models process on this Mac. Each remote server requires its own approval before context can leave the Mac." = "स्थानीय मॉडल इसी Mac पर प्रोसेस करते हैं। संदर्भ Mac से बाहर भेजने से पहले हर रिमोट सर्वर के लिए अलग स्वीकृति ज़रूरी है।";
 "Logs, health reports, settings without secrets, and library counts. Never meeting audio, transcripts, notes, or screenshots." = "लॉग, स्थिति रिपोर्ट, गोपनीय जानकारी रहित सेटिंग्स और लाइब्रेरी की गिनती। मीटिंग ऑडियो, लिप्यंतरण, नोट या स्क्रीनशॉट कभी नहीं।";
 "LokalBot detects meeting apps automatically, or start a recording now." = "LokalBot मीटिंग ऐप अपने-आप पहचानता है, या अभी रिकॉर्डिंग शुरू करें।";
+"LokalBot is free and built by one person. A GitHub star helps others find it." = "LokalBot मुफ़्त है और इसे एक व्यक्ति ने बनाया है। GitHub पर एक स्टार से दूसरों को इसे खोजने में मदद मिलती है।";
 "LokalBot manages this model and rebuilds the local index when it changes." = "LokalBot इस मॉडल को प्रबंधित करता है और इसके बदलने पर स्थानीय इंडेक्स फिर बनाता है।";
 "LokalBot never sends this. Copy it into your mail or chat app to send it yourself." = "LokalBot इसे कभी नहीं भेजता। खुद भेजने के लिए इसे अपने मेल या चैट ऐप में कॉपी करें।";
 "Looks done?" = "पूरा लगता है?";
@@ -505,6 +513,7 @@
 "Meeting details" = "मीटिंग का विवरण";
 "Meeting library" = "मीटिंग लाइब्रेरी";
 "Meeting models" = "मीटिंग के मॉडल";
+"Meeting note export" = "मीटिंग नोट निर्यात";
 "Meeting notes" = "मीटिंग नोट";
 "Meeting notes, transcripts, and actions will look like this." = "मीटिंग के नोट, लिप्यंतरण और काम ऐसे दिखेंगे।";
 "Meeting playback" = "मीटिंग प्लेबैक";
@@ -581,6 +590,7 @@
 "No transcript speakers are available yet." = "लिप्यंतरण के वक्ता अभी उपलब्ध नहीं हैं।";
 "None yet" = "अभी कोई नहीं";
 "Not connected" = "कनेक्ट नहीं है";
+"Not now" = "अभी नहीं";
 "Not Yet" = "अभी नहीं";
 "Not ready" = "तैयार नहीं";
 "Not recording" = "रिकॉर्डिंग नहीं हो रही";
@@ -625,6 +635,7 @@
 "Open in results" = "नतीजों में खोलें";
 "Open latest meeting" = "नवीनतम मीटिंग खोलें";
 "Open meeting" = "मीटिंग खोलें";
+"Open source" = "ओपन सोर्स";
 "Open the current recording" = "मौजूदा रिकॉर्डिंग खोलें";
 "Open this capture in Timeline" = "यह कैप्चर टाइमलाइन में खोलें";
 "Open this moment in Timeline" = "यह क्षण टाइमलाइन में खोलें";
@@ -906,6 +917,7 @@
 "Speech recognition runs on this Mac. No screen context or rewrite model is used." = "वाक् पहचान इस Mac पर चलती है। स्क्रीन संदर्भ या पुनर्लेखन मॉडल इस्तेमाल नहीं होता।";
 "Speech speed" = "बोलने की गति";
 "Speed" = "गति";
+"Star on GitHub" = "GitHub पर स्टार दें";
 "Start" = "शुरू करें";
 "Start (seconds)" = "शुरू (सेकंड)";
 "Start Dictation" = "डिक्टेशन शुरू करें";
@@ -973,7 +985,7 @@
 "These are captured window titles. Expand a title to inspect the activity behind it." = "ये कैप्चर किए गए विंडो शीर्षक हैं। उससे जुड़ी गतिविधि देखने के लिए शीर्षक फैलाएँ।";
 "These choices are applied on the final Review step." = "ये विकल्प समीक्षा के आख़िरी चरण में लागू होते हैं।";
 "Think" = "विचार";
-"Think may send meeting transcripts, screen text, Agent context, and inherited dictation requests to this server when you use those features. Scheduled daily summaries and overnight review also run here and can send activity titles, captured screen text, meeting evidence, and retained Dream memory without a prompt each time." = "इन सुविधाओं का उपयोग करने पर विचार, मीटिंग लिप्यंतरण, स्क्रीन टेक्स्ट, एजेंट संदर्भ और उससे जुड़े डिक्टेशन अनुरोध इस सर्वर पर भेज सकता है। तय समय पर दैनिक सार और रात की समीक्षा भी यहीं चलती हैं और हर बार पूछे बिना गतिविधियों के शीर्षक, कैप्चर किया गया स्क्रीन टेक्स्ट, मीटिंग के साक्ष्य और सहेजी गई Dream स्मृति भेज सकती हैं।";
+"Think may send meeting transcripts, screen text, what you told Ask to remember about you, Agent context, and inherited dictation requests to this server when you use those features. Scheduled daily summaries and overnight review also run here and can send activity titles, captured screen text, meeting evidence, and retained Dream memory without a prompt each time." = "इन सुविधाओं का उपयोग करने पर विचार, मीटिंग लिप्यंतरण, स्क्रीन टेक्स्ट, आपके बारे में वे बातें जिन्हें याद रखने के लिए आपने पूछें से कहा, एजेंट संदर्भ और उससे जुड़े डिक्टेशन अनुरोध इस सर्वर पर भेज सकता है। तय समय पर दैनिक सार और रात की समीक्षा भी यहीं चलती हैं और हर बार पूछे बिना गतिविधियों के शीर्षक, कैप्चर किया गया स्क्रीन टेक्स्ट, मीटिंग के साक्ष्य और सहेजी गई Dream स्मृति भेज सकती हैं।";
 "Think model" = "विचार मॉडल";
 "Think model backend" = "विचार मॉडल बैकएंड";
 "Think processing budget" = "विचार प्रोसेसिंग बजट";
@@ -1093,6 +1105,7 @@
 "Workspace navigation" = "कार्यस्थान नेविगेशन";
 "Write" = "लिखें";
 "Writes one unencrypted Markdown file per day with the digest, meeting links, app time, and saved moments. A day missed while your Mac was asleep is written later. Existing non-LokalBot content is never overwritten." = "हर दिन सार, मीटिंग लिंक, ऐप में बिताए समय और सहेजे गए क्षणों के साथ एक अनएन्क्रिप्टेड Markdown फ़ाइल लिखता है। Mac के सोने के कारण छूटा दिन बाद में लिखा जाता है। मौजूदा गैर-LokalBot सामग्री कभी अधिलेखित नहीं होती।";
+"Writes one unencrypted Markdown note per meeting, including meetings already recorded, to a folder you choose, such as an Obsidian vault. Each note has the summary, action items as you corrected them, and the people and tracked projects involved. A note you edit, move, or delete is yours: LokalBot leaves it alone." = "पहले से रिकॉर्ड की गई मीटिंग सहित, हर मीटिंग के लिए एक अनएन्क्रिप्टेड Markdown नोट आपके चुने हुए फ़ोल्डर में लिखता है, जैसे कोई Obsidian वॉल्ट। हर नोट में सार, आपके सुधारों के अनुसार काम की सूची, और संबंधित लोग व ट्रैक किए गए प्रोजेक्ट होते हैं। जिस नोट को आप संपादित करते हैं, कहीं और ले जाते हैं या हटाते हैं, वह आपका है: LokalBot उसे नहीं छेड़ता।";
 "Writes the Timeline digest to your local journal at the chosen time, then finalizes yesterday after midnight so late activity is included." = "चुने हुए समय पर टाइमलाइन का सार आपके स्थानीय जर्नल में लिखता है, फिर आधी रात के बाद पिछले दिन को अंतिम रूप देता है ताकि देर की गतिविधि भी शामिल हो।";
 "Writing" = "लेखन";
 "Writing for the focused app" = "फ़ोकस किए गए ऐप के लिए लिखा जा रहा है";
@@ -1154,6 +1167,15 @@
 "Your subscription" = "आपकी सदस्यता";
 "Server" = "सर्वर";
 "In use" = "इस्तेमाल में";
+"About you" = "आपके बारे में";
+"Remember what I tell Ask" = "मैं पूछें को जो बताऊँ, उसे याद रखें";
+"Remembered" = "याद रखा गया";
+"Not remembered" = "याद नहीं रखा गया";
+"Share with agents" = "एजेंटों के साथ साझा करें";
+"Share with Agents" = "एजेंटों के साथ साझा करें";
+"Stop Sharing with Agents" = "एजेंटों के साथ साझा करना बंद करें";
+"Allow external agents to read what I shared about myself" = "बाहरी एजेंटों को वह पढ़ने दें जो मैंने अपने बारे में साझा किया है";
+"Choose items…" = "चीज़ें चुनें…";
 "Statistics" = "आँकड़े";
 "Autocomplete statistics" = "स्वतः पूर्णता के आँकड़े";
 "Period" = "अवधि";
@@ -1195,6 +1217,10 @@
 "Clear Statistics" = "आँकड़े मिटाएँ";
 "Deletes the daily and monthly counts. Usage and timing measurements are kept." = "दैनिक और मासिक गिनती मिटाता है। उपयोग और समय के माप बने रहते हैं।";
 "Counted on this Mac while you type in other apps: suggestions shown and accepted, the characters you type yourself where autocomplete works, and the pauses between them, by day, kind of app and model. No text, app names or window titles are kept. Time saved is the keystrokes you did not type at your measured speed, not counting time spent reading suggestions." = "दूसरे ऐप में टाइप करते समय इस Mac पर दिन, ऐप के प्रकार और मॉडल के अनुसार गिनती होती है: दिखाए और स्वीकार किए गए सुझाव, स्वतः पूर्णता काम करने की जगहों पर आपके खुद टाइप किए अक्षर और उनके बीच के ठहराव। कोई टेक्स्ट, ऐप नाम या विंडो शीर्षक नहीं रखा जाता। बचा समय उन कुंजी दबावों का है जो आपने अपनी मापी गई गति पर नहीं किए; सुझाव पढ़ने का समय इसमें शामिल नहीं है।";
+"Learn about me from my meetings and work" = "मेरी मीटिंग और काम से मेरे बारे में जानें";
+"Learn from my dictation" = "मेरे डिक्टेशन से सीखें";
+"Keep" = "रखें";
+"Keep Even If the Meeting Is Deleted" = "मीटिंग हटाए जाने पर भी रखें";
 "CPU" = "CPU";
 "Memory" = "मेमोरी";
 "Models loaded" = "लोड किए गए मॉडल";
@@ -1203,6 +1229,8 @@
 "%@ of RAM" = "RAM का %@";
 "Updates every 2 seconds and counts LokalBot and its helpers. External Ollama and Apple Intelligence models aren't counted." = "हर 2 सेकंड में अपडेट होता है और LokalBot व उसके सहायकों को गिनता है। बाहरी Ollama और Apple Intelligence मॉडल नहीं गिने जाते।";
 "Diagnostics include logs, health reports, settings without secrets, and library counts. Never meeting audio, transcripts, notes, or screenshots." = "निदान में लॉग, स्थिति रिपोर्ट, गोपनीय जानकारी रहित सेटिंग्स और लाइब्रेरी की गिनती शामिल हैं। मीटिंग ऑडियो, लिप्यंतरण, नोट या स्क्रीनशॉट कभी नहीं।";
+"Keep Even If the Conversation Is Deleted" = "बातचीत हटाए जाने पर भी रखें";
+"Keep Even If the Source Is Deleted" = "स्रोत हटाए जाने पर भी रखें";
 "Autocomplete server" = "स्वतः पूर्णता सर्वर";
 "Think's server" = "विचार का सर्वर";
 "Another server" = "दूसरा सर्वर";

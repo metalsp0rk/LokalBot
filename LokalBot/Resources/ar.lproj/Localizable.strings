@@ -4,6 +4,7 @@
 "2. Review action owners" = "2. مراجعة المسؤولين عن الإجراءات";
 "A domain excludes its subdomains too. A URL with a path excludes that URL prefix. Existing rules are kept until you remove them." = "استثناء النطاق يستثني نطاقاته الفرعية أيضًا. وعنوان URL الذي يتضمن مسارًا يستثني كل عنوان يبدأ به. تبقى القواعد الحالية حتى تزيلها.";
 "A newly granted permission may require a relaunch. Finish setup first; relaunch from Settings if the feature remains unavailable." = "قد يتطلب الإذن الممنوح حديثًا إعادة التشغيل. أكمل الإعداد أولًا، ثم أعد التشغيل من الإعدادات إذا ظلت الميزة غير متاحة.";
+"About" = "حول";
 "Accept next" = "قبول التالي";
 "Accept punctuation with the word" = "قبول علامة الترقيم مع الكلمة";
 "Accepted" = "تم القبول";
@@ -58,6 +59,7 @@
 "All retained history" = "كل السجل المحتفظ به";
 "All three core models will run on this Mac." = "ستعمل النماذج الأساسية الثلاثة على هذا الـ Mac.";
 "Allow Once" = "السماح مرة واحدة";
+"Allow external agents to change LokalBot settings" = "السماح للوكلاء الخارجيين بتغيير إعدادات LokalBot";
 "Allow external agents to read screen memory" = "السماح للوكلاء الخارجيين بقراءة ذاكرة الشاشة";
 "Allow external agents to read your meeting library" = "السماح للوكلاء الخارجيين بقراءة مكتبة اجتماعاتك";
 "Allow multi-line suggestions" = "السماح باقتراحات متعددة الأسطر";
@@ -161,6 +163,7 @@
 "Choose actions to change together" = "اختر الإجراءات المراد تغييرها معًا";
 "Choose daily memory export folder" = "اختيار مجلد تصدير الذاكرة اليومية";
 "Choose day" = "اختيار اليوم";
+"Choose meeting note export folder" = "اختيار مجلد تصدير ملاحظات الاجتماعات";
 "Choose routine output folder" = "اختيار مجلد مخرجات المهمة الدورية";
 "Choose sources and result filters" = "اختيار المصادر وعوامل تصفية النتائج";
 "Choose sources to include with your next message. Screen pixels are never attached." = "اختر مصادر لتضمينها مع رسالتك التالية. لا تُرفق صور الشاشة مطلقًا.";
@@ -333,10 +336,12 @@
 "Export Diagnostics…" = "تصدير بيانات التشخيص…";
 "Export Markdown" = "تصدير Markdown";
 "Export a daily memory note" = "تصدير ملاحظة ذاكرة يومية";
+"Export a note for each meeting" = "تصدير ملاحظة لكل اجتماع";
 "Export result" = "تصدير النتيجة";
 "External agents" = "الوكلاء الخارجيون";
 "External meeting access" = "الوصول الخارجي إلى الاجتماعات";
 "External screen access" = "الوصول الخارجي إلى الشاشة";
+"External settings access" = "الوصول الخارجي إلى الإعدادات";
 "Failed" = "فشل";
 "Feature" = "الميزة";
 "Files…" = "الملفات…";
@@ -412,6 +417,7 @@
 "Images to remove" = "الصور المطلوب إزالتها";
 "In progress" = "قيد التنفيذ";
 "Include saved moments" = "تضمين اللحظات المحفوظة";
+"Include the transcript" = "تضمين التفريغ النصي";
 "Includes scheduled daily summaries and overnight review, which can send activity titles, captured screen text, meeting evidence, and retained Dream memory to this origin without a prompt each time." = "يشمل الملخصات اليومية المجدولة والمراجعة الليلية، التي قد ترسل عناوين الأنشطة ونص الشاشة الملتقط وأدلة الاجتماعات وذاكرة Dream المحتفظ بها إلى هذا الأصل دون مطالبتك في كل مرة.";
 "Increase Text Size" = "تكبير حجم النص";
 "Input Monitoring" = "مراقبة الإدخال";
@@ -453,6 +459,7 @@
 "Legacy rule · review" = "قاعدة قديمة · مراجعة";
 "Lets MCP clients and the lokalbot-cli skill (Claude, Cursor, …) list, read, search, and ask about your meetings — read-only and localhost only. Off by default." = "يتيح لعملاء MCP ولمهارة lokalbot-cli (Claude وCursor و…) سرد اجتماعاتك وقراءتها والبحث فيها والسؤال عنها — للقراءة فقط وعبر localhost فقط. معطّل افتراضيًا.";
 "Lets dictation and cotyping detect their global keyboard shortcuts." = "يتيح للإملاء والكتابة المساعدة اكتشاف اختصاراتهما العامة للوحة المفاتيح.";
+"Lets lokalbot-cli read your settings and app status, open Settings at a setting, and start LokalBot in the background. Separate from the other agent access toggles. Off by default." = "يتيح لـ lokalbot-cli قراءة إعداداتك وحالة التطبيق، وفتح الإعدادات على إعداد معيّن، وتشغيل LokalBot في الخلفية. منفصل عن مفاتيح التبديل الأخرى الخاصة بوصول الوكلاء. معطّل افتراضيًا.";
 "Library" = "المكتبة";
 "Library location" = "موقع المكتبة";
 "Light" = "فاتح";
@@ -472,6 +479,7 @@
 "Local models process on this Mac. Each remote server requires its own approval before context can leave the Mac." = "تعالج النماذج المحلية البيانات على هذا الـ Mac. ويتطلب كل خادم بعيد موافقة مستقلة قبل أن يغادر السياق جهاز Mac.";
 "Logs, health reports, settings without secrets, and library counts. Never meeting audio, transcripts, notes, or screenshots." = "السجلات وتقارير السلامة والإعدادات دون الأسرار وإحصاءات المكتبة. لا تتضمن مطلقًا أصوات الاجتماعات أو تفريغاتها النصية أو ملاحظاتها أو لقطات الشاشة.";
 "LokalBot detects meeting apps automatically, or start a recording now." = "يكتشف LokalBot تطبيقات الاجتماعات تلقائيًا، أو يمكنك بدء تسجيل الآن.";
+"LokalBot is free and built by one person. A GitHub star helps others find it." = "LokalBot مجاني ومن تطوير شخص واحد. تساعد نجمة على GitHub الآخرين على العثور عليه.";
 "LokalBot manages this model and rebuilds the local index when it changes." = "يدير LokalBot هذا النموذج ويعيد إنشاء الفهرس المحلي عند تغييره.";
 "LokalBot never sends this. Copy it into your mail or chat app to send it yourself." = "لا يرسل LokalBot هذا مطلقًا. انسخه إلى تطبيق البريد أو الدردشة وأرسله بنفسك.";
 "Looks done?" = "هل يبدو مكتملًا؟";
@@ -505,6 +513,7 @@
 "Meeting details" = "تفاصيل الاجتماع";
 "Meeting library" = "مكتبة الاجتماعات";
 "Meeting models" = "نماذج الاجتماعات";
+"Meeting note export" = "تصدير ملاحظات الاجتماعات";
 "Meeting notes" = "ملاحظات الاجتماع";
 "Meeting notes, transcripts, and actions will look like this." = "ستظهر ملاحظات الاجتماعات وتفريغاتها النصية وإجراءاتها بهذا الشكل.";
 "Meeting playback" = "تشغيل الاجتماع";
@@ -581,6 +590,7 @@
 "No transcript speakers are available yet." = "لا يتوفر متحدثون في التفريغ النصي بعد.";
 "None yet" = "لا شيء بعد";
 "Not connected" = "غير متصل";
+"Not now" = "ليس الآن";
 "Not Yet" = "ليس بعد";
 "Not ready" = "غير جاهز";
 "Not recording" = "لا يجري التسجيل";
@@ -625,6 +635,7 @@
 "Open in results" = "فتح في النتائج";
 "Open latest meeting" = "فتح أحدث اجتماع";
 "Open meeting" = "فتح الاجتماع";
+"Open source" = "مفتوح المصدر";
 "Open the current recording" = "فتح التسجيل الحالي";
 "Open this capture in Timeline" = "فتح هذا الالتقاط في المخطط الزمني";
 "Open this moment in Timeline" = "فتح هذه اللحظة في المخطط الزمني";
@@ -906,6 +917,7 @@
 "Speech recognition runs on this Mac. No screen context or rewrite model is used." = "يعمل التعرّف على الكلام على هذا الـ Mac. ولا يُستخدم سياق الشاشة أو نموذج إعادة صياغة.";
 "Speech speed" = "سرعة الكلام";
 "Speed" = "السرعة";
+"Star on GitHub" = "إضافة نجمة على GitHub";
 "Start" = "بدء";
 "Start (seconds)" = "البداية (بالثواني)";
 "Start Dictation" = "بدء الإملاء";
@@ -973,7 +985,7 @@
 "These are captured window titles. Expand a title to inspect the activity behind it." = "هذه عناوين نوافذ ملتقطة. وسّع عنوانًا لفحص النشاط المرتبط به.";
 "These choices are applied on the final Review step." = "تُطبّق هذه الخيارات في خطوة المراجعة النهائية.";
 "Think" = "التفكير";
-"Think may send meeting transcripts, screen text, Agent context, and inherited dictation requests to this server when you use those features. Scheduled daily summaries and overnight review also run here and can send activity titles, captured screen text, meeting evidence, and retained Dream memory without a prompt each time." = "قد يرسل التفكير تفريغات الاجتماعات ونص الشاشة وسياق الوكيل وطلبات الإملاء الموروثة إلى هذا الخادم عند استخدام تلك الميزات. وتعمل هنا أيضًا الملخصات اليومية المجدولة والمراجعة الليلية، ويمكنها إرسال عناوين الأنشطة ونص الشاشة الملتقط وأدلة الاجتماعات وذاكرة Dream المحتفظ بها دون مطالبتك في كل مرة.";
+"Think may send meeting transcripts, screen text, what you told Ask to remember about you, Agent context, and inherited dictation requests to this server when you use those features. Scheduled daily summaries and overnight review also run here and can send activity titles, captured screen text, meeting evidence, and retained Dream memory without a prompt each time." = "قد يرسل التفكير تفريغات الاجتماعات ونص الشاشة وما طلبت من «اسأل» أن يتذكّره عنك وسياق الوكيل وطلبات الإملاء الموروثة إلى هذا الخادم عند استخدام تلك الميزات. وتعمل هنا أيضًا الملخصات اليومية المجدولة والمراجعة الليلية، ويمكنها إرسال عناوين الأنشطة ونص الشاشة الملتقط وأدلة الاجتماعات وذاكرة Dream المحتفظ بها دون مطالبتك في كل مرة.";
 "Think model" = "نموذج التفكير";
 "Think model backend" = "الواجهة الخلفية لنموذج التفكير";
 "Think processing budget" = "ميزانية معالجة التفكير";
@@ -1093,6 +1105,7 @@
 "Workspace navigation" = "التنقل في مساحة العمل";
 "Write" = "اكتب";
 "Writes one unencrypted Markdown file per day with the digest, meeting links, app time, and saved moments. A day missed while your Mac was asleep is written later. Existing non-LokalBot content is never overwritten." = "يكتب ملف Markdown واحدًا غير مشفر يوميًا يضم الموجز وروابط الاجتماعات ووقت استخدام التطبيقات واللحظات المحفوظة. يُكتب لاحقًا أي يوم فات عندما كان Mac في وضع السكون. لا يُستبدل المحتوى الموجود غير التابع لـ LokalBot مطلقًا.";
+"Writes one unencrypted Markdown note per meeting, including meetings already recorded, to a folder you choose, such as an Obsidian vault. Each note has the summary, action items as you corrected them, and the people and tracked projects involved. A note you edit, move, or delete is yours: LokalBot leaves it alone." = "يكتب ملاحظة Markdown واحدة غير مشفرة لكل اجتماع، بما في ذلك الاجتماعات المسجّلة مسبقًا، في مجلد تختاره، مثل خزنة Obsidian. تتضمن كل ملاحظة الملخص، والإجراءات كما صحّحتها، والأشخاص والمشاريع المتتبَّعة ذات الصلة بالاجتماع. أي ملاحظة تحرّرها أو تنقلها أو تحذفها هي ملكك: لا يمسّها LokalBot.";
 "Writes the Timeline digest to your local journal at the chosen time, then finalizes yesterday after midnight so late activity is included." = "يكتب موجز المخطط الزمني في يومياتك المحلية في الوقت المحدد، ثم يُتمّ سجل الأمس بعد منتصف الليل ليشمل النشاط المتأخر.";
 "Writing" = "الكتابة";
 "Writing for the focused app" = "جارٍ الكتابة للتطبيق النشط";
@@ -1154,6 +1167,15 @@
 "Your subscription" = "اشتراكك";
 "Server" = "الخادم";
 "In use" = "قيد الاستخدام";
+"About you" = "نبذة عنك";
+"Remember what I tell Ask" = "تذكّر ما أقوله لـ «اسأل»";
+"Remembered" = "تم التذكّر";
+"Not remembered" = "لم يتم التذكّر";
+"Share with agents" = "مشاركة مع الوكلاء";
+"Share with Agents" = "مشاركة مع الوكلاء";
+"Stop Sharing with Agents" = "إيقاف المشاركة مع الوكلاء";
+"Allow external agents to read what I shared about myself" = "السماح للوكلاء الخارجيين بقراءة ما شاركته عن نفسي";
+"Choose items…" = "اختيار العناصر…";
 "Statistics" = "الإحصاءات";
 "Autocomplete statistics" = "إحصاءات الإكمال التلقائي";
 "Period" = "الفترة";
@@ -1195,6 +1217,10 @@
 "Clear Statistics" = "مسح الإحصاءات";
 "Deletes the daily and monthly counts. Usage and timing measurements are kept." = "يحذف الأعداد اليومية والشهرية. يُحتفظ بقياسات الاستخدام والتوقيت.";
 "Counted on this Mac while you type in other apps: suggestions shown and accepted, the characters you type yourself where autocomplete works, and the pauses between them, by day, kind of app and model. No text, app names or window titles are kept. Time saved is the keystrokes you did not type at your measured speed, not counting time spent reading suggestions." = "تُحصى على هذا الـ Mac أثناء الكتابة في تطبيقات أخرى: الاقتراحات المعروضة والمقبولة، والأحرف التي تكتبها بنفسك حيث يعمل الإكمال التلقائي، وفترات التوقف بينها، بحسب اليوم ونوع التطبيق والنموذج. لا يُحتفظ بأي نص أو أسماء تطبيقات أو عناوين نوافذ. الوقت الموفَّر هو زمن ضغطات المفاتيح التي لم تكتبها وفق سرعتك المقاسة، دون احتساب الوقت المستغرق في قراءة الاقتراحات.";
+"Learn about me from my meetings and work" = "التعرّف عليّ من اجتماعاتي وعملي";
+"Learn from my dictation" = "التعلّم من إملائي";
+"Keep" = "الاحتفاظ";
+"Keep Even If the Meeting Is Deleted" = "الاحتفاظ به حتى لو حُذف الاجتماع";
 "CPU" = "المعالج";
 "Memory" = "الذاكرة";
 "Models loaded" = "النماذج المحمّلة";
@@ -1203,6 +1229,8 @@
 "%@ of RAM" = "%@ من ذاكرة RAM";
 "Updates every 2 seconds and counts LokalBot and its helpers. External Ollama and Apple Intelligence models aren't counted." = "يتحدّث كل ثانيتين ويحسب LokalBot وعملياته المساعدة. لا تُحسب نماذج Ollama الخارجية وApple Intelligence.";
 "Diagnostics include logs, health reports, settings without secrets, and library counts. Never meeting audio, transcripts, notes, or screenshots." = "تشمل التشخيصات السجلات وتقارير السلامة والإعدادات دون الأسرار وإحصاءات المكتبة. ولا تتضمن مطلقًا أصوات الاجتماعات أو تفريغاتها النصية أو ملاحظاتها أو لقطات الشاشة.";
+"Keep Even If the Conversation Is Deleted" = "الاحتفاظ به حتى لو حُذفت المحادثة";
+"Keep Even If the Source Is Deleted" = "الاحتفاظ به حتى لو حُذف المصدر";
 "Autocomplete server" = "خادم الإكمال التلقائي";
 "Think's server" = "خادم التفكير";
 "Another server" = "خادم آخر";

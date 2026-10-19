@@ -4,6 +4,7 @@
 "2. Review action owners" = "2. Xem lại người phụ trách hành động";
 "A domain excludes its subdomains too. A URL with a path excludes that URL prefix. Existing rules are kept until you remove them." = "Loại trừ một miền cũng loại trừ các miền con. URL có đường dẫn sẽ loại trừ mọi URL bắt đầu bằng tiền tố đó. Quy tắc hiện có được giữ cho đến khi bạn xóa.";
 "A newly granted permission may require a relaunch. Finish setup first; relaunch from Settings if the feature remains unavailable." = "Quyền mới cấp có thể cần khởi động lại ứng dụng. Hãy hoàn tất thiết lập trước; khởi động lại từ Cài đặt nếu tính năng vẫn chưa khả dụng.";
+"About" = "Giới thiệu";
 "Accept next" = "Chấp nhận phần tiếp theo";
 "Accept punctuation with the word" = "Chấp nhận dấu câu cùng từ";
 "Accepted" = "Đã chấp nhận";
@@ -58,6 +59,7 @@
 "All retained history" = "Toàn bộ lịch sử được giữ lại";
 "All three core models will run on this Mac." = "Cả ba mô hình cốt lõi sẽ chạy trên Mac này.";
 "Allow Once" = "Cho phép một lần";
+"Allow external agents to change LokalBot settings" = "Cho phép tác nhân bên ngoài thay đổi cài đặt LokalBot";
 "Allow external agents to read screen memory" = "Cho phép tác nhân bên ngoài đọc bộ nhớ màn hình";
 "Allow external agents to read your meeting library" = "Cho phép tác nhân bên ngoài đọc thư viện cuộc họp của bạn";
 "Allow multi-line suggestions" = "Cho phép gợi ý nhiều dòng";
@@ -161,6 +163,7 @@
 "Choose actions to change together" = "Chọn hành động để thay đổi cùng nhau";
 "Choose daily memory export folder" = "Chọn thư mục xuất bộ nhớ hằng ngày";
 "Choose day" = "Chọn ngày";
+"Choose meeting note export folder" = "Chọn thư mục xuất ghi chú cuộc họp";
 "Choose routine output folder" = "Chọn thư mục đầu ra tác vụ định kỳ";
 "Choose sources and result filters" = "Chọn nguồn và bộ lọc kết quả";
 "Choose sources to include with your next message. Screen pixels are never attached." = "Chọn nguồn kèm theo tin nhắn tiếp theo. Không bao giờ đính kèm điểm ảnh màn hình.";
@@ -333,10 +336,12 @@
 "Export Diagnostics…" = "Xuất chẩn đoán…";
 "Export Markdown" = "Xuất Markdown";
 "Export a daily memory note" = "Xuất ghi chú bộ nhớ hằng ngày";
+"Export a note for each meeting" = "Xuất một ghi chú cho mỗi cuộc họp";
 "Export result" = "Xuất kết quả";
 "External agents" = "Tác nhân bên ngoài";
 "External meeting access" = "Truy cập cuộc họp từ bên ngoài";
 "External screen access" = "Truy cập màn hình từ bên ngoài";
+"External settings access" = "Truy cập cài đặt từ bên ngoài";
 "Failed" = "Thất bại";
 "Feature" = "Tính năng";
 "Files…" = "Tệp…";
@@ -412,6 +417,7 @@
 "Images to remove" = "Ảnh cần xóa";
 "In progress" = "Đang thực hiện";
 "Include saved moments" = "Bao gồm khoảnh khắc đã lưu";
+"Include the transcript" = "Bao gồm bản chép lời";
 "Includes scheduled daily summaries and overnight review, which can send activity titles, captured screen text, meeting evidence, and retained Dream memory to this origin without a prompt each time." = "Bao gồm tóm tắt hằng ngày theo lịch và đánh giá qua đêm; có thể gửi tiêu đề hoạt động, văn bản màn hình đã ghi, bằng chứng cuộc họp và bộ nhớ Dream được giữ lại đến nguồn này mà không hỏi mỗi lần.";
 "Increase Text Size" = "Tăng cỡ chữ";
 "Input Monitoring" = "Giám sát đầu vào";
@@ -453,6 +459,7 @@
 "Legacy rule · review" = "Quy tắc cũ · xem lại";
 "Lets MCP clients and the lokalbot-cli skill (Claude, Cursor, …) list, read, search, and ask about your meetings — read-only and localhost only. Off by default." = "Cho phép máy khách MCP và kỹ năng lokalbot-cli (Claude, Cursor, …) liệt kê, đọc, tìm kiếm và hỏi về cuộc họp — chỉ đọc và chỉ qua localhost. Mặc định tắt.";
 "Lets dictation and cotyping detect their global keyboard shortcuts." = "Cho phép đọc chính tả và hỗ trợ gõ phát hiện phím tắt toàn hệ thống.";
+"Lets lokalbot-cli read your settings and app status, open Settings at a setting, and start LokalBot in the background. Separate from the other agent access toggles. Off by default." = "Cho phép lokalbot-cli đọc cài đặt và trạng thái ứng dụng của bạn, mở Cài đặt tại một mục cài đặt cụ thể và khởi động LokalBot ở chế độ nền. Tách biệt với các nút bật/tắt quyền truy cập tác nhân khác. Mặc định tắt.";
 "Library" = "Thư viện";
 "Library location" = "Vị trí thư viện";
 "Light" = "Sáng";
@@ -472,6 +479,7 @@
 "Local models process on this Mac. Each remote server requires its own approval before context can leave the Mac." = "Mô hình cục bộ xử lý trên Mac này. Mỗi máy chủ từ xa cần được phê duyệt riêng trước khi ngữ cảnh có thể rời Mac.";
 "Logs, health reports, settings without secrets, and library counts. Never meeting audio, transcripts, notes, or screenshots." = "Nhật ký, báo cáo tình trạng, cài đặt không chứa bí mật và số lượng mục trong thư viện. Không bao giờ gồm âm thanh cuộc họp, bản chép lời, ghi chú hay ảnh chụp màn hình.";
 "LokalBot detects meeting apps automatically, or start a recording now." = "LokalBot tự động phát hiện ứng dụng họp, hoặc bạn có thể bắt đầu ghi ngay.";
+"LokalBot is free and built by one person. A GitHub star helps others find it." = "LokalBot miễn phí và do một người xây dựng. Một lượt gắn sao trên GitHub giúp người khác tìm thấy ứng dụng.";
 "LokalBot manages this model and rebuilds the local index when it changes." = "LokalBot quản lý mô hình này và xây dựng lại chỉ mục cục bộ khi mô hình thay đổi.";
 "LokalBot never sends this. Copy it into your mail or chat app to send it yourself." = "LokalBot không bao giờ gửi nội dung này. Sao chép vào ứng dụng email hoặc trò chuyện để tự gửi.";
 "Looks done?" = "Có vẻ đã xong?";
@@ -505,6 +513,7 @@
 "Meeting details" = "Chi tiết cuộc họp";
 "Meeting library" = "Thư viện cuộc họp";
 "Meeting models" = "Mô hình cho cuộc họp";
+"Meeting note export" = "Xuất ghi chú cuộc họp";
 "Meeting notes" = "Ghi chú cuộc họp";
 "Meeting notes, transcripts, and actions will look like this." = "Ghi chú, bản chép lời và hành động của cuộc họp sẽ hiển thị như thế này.";
 "Meeting playback" = "Phát cuộc họp";
@@ -581,6 +590,7 @@
 "No transcript speakers are available yet." = "Chưa có người nói trong bản chép lời.";
 "None yet" = "Chưa có";
 "Not connected" = "Chưa kết nối";
+"Not now" = "Để sau";
 "Not Yet" = "Chưa";
 "Not ready" = "Chưa sẵn sàng";
 "Not recording" = "Không ghi âm";
@@ -625,6 +635,7 @@
 "Open in results" = "Mở trong kết quả";
 "Open latest meeting" = "Mở cuộc họp gần nhất";
 "Open meeting" = "Mở cuộc họp";
+"Open source" = "Mã nguồn mở";
 "Open the current recording" = "Mở bản ghi âm hiện tại";
 "Open this capture in Timeline" = "Mở dữ liệu ghi lại này trong Dòng thời gian";
 "Open this moment in Timeline" = "Mở khoảnh khắc này trong Dòng thời gian";
@@ -906,6 +917,7 @@
 "Speech recognition runs on this Mac. No screen context or rewrite model is used." = "Nhận dạng giọng nói chạy trên Mac này. Không dùng ngữ cảnh màn hình hay mô hình viết lại.";
 "Speech speed" = "Tốc độ giọng nói";
 "Speed" = "Tốc độ";
+"Star on GitHub" = "Gắn sao trên GitHub";
 "Start" = "Bắt đầu";
 "Start (seconds)" = "Bắt đầu (giây)";
 "Start Dictation" = "Bắt đầu đọc chính tả";
@@ -973,7 +985,7 @@
 "These are captured window titles. Expand a title to inspect the activity behind it." = "Đây là tiêu đề cửa sổ đã ghi lại. Mở rộng tiêu đề để xem hoạt động phía sau.";
 "These choices are applied on the final Review step." = "Các lựa chọn này được áp dụng ở bước Xem lại cuối cùng.";
 "Think" = "Suy nghĩ";
-"Think may send meeting transcripts, screen text, Agent context, and inherited dictation requests to this server when you use those features. Scheduled daily summaries and overnight review also run here and can send activity titles, captured screen text, meeting evidence, and retained Dream memory without a prompt each time." = "Suy nghĩ có thể gửi bản chép lời cuộc họp, văn bản màn hình, ngữ cảnh tác nhân và yêu cầu đọc chính tả được kế thừa đến máy chủ này khi bạn dùng các tính năng đó. Tóm tắt hằng ngày theo lịch và đánh giá qua đêm cũng chạy tại đây, có thể gửi tiêu đề hoạt động, văn bản màn hình đã ghi, bằng chứng cuộc họp và bộ nhớ Dream được giữ lại mà không hỏi mỗi lần.";
+"Think may send meeting transcripts, screen text, what you told Ask to remember about you, Agent context, and inherited dictation requests to this server when you use those features. Scheduled daily summaries and overnight review also run here and can send activity titles, captured screen text, meeting evidence, and retained Dream memory without a prompt each time." = "Suy nghĩ có thể gửi bản chép lời cuộc họp, văn bản màn hình, những điều bạn đã bảo Hỏi ghi nhớ về bạn, ngữ cảnh tác nhân và yêu cầu đọc chính tả được kế thừa đến máy chủ này khi bạn dùng các tính năng đó. Tóm tắt hằng ngày theo lịch và đánh giá qua đêm cũng chạy tại đây, có thể gửi tiêu đề hoạt động, văn bản màn hình đã ghi, bằng chứng cuộc họp và bộ nhớ Dream được giữ lại mà không hỏi mỗi lần.";
 "Think model" = "Mô hình Suy nghĩ";
 "Think model backend" = "Nền xử lý mô hình Suy nghĩ";
 "Think processing budget" = "Ngân sách xử lý Suy nghĩ";
@@ -1093,6 +1105,7 @@
 "Workspace navigation" = "Điều hướng không gian làm việc";
 "Write" = "Viết";
 "Writes one unencrypted Markdown file per day with the digest, meeting links, app time, and saved moments. A day missed while your Mac was asleep is written later. Existing non-LokalBot content is never overwritten." = "Ghi một tệp Markdown không mã hóa mỗi ngày gồm bản tổng hợp, liên kết cuộc họp, thời gian dùng ứng dụng và khoảnh khắc đã lưu. Ngày bị bỏ lỡ khi Mac ngủ sẽ được ghi sau. Không bao giờ ghi đè nội dung hiện có không thuộc LokalBot.";
+"Writes one unencrypted Markdown note per meeting, including meetings already recorded, to a folder you choose, such as an Obsidian vault. Each note has the summary, action items as you corrected them, and the people and tracked projects involved. A note you edit, move, or delete is yours: LokalBot leaves it alone." = "Ghi một ghi chú Markdown không mã hóa cho mỗi cuộc họp, kể cả các cuộc họp đã ghi âm, vào thư mục bạn chọn, chẳng hạn như kho Obsidian. Mỗi ghi chú gồm bản tóm tắt, các hành động theo những chỉnh sửa của bạn, cùng những người và dự án được theo dõi có liên quan. Ghi chú bạn sửa, di chuyển hoặc xóa là của bạn: LokalBot không động đến nó.";
 "Writes the Timeline digest to your local journal at the chosen time, then finalizes yesterday after midnight so late activity is included." = "Ghi bản tổng hợp Dòng thời gian vào nhật ký cục bộ lúc đã chọn, rồi hoàn tất ngày hôm qua sau nửa đêm để gồm cả hoạt động muộn.";
 "Writing" = "Viết";
 "Writing for the focused app" = "Đang viết cho ứng dụng được chọn";
@@ -1154,6 +1167,15 @@
 "Your subscription" = "Gói đăng ký của bạn";
 "Server" = "Máy chủ";
 "In use" = "Đang dùng";
+"About you" = "Về bạn";
+"Remember what I tell Ask" = "Ghi nhớ những gì tôi nói với Hỏi";
+"Remembered" = "Đã ghi nhớ";
+"Not remembered" = "Không được ghi nhớ";
+"Share with agents" = "Chia sẻ với tác nhân";
+"Share with Agents" = "Chia sẻ với tác nhân";
+"Stop Sharing with Agents" = "Ngừng chia sẻ với tác nhân";
+"Allow external agents to read what I shared about myself" = "Cho phép tác nhân bên ngoài đọc những gì tôi đã chia sẻ về bản thân";
+"Choose items…" = "Chọn mục…";
 "Statistics" = "Thống kê";
 "Autocomplete statistics" = "Thống kê tự động hoàn thành";
 "Period" = "Khoảng thời gian";
@@ -1195,6 +1217,10 @@
 "Clear Statistics" = "Xóa thống kê";
 "Deletes the daily and monthly counts. Usage and timing measurements are kept." = "Xóa số đếm hằng ngày và hằng tháng. Giữ lại số đo sử dụng và thời gian.";
 "Counted on this Mac while you type in other apps: suggestions shown and accepted, the characters you type yourself where autocomplete works, and the pauses between them, by day, kind of app and model. No text, app names or window titles are kept. Time saved is the keystrokes you did not type at your measured speed, not counting time spent reading suggestions." = "Được đếm trên Mac này khi bạn gõ trong ứng dụng khác: gợi ý hiển thị và được chấp nhận, ký tự bạn tự gõ nơi tự động hoàn thành hoạt động và khoảng nghỉ giữa chúng, theo ngày, loại ứng dụng và mô hình. Không giữ văn bản, tên ứng dụng hay tiêu đề cửa sổ. Thời gian tiết kiệm là số lần gõ được tránh tính theo tốc độ đã đo, không tính thời gian đọc gợi ý.";
+"Learn about me from my meetings and work" = "Tìm hiểu về tôi từ các cuộc họp và công việc của tôi";
+"Learn from my dictation" = "Học từ nội dung đọc chính tả của tôi";
+"Keep" = "Giữ";
+"Keep Even If the Meeting Is Deleted" = "Giữ lại ngay cả khi cuộc họp bị xóa";
 "CPU" = "CPU";
 "Memory" = "Bộ nhớ";
 "Models loaded" = "Mô hình đã nạp";
@@ -1203,6 +1229,8 @@
 "%@ of RAM" = "%@ RAM";
 "Updates every 2 seconds and counts LokalBot and its helpers. External Ollama and Apple Intelligence models aren't counted." = "Cập nhật mỗi 2 giây và tính LokalBot cùng tiến trình trợ giúp. Không tính mô hình Ollama bên ngoài và Apple Intelligence.";
 "Diagnostics include logs, health reports, settings without secrets, and library counts. Never meeting audio, transcripts, notes, or screenshots." = "Chẩn đoán gồm nhật ký, báo cáo tình trạng, cài đặt không chứa bí mật và số lượng mục thư viện. Không bao giờ gồm âm thanh cuộc họp, bản chép lời, ghi chú hay ảnh chụp màn hình.";
+"Keep Even If the Conversation Is Deleted" = "Giữ lại ngay cả khi cuộc trò chuyện bị xóa";
+"Keep Even If the Source Is Deleted" = "Giữ lại ngay cả khi nguồn bị xóa";
 "Autocomplete server" = "Máy chủ tự động hoàn thành";
 "Think's server" = "Máy chủ Suy nghĩ";
 "Another server" = "Máy chủ khác";

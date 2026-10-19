@@ -4,6 +4,7 @@
 "2. Review action owners" = "2. Tinjau penanggung jawab tindakan";
 "A domain excludes its subdomains too. A URL with a path excludes that URL prefix. Existing rules are kept until you remove them." = "Domain juga mengecualikan subdomainnya. URL dengan jalur mengecualikan semua URL yang diawali prefiks tersebut. Aturan yang ada tetap berlaku sampai Anda menghapusnya.";
 "A newly granted permission may require a relaunch. Finish setup first; relaunch from Settings if the feature remains unavailable." = "Izin yang baru diberikan mungkin memerlukan peluncuran ulang. Selesaikan penyiapan dahulu; luncurkan ulang dari Pengaturan jika fitur masih tidak tersedia.";
+"About" = "Tentang";
 "Accept next" = "Terima bagian berikutnya";
 "Accept punctuation with the word" = "Terima tanda baca bersama kata";
 "Accepted" = "Diterima";
@@ -58,6 +59,7 @@
 "All retained history" = "Semua riwayat yang disimpan";
 "All three core models will run on this Mac." = "Ketiga model inti akan berjalan di Mac ini.";
 "Allow Once" = "Izinkan Sekali";
+"Allow external agents to change LokalBot settings" = "Izinkan agen eksternal mengubah pengaturan LokalBot";
 "Allow external agents to read screen memory" = "Izinkan agen eksternal membaca memori layar";
 "Allow external agents to read your meeting library" = "Izinkan agen eksternal membaca pustaka rapat Anda";
 "Allow multi-line suggestions" = "Izinkan saran beberapa baris";
@@ -161,6 +163,7 @@
 "Choose actions to change together" = "Pilih tindakan untuk diubah bersama";
 "Choose daily memory export folder" = "Pilih folder ekspor memori harian";
 "Choose day" = "Pilih hari";
+"Choose meeting note export folder" = "Pilih folder ekspor catatan rapat";
 "Choose routine output folder" = "Pilih folder keluaran rutinitas";
 "Choose sources and result filters" = "Pilih sumber dan filter hasil";
 "Choose sources to include with your next message. Screen pixels are never attached." = "Pilih sumber yang akan disertakan dengan pesan berikutnya. Piksel layar tidak pernah dilampirkan.";
@@ -333,10 +336,12 @@
 "Export Diagnostics…" = "Ekspor Diagnostik…";
 "Export Markdown" = "Ekspor Markdown";
 "Export a daily memory note" = "Ekspor catatan memori harian";
+"Export a note for each meeting" = "Ekspor catatan untuk setiap rapat";
 "Export result" = "Ekspor hasil";
 "External agents" = "Agen eksternal";
 "External meeting access" = "Akses rapat eksternal";
 "External screen access" = "Akses layar eksternal";
+"External settings access" = "Akses pengaturan eksternal";
 "Failed" = "Gagal";
 "Feature" = "Fitur";
 "Files…" = "File…";
@@ -412,6 +417,7 @@
 "Images to remove" = "Gambar yang akan dihapus";
 "In progress" = "Sedang berjalan";
 "Include saved moments" = "Sertakan momen tersimpan";
+"Include the transcript" = "Sertakan transkrip";
 "Includes scheduled daily summaries and overnight review, which can send activity titles, captured screen text, meeting evidence, and retained Dream memory to this origin without a prompt each time." = "Mencakup ringkasan harian terjadwal dan tinjauan malam, yang dapat mengirim judul aktivitas, teks layar yang ditangkap, bukti rapat, dan memori Dream yang disimpan ke asal ini tanpa meminta izin setiap kali.";
 "Increase Text Size" = "Perbesar Ukuran Teks";
 "Input Monitoring" = "Pemantauan Input";
@@ -453,6 +459,7 @@
 "Legacy rule · review" = "Aturan lama · tinjau";
 "Lets MCP clients and the lokalbot-cli skill (Claude, Cursor, …) list, read, search, and ask about your meetings — read-only and localhost only. Off by default." = "Memungkinkan klien MCP dan skill lokalbot-cli (Claude, Cursor, …) membuat daftar, membaca, mencari, dan bertanya tentang rapat Anda — hanya baca dan hanya melalui localhost. Nonaktif secara bawaan.";
 "Lets dictation and cotyping detect their global keyboard shortcuts." = "Memungkinkan dikte dan pengetikan berbantuan mendeteksi pintasan keyboard globalnya.";
+"Lets lokalbot-cli read your settings and app status, open Settings at a setting, and start LokalBot in the background. Separate from the other agent access toggles. Off by default." = "Memungkinkan lokalbot-cli membaca pengaturan dan status aplikasi Anda, membuka Pengaturan pada pengaturan tertentu, dan memulai LokalBot di latar belakang. Terpisah dari sakelar akses agen lainnya. Nonaktif secara bawaan.";
 "Library" = "Pustaka";
 "Library location" = "Lokasi pustaka";
 "Light" = "Terang";
@@ -472,6 +479,7 @@
 "Local models process on this Mac. Each remote server requires its own approval before context can leave the Mac." = "Model lokal memproses di Mac ini. Setiap server jarak jauh memerlukan persetujuannya sendiri sebelum konteks dapat meninggalkan Mac.";
 "Logs, health reports, settings without secrets, and library counts. Never meeting audio, transcripts, notes, or screenshots." = "Log, laporan kesehatan, pengaturan tanpa rahasia, dan jumlah item pustaka. Tidak pernah mencakup audio rapat, transkrip, catatan, atau tangkapan layar.";
 "LokalBot detects meeting apps automatically, or start a recording now." = "LokalBot mendeteksi aplikasi rapat secara otomatis, atau mulai rekaman sekarang.";
+"LokalBot is free and built by one person. A GitHub star helps others find it." = "LokalBot gratis dan dibuat oleh satu orang. Bintang di GitHub membantu orang lain menemukannya.";
 "LokalBot manages this model and rebuilds the local index when it changes." = "LokalBot mengelola model ini dan membangun ulang indeks lokal saat model berubah.";
 "LokalBot never sends this. Copy it into your mail or chat app to send it yourself." = "LokalBot tidak pernah mengirim ini. Salin ke aplikasi email atau percakapan untuk mengirimnya sendiri.";
 "Looks done?" = "Sepertinya selesai?";
@@ -505,6 +513,7 @@
 "Meeting details" = "Detail rapat";
 "Meeting library" = "Pustaka rapat";
 "Meeting models" = "Model rapat";
+"Meeting note export" = "Ekspor catatan rapat";
 "Meeting notes" = "Catatan rapat";
 "Meeting notes, transcripts, and actions will look like this." = "Catatan rapat, transkrip, dan tindakan akan terlihat seperti ini.";
 "Meeting playback" = "Pemutaran rapat";
@@ -581,6 +590,7 @@
 "No transcript speakers are available yet." = "Belum ada pembicara transkrip yang tersedia.";
 "None yet" = "Belum ada";
 "Not connected" = "Tidak terhubung";
+"Not now" = "Nanti saja";
 "Not Yet" = "Belum";
 "Not ready" = "Belum siap";
 "Not recording" = "Tidak merekam";
@@ -625,6 +635,7 @@
 "Open in results" = "Buka di hasil";
 "Open latest meeting" = "Buka rapat terakhir";
 "Open meeting" = "Buka rapat";
+"Open source" = "Sumber terbuka";
 "Open the current recording" = "Buka rekaman saat ini";
 "Open this capture in Timeline" = "Buka tangkapan ini di Linimasa";
 "Open this moment in Timeline" = "Buka momen ini di Linimasa";
@@ -906,6 +917,7 @@
 "Speech recognition runs on this Mac. No screen context or rewrite model is used." = "Pengenalan ucapan berjalan di Mac ini. Tidak menggunakan konteks layar atau model penulisan ulang.";
 "Speech speed" = "Kecepatan ucapan";
 "Speed" = "Kecepatan";
+"Star on GitHub" = "Beri Bintang di GitHub";
 "Start" = "Mulai";
 "Start (seconds)" = "Awal (detik)";
 "Start Dictation" = "Mulai Dikte";
@@ -973,7 +985,7 @@
 "These are captured window titles. Expand a title to inspect the activity behind it." = "Ini adalah judul jendela yang ditangkap. Luaskan judul untuk memeriksa aktivitas di baliknya.";
 "These choices are applied on the final Review step." = "Pilihan ini diterapkan pada langkah Tinjau terakhir.";
 "Think" = "Pikirkan";
-"Think may send meeting transcripts, screen text, Agent context, and inherited dictation requests to this server when you use those features. Scheduled daily summaries and overnight review also run here and can send activity titles, captured screen text, meeting evidence, and retained Dream memory without a prompt each time." = "Pikirkan dapat mengirim transkrip rapat, teks layar, konteks Agen, dan permintaan dikte yang diwarisi ke server ini saat Anda menggunakan fitur tersebut. Ringkasan harian terjadwal dan tinjauan malam juga berjalan di sini dan dapat mengirim judul aktivitas, teks layar yang ditangkap, bukti rapat, dan memori Dream yang disimpan tanpa meminta izin setiap kali.";
+"Think may send meeting transcripts, screen text, what you told Ask to remember about you, Agent context, and inherited dictation requests to this server when you use those features. Scheduled daily summaries and overnight review also run here and can send activity titles, captured screen text, meeting evidence, and retained Dream memory without a prompt each time." = "Pikirkan dapat mengirim transkrip rapat, teks layar, hal tentang Anda yang Anda minta agar diingat oleh Tanya, konteks Agen, dan permintaan dikte yang diwarisi ke server ini saat Anda menggunakan fitur tersebut. Ringkasan harian terjadwal dan tinjauan malam juga berjalan di sini dan dapat mengirim judul aktivitas, teks layar yang ditangkap, bukti rapat, dan memori Dream yang disimpan tanpa meminta izin setiap kali.";
 "Think model" = "Model Pikirkan";
 "Think model backend" = "Backend model Pikirkan";
 "Think processing budget" = "Anggaran pemrosesan Pikirkan";
@@ -1093,6 +1105,7 @@
 "Workspace navigation" = "Navigasi ruang kerja";
 "Write" = "Tulis";
 "Writes one unencrypted Markdown file per day with the digest, meeting links, app time, and saved moments. A day missed while your Mac was asleep is written later. Existing non-LokalBot content is never overwritten." = "Menulis satu file Markdown tanpa enkripsi per hari berisi ringkasan, tautan rapat, waktu penggunaan aplikasi, dan momen tersimpan. Hari yang terlewat saat Mac tidur akan ditulis kemudian. Konten yang sudah ada dan bukan dari LokalBot tidak pernah ditimpa.";
+"Writes one unencrypted Markdown note per meeting, including meetings already recorded, to a folder you choose, such as an Obsidian vault. Each note has the summary, action items as you corrected them, and the people and tracked projects involved. A note you edit, move, or delete is yours: LokalBot leaves it alone." = "Menulis satu catatan Markdown tanpa enkripsi per rapat, termasuk rapat yang sudah direkam, ke folder pilihan Anda, seperti vault Obsidian. Setiap catatan berisi ringkasan, tindakan sesuai koreksi Anda, serta orang dan proyek terlacak yang terlibat. Catatan yang Anda edit, pindahkan, atau hapus adalah milik Anda: LokalBot tidak akan menyentuhnya.";
 "Writes the Timeline digest to your local journal at the chosen time, then finalizes yesterday after midnight so late activity is included." = "Menulis ringkasan Linimasa ke jurnal lokal pada waktu yang dipilih, lalu menyelesaikan hari kemarin setelah tengah malam agar aktivitas larut tetap disertakan.";
 "Writing" = "Menulis";
 "Writing for the focused app" = "Menulis untuk aplikasi aktif";
@@ -1154,6 +1167,15 @@
 "Your subscription" = "Langganan Anda";
 "Server" = "Server";
 "In use" = "Sedang digunakan";
+"About you" = "Tentang Anda";
+"Remember what I tell Ask" = "Ingat hal yang saya sampaikan ke Tanya";
+"Remembered" = "Diingat";
+"Not remembered" = "Tidak diingat";
+"Share with agents" = "Bagikan dengan agen";
+"Share with Agents" = "Bagikan dengan Agen";
+"Stop Sharing with Agents" = "Berhenti Berbagi dengan Agen";
+"Allow external agents to read what I shared about myself" = "Izinkan agen eksternal membaca hal yang saya bagikan tentang diri saya";
+"Choose items…" = "Pilih item…";
 "Statistics" = "Statistik";
 "Autocomplete statistics" = "Statistik pelengkapan otomatis";
 "Period" = "Periode";
@@ -1195,6 +1217,10 @@
 "Clear Statistics" = "Hapus Statistik";
 "Deletes the daily and monthly counts. Usage and timing measurements are kept." = "Menghapus jumlah harian dan bulanan. Pengukuran penggunaan dan waktu tetap disimpan.";
 "Counted on this Mac while you type in other apps: suggestions shown and accepted, the characters you type yourself where autocomplete works, and the pauses between them, by day, kind of app and model. No text, app names or window titles are kept. Time saved is the keystrokes you did not type at your measured speed, not counting time spent reading suggestions." = "Dihitung di Mac ini saat Anda mengetik di aplikasi lain: saran yang ditampilkan dan diterima, karakter yang Anda ketik sendiri saat pelengkapan otomatis bekerja, serta jeda di antaranya, berdasarkan hari, jenis aplikasi, dan model. Tidak ada teks, nama aplikasi, atau judul jendela yang disimpan. Waktu yang dihemat adalah penekanan tombol yang tidak Anda ketik pada kecepatan terukur Anda, tanpa menghitung waktu membaca saran.";
+"Learn about me from my meetings and work" = "Pelajari tentang saya dari rapat dan pekerjaan saya";
+"Learn from my dictation" = "Belajar dari dikte saya";
+"Keep" = "Simpan";
+"Keep Even If the Meeting Is Deleted" = "Tetap Simpan Meski Rapat Dihapus";
 "CPU" = "CPU";
 "Memory" = "Memori";
 "Models loaded" = "Model dimuat";
@@ -1203,6 +1229,8 @@
 "%@ of RAM" = "%@ RAM";
 "Updates every 2 seconds and counts LokalBot and its helpers. External Ollama and Apple Intelligence models aren't counted." = "Diperbarui setiap 2 detik dan menghitung LokalBot serta alat bantunya. Model Ollama eksternal dan Apple Intelligence tidak dihitung.";
 "Diagnostics include logs, health reports, settings without secrets, and library counts. Never meeting audio, transcripts, notes, or screenshots." = "Diagnostik mencakup log, laporan kesehatan, pengaturan tanpa rahasia, dan jumlah item pustaka. Tidak pernah mencakup audio rapat, transkrip, catatan, atau tangkapan layar.";
+"Keep Even If the Conversation Is Deleted" = "Tetap Simpan Meski Percakapan Dihapus";
+"Keep Even If the Source Is Deleted" = "Tetap Simpan Meski Sumber Dihapus";
 "Autocomplete server" = "Server pelengkapan otomatis";
 "Think's server" = "Server Pikirkan";
 "Another server" = "Server lain";

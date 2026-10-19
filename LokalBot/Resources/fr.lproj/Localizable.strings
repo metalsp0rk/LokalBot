@@ -4,6 +4,7 @@
 "2. Review action owners" = "2. Vérifier les responsables des actions";
 "A domain excludes its subdomains too. A URL with a path excludes that URL prefix. Existing rules are kept until you remove them." = "Un domaine exclut aussi ses sous-domaines. Une URL avec un chemin exclut toutes les URL commençant par ce préfixe. Les règles existantes restent en place jusqu’à leur suppression.";
 "A newly granted permission may require a relaunch. Finish setup first; relaunch from Settings if the feature remains unavailable." = "Une autorisation nouvellement accordée peut nécessiter un redémarrage. Terminez d’abord la configuration ; relancez l’app depuis les réglages si la fonction reste indisponible.";
+"About" = "À propos";
 "Accept next" = "Accepter la suite";
 "Accept punctuation with the word" = "Accepter la ponctuation avec le mot";
 "Accepted" = "Accepté";
@@ -58,6 +59,7 @@
 "All retained history" = "Tout l’historique conservé";
 "All three core models will run on this Mac." = "Les trois modèles principaux fonctionneront sur ce Mac.";
 "Allow Once" = "Autoriser une fois";
+"Allow external agents to change LokalBot settings" = "Autoriser les agents externes à modifier les réglages de LokalBot";
 "Allow external agents to read screen memory" = "Autoriser les agents externes à lire la mémoire d’écran";
 "Allow external agents to read your meeting library" = "Autoriser les agents externes à lire votre bibliothèque de réunions";
 "Allow multi-line suggestions" = "Autoriser les suggestions sur plusieurs lignes";
@@ -161,6 +163,7 @@
 "Choose actions to change together" = "Choisir les actions à modifier ensemble";
 "Choose daily memory export folder" = "Choisir le dossier d’export de la mémoire quotidienne";
 "Choose day" = "Choisir le jour";
+"Choose meeting note export folder" = "Choisir le dossier d’export des notes de réunion";
 "Choose routine output folder" = "Choisir le dossier de sortie des routines";
 "Choose sources and result filters" = "Choisir les sources et les filtres de résultats";
 "Choose sources to include with your next message. Screen pixels are never attached." = "Choisissez les sources à inclure dans votre prochain message. Les images d’écran ne sont jamais jointes.";
@@ -333,10 +336,12 @@
 "Export Diagnostics…" = "Exporter les diagnostics…";
 "Export Markdown" = "Exporter en Markdown";
 "Export a daily memory note" = "Exporter une note de mémoire quotidienne";
+"Export a note for each meeting" = "Exporter une note pour chaque réunion";
 "Export result" = "Exporter le résultat";
 "External agents" = "Agents externes";
 "External meeting access" = "Accès externe aux réunions";
 "External screen access" = "Accès externe aux écrans";
+"External settings access" = "Accès externe aux réglages";
 "Failed" = "Échec";
 "Feature" = "Fonction";
 "Files…" = "Fichiers…";
@@ -412,6 +417,7 @@
 "Images to remove" = "Images à supprimer";
 "In progress" = "En cours";
 "Include saved moments" = "Inclure les moments enregistrés";
+"Include the transcript" = "Inclure la transcription";
 "Includes scheduled daily summaries and overnight review, which can send activity titles, captured screen text, meeting evidence, and retained Dream memory to this origin without a prompt each time." = "Inclut les résumés quotidiens programmés et l’analyse nocturne, qui peuvent envoyer les titres d’activité, le texte d’écran capturé, les éléments des réunions et la mémoire Dream conservée à cette origine sans demander à chaque fois.";
 "Increase Text Size" = "Agrandir le texte";
 "Input Monitoring" = "Surveillance de l’entrée";
@@ -453,6 +459,7 @@
 "Legacy rule · review" = "Ancienne règle · à vérifier";
 "Lets MCP clients and the lokalbot-cli skill (Claude, Cursor, …) list, read, search, and ask about your meetings — read-only and localhost only. Off by default." = "Permet aux clients MCP et à la compétence lokalbot-cli (Claude, Cursor, …) de lister, lire, rechercher et interroger vos réunions — en lecture seule et uniquement via localhost. Désactivé par défaut.";
 "Lets dictation and cotyping detect their global keyboard shortcuts." = "Permet à la dictée et à la saisie assistée de détecter leurs raccourcis clavier globaux.";
+"Lets lokalbot-cli read your settings and app status, open Settings at a setting, and start LokalBot in the background. Separate from the other agent access toggles. Off by default." = "Permet à lokalbot-cli de lire vos réglages et l’état de l’app, d’ouvrir les réglages sur un réglage précis et de démarrer LokalBot en arrière-plan. Indépendant des autres options d’accès des agents. Désactivé par défaut.";
 "Library" = "Bibliothèque";
 "Library location" = "Emplacement de la bibliothèque";
 "Light" = "Clair";
@@ -472,6 +479,7 @@
 "Local models process on this Mac. Each remote server requires its own approval before context can leave the Mac." = "Les modèles locaux traitent les données sur ce Mac. Chaque serveur distant nécessite une approbation distincte avant que du contexte puisse quitter le Mac.";
 "Logs, health reports, settings without secrets, and library counts. Never meeting audio, transcripts, notes, or screenshots." = "Journaux, rapports d’état, réglages sans secrets et statistiques de la bibliothèque. Jamais d’audio de réunion, de transcription, de notes ni de captures d’écran.";
 "LokalBot detects meeting apps automatically, or start a recording now." = "LokalBot détecte automatiquement les apps de réunion ; vous pouvez aussi lancer un enregistrement maintenant.";
+"LokalBot is free and built by one person. A GitHub star helps others find it." = "LokalBot est gratuit et développé par une seule personne. Une étoile sur GitHub aide d’autres personnes à le découvrir.";
 "LokalBot manages this model and rebuilds the local index when it changes." = "LokalBot gère ce modèle et reconstruit l’index local lorsqu’il change.";
 "LokalBot never sends this. Copy it into your mail or chat app to send it yourself." = "LokalBot n’envoie jamais ce contenu. Copiez-le dans votre app de messagerie pour l’envoyer vous-même.";
 "Looks done?" = "Cela semble terminé ?";
@@ -505,6 +513,7 @@
 "Meeting details" = "Détails de la réunion";
 "Meeting library" = "Bibliothèque de réunions";
 "Meeting models" = "Modèles de réunion";
+"Meeting note export" = "Export des notes de réunion";
 "Meeting notes" = "Notes de réunion";
 "Meeting notes, transcripts, and actions will look like this." = "Voici l’apparence des notes, transcriptions et actions des réunions.";
 "Meeting playback" = "Lecture de la réunion";
@@ -581,6 +590,7 @@
 "No transcript speakers are available yet." = "Aucun intervenant de la transcription n’est encore disponible.";
 "None yet" = "Aucun pour l’instant";
 "Not connected" = "Non connecté";
+"Not now" = "Pas maintenant";
 "Not Yet" = "Pas encore";
 "Not ready" = "Pas prêt";
 "Not recording" = "Aucun enregistrement en cours";
@@ -625,6 +635,7 @@
 "Open in results" = "Ouvrir dans les résultats";
 "Open latest meeting" = "Ouvrir la dernière réunion";
 "Open meeting" = "Ouvrir la réunion";
+"Open source" = "Open source";
 "Open the current recording" = "Ouvrir l’enregistrement en cours";
 "Open this capture in Timeline" = "Ouvrir cette capture dans Chronologie";
 "Open this moment in Timeline" = "Ouvrir ce moment dans Chronologie";
@@ -906,6 +917,7 @@
 "Speech recognition runs on this Mac. No screen context or rewrite model is used." = "La reconnaissance vocale s’exécute sur ce Mac. Aucun contexte d’écran ni modèle de réécriture n’est utilisé.";
 "Speech speed" = "Vitesse de la voix";
 "Speed" = "Vitesse";
+"Star on GitHub" = "Ajouter une étoile sur GitHub";
 "Start" = "Démarrer";
 "Start (seconds)" = "Début (secondes)";
 "Start Dictation" = "Démarrer la dictée";
@@ -973,7 +985,7 @@
 "These are captured window titles. Expand a title to inspect the activity behind it." = "Il s’agit des titres de fenêtres capturés. Dépliez un titre pour consulter l’activité correspondante.";
 "These choices are applied on the final Review step." = "Ces choix s’appliquent lors de l’étape finale de vérification.";
 "Think" = "Réfléchir";
-"Think may send meeting transcripts, screen text, Agent context, and inherited dictation requests to this server when you use those features. Scheduled daily summaries and overnight review also run here and can send activity titles, captured screen text, meeting evidence, and retained Dream memory without a prompt each time." = "La fonction Réfléchir peut envoyer à ce serveur les transcriptions de réunions, le texte d’écran, le contexte de l’agent et les demandes de dictée héritées lorsque vous utilisez ces fonctions. Les résumés quotidiens programmés et l’analyse nocturne s’exécutent aussi ici et peuvent envoyer les titres d’activité, le texte d’écran capturé, les éléments des réunions et la mémoire Dream conservée sans demander à chaque fois.";
+"Think may send meeting transcripts, screen text, what you told Ask to remember about you, Agent context, and inherited dictation requests to this server when you use those features. Scheduled daily summaries and overnight review also run here and can send activity titles, captured screen text, meeting evidence, and retained Dream memory without a prompt each time." = "La fonction Réfléchir peut envoyer à ce serveur les transcriptions de réunions, le texte d’écran, ce que vous avez dit à Demander de mémoriser à votre sujet, le contexte de l’agent et les demandes de dictée héritées lorsque vous utilisez ces fonctions. Les résumés quotidiens programmés et l’analyse nocturne s’exécutent aussi ici et peuvent envoyer les titres d’activité, le texte d’écran capturé, les éléments des réunions et la mémoire Dream conservée sans demander à chaque fois.";
 "Think model" = "Modèle de réflexion";
 "Think model backend" = "Moteur du modèle de réflexion";
 "Think processing budget" = "Budget de traitement de la réflexion";
@@ -1093,6 +1105,7 @@
 "Workspace navigation" = "Navigation de l’espace de travail";
 "Write" = "Écrire";
 "Writes one unencrypted Markdown file per day with the digest, meeting links, app time, and saved moments. A day missed while your Mac was asleep is written later. Existing non-LokalBot content is never overwritten." = "Écrit un fichier Markdown non chiffré par jour contenant la synthèse, les liens des réunions, le temps par app et les moments enregistrés. Une journée manquée pendant la veille du Mac est écrite plus tard. Le contenu existant ne provenant pas de LokalBot n’est jamais écrasé.";
+"Writes one unencrypted Markdown note per meeting, including meetings already recorded, to a folder you choose, such as an Obsidian vault. Each note has the summary, action items as you corrected them, and the people and tracked projects involved. A note you edit, move, or delete is yours: LokalBot leaves it alone." = "Écrit une note Markdown non chiffrée par réunion, y compris pour les réunions déjà enregistrées, dans un dossier de votre choix, comme un coffre Obsidian. Chaque note contient le résumé, les actions telles que vous les avez corrigées, ainsi que les personnes et les projets suivis concernés. Une note que vous modifiez, déplacez ou supprimez vous appartient : LokalBot n’y touche pas.";
 "Writes the Timeline digest to your local journal at the chosen time, then finalizes yesterday after midnight so late activity is included." = "Écrit la synthèse de la chronologie dans votre journal local à l’heure choisie, puis finalise la veille après minuit pour inclure l’activité tardive.";
 "Writing" = "Écriture";
 "Writing for the focused app" = "Rédaction pour l’app active";
@@ -1154,6 +1167,15 @@
 "Your subscription" = "Votre abonnement";
 "Server" = "Serveur";
 "In use" = "En cours d’utilisation";
+"About you" = "À propos de vous";
+"Remember what I tell Ask" = "Mémoriser ce que je dis à Demander";
+"Remembered" = "Mémorisé";
+"Not remembered" = "Non mémorisé";
+"Share with agents" = "Partager avec les agents";
+"Share with Agents" = "Partager avec les agents";
+"Stop Sharing with Agents" = "Ne plus partager avec les agents";
+"Allow external agents to read what I shared about myself" = "Autoriser les agents externes à lire ce que j’ai partagé sur moi";
+"Choose items…" = "Choisir les éléments…";
 "Statistics" = "Statistiques";
 "Autocomplete statistics" = "Statistiques de saisie prédictive";
 "Period" = "Période";
@@ -1195,6 +1217,10 @@
 "Clear Statistics" = "Effacer les statistiques";
 "Deletes the daily and monthly counts. Usage and timing measurements are kept." = "Supprime les compteurs quotidiens et mensuels. Les mesures d’utilisation et de temps sont conservées.";
 "Counted on this Mac while you type in other apps: suggestions shown and accepted, the characters you type yourself where autocomplete works, and the pauses between them, by day, kind of app and model. No text, app names or window titles are kept. Time saved is the keystrokes you did not type at your measured speed, not counting time spent reading suggestions." = "Comptabilisé sur ce Mac pendant votre saisie dans d’autres apps : les suggestions affichées et acceptées, les caractères que vous tapez vous-même là où la saisie prédictive fonctionne et les pauses entre eux, par jour, type d’app et modèle. Aucun texte, nom d’app ni titre de fenêtre n’est conservé. Le temps gagné correspond aux frappes évitées à votre vitesse mesurée, sans compter le temps passé à lire les suggestions.";
+"Learn about me from my meetings and work" = "Apprendre à me connaître à partir de mes réunions et de mon travail";
+"Learn from my dictation" = "Apprendre de mes dictées";
+"Keep" = "Conserver";
+"Keep Even If the Meeting Is Deleted" = "Conserver même si la réunion est supprimée";
 "CPU" = "CPU";
 "Memory" = "Mémoire";
 "Models loaded" = "Modèles chargés";
@@ -1203,6 +1229,8 @@
 "%@ of RAM" = "%@ de RAM";
 "Updates every 2 seconds and counts LokalBot and its helpers. External Ollama and Apple Intelligence models aren't counted." = "Actualisation toutes les 2 secondes, incluant LokalBot et ses processus auxiliaires. Les modèles externes Ollama et Apple Intelligence ne sont pas comptabilisés.";
 "Diagnostics include logs, health reports, settings without secrets, and library counts. Never meeting audio, transcripts, notes, or screenshots." = "Les diagnostics incluent les journaux, les rapports d’état, les réglages sans secrets et les statistiques de la bibliothèque. Jamais d’audio de réunion, de transcription, de notes ni de captures d’écran.";
+"Keep Even If the Conversation Is Deleted" = "Conserver même si la conversation est supprimée";
+"Keep Even If the Source Is Deleted" = "Conserver même si la source est supprimée";
 "Autocomplete server" = "Serveur de saisie prédictive";
 "Think's server" = "Serveur de réflexion";
 "Another server" = "Autre serveur";

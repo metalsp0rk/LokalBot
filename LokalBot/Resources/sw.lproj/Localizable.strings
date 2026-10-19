@@ -4,6 +4,7 @@
 "2. Review action owners" = "2. Kagua wanaohusika na hatua";
 "A domain excludes its subdomains too. A URL with a path excludes that URL prefix. Existing rules are kept until you remove them." = "Ukiondoa kikoa, vikoa vyake vidogo pia huondolewa. URL yenye njia huondoa URL zote zinazoanza na kiambishi hicho. Kanuni zilizopo hubaki hadi uziondoe.";
 "A newly granted permission may require a relaunch. Finish setup first; relaunch from Settings if the feature remains unavailable." = "Ruhusa mpya inaweza kuhitaji ufungue programu upya. Maliza usanidi kwanza; fungua upya kupitia Mipangilio ikiwa kipengele bado hakipatikani.";
+"About" = "Kuhusu";
 "Accept next" = "Kubali inayofuata";
 "Accept punctuation with the word" = "Kubali alama ya uandishi pamoja na neno";
 "Accepted" = "Imekubaliwa";
@@ -58,6 +59,7 @@
 "All retained history" = "Historia yote iliyohifadhiwa";
 "All three core models will run on this Mac." = "Modeli zote tatu kuu zitaendeshwa kwenye Mac hii.";
 "Allow Once" = "Ruhusu Mara Moja";
+"Allow external agents to change LokalBot settings" = "Ruhusu mawakala wa nje wabadilishe mipangilio ya LokalBot";
 "Allow external agents to read screen memory" = "Ruhusu mawakala wa nje wasome kumbukumbu ya skrini";
 "Allow external agents to read your meeting library" = "Ruhusu mawakala wa nje wasome maktaba yako ya mikutano";
 "Allow multi-line suggestions" = "Ruhusu mapendekezo ya mistari mingi";
@@ -161,6 +163,7 @@
 "Choose actions to change together" = "Chagua hatua za kubadilisha pamoja";
 "Choose daily memory export folder" = "Chagua folda ya kuhamishia kumbukumbu za kila siku";
 "Choose day" = "Chagua siku";
+"Choose meeting note export folder" = "Chagua folda ya kuhamishia maelezo ya mikutano";
 "Choose routine output folder" = "Chagua folda ya matokeo ya ratiba";
 "Choose sources and result filters" = "Chagua vyanzo na vichujio vya matokeo";
 "Choose sources to include with your next message. Screen pixels are never attached." = "Chagua vyanzo vya kuambatanisha na ujumbe wako ujao. Pikseli za skrini haziambatishwi kamwe.";
@@ -333,10 +336,12 @@
 "Export Diagnostics…" = "Hamisha Taarifa za Uchunguzi…";
 "Export Markdown" = "Hamisha Markdown";
 "Export a daily memory note" = "Hamisha maelezo ya kumbukumbu ya siku";
+"Export a note for each meeting" = "Hamisha maelezo kwa kila mkutano";
 "Export result" = "Hamisha matokeo";
 "External agents" = "Mawakala wa nje";
 "External meeting access" = "Ufikiaji wa mikutano kutoka nje";
 "External screen access" = "Ufikiaji wa skrini kutoka nje";
+"External settings access" = "Ufikiaji wa mipangilio kutoka nje";
 "Failed" = "Imeshindikana";
 "Feature" = "Kipengele";
 "Files…" = "Faili…";
@@ -412,6 +417,7 @@
 "Images to remove" = "Picha za kuondoa";
 "In progress" = "Inaendelea";
 "Include saved moments" = "Jumuisha matukio yaliyohifadhiwa";
+"Include the transcript" = "Jumuisha nakala ya sauti";
 "Includes scheduled daily summaries and overnight review, which can send activity titles, captured screen text, meeting evidence, and retained Dream memory to this origin without a prompt each time." = "Hujumuisha mihtasari ya kila siku iliyoratibiwa na tathmini ya usiku, inayoweza kutuma vichwa vya shughuli, maandishi ya skrini yaliyonaswa, ushahidi wa mikutano na kumbukumbu ya Dream iliyohifadhiwa kwenye asili hii bila kuuliza kila mara.";
 "Increase Text Size" = "Ongeza Ukubwa wa Maandishi";
 "Input Monitoring" = "Ufuatiliaji wa Ingizo";
@@ -453,6 +459,7 @@
 "Legacy rule · review" = "Kanuni ya zamani · kagua";
 "Lets MCP clients and the lokalbot-cli skill (Claude, Cursor, …) list, read, search, and ask about your meetings — read-only and localhost only. Off by default." = "Huruhusu wateja wa MCP na ujuzi wa lokalbot-cli (Claude, Cursor, …) kuorodhesha, kusoma, kutafuta na kuuliza kuhusu mikutano yako — kusoma tu na localhost pekee. Imezimwa kwa chaguo-msingi.";
 "Lets dictation and cotyping detect their global keyboard shortcuts." = "Huruhusu imla na uandishi saidizi kutambua njia zao za mkato za kibodi za mfumo mzima.";
+"Lets lokalbot-cli read your settings and app status, open Settings at a setting, and start LokalBot in the background. Separate from the other agent access toggles. Off by default." = "Huruhusu lokalbot-cli kusoma mipangilio yako na hali ya programu, kufungua Mipangilio kwenye mpangilio mahususi, na kuanzisha LokalBot chinichini. Ni tofauti na swichi nyingine za ufikiaji wa mawakala. Imezimwa kwa chaguo-msingi.";
 "Library" = "Maktaba";
 "Library location" = "Mahali pa maktaba";
 "Light" = "Mwanga";
@@ -472,6 +479,7 @@
 "Local models process on this Mac. Each remote server requires its own approval before context can leave the Mac." = "Modeli za ndani huchakata kwenye Mac hii. Kila seva ya mbali inahitaji idhini yake kabla muktadha haujaondoka kwenye Mac.";
 "Logs, health reports, settings without secrets, and library counts. Never meeting audio, transcripts, notes, or screenshots." = "Rekodi, ripoti za hali, mipangilio bila siri na hesabu za maktaba. Kamwe si sauti za mikutano, nakala za sauti, maelezo au picha za skrini.";
 "LokalBot detects meeting apps automatically, or start a recording now." = "LokalBot hutambua programu za mikutano kiotomatiki, au unaweza kuanza kurekodi sasa.";
+"LokalBot is free and built by one person. A GitHub star helps others find it." = "LokalBot ni bure na imetengenezwa na mtu mmoja. Nyota kwenye GitHub huwasaidia wengine kuipata.";
 "LokalBot manages this model and rebuilds the local index when it changes." = "LokalBot husimamia modeli hii na kujenga upya faharasa ya ndani inapobadilika.";
 "LokalBot never sends this. Copy it into your mail or chat app to send it yourself." = "LokalBot haitumi hili kamwe. Nakili kwenye programu yako ya barua pepe au gumzo ili ulitume mwenyewe.";
 "Looks done?" = "Inaonekana imekamilika?";
@@ -505,6 +513,7 @@
 "Meeting details" = "Maelezo ya mkutano";
 "Meeting library" = "Maktaba ya mikutano";
 "Meeting models" = "Modeli za mikutano";
+"Meeting note export" = "Uhamishaji wa maelezo ya mikutano";
 "Meeting notes" = "Maelezo ya mkutano";
 "Meeting notes, transcripts, and actions will look like this." = "Maelezo ya mikutano, nakala za sauti na hatua zitaonekana hivi.";
 "Meeting playback" = "Uchezaji wa mkutano";
@@ -581,6 +590,7 @@
 "No transcript speakers are available yet." = "Hakuna wazungumzaji wa nakala ya sauti wanaopatikana bado.";
 "None yet" = "Hakuna bado";
 "Not connected" = "Haijaunganishwa";
+"Not now" = "Si sasa";
 "Not Yet" = "Bado";
 "Not ready" = "Haijawa tayari";
 "Not recording" = "Hairekodi";
@@ -625,6 +635,7 @@
 "Open in results" = "Fungua katika matokeo";
 "Open latest meeting" = "Fungua mkutano wa karibuni";
 "Open meeting" = "Fungua mkutano";
+"Open source" = "Chanzo huria";
 "Open the current recording" = "Fungua rekodi ya sasa";
 "Open this capture in Timeline" = "Fungua kilichonaswa hiki kwenye Mfuatano wa Matukio";
 "Open this moment in Timeline" = "Fungua tukio hili kwenye Mfuatano wa Matukio";
@@ -906,6 +917,7 @@
 "Speech recognition runs on this Mac. No screen context or rewrite model is used." = "Utambuzi wa usemi huendeshwa kwenye Mac hii. Hakuna muktadha wa skrini au modeli ya kuandika upya inayotumika.";
 "Speech speed" = "Kasi ya usemi";
 "Speed" = "Kasi";
+"Star on GitHub" = "Weka nyota kwenye GitHub";
 "Start" = "Anza";
 "Start (seconds)" = "Mwanzo (sekunde)";
 "Start Dictation" = "Anza Imla";
@@ -973,7 +985,7 @@
 "These are captured window titles. Expand a title to inspect the activity behind it." = "Hivi ni vichwa vya madirisha vilivyonaswa. Panua kichwa ili kukagua shughuli iliyo nyuma yake.";
 "These choices are applied on the final Review step." = "Chaguo hizi hutumika katika hatua ya mwisho ya Ukaguzi.";
 "Think" = "Fikiri";
-"Think may send meeting transcripts, screen text, Agent context, and inherited dictation requests to this server when you use those features. Scheduled daily summaries and overnight review also run here and can send activity titles, captured screen text, meeting evidence, and retained Dream memory without a prompt each time." = "Fikiri inaweza kutuma nakala za sauti za mikutano, maandishi ya skrini, muktadha wa Wakala na maombi ya imla yanayorithi mipangilio yake kwenye seva hii unapotumia vipengele hivyo. Mihtasari ya kila siku iliyoratibiwa na tathmini ya usiku pia huendeshwa hapa na inaweza kutuma vichwa vya shughuli, maandishi ya skrini yaliyonaswa, ushahidi wa mikutano na kumbukumbu ya Dream iliyohifadhiwa bila kuuliza kila mara.";
+"Think may send meeting transcripts, screen text, what you told Ask to remember about you, Agent context, and inherited dictation requests to this server when you use those features. Scheduled daily summaries and overnight review also run here and can send activity titles, captured screen text, meeting evidence, and retained Dream memory without a prompt each time." = "Fikiri inaweza kutuma nakala za sauti za mikutano, maandishi ya skrini, ulichoiambia Uliza ikumbuke kukuhusu, muktadha wa Wakala na maombi ya imla yanayorithi mipangilio yake kwenye seva hii unapotumia vipengele hivyo. Mihtasari ya kila siku iliyoratibiwa na tathmini ya usiku pia huendeshwa hapa na inaweza kutuma vichwa vya shughuli, maandishi ya skrini yaliyonaswa, ushahidi wa mikutano na kumbukumbu ya Dream iliyohifadhiwa bila kuuliza kila mara.";
 "Think model" = "Modeli ya Fikiri";
 "Think model backend" = "Mfumo wa nyuma wa modeli ya Fikiri";
 "Think processing budget" = "Bajeti ya uchakataji ya Fikiri";
@@ -1093,6 +1105,7 @@
 "Workspace navigation" = "Urambazaji wa eneo la kazi";
 "Write" = "Andika";
 "Writes one unencrypted Markdown file per day with the digest, meeting links, app time, and saved moments. A day missed while your Mac was asleep is written later. Existing non-LokalBot content is never overwritten." = "Huandika faili moja ya Markdown isiyosimbwa kila siku yenye muhtasari, viungo vya mikutano, muda wa programu na matukio yaliyohifadhiwa. Siku iliyokosekana Mac ilipokuwa imelala huandikwa baadaye. Maudhui yaliyopo yasiyo ya LokalBot hayaandikiwi juu kamwe.";
+"Writes one unencrypted Markdown note per meeting, including meetings already recorded, to a folder you choose, such as an Obsidian vault. Each note has the summary, action items as you corrected them, and the people and tracked projects involved. A note you edit, move, or delete is yours: LokalBot leaves it alone." = "Huandika faili moja ya maelezo ya Markdown isiyosimbwa kwa kila mkutano, ikiwemo mikutano iliyorekodiwa tayari, kwenye folda unayochagua, kama vile hazina ya Obsidian. Kila faili ya maelezo ina muhtasari, hatua kama ulivyozisahihisha, na watu na miradi inayofuatiliwa inayohusika. Faili ya maelezo unayoihariri, kuihamisha au kuifuta ni yako: LokalBot haiigusi.";
 "Writes the Timeline digest to your local journal at the chosen time, then finalizes yesterday after midnight so late activity is included." = "Huandika muhtasari wa Mfuatano wa Matukio katika shajara yako ya ndani kwa muda uliochagua, kisha hukamilisha jana baada ya usiku wa manane ili shughuli za kuchelewa zijumuishwe.";
 "Writing" = "Uandishi";
 "Writing for the focused app" = "Inaandika kwa programu inayotumika";
@@ -1154,6 +1167,15 @@
 "Your subscription" = "Usajili wako";
 "Server" = "Seva";
 "In use" = "Inatumika";
+"About you" = "Kuhusu wewe";
+"Remember what I tell Ask" = "Kumbuka ninachoiambia Uliza";
+"Remembered" = "Imekumbukwa";
+"Not remembered" = "Haikukumbukwa";
+"Share with agents" = "Shiriki na mawakala";
+"Share with Agents" = "Shiriki na Mawakala";
+"Stop Sharing with Agents" = "Acha Kushiriki na Mawakala";
+"Allow external agents to read what I shared about myself" = "Ruhusu mawakala wa nje wasome nilichoshiriki kuhusu mimi mwenyewe";
+"Choose items…" = "Chagua vipengee…";
 "Statistics" = "Takwimu";
 "Autocomplete statistics" = "Takwimu za Ukamilishaji otomatiki";
 "Period" = "Kipindi";
@@ -1195,6 +1217,10 @@
 "Clear Statistics" = "Futa Takwimu";
 "Deletes the daily and monthly counts. Usage and timing measurements are kept." = "Hufuta hesabu za kila siku na kila mwezi. Vipimo vya matumizi na muda hubaki.";
 "Counted on this Mac while you type in other apps: suggestions shown and accepted, the characters you type yourself where autocomplete works, and the pauses between them, by day, kind of app and model. No text, app names or window titles are kept. Time saved is the keystrokes you did not type at your measured speed, not counting time spent reading suggestions." = "Huhesabiwa kwenye Mac hii unapoandika katika programu nyingine: mapendekezo yaliyoonyeshwa na kukubaliwa, herufi unazoandika mwenyewe mahali ukamilishaji otomatiki unapofanya kazi na mapumziko kati yake, kwa siku, aina ya programu na modeli. Hakuna maandishi, majina ya programu au vichwa vya madirisha vinavyohifadhiwa. Muda uliookolewa ni muda wa mibonyezo ya vitufe ambayo hukuandika kwa kasi yako iliyopimwa, bila kuhesabu muda uliotumia kusoma mapendekezo.";
+"Learn about me from my meetings and work" = "Jifunze kunihusu kutokana na mikutano yangu na kazi yangu";
+"Learn from my dictation" = "Jifunze kutokana na imla yangu";
+"Keep" = "Hifadhi";
+"Keep Even If the Meeting Is Deleted" = "Hifadhi Hata Mkutano Ukifutwa";
 "CPU" = "CPU";
 "Memory" = "Kumbukumbu";
 "Models loaded" = "Modeli zilizopakiwa";
@@ -1203,6 +1229,8 @@
 "%@ of RAM" = "%@ ya RAM";
 "Updates every 2 seconds and counts LokalBot and its helpers. External Ollama and Apple Intelligence models aren't counted." = "Husasishwa kila sekunde 2 na huhesabu LokalBot na wasaidizi wake. Modeli za nje za Ollama na Apple Intelligence hazihesabiwi.";
 "Diagnostics include logs, health reports, settings without secrets, and library counts. Never meeting audio, transcripts, notes, or screenshots." = "Taarifa za uchunguzi zinajumuisha rekodi, ripoti za hali, mipangilio bila siri na hesabu za maktaba. Kamwe si sauti za mikutano, nakala za sauti, maelezo au picha za skrini.";
+"Keep Even If the Conversation Is Deleted" = "Hifadhi Hata Mazungumzo Yakifutwa";
+"Keep Even If the Source Is Deleted" = "Hifadhi Hata Chanzo Kikifutwa";
 "Autocomplete server" = "Seva ya Ukamilishaji otomatiki";
 "Think's server" = "Seva ya Fikiri";
 "Another server" = "Seva nyingine";

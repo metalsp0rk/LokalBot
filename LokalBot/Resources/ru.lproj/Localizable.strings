@@ -4,6 +4,7 @@
 "2. Review action owners" = "2. Проверить ответственных за действия";
 "A domain excludes its subdomains too. A URL with a path excludes that URL prefix. Existing rules are kept until you remove them." = "Домен также исключает свои поддомены. URL с путём исключает все адреса с этим префиксом. Правила сохраняются, пока вы их не удалите.";
 "A newly granted permission may require a relaunch. Finish setup first; relaunch from Settings if the feature remains unavailable." = "Новое разрешение может потребовать перезапуска. Сначала завершите настройку; если функция недоступна, перезапустите приложение из Настроек.";
+"About" = "О программе";
 "Accept next" = "Принять следующее";
 "Accept punctuation with the word" = "Принимать пунктуацию вместе со словом";
 "Accepted" = "Принято";
@@ -58,6 +59,7 @@
 "All retained history" = "Вся сохранённая история";
 "All three core models will run on this Mac." = "Все три основные модели будут работать на этом Mac.";
 "Allow Once" = "Разрешить один раз";
+"Allow external agents to change LokalBot settings" = "Разрешить внешним агентам изменять настройки LokalBot";
 "Allow external agents to read screen memory" = "Разрешить внешним агентам читать память экрана";
 "Allow external agents to read your meeting library" = "Разрешить внешним агентам читать библиотеку встреч";
 "Allow multi-line suggestions" = "Разрешить многострочные предложения";
@@ -161,6 +163,7 @@
 "Choose actions to change together" = "Выбрать действия для совместного изменения";
 "Choose daily memory export folder" = "Выбрать папку экспорта памяти дня";
 "Choose day" = "Выбрать день";
+"Choose meeting note export folder" = "Выбрать папку экспорта заметок встреч";
 "Choose routine output folder" = "Выбрать папку результатов процедур";
 "Choose sources and result filters" = "Выбрать источники и фильтры результатов";
 "Choose sources to include with your next message. Screen pixels are never attached." = "Выберите источники для следующего сообщения. Пиксели экрана никогда не прикрепляются.";
@@ -333,10 +336,12 @@
 "Export Diagnostics…" = "Экспортировать диагностику…";
 "Export Markdown" = "Экспортировать Markdown";
 "Export a daily memory note" = "Экспортировать заметку памяти дня";
+"Export a note for each meeting" = "Экспортировать заметку для каждой встречи";
 "Export result" = "Экспортировать результат";
 "External agents" = "Внешние агенты";
 "External meeting access" = "Внешний доступ к встречам";
 "External screen access" = "Внешний доступ к экранам";
+"External settings access" = "Внешний доступ к настройкам";
 "Failed" = "Ошибка";
 "Feature" = "Функция";
 "Files…" = "Файлы…";
@@ -412,6 +417,7 @@
 "Images to remove" = "Изображения для удаления";
 "In progress" = "Выполняется";
 "Include saved moments" = "Включить сохранённые моменты";
+"Include the transcript" = "Добавлять расшифровку";
 "Includes scheduled daily summaries and overnight review, which can send activity titles, captured screen text, meeting evidence, and retained Dream memory to this origin without a prompt each time." = "Включает ежедневные сводки по расписанию и ночной обзор, которые могут отправлять этому источнику заголовки активности, захваченный текст экрана, материалы встреч и сохранённую память Dream без запроса каждый раз.";
 "Increase Text Size" = "Увеличить размер текста";
 "Input Monitoring" = "Мониторинг ввода";
@@ -453,6 +459,7 @@
 "Legacy rule · review" = "Старое правило · проверить";
 "Lets MCP clients and the lokalbot-cli skill (Claude, Cursor, …) list, read, search, and ask about your meetings — read-only and localhost only. Off by default." = "Разрешает клиентам MCP и навыку lokalbot-cli (Claude, Cursor, …) просматривать список встреч, читать, искать и спрашивать о них — только чтение и только localhost. По умолчанию выключено.";
 "Lets dictation and cotyping detect their global keyboard shortcuts." = "Позволяет диктовке и совместному набору распознавать глобальные сочетания клавиш.";
+"Lets lokalbot-cli read your settings and app status, open Settings at a setting, and start LokalBot in the background. Separate from the other agent access toggles. Off by default." = "Разрешает lokalbot-cli читать ваши настройки и состояние приложения, открывать Настройки на конкретном параметре и запускать LokalBot в фоновом режиме. Действует отдельно от других переключателей доступа агентов. По умолчанию выключено.";
 "Library" = "Библиотека";
 "Library location" = "Расположение библиотеки";
 "Light" = "Светлая";
@@ -472,6 +479,7 @@
 "Local models process on this Mac. Each remote server requires its own approval before context can leave the Mac." = "Локальные модели обрабатывают данные на этом Mac. Каждый удалённый сервер требует отдельного разрешения, прежде чем контекст сможет покинуть Mac.";
 "Logs, health reports, settings without secrets, and library counts. Never meeting audio, transcripts, notes, or screenshots." = "Журналы, отчёты о состоянии, настройки без секретов и счётчики библиотеки. Никогда не аудио встреч, расшифровки, заметки или снимки экрана.";
 "LokalBot detects meeting apps automatically, or start a recording now." = "LokalBot автоматически обнаруживает приложения встреч. Вы также можете начать запись сейчас.";
+"LokalBot is free and built by one person. A GitHub star helps others find it." = "LokalBot бесплатен и создан одним человеком. Звезда на GitHub помогает другим найти его.";
 "LokalBot manages this model and rebuilds the local index when it changes." = "LokalBot управляет этой моделью и перестраивает локальный индекс при её смене.";
 "LokalBot never sends this. Copy it into your mail or chat app to send it yourself." = "LokalBot никогда не отправляет это. Скопируйте в почту или чат и отправьте самостоятельно.";
 "Looks done?" = "Похоже, выполнено?";
@@ -505,6 +513,7 @@
 "Meeting details" = "Сведения о встрече";
 "Meeting library" = "Библиотека встреч";
 "Meeting models" = "Модели встреч";
+"Meeting note export" = "Экспорт заметок встреч";
 "Meeting notes" = "Заметки встречи";
 "Meeting notes, transcripts, and actions will look like this." = "Так будут выглядеть заметки, расшифровки и действия встреч.";
 "Meeting playback" = "Воспроизведение встречи";
@@ -581,6 +590,7 @@
 "No transcript speakers are available yet." = "Говорящие в расшифровке пока недоступны.";
 "None yet" = "Пока нет";
 "Not connected" = "Не подключено";
+"Not now" = "Не сейчас";
 "Not Yet" = "Пока нет";
 "Not ready" = "Не готово";
 "Not recording" = "Запись не ведётся";
@@ -625,6 +635,7 @@
 "Open in results" = "Открыть в результатах";
 "Open latest meeting" = "Открыть последнюю встречу";
 "Open meeting" = "Открыть встречу";
+"Open source" = "Открытый исходный код";
 "Open the current recording" = "Открыть текущую запись";
 "Open this capture in Timeline" = "Открыть этот захват в Хронологии";
 "Open this moment in Timeline" = "Открыть этот момент в Хронологии";
@@ -906,6 +917,7 @@
 "Speech recognition runs on this Mac. No screen context or rewrite model is used." = "Распознавание речи выполняется на этом Mac. Контекст экрана и модель переписывания не используются.";
 "Speech speed" = "Скорость речи";
 "Speed" = "Скорость";
+"Star on GitHub" = "Поставить звезду на GitHub";
 "Start" = "Начать";
 "Start (seconds)" = "Начало (секунды)";
 "Start Dictation" = "Начать диктовку";
@@ -973,7 +985,7 @@
 "These are captured window titles. Expand a title to inspect the activity behind it." = "Это захваченные заголовки окон. Разверните заголовок, чтобы изучить связанную активность.";
 "These choices are applied on the final Review step." = "Эти настройки применяются на последнем шаге Проверка.";
 "Think" = "Думать";
-"Think may send meeting transcripts, screen text, Agent context, and inherited dictation requests to this server when you use those features. Scheduled daily summaries and overnight review also run here and can send activity titles, captured screen text, meeting evidence, and retained Dream memory without a prompt each time." = "При использовании соответствующих функций Думать может отправлять этому серверу расшифровки встреч, текст экрана, контекст агента и унаследованные запросы диктовки. Ежедневные сводки по расписанию и ночной обзор тоже выполняются здесь и могут отправлять заголовки активности, захваченный текст экрана, материалы встреч и сохранённую память Dream без запроса каждый раз.";
+"Think may send meeting transcripts, screen text, what you told Ask to remember about you, Agent context, and inherited dictation requests to this server when you use those features. Scheduled daily summaries and overnight review also run here and can send activity titles, captured screen text, meeting evidence, and retained Dream memory without a prompt each time." = "При использовании соответствующих функций Думать может отправлять этому серверу расшифровки встреч, текст экрана, то, что вы попросили запомнить о себе в Спросить, контекст агента и унаследованные запросы диктовки. Ежедневные сводки по расписанию и ночной обзор тоже выполняются здесь и могут отправлять заголовки активности, захваченный текст экрана, материалы встреч и сохранённую память Dream без запроса каждый раз.";
 "Think model" = "Модель Думать";
 "Think model backend" = "Среда модели Думать";
 "Think processing budget" = "Бюджет обработки Думать";
@@ -1093,6 +1105,7 @@
 "Workspace navigation" = "Навигация рабочего пространства";
 "Write" = "Писать";
 "Writes one unencrypted Markdown file per day with the digest, meeting links, app time, and saved moments. A day missed while your Mac was asleep is written later. Existing non-LokalBot content is never overwritten." = "Записывает один незашифрованный Markdown-файл в день со сводкой, ссылками на встречи, временем в приложениях и сохранёнными моментами. День, пропущенный во время сна Mac, записывается позже. Существующие данные не от LokalBot никогда не перезаписываются.";
+"Writes one unencrypted Markdown note per meeting, including meetings already recorded, to a folder you choose, such as an Obsidian vault. Each note has the summary, action items as you corrected them, and the people and tracked projects involved. A note you edit, move, or delete is yours: LokalBot leaves it alone." = "Записывает по одной незашифрованной Markdown-заметке на каждую встречу, включая уже записанные встречи, в выбранную вами папку, например в хранилище Obsidian. Каждая заметка содержит сводку, действия в исправленном вами виде, а также людей и отслеживаемые проекты, связанные со встречей. Заметка, которую вы изменили, переместили или удалили, принадлежит вам: LokalBot её не трогает.";
 "Writes the Timeline digest to your local journal at the chosen time, then finalizes yesterday after midnight so late activity is included." = "Записывает сводку Хронологии в локальный журнал в выбранное время, затем завершает вчерашний день после полуночи, учитывая позднюю активность.";
 "Writing" = "Письмо";
 "Writing for the focused app" = "Написание для активного приложения";
@@ -1154,6 +1167,15 @@
 "Your subscription" = "Ваша подписка";
 "Server" = "Сервер";
 "In use" = "Используется";
+"About you" = "О вас";
+"Remember what I tell Ask" = "Запоминать то, что я сообщаю в Спросить";
+"Remembered" = "Запомнено";
+"Not remembered" = "Не запомнено";
+"Share with agents" = "Делиться с агентами";
+"Share with Agents" = "Поделиться с агентами";
+"Stop Sharing with Agents" = "Перестать делиться с агентами";
+"Allow external agents to read what I shared about myself" = "Разрешить внешним агентам читать сведения обо мне, которыми я делюсь";
+"Choose items…" = "Выбрать элементы…";
 "Statistics" = "Статистика";
 "Autocomplete statistics" = "Статистика автодополнения";
 "Period" = "Период";
@@ -1195,6 +1217,10 @@
 "Clear Statistics" = "Очистить статистику";
 "Deletes the daily and monthly counts. Usage and timing measurements are kept." = "Удаляет дневные и месячные счётчики. Измерения использования и времени сохраняются.";
 "Counted on this Mac while you type in other apps: suggestions shown and accepted, the characters you type yourself where autocomplete works, and the pauses between them, by day, kind of app and model. No text, app names or window titles are kept. Time saved is the keystrokes you did not type at your measured speed, not counting time spent reading suggestions." = "На этом Mac при вводе в других приложениях подсчитываются показанные и принятые предложения, самостоятельно введённые символы там, где работает автодополнение, и паузы между ними — по дням, типам приложений и моделям. Текст, имена приложений и заголовки окон не сохраняются. Сэкономленное время — это ненабранные нажатия при измеренной скорости, без учёта времени чтения предложений.";
+"Learn about me from my meetings and work" = "Узнавать обо мне из моих встреч и работы";
+"Learn from my dictation" = "Учиться на моей диктовке";
+"Keep" = "Оставить";
+"Keep Even If the Meeting Is Deleted" = "Сохранить, даже если встреча будет удалена";
 "CPU" = "CPU";
 "Memory" = "Память";
 "Models loaded" = "Загружено моделей";
@@ -1203,6 +1229,8 @@
 "%@ of RAM" = "%@ оперативной памяти (RAM)";
 "Updates every 2 seconds and counts LokalBot and its helpers. External Ollama and Apple Intelligence models aren't counted." = "Обновляется каждые 2 секунды и учитывает LokalBot и вспомогательные процессы. Внешние модели Ollama и Apple Intelligence не учитываются.";
 "Diagnostics include logs, health reports, settings without secrets, and library counts. Never meeting audio, transcripts, notes, or screenshots." = "Диагностика включает журналы, отчёты о состоянии, настройки без секретов и счётчики библиотеки. Никогда не аудио встреч, расшифровки, заметки или снимки экрана.";
+"Keep Even If the Conversation Is Deleted" = "Сохранить, даже если разговор будет удалён";
+"Keep Even If the Source Is Deleted" = "Сохранить, даже если источник будет удалён";
 "Autocomplete server" = "Сервер автодополнения";
 "Think's server" = "Сервер Думать";
 "Another server" = "Другой сервер";
