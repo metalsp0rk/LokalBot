@@ -151,6 +151,65 @@ final class SettingsApprovalFlowTests: XCTestCase {
         XCTAssertEqual(app.settings.retentionDays, 30)
     }
 
+    func testApprovingKeepsWhatThePersonChangedSinceAndTheCardDidNotShow() async throws {
+        let origin = "https://think.example.com"
+        app.settings.approvedRemoteInferenceOrigins = [origin]
+        // The origin list is unchanged, so the card shows only the capture change.
+        let id = try requestID(await set([
+            "meetingVisualContextEnabled": true,
+            "approvedRemoteInferenceOrigins": [.string(origin)],
+        ]))
+        XCTAssertEqual(app.settingsApprovals.request(id)?.items.map(\.spec.key), ["meetingVisualContextEnabled"])
+        app.settings.approvedRemoteInferenceOrigins = []
+
+        try app.approveSettingsRequest(id)
+
+        XCTAssertTrue(app.settings.meetingVisualContextEnabled)
+        XCTAssertEqual(app.settings.approvedRemoteInferenceOrigins, [])
+    }
+
+    func testAWideningThatGrewWhileWaitingIsShownAgain() async throws {
+        let first = "https://a.example.com", second = "https://b.example.com"
+        app.settings.approvedRemoteInferenceOrigins = [first]
+        let id = try requestID(await set(["approvedRemoteInferenceOrigins": [.string(first), .string(second)]]))
+        // The card adds one origin; approving now would add both.
+        app.settings.approvedRemoteInferenceOrigins = []
+
+        XCTAssertThrowsError(try app.approveSettingsRequest(id))
+        XCTAssertEqual(app.settings.approvedRemoteInferenceOrigins, [])
+        let refreshed = try XCTUnwrap(app.settingsApprovals.request(id))
+        XCTAssertEqual(refreshed.state, .pending)
+        XCTAssertNotNil(refreshed.problem)
+        XCTAssertEqual(refreshed.items.first?.previous, .array([]))
+        XCTAssertEqual(refreshed.changes.first?["previous"], .array([]))
+
+        try app.approveSettingsRequest(id)
+        XCTAssertEqual(app.settings.approvedRemoteInferenceOrigins, [first, second])
+    }
+
+    func testTheCardShowsEveryEntryAListGainsOrLoses() throws {
+        let origins = try XCTUnwrap(SettingRegistry.spec(for: "approvedRemoteInferenceOrigins"))
+        let long = (1...4).map { JSONValue.string("https://inference-server-\($0).example.com") }
+        let added = JSONValue.string("https://another-inference-server.example.com")
+        XCTAssertEqual(origins.changeLines(from: .array(long), to: .array(long + [added])),
+                       ["Adds: https://another-inference-server.example.com"])
+
+        let sites = try XCTUnwrap(SettingRegistry.spec(for: "excludedScreenDomains"))
+        let excluded = "bank.example.com, health.example.com, mail.example.com, payroll.example.com, zoom.us"
+        XCTAssertEqual(sites.changeLines(from: .string(excluded), to: .string(String(excluded.dropLast(9)))),
+                       ["Removes: zoom.us"])
+
+        let visual = try XCTUnwrap(SettingRegistry.spec(for: "meetingVisualContextEnabled"))
+        XCTAssertEqual(visual.changeLines(from: .bool(false), to: .bool(true)), ["Off → On"])
+
+        // A change only in what a URL hides still says so.
+        let server = try XCTUnwrap(SettingRegistry.spec(for: "openAIBaseURL"))
+        let lines = server.changeLines(from: .string("https://api.example.com/v1"),
+                                       to: .string("https://api.example.com/v1?key=secret"))
+        XCTAssertEqual(lines.count, 2)
+        XCTAssertFalse(lines.joined().contains("secret"))
+    }
+
     func testAPIKeysWaitForApprovalAndNeverComeBack() async throws {
         let key = "sk-test-0123456789abcd"
         let response = await send(.secretSet, ["name": "openai-compatible", "value": .string(key)])

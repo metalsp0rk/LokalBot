@@ -482,8 +482,10 @@ widen it, such as turning on capture, a data source, autocomplete, or dictation,
 approving a server, removing an exclusion, or changing retention, waits for you:
 LokalBot posts a notification (or opens its approval window when notifications
 are off) and shows a card naming the program that asked and every change in the
-request. Nothing changes unless you click Approve, and requests expire after five
-minutes. A shorter retention policy shows the same cleanup review as Settings,
+request, with lists showing each entry added or removed. Nothing changes unless
+you click Approve, which applies only the changes the card shows. If your settings
+change while it waits so that approving would allow more, the card shows the new
+changes and asks again. Requests expire after five minutes. A shorter retention policy shows the same cleanup review as Settings,
 and approving deletes only what it lists. `lokalbot-cli secret set` can save an
 API key, also only after you approve it; the card shows the key's last four
 characters, and keys are never read back. Each change is recorded, with the

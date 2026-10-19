@@ -1,8 +1,8 @@
 import SwiftUI
 
 /// The approval window: one card for each terminal request waiting for the
-/// person, listing every change it makes. Approve applies the whole request
-/// through the same paths as Settings; Deny changes nothing.
+/// person, listing every change it makes in full. Approve applies exactly
+/// those changes through the same paths as Settings; Deny changes nothing.
 struct SettingsApprovalView: View {
     @EnvironmentObject private var app: AppState
 
@@ -78,11 +78,14 @@ private struct SettingsApprovalCard: View {
                             if let detail = row.detail {
                                 Text(verbatim: detail).settingsSecondary()
                             }
+                            // Every value in full: this is what the person approves.
+                            ForEach(row.change, id: \.self) { line in
+                                Text(verbatim: line)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                    .textSelection(.enabled)
+                            }
                         }
-                        Spacer(minLength: 12)
-                        Text(verbatim: row.change)
-                            .multilineTextAlignment(.trailing)
-                            .settingsSecondary()
+                        Spacer(minLength: 0)
                     }
                 }
             }
@@ -123,7 +126,7 @@ private struct SettingsApprovalCard: View {
         let id: String
         let title: String
         let detail: String?
-        let change: String
+        let change: [String]
         let widens: Bool
     }
 
@@ -132,7 +135,7 @@ private struct SettingsApprovalCard: View {
             let change = request.changes.first
             return [Row(
                 id: secret.rawValue, title: secret.title, detail: secret.summary,
-                change: "\(change?["previous"]?.stringValue ?? "") → \(change?["value"]?.stringValue ?? "")",
+                change: ["\(change?["previous"]?.stringValue ?? "") → \(change?["value"]?.stringValue ?? "")"],
                 widens: true)]
         }
         let language = app.settings.appLanguage
@@ -140,8 +143,7 @@ private struct SettingsApprovalCard: View {
             Row(id: item.spec.key,
                 title: item.spec.title,
                 detail: item.change == .widening ? item.spec.summary : nil,
-                change: "\(item.spec.shortText(item.previous, language: language)) → "
-                    + item.spec.shortText(item.stored, language: language),
+                change: item.spec.changeLines(from: item.previous, to: item.stored, language: language),
                 widens: item.change == .widening)
         }
     }
@@ -200,32 +202,68 @@ struct SettingsApprovalMenuRow: View {
 }
 
 extension SettingSpec {
-    /// A setting's value in a few words, for the approval card and the list
-    /// of agent changes.
-    func shortText(_ value: JSONValue?, language: AppLanguage = .english) -> String {
+    /// What the approval card says a change does, in full. Lists name every
+    /// entry added and removed; other values show before and after.
+    func changeLines(from old: JSONValue?, to new: JSONValue?, language: AppLanguage = .english) -> [String] {
+        if let before = listEntries(old), let after = listEntries(new) {
+            let beforeKeys = Set(before.map { $0.lowercased() })
+            let afterKeys = Set(after.map { $0.lowercased() })
+            let added = after.filter { !beforeKeys.contains($0.lowercased()) }
+            let removed = before.filter { !afterKeys.contains($0.lowercased()) }
+            var lines: [String] = []
+            if !added.isEmpty {
+                lines.append(String(format: language.localized("Adds: %@"), added.joined(separator: ", ")))
+            }
+            if !removed.isEmpty {
+                lines.append(String(format: language.localized("Removes: %@"), removed.joined(separator: ", ")))
+            }
+            if !lines.isEmpty { return lines }
+        }
+        let before = displayText(old, language: language)
+        let after = displayText(new, language: language)
+        guard before == after, old != new else { return ["\(before) → \(after)"] }
+        // A URL's user info or query, or a structured value, changed.
+        return ["\(before) → \(after)",
+                language.localized("Changes details that are hidden here, such as a URL's password or query.")]
+    }
+
+    /// A setting's whole value as the person reads it. URLs leave out user
+    /// info and query.
+    func displayText(_ value: JSONValue?, language: AppLanguage = .english) -> String {
         guard let value else { return language.localized("Default") }
-        let text: String
         switch value {
         case .bool(let flag):
-            text = language.localized(flag ? "On" : "Off")
+            return language.localized(flag ? "On" : "Off")
         case .number(let number):
-            text = presented(value).stringValue
+            return presented(value).stringValue
                 ?? (number == number.rounded() ? String(Int(number)) : String(number))
         case .string(let string):
-            if case .text(.url) = kind {
-                text = DiagnosticsSettingsSanitizer.redactURL(string)
-            } else if case .choice = kind {
-                // Choices stored as display names read better than tokens.
-                text = string.isEmpty ? language.localized("Not set") : language.localized(string)
-            } else {
-                text = string.isEmpty ? language.localized("Not set") : string
-            }
+            if case .text(.url) = kind { return DiagnosticsSettingsSanitizer.redactURL(string) }
+            if string.isEmpty { return language.localized("Not set") }
+            // Choices stored as display names read better than tokens.
+            if case .choice = kind { return language.localized(string) }
+            return string
         case .array(let items):
             let names = items.map { presented($0).stringValue ?? "?" }
-            text = names.isEmpty ? language.localized("None") : names.joined(separator: ", ")
+            return names.isEmpty ? language.localized("None") : names.joined(separator: ", ")
         case .null, .object:
-            text = language.localized("Configured")
+            return language.localized("Configured")
         }
-        return text.count > 48 ? String(text.prefix(47)) + "…" : text
+    }
+
+    /// The entries of a list setting, or nil for other settings.
+    private func listEntries(_ value: JSONValue?) -> [String]? {
+        switch kind {
+        case .textList, .choiceList:
+            guard case .array(let items)? = value else { return value == nil ? [] : nil }
+            return items.map { presented($0).stringValue ?? "?" }
+        case .text(.commaSeparated):
+            return (value?.stringValue ?? "")
+                .split(separator: ",")
+                .map { $0.trimmingCharacters(in: .whitespaces) }
+                .filter { !$0.isEmpty }
+        default:
+            return nil
+        }
     }
 }

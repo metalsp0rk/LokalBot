@@ -183,3 +183,13 @@ final class SettingsApprovals: ObservableObject {
         }
     }
 }
+
+enum SettingsApprovalError: LocalizedError {
+    /// Approving would widen more than the card showed; it now shows the
+    /// changes as they would apply.
+    case changedWhileWaiting
+
+    var errorDescription: String? {
+        "Your settings changed while this request was waiting. Review the updated changes before approving."
+    }
+}

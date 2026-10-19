@@ -278,6 +278,27 @@ struct SettingsChangePlan: Equatable {
         return SettingsChangePlan(items: items.values.sorted { order[$0.spec.key, default: 0] < order[$1.spec.key, default: 0] })
     }
 
+    /// Reviewed items again, from the settings as they are now: the same keys
+    /// and values, each classified from its current value.
+    static func rebasing(_ items: [Item], on current: [String: JSONValue]) -> SettingsChangePlan {
+        SettingsChangePlan(items: items.map { item in
+            let previous = current[item.spec.key]
+            let change: SettingChangeClass = item.stored == previous
+                ? .unchanged
+                : item.spec.classify(from: previous, to: item.stored ?? .null)
+            return Item(spec: item.spec, previous: previous, stored: item.stored, change: change)
+        })
+    }
+
+    /// Whether this plan widens something `reviewed` did not show: a widening
+    /// change that was not on it, or one that now starts from another value.
+    func widens(beyond reviewed: [Item]) -> Bool {
+        widening.contains { item in
+            guard let shown = reviewed.first(where: { $0.spec.key == item.spec.key }) else { return true }
+            return shown.change != .widening || shown.previous != item.previous
+        }
+    }
+
     /// The report each item gets in a `settings.set` reply.
     func entries(redactURL: (String) -> String = { $0 }) -> [JSONValue] {
         items.map { item in

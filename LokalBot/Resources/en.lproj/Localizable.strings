@@ -43,6 +43,7 @@
 "Add ⌃, ⌥ or ⌘ so the shortcut does not block typing, or use a function key." = "Add ⌃, ⌥ or ⌘ so the shortcut does not block typing, or use a function key.";
 "Additional saved audio is outside the meeting boundaries." = "Additional saved audio is outside the meeting boundaries.";
 "Adds titles of documents and pages captured during the call, never their captured text. Requires screen context in Day Memory." = "Adds titles of documents and pages captured during the call, never their captured text. Requires screen context in Day Memory.";
+"Adds: %@" = "Adds: %@";
 "Advanced" = "Advanced";
 "After a shortcut recording" = "After a shortcut recording";
 "After applying" = "After applying";
@@ -153,6 +154,7 @@
 "Captures encrypted visuals for day memory. Only used in Text + visual context mode; system-audio capture does not use this permission." = "Captures encrypted visuals for day memory. Only used in Text + visual context mode; system-audio capture does not use this permission.";
 "Change the Ask shortcut" = "Change the Ask shortcut";
 "Change the dictation shortcut" = "Change the dictation shortcut";
+"Changes details that are hidden here, such as a URL's password or query." = "Changes details that are hidden here, such as a URL's password or query.";
 "Changes the interface immediately. Transcription and notes languages are set separately." = "Changes the interface immediately. Transcription and notes languages are set separately.";
 "Change…" = "Change…";
 "Check Setup…" = "Check Setup…";
@@ -772,6 +774,7 @@
 "Remove from List" = "Remove from List";
 "Remove the other side from your microphone track" = "Remove the other side from your microphone track";
 "Remove…" = "Remove…";
+"Removes: %@" = "Removes: %@";
 "Rename" = "Rename";
 "Rename…" = "Rename…";
 "Repair Agent Mode" = "Repair Agent Mode";

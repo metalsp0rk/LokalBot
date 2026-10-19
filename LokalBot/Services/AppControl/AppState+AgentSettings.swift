@@ -132,23 +132,32 @@ extension AppState {
         return try activityStore.retentionReview(days: target.days, keepTextForever: target.keepTextForever)
     }
 
-    /// Applies an approved settings request to the settings as they are now.
-    /// A shorter retention policy applies only the cleanup the card showed;
-    /// when that changed, the card gets the new review and keeps waiting.
+    /// Applies the changes an approved card showed to the settings as they
+    /// are now. Settings the request left as they were stay as the person has
+    /// them since. When approving would widen more than the card showed, or a
+    /// shorter retention policy would delete more than its review, the card
+    /// gets the new changes and keeps waiting.
     func applyApprovedSettings(_ request: SettingsApprovals.Request) throws -> JSONValue {
-        guard case .settings(let change) = request.subject else {
+        guard case .settings = request.subject else {
             throw AppControlError.invalidRequest("This request does not change settings.")
         }
         let redact = DiagnosticsSettingsSanitizer.redactURL
-        let plan = try SettingsChangePlan.make(
-            request: change,
-            current: AppControlHandler.encoded(settings),
-            defaults: AppControlHandler.encoded(AppSettings()),
-            redactURL: redact)
+        let plan = SettingsChangePlan.rebasing(request.items, on: AppControlHandler.encoded(settings))
         if !plan.readOnly.isEmpty { throw AppControlError.readOnly(plan.readOnly.map(\.spec.key)) }
         let items = plan.applicable + plan.widening
         // Check every value before anything is deleted.
         _ = try SettingsChangeApplier.apply(items, to: settings)
+        if plan.widens(beyond: request.items) {
+            let review = try retentionReview(for: items)
+            let keys = Set(items.map(\.spec.key))
+            let changes = plan.entries(redactURL: redact).filter { keys.contains($0["key"]?.stringValue ?? "") }
+            settingsApprovals.update(request.id) { pending in
+                pending.items = items
+                pending.changes = changes
+                pending.retention = review
+            }
+            throw SettingsApprovalError.changedWhileWaiting
+        }
         var warnings: [JSONValue] = []
         if let needed = try retentionReview(for: items) {
             guard let shown = request.retention, shown.days == needed.days,

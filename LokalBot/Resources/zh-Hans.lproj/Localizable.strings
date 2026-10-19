@@ -43,6 +43,7 @@
 "Add ⌃, ⌥ or ⌘ so the shortcut does not block typing, or use a function key." = "请加上 ⌃、⌥ 或 ⌘，以免快捷键妨碍打字；也可以使用功能键。";
 "Additional saved audio is outside the meeting boundaries." = "另有已保存的音频位于会议范围之外。";
 "Adds titles of documents and pages captured during the call, never their captured text. Requires screen context in Day Memory." = "添加通话期间采集的文档和页面标题，绝不添加其中采集的正文。需要在工作记忆中启用屏幕上下文。";
+"Adds: %@" = "添加：%@";
 "Advanced" = "高级";
 "After a shortcut recording" = "快捷键录音结束后";
 "After applying" = "应用后";
@@ -153,6 +154,7 @@
 "Captures encrypted visuals for day memory. Only used in Text + visual context mode; system-audio capture does not use this permission." = "为工作记忆采集加密图像。仅在“文字与视觉上下文”模式下使用；系统音频采集不使用此权限。";
 "Change the Ask shortcut" = "更改问答快捷键";
 "Change the dictation shortcut" = "更改听写快捷键";
+"Changes details that are hidden here, such as a URL's password or query." = "还会更改此处未显示的细节，例如 URL 中的密码或查询参数。";
 "Changes the interface immediately. Transcription and notes languages are set separately." = "立即切换界面语言。转写和笔记的语言需单独设置。";
 "Change…" = "更改…";
 "Check Setup…" = "检查配置…";
@@ -772,6 +774,7 @@
 "Remove from List" = "从列表中移除";
 "Remove the other side from your microphone track" = "从麦克风音轨中去除对方的声音";
 "Remove…" = "移除…";
+"Removes: %@" = "移除：%@";
 "Rename" = "重命名";
 "Rename…" = "重命名…";
 "Repair Agent Mode" = "修复智能体模式";
