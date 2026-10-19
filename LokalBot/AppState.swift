@@ -119,6 +119,9 @@ final class AppState: ObservableObject {
     nonisolated static let onboardingShownKey = "lokalbotv3.onboarding.shown"
 
     @Published private(set) var meetings: [Meeting] = []
+    /// File names of recordings still being converted for import, in order.
+    @Published private(set) var importingRecordings: [String] = []
+    private var recordingImportTask: Task<Void, Never>?
     @Published var lastError: String?
     /// A recording or dictation start was refused because microphone access
     /// is denied at the system level. Cleared when the user opens System
@@ -1715,6 +1718,41 @@ final class AppState: ObservableObject {
         return result.meeting
     }
 
+    /// Imports audio or video files as meetings, one file at a time, and
+    /// queues each for transcription and, when enabled, a summary. Choosing a
+    /// file is an explicit request, so a missing speech model downloads as it
+    /// does for Retry. Failures are reported together once the batch ends.
+    func importRecordings(_ urls: [URL]) {
+        let files = urls.filter(\.isFileURL)
+        guard !files.isEmpty else { return }
+        navSection = .meetings
+        importingRecordings += files.map(\.lastPathComponent)
+        let previous = recordingImportTask
+        recordingImportTask = Task { @MainActor [weak self] in
+            await previous?.value
+            guard let self else { return }
+            var failures: [String] = []
+            for url in files {
+                do {
+                    let meeting = try await MeetingImportService.importRecording(from: url, storage: self.storage)
+                    self.meetings.append(meeting)
+                    self.meetings.sort { $0.startedAt > $1.startedAt }
+                    self.selectedMeetingIDs = [meeting.id]
+                    lokalbotLog("recording imported meeting=\(meeting.id) extension=\(url.pathExtension.lowercased())")
+                    self.reprocess(meeting, transcribe: true, summarize: self.settings.autoSummarize)
+                } catch {
+                    // The message names the file; keep user file names out of the log.
+                    lokalbotLog("recording import failed extension=\(url.pathExtension.lowercased())")
+                    failures.append(error.localizedDescription)
+                }
+                if let index = self.importingRecordings.firstIndex(of: url.lastPathComponent) {
+                    self.importingRecordings.remove(at: index)
+                }
+            }
+            if !failures.isEmpty { self.lastError = failures.joined(separator: "\n") }
+        }
+    }
+
     /// Removes a generated merged record and restores its original source
     /// rows. Source folders are retained; their durable merge markers and
     /// search tombstones are cleared before the restored evidence is indexed.
@@ -1887,7 +1925,7 @@ final class AppState: ObservableObject {
         let fallbackEnd = meeting.startedAt.addingTimeInterval(fallbackDuration)
         var end = meeting.endedAt.map { max($0, meeting.startedAt) } ?? fallbackEnd
         if end <= meeting.startedAt { end = fallbackEnd }
-        let ocr = activityStore.ocrText(from: meeting.startedAt, to: end, maxChars: 12_000)
+        let ocr = meeting.isImported ? "" : activityStore.ocrText(from: meeting.startedAt, to: end, maxChars: 12_000)
         return SpeakerNameHintExtractor.hints(
             calendarNames: meeting.resolvedCalendarParticipantIdentities.compactMap(\.name),
             ocrText: ocr)

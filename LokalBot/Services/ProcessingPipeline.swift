@@ -961,7 +961,7 @@ final class ProcessingPipeline: ObservableObject {
         let options = MeetingGenerationContext.Options(
             includeCalendar: config.meetingNotesUseCalendarContext,
             includeAgenda: config.useCalendarAgenda,
-            includeScreenTitles: config.meetingNotesUseScreenTitles)
+            includeScreenTitles: config.meetingNotesUseScreenTitles && !meeting.isImported)
         var titles: [String] = []
         if options.includeScreenTitles {
             let end = meeting.endedAt ?? meeting.startedAt.addingTimeInterval(meeting.recordedDuration ?? 0)
