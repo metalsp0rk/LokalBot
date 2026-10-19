@@ -120,6 +120,14 @@ final class SettingRegistryTests: XCTestCase {
                        Set(AppState.SettingsTab.allCases.map(\.rawValue)))
     }
 
+    func testOpenDestinationsAreSettingsSections() {
+        let ids = Set(SettingDescriptor.all.map(\.id))
+        for destination in AppControlProtocol.settingsDestinations {
+            XCTAssertTrue(ids.contains("settings.\(destination)"), destination)
+            XCTAssertNil(SettingRegistry.spec(for: destination), "\(destination) is a setting key, not a section")
+        }
+    }
+
     func testSchemaDescribesEveryKey() throws {
         let properties = try XCTUnwrap(SettingRegistry.jsonSchema["properties"]?.objectValue)
         XCTAssertEqual(Set(properties.keys), Set(SettingRegistry.all.map(\.key)))

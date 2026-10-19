@@ -1,9 +1,11 @@
 // Interface strings. Keep user content and model prompts out of this table.
 "%@ detected — ready" = "已检测到 %@，准备就绪";
 "%lld selected" = "已选择 %lld 项";
+"%lld settings changes are waiting for your approval" = "有 %lld 项设置更改等待你批准";
 "2. Review action owners" = "2. 确认行动项负责人";
 "A domain excludes its subdomains too. A URL with a path excludes that URL prefix. Existing rules are kept until you remove them." = "排除域名时也会排除其子域名。带路径的网址会排除以其为前缀的网址。现有规则会保留，直到你将其移除。";
 "A newly granted permission may require a relaunch. Finish setup first; relaunch from Settings if the feature remains unavailable." = "新授予的权限可能需要重启后生效。请先完成设置；若功能仍不可用，可在设置中重新启动。";
+"A settings change is waiting for your approval" = "有一项设置更改等待你批准";
 "About" = "关于";
 "Accept next" = "接受下一段";
 "Accept punctuation with the word" = "接受单词时一并接受标点";
@@ -41,6 +43,7 @@
 "Add ⌃, ⌥ or ⌘ so the shortcut does not block typing, or use a function key." = "请加上 ⌃、⌥ 或 ⌘，以免快捷键妨碍打字；也可以使用功能键。";
 "Additional saved audio is outside the meeting boundaries." = "另有已保存的音频位于会议范围之外。";
 "Adds titles of documents and pages captured during the call, never their captured text. Requires screen context in Day Memory." = "添加通话期间采集的文档和页面标题，绝不添加其中采集的正文。需要在工作记忆中启用屏幕上下文。";
+"Adds: %@" = "添加：%@";
 "Advanced" = "高级";
 "After a shortcut recording" = "快捷键录音结束后";
 "After applying" = "应用后";
@@ -58,11 +61,14 @@
 "All meetings" = "所有会议";
 "All retained history" = "所有保留的历史";
 "All three core models will run on this Mac." = "三个核心模型都会在这台 Mac 上运行。";
+"Allow" = "允许";
 "Allow Once" = "允许一次";
 "Allow external agents to change LokalBot settings" = "允许外部智能体更改 LokalBot 设置";
 "Allow external agents to read screen memory" = "允许外部智能体读取屏幕记忆";
 "Allow external agents to read your meeting library" = "允许外部智能体读取会议资料库";
 "Allow multi-line suggestions" = "允许多行建议";
+"Allow only an agent you started yourself. Any program on this Mac can make this request." = "只允许你自己启动的智能体。这台 Mac 上的任何程序都可以发出此请求。";
+"Allowing it lets the agent change your LokalBot settings, download models, and walk you through macOS permissions. Turning on capture, a data source, or sharing still asks you here. You can turn this off at any time in Settings → Privacy." = "允许后，智能体可以更改你的 LokalBot 设置、下载模型，并引导你完成 macOS 权限设置。开启采集、数据来源或共享仍会在这里询问你。你可以随时在“设置”→“隐私”中关闭此权限。";
 "Also allow relevant work memory derived from screen activity and daily journals. Reads what is already saved; it does not capture new screens or start an overnight review. Mixed meeting and screen memories require both settings." = "也允许使用来自屏幕活动和每日日志的相关工作记忆。仅读取已保存内容，不会采集新屏幕或启动夜间回顾。混合会议与屏幕的记忆需要同时开启两项设置。";
 "Also assigned to another voice" = "也已分配给另一个声音";
 "Also prepare Autocomplete (optional)" = "同时准备自动补全（可选）";
@@ -77,6 +83,10 @@
 "Apply Choices and Start" = "应用选择并开始";
 "Apply policy and cleanup" = "应用策略并清理";
 "Apply…" = "应用…";
+"Approve" = "批准";
+"Approve and clean up" = "批准并清理";
+"Approve only what you asked your agent to do. Approving can show macOS permission prompts for what it turns on." = "只批准你让智能体做的事。批准后，macOS 可能会为新开启的功能显示权限提示。";
+"Approve Settings Change" = "批准设置更改";
 "Apps use ⌘ with a single key. Add ⌃, ⌥ or ⇧." = "应用会将 ⌘ 与单个按键组合使用。请加上 ⌃、⌥ 或 ⇧。";
 "Archived" = "已归档";
 "Arrived in the field" = "已填入输入框";
@@ -96,6 +106,7 @@
 "Ask via notification waits for you to start recording. Manual mode keeps Record Now available." = "“通过通知询问”会等待你主动开始录制。手动模式下仍可使用“立即录制”。";
 "Ask your work memory" = "向工作记忆提问";
 "Asks before recording meetings" = "录制会议前询问";
+"asks to set up LokalBot for you from the terminal." = "请求从终端为你设置 LokalBot。";
 "Ask…" = "问答…";
 "Attach context" = "附加上下文";
 "Auto-detect" = "自动检测";
@@ -143,6 +154,7 @@
 "Captures encrypted visuals for day memory. Only used in Text + visual context mode; system-audio capture does not use this permission." = "为工作记忆采集加密图像。仅在“文字与视觉上下文”模式下使用；系统音频采集不使用此权限。";
 "Change the Ask shortcut" = "更改问答快捷键";
 "Change the dictation shortcut" = "更改听写快捷键";
+"Changes details that are hidden here, such as a URL's password or query." = "还会更改此处未显示的细节，例如 URL 中的密码或查询参数。";
 "Changes the interface immediately. Transcription and notes languages are set separately." = "立即切换界面语言。转写和笔记的语言需单独设置。";
 "Change…" = "更改…";
 "Check Setup…" = "检查配置…";
@@ -182,6 +194,7 @@
 "Clear search filters" = "清除搜索筛选";
 "Clear selection" = "清除选择";
 "Dictation already uses this shortcut. Choose another." = "听写已在使用此快捷键。请选择其他快捷键。";
+"Don't Allow" = "不允许";
 "Hold the modifiers and press a key, like ⌃⇧ Space." = "请按住修饰键再按一个按键，例如 ⌃⇧ Space。";
 "macOS already uses this shortcut. Choose another." = "macOS 已在使用此快捷键。请选择其他快捷键。";
 "Model folder selection cleared" = "已清除模型文件夹选择";
@@ -197,6 +210,7 @@
 "Close find" = "关闭查找";
 "Close search" = "关闭搜索";
 "Coding agent records to remove" = "将删除的编程智能体记录";
+"Coding Agent Sessions" = "编程智能体会话";
 "Coding agent sessions" = "编程智能体会话";
 "Command Palette" = "命令面板";
 "Command Palette…" = "命令面板…";
@@ -302,6 +316,8 @@
 "Downloading…" = "正在下载…";
 "Downloads use the model provider. They do not send your meeting content. Existing downloaded models are kept." = "下载会连接模型提供方，不会发送会议内容。已下载的模型会保留。";
 "Draft Follow-up…" = "起草跟进消息…";
+"Drop an audio or video file to import it." = "请拖放音频或视频文件以导入。";
+"Drop to import" = "拖放以导入";
 "Draft follow-up for latest meeting" = "为最近的会议起草跟进消息";
 "Due" = "到期";
 "Due date as agreed" = "约定的截止日期";
@@ -415,6 +431,12 @@
 "Image space recovered" = "可回收的图像空间";
 "Image zoom" = "图像缩放";
 "Images to remove" = "将删除的图像";
+"Import" = "导入";
+"Import a recording" = "导入录音";
+"Import an audio or video recording" = "导入音频或视频录音";
+"Import Recording" = "导入录音";
+"Import Recording…" = "导入录音…";
+"Importing %@…" = "正在导入 %@…";
 "In progress" = "进行中";
 "Include saved moments" = "包含已保存时刻";
 "Include the transcript" = "包含转录文本";
@@ -459,7 +481,7 @@
 "Legacy rule · review" = "旧版规则 · 请检查";
 "Lets MCP clients and the lokalbot-cli skill (Claude, Cursor, …) list, read, search, and ask about your meetings — read-only and localhost only. Off by default." = "允许 MCP 客户端和 lokalbot-cli 技能（Claude、Cursor 等）列出、读取、搜索会议并就会议提问。仅支持只读和本机访问，默认关闭。";
 "Lets dictation and cotyping detect their global keyboard shortcuts." = "允许听写和自动补全检测各自的全局快捷键。";
-"Lets lokalbot-cli read your settings and app status, open Settings at a setting, and start LokalBot in the background. Separate from the other agent access toggles. Off by default." = "允许 lokalbot-cli 读取你的设置和应用状态、在“设置”中打开指定设置项，并在后台启动 LokalBot。与其他智能体访问开关相互独立。默认关闭。";
+"Lets lokalbot-cli read and change your preferences, show you a setting, and start LokalBot in the background. Turning on capture, a data source, or sharing still needs you here. Separate from the other agent access toggles. Off by default." = "允许 lokalbot-cli 读取和更改你的偏好设置、为你打开某个设置项，并在后台启动 LokalBot。开启采集、数据来源或共享仍需你在此确认。与其他智能体访问开关相互独立。默认关闭。";
 "Library" = "资料库";
 "Library location" = "资料库位置";
 "Light" = "浅色";
@@ -478,7 +500,7 @@
 "Local journal" = "本地日志";
 "Local models process on this Mac. Each remote server requires its own approval before context can leave the Mac." = "本地模型在这台 Mac 上处理数据。每个远程服务器都需单独授权，上下文才可离开本机。";
 "Logs, health reports, settings without secrets, and library counts. Never meeting audio, transcripts, notes, or screenshots." = "包含日志、健康报告、不含密钥的设置和资料库数量统计。绝不包含会议音频、转写、笔记或屏幕截图。";
-"LokalBot detects meeting apps automatically, or start a recording now." = "LokalBot 会自动检测会议应用，你也可以立即开始录制。";
+"LokalBot detects meeting apps automatically, or start a recording now. You can also drop an audio or video file here." = "LokalBot 会自动检测会议应用，你也可以立即开始录制，或将音频或视频文件拖放到这里。";
 "LokalBot is free and built by one person. A GitHub star helps others find it." = "LokalBot 免费使用，由一人独立开发。在 GitHub 上加个星标，能帮助更多人发现它。";
 "LokalBot manages this model and rebuilds the local index when it changes." = "LokalBot 管理此模型，并在模型更改时重建本地索引。";
 "LokalBot never sends this. Copy it into your mail or chat app to send it yourself." = "LokalBot 不会发送此内容。请复制到邮件或聊天应用中自行发送。";
@@ -588,6 +610,7 @@
 "No suggested names match this search." = "没有与此搜索匹配的建议姓名。";
 "No supporting passage was stored." = "未保存支持此内容的片段。";
 "No transcript speakers are available yet." = "转写中暂时没有可用的说话人。";
+"None" = "无";
 "None yet" = "暂无";
 "Not connected" = "未连接";
 "Not now" = "以后再说";
@@ -599,6 +622,7 @@
 "Notes language" = "笔记语言";
 "Notes template" = "笔记模板";
 "Nothing in saved moments, captured screens, or meetings matches this search." = "已保存时刻、采集的屏幕和会议中没有匹配结果。";
+"Nothing is waiting for your approval." = "没有等待你批准的请求。";
 "Nothing recording right now" = "当前没有正在录制的内容";
 "OK" = "好";
 "Off" = "关闭";
@@ -643,6 +667,7 @@
 "OpenAI-compatible server" = "兼容 OpenAI 的服务器";
 "Opening Session…" = "正在打开会话…";
 "Opens the correct Settings pane and shows a draggable LokalBot app row." = "打开对应的设置页面，并显示可拖动的 LokalBot 应用条目。";
+"or record a meeting — it appears in the list automatically." = "或录制会议，它会自动出现在列表中。";
 "Original Wording" = "原始表述";
 "Original wording or YYYY-MM-DD" = "原始表述或 YYYY-MM-DD";
 "Other activity" = "其他活动";
@@ -699,6 +724,7 @@
 "Previously named voices" = "之前命名的声音";
 "Privacy" = "隐私";
 "Privacy & Data" = "隐私与数据";
+"Private and incognito browser windows are captured like any other window unless you exclude the browser or site in Settings → Privacy & Data." = "浏览器的隐私窗口和无痕窗口会像其他窗口一样被采集，除非你在“设置 → 隐私与数据”中排除该浏览器或网站。";
 "Private endpoints only (Recommended)" = "仅使用私有端点（推荐）";
 "Processing" = "处理";
 "Project details" = "项目详情";
@@ -710,6 +736,7 @@
 "Question or search" = "提问或搜索";
 "Quit LokalBot" = "退出 LokalBot";
 "Read coding agent sessions" = "读取编程智能体会话";
+"Read your Claude Code and Codex sessions so LokalBot remembers what your agents did. Files stay on this Mac." = "读取你的 Claude Code 和 Codex 会话，让 LokalBot 记住智能体完成的工作。文件留在这台 Mac 上。";
 "Reads the focused window's text from a screenshot. Needs Screen Recording; the image and text are not saved." = "通过截图读取当前窗口的文字。需要屏幕录制权限；图像和文字都不会保存。";
 "Reads visible interface text through Accessibility; no screenshots are stored." = "通过辅助功能读取可见的界面文字，不保存屏幕截图。";
 "Reads window titles and visible interface text for activity and text-context features." = "读取窗口标题和界面可见文字，用于活动记录和文字上下文功能。";
@@ -717,11 +744,11 @@
 "Ready" = "已就绪";
 "Reasoning" = "推理";
 "Recent" = "最近";
+"Recent changes by agents" = "智能体最近的更改";
 "Recent generations" = "最近生成记录";
 "Reconnect" = "重新连接";
 "Record Capture Trace (60 s)" = "记录采集跟踪（60 秒）";
 "Record Now" = "立即录制";
-"Record a meeting — it appears in the list automatically." = "录制会议后，它会自动出现在列表中。";
 "Record automatically" = "自动录制";
 "Record now" = "立即录制";
 "Record your side of each call." = "录制每次通话中你的声音。";
@@ -758,6 +785,7 @@
 "Remove from List" = "从列表中移除";
 "Remove the other side from your microphone track" = "从麦克风音轨中去除对方的声音";
 "Remove…" = "移除…";
+"Removes: %@" = "移除：%@";
 "Rename" = "重命名";
 "Rename…" = "重命名…";
 "Repair Agent Mode" = "修复智能体模式";
@@ -879,8 +907,11 @@
 "Session preview" = "会话预览";
 "Sessions" = "会话";
 "Set by the model" = "由模型决定";
+"Set up LokalBot with your agent" = "与你的智能体一起设置 LokalBot";
+"Set Up with Your Agent" = "与智能体一起设置";
 "Settings" = "设置";
 "Settings categories" = "设置分类";
+"Settings changed from the terminal. Undo restores the earlier value while the setting still holds the agent's." = "在终端中更改的设置。只要该设置仍是智能体设定的值，撤销即可恢复之前的值。";
 "Settings navigation" = "设置导航";
 "Settings…" = "设置…";
 "Setup progress" = "设置进度";
@@ -954,7 +985,7 @@
 "Summarization" = "摘要";
 "Summarize automatically after transcription" = "转写完成后自动生成摘要";
 "Summary" = "摘要";
-"Symlinks the bundled CLI at ~/.local/bin/lokalbot-cli and the skill into ~/.agents/skills and ~/.claude/skills. Read-only by design." = "将内置命令行工具链接至 ~/.local/bin/lokalbot-cli，并将技能链接至 ~/.agents/skills 和 ~/.claude/skills。工具仅支持只读操作。";
+"Symlinks the bundled CLI at ~/.local/bin/lokalbot-cli and the skill into ~/.agents/skills and ~/.claude/skills. Library access is read-only; changing settings needs its own toggle under Privacy." = "将内置命令行工具链接至 ~/.local/bin/lokalbot-cli，并将技能链接至 ~/.agents/skills 和 ~/.claude/skills。资料库访问为只读；更改设置需在“隐私”中另行开启。";
 "System" = "系统";
 "System audio input level" = "系统音频输入电平";
 "System default" = "系统默认";
@@ -1083,6 +1114,8 @@
 "Voice" = "语音";
 "Wait before stopping" = "停止前的等待时间";
 "Waiting for models" = "等待模型就绪";
+"wants to change LokalBot settings." = "想更改 LokalBot 设置。";
+"wants to save an API key in LokalBot." = "想在 LokalBot 中保存一个 API 密钥。";
 "Weekly log day" = "每周日志生成日";
 "Weekly work log" = "每周工作日志";
 "Welcome to LokalBot" = "欢迎使用 LokalBot";
@@ -1129,7 +1162,6 @@
 "— inline AI autocomplete that stays on your Mac." = "— 在本机运行的行内 AI 自动补全。";
 "↑↓ Navigate" = "↑↓ 导航";
 "↩ Open" = "↩ 打开";
-"简体中文" = "简体中文";
 "Local model folder" = "本地模型目录";
 "Choose model folder…" = "选择模型目录…";
 "Model format & downloads" = "模型格式与下载";

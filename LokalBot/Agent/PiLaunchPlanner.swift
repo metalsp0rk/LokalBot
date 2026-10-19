@@ -81,6 +81,13 @@ enum PiLaunchPlanner {
         }
         environment["PI_SKIP_VERSION_CHECK"] = "1"
         environment["PI_TELEMETRY"] = "0"
+        // Bun's transpiler cache, pi's compile cache and jiti's extension cache
+        // would keep compiled copies of pi and of the approval extension in
+        // ~/Library/Caches/bun and the temporary folder, outside the verified
+        // runtime. Later launches would run those copies instead.
+        environment["BUN_RUNTIME_TRANSPILER_CACHE_PATH"] = "0"
+        environment["NODE_DISABLE_COMPILE_CACHE"] = "1"
+        environment["JITI_FS_CACHE"] = "false"
         environment["PI_CODING_AGENT_DIR"] = sessionDirectory.deletingLastPathComponent()
             .appendingPathComponent("pi-config", isDirectory: true).path
         if let helpersDirectory {

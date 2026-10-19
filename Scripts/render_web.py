@@ -50,8 +50,8 @@ ORGANIZATION = {
 # Hand-written pages outside the generator, with the date each last changed.
 # Bump a date when you edit that page so the sitemap's lastmod stays honest.
 STATIC_PAGES = {
-    "": "2026-10-14",
-    "privacy": "2026-10-18",
+    "": "2026-10-19",
+    "privacy": "2026-10-15",
     "terms": "2026-10-14",
     "support": "2026-10-14",
     "enshittification-proof": "2026-10-14",

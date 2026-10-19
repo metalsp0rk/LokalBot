@@ -251,10 +251,24 @@ enum SettingRegistry {
         entry("appTheme", .general, "Theme", .choice(["system", "light", "dark"]),
               aliases: "appearance dark mode light mode color scheme",
               summary: "Window appearance: match the system, light, or dark."),
+        // The CLI target doesn't compile AppLanguage; SettingRegistryTests keeps
+        // this list in step with AppLanguage.allCases.
         entry("appLanguage", .general, "App language",
-              .choice(["system", .init("english", stored: "en"), .init("simplifiedChinese", stored: "zh-Hans")]),
-              aliases: "interface language English Chinese",
-              summary: "Interface language: follow the system, English, or Simplified Chinese."),
+              .choice([
+                  "system", .init("english", stored: "en"), .init("simplifiedChinese", stored: "zh-Hans"),
+                  .init("traditionalChinese", stored: "zh-Hant"),
+                  .init("hindi", stored: "hi"), .init("spanish", stored: "es"), .init("arabic", stored: "ar"),
+                  .init("french", stored: "fr"), .init("bengali", stored: "bn"), .init("portuguese", stored: "pt"),
+                  .init("indonesian", stored: "id"), .init("urdu", stored: "ur"), .init("russian", stored: "ru"),
+                  .init("german", stored: "de"), .init("japanese", stored: "ja"), .init("nigerianPidgin", stored: "pcm"),
+                  .init("egyptianArabic", stored: "ar-EG"), .init("marathi", stored: "mr"), .init("vietnamese", stored: "vi"),
+                  .init("telugu", stored: "te"), .init("swahili", stored: "sw"), .init("hausa", stored: "ha"),
+                  .init("korean", stored: "ko"), .init("italian", stored: "it"), .init("serbianLatin", stored: "sr-Latn"),
+              ]),
+              aliases: "interface language English Chinese Hindi Spanish Arabic French Bengali Portuguese Indonesian "
+                  + "Urdu Russian German Japanese Nigerian Pidgin Egyptian Arabic Marathi Vietnamese Telugu Swahili Hausa Korean "
+                  + "Traditional Chinese Italian Serbian Montenegrin",
+              summary: "Interface language: follow the system or choose one of the supported languages."),
         entry("textSize", .general, "Text size", .choice(["small", "standard", "large", "larger", "largest"]),
               aliases: "font size larger text smaller text zoom readability",
               summary: "App-wide text size."),
@@ -352,8 +366,8 @@ enum SettingRegistry {
               ]),
               .consent, aliases: "screen capture text screenshots ocr",
               summary: "What screen memory keeps: activity only, visible text, or text with encrypted screenshots."),
-        entry("screenshotsEnabled", .dayMemory, "Screenshots (legacy switch)", .bool, .consent,
-              summary: "Switch kept for older builds; on with activity-only capture means text and visual context."),
+        entry("screenshotsEnabled", .dayMemory, "Screenshots (legacy switch)", .bool, .readOnly,
+              summary: "Kept for older builds and set from screenContextCaptureMode. Change that instead."),
         entry("screenshotIntervalMinutes", .dayMemory, "Idle capture interval", .number(nil),
               aliases: "screenshot frequency fallback minutes",
               summary: "Minutes between fallback captures while you stay active in one place."),
