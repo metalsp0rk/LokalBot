@@ -1,3 +1,4 @@
+import MLX
 import XCTest
 @testable import LokalBot
 
@@ -164,5 +165,28 @@ final class WordAttributionTests: XCTestCase {
             .align(samples, text: "Three short words.", language: "en")
         XCTAssertEqual(words.map(\.text), ["Three", "short", "words."])
         XCTAssertTrue(words.allSatisfy { $0.start >= 0 && $0.start <= $0.end && $0.end <= 3.1 })
+    }
+
+    /// Opt-in hardware check: segments of different lengths leave MLX buffers
+    /// that the next pass cannot reuse. Untrimmed, the pool grew by about
+    /// 1 GB a segment over a real meeting, until MLX's own limit (31 GB).
+    func testCachedAlignerKeepsScratchBuffersBoundedAcrossSegmentLengths() async throws {
+        guard let path = ProcessInfo.processInfo.environment["LOKALBOT_QWEN_ALIGNER_TEST_DIR"] else {
+            throw XCTSkip("Set LOKALBOT_QWEN_ALIGNER_TEST_DIR to a downloaded Qwen3-ForcedAligner-0.6B-4bit folder")
+        }
+        let aligner = QwenWordAligner(directory: URL(fileURLWithPath: path, isDirectory: true))
+        let vocabulary = "The quarterly plan covers budget numbers, hiring, and the launch schedule for next month."
+            .split(separator: " ")
+        Memory.clearCache()
+        for seconds in [4, 9, 13, 18, 22, 27, 30, 7, 24, 16] {
+            // About 2.5 words a second, as in conversation.
+            let text = (0..<(seconds * 5 / 2)).map { vocabulary[$0 % vocabulary.count] }.joined(separator: " ")
+            let samples = (0..<(seconds * 16_000)).map { Float(sin(Double($0) * 0.05) * 0.1) }
+            let words = try await aligner.align(samples, text: text, language: "en")
+            XCTAssertFalse(words.isEmpty)
+            XCTAssertLessThanOrEqual(Memory.cacheMemory, QwenWordAligner.scratchCacheLimit, "after a \(seconds) s segment")
+        }
+        await aligner.finishBatch()
+        XCTAssertEqual(Memory.cacheMemory, 0)
     }
 }
