@@ -299,7 +299,9 @@ actor GraniteSpeechEngine: TranscriptionEngine {
         DownloadIntegrity.removeFileAndMarker(at: destination)
         report(.init(fractionCompleted: 0, status: status), to: progress)
 
-        let stashed = try await ParallelRangeDownloader.download(from: source, session: .shared) { update in
+        let stashed = try await ModelDownloadRouting.download(
+            from: source, session: .shared,
+            expectedSHA256: expectedSHA256, expectedBytes: expectedBytes) { update in
             report(.init(fractionCompleted: update.fractionCompleted, status: status), to: progress)
         }
         do {

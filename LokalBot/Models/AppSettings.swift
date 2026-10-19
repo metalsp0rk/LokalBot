@@ -441,6 +441,10 @@ struct AppSettings: Codable, Equatable {
     /// default for both new and migrated installs; following account policy is
     /// an explicit opt-in because Think requests may contain sensitive context.
     var openRouterDataPolicy: OpenRouterDataPolicy = .privateOnly
+    /// Where pinned model files download from. Hugging Face unless the user
+    /// picks HF-Mirror or ModelScope, which serve the same verified files in
+    /// mainland China; see `ModelDownloadRouting`.
+    var modelDownloadSource: ModelDownloadSource = .huggingFace
     /// Origins the user explicitly approved for sending transcript, OCR, and
     /// agent context off this Mac, including scheduled digest and Dream runs.
     /// Loopback endpoints never need approval.
@@ -933,6 +937,7 @@ struct AppSettings: Codable, Equatable {
         case openAIBaseURL
         case openAIModel
         case openRouterDataPolicy
+        case modelDownloadSource
         case approvedRemoteInferenceOrigins
         case chatGPTPlanModel
         case claudePlanModel
@@ -1138,6 +1143,7 @@ struct AppSettings: Codable, Equatable {
         try c.encode(openAIBaseURL, forKey: .openAIBaseURL)
         try c.encode(openAIModel, forKey: .openAIModel)
         try c.encode(openRouterDataPolicy, forKey: .openRouterDataPolicy)
+        try c.encode(modelDownloadSource, forKey: .modelDownloadSource)
         try c.encode(approvedRemoteInferenceOrigins, forKey: .approvedRemoteInferenceOrigins)
         try c.encode(chatGPTPlanModel, forKey: .chatGPTPlanModel)
         try c.encode(claudePlanModel, forKey: .claudePlanModel)
@@ -1336,6 +1342,7 @@ struct AppSettings: Codable, Equatable {
         openAIModel = decode(.openAIModel, defaults.openAIModel)
         openRouterDataPolicy = decode(
             .openRouterDataPolicy, defaults.openRouterDataPolicy)
+        modelDownloadSource = decode(.modelDownloadSource, defaults.modelDownloadSource)
         approvedRemoteInferenceOrigins = decode(
             .approvedRemoteInferenceOrigins, defaults.approvedRemoteInferenceOrigins)
         chatGPTPlanModel = decode(.chatGPTPlanModel, defaults.chatGPTPlanModel)
