@@ -5,6 +5,7 @@
 
 mod ask;
 mod autocomplete;
+mod calendar;
 mod daymemory;
 mod detector;
 mod dictation;
@@ -19,6 +20,7 @@ mod retention;
 mod screen;
 pub mod secrets;
 mod speech;
+mod upcoming;
 
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -28,9 +30,12 @@ use anyhow::Result;
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use parking_lot::{Mutex, RwLock};
 
+use chrono::Utc;
 use lokalbot_core::{Library, Settings};
+use recording::{RecordingStart, StartSource};
 
 pub use autocomplete::saved_facts as autocomplete_saved_facts;
+pub use calendar::{CalendarSnapshot, CalendarStatus};
 pub use events::*;
 pub use recording::recover_unfinished_recordings;
 
@@ -49,6 +54,11 @@ pub(crate) struct Shared {
     pub runtime: lokalbot_ai::runtime::RuntimeManager,
     background: Mutex<Vec<BackgroundItem>>,
     pub shutting_down: AtomicBool,
+    /// The user's calendars, cached by the calendar thread.
+    pub calendar: calendar::Calendar,
+    /// The app of the call the detector is following, if any, so a recording
+    /// the user starts during it carries the calendar event too.
+    pub detected_call: Mutex<Option<String>>,
 }
 
 impl Shared {
@@ -140,6 +150,8 @@ impl Engine {
             runtime,
             background: Mutex::new(Vec::new()),
             shutting_down: AtomicBool::new(false),
+            calendar: calendar::Calendar::default(),
+            detected_call: Mutex::new(None),
         });
         let (commands, receiver) = unbounded();
         let dispatcher = {
@@ -187,6 +199,13 @@ impl Drop for Engine {
     }
 }
 
+/// Calendar settings that change what the calendar thread reads.
+fn calendar_settings_changed(old: &Settings, new: &Settings) -> bool {
+    old.calendar_detection_enabled != new.calendar_detection_enabled
+        || old.calendar_evolution_enabled != new.calendar_evolution_enabled
+        || old.calendar_my_email_addresses != new.calendar_my_email_addresses
+}
+
 fn dispatch(shared: Arc<Shared>, commands: Sender<Command>, receiver: Receiver<Command>) {
     let models = models::Models::new(shared.clone());
     let pipeline = pipeline::Pipeline::start(shared.clone(), models.clone());
@@ -201,6 +220,8 @@ fn dispatch(shared: Arc<Shared>, commands: Sender<Command>, receiver: Receiver<C
         screen.boundary_hook(),
     );
     screen.start(day_memory.paused_flag());
+    let calendar = calendar::start(shared.clone());
+    let preparation = upcoming::Preparation::start(shared.clone(), models.clone());
     let detector = detector::Detector::start(shared.clone(), commands.clone(), meeting_detector);
     let dictation = dictation::Dictation::new(shared.clone(), models.clone());
     let live = live::LiveTranscriber::new(shared.clone(), models.clone());
@@ -213,11 +234,78 @@ fn dispatch(shared: Arc<Shared>, commands: Sender<Command>, receiver: Receiver<C
         log::debug!("engine command: {command:?}");
         match command {
             Command::StartRecording { title, app_name } => {
-                recording.start(title, app_name);
+                // A recording the user starts during a detected call is for
+                // that call and its calendar event (`recordingContext(for:)`).
+                let app_name = app_name.or_else(|| shared.detected_call.lock().clone());
+                let calendar = app_name
+                    .as_ref()
+                    .and_then(|_| shared.calendar.active_event(&shared.settings(), Utc::now()));
+                recording.start(RecordingStart {
+                    title,
+                    app_name,
+                    calendar,
+                    source: StartSource::User,
+                });
                 if let Some(folder) = recording.active_folder() {
                     live.prepare(folder);
                 }
             }
+            Command::RecordCalendarEvent(event) => {
+                recording.start(RecordingStart {
+                    title: None,
+                    app_name: shared.detected_call.lock().clone(),
+                    calendar: Some(*event),
+                    source: StartSource::User,
+                });
+                if let Some(folder) = recording.active_folder() {
+                    live.prepare(folder);
+                }
+            }
+            Command::StartDetectedRecording {
+                title,
+                app_name,
+                calendar,
+            } => {
+                recording.start(RecordingStart {
+                    title: Some(title),
+                    app_name: Some(app_name),
+                    calendar: calendar.map(|event| *event),
+                    source: StartSource::Detector,
+                });
+                if let Some(folder) = recording.active_folder() {
+                    live.prepare(folder);
+                }
+            }
+            Command::CallEnded => {
+                if recording.is_automatic() {
+                    live.stop();
+                }
+                recording.call_ended();
+            }
+            Command::SplitForCalendarHandoff {
+                title,
+                app_name,
+                calendar,
+            } => {
+                if recording.is_automatic() {
+                    live.stop();
+                    recording.split_for_calendar_handoff(RecordingStart {
+                        title: Some(title),
+                        app_name: Some(app_name),
+                        calendar: Some(*calendar),
+                        source: StartSource::CalendarHandoff,
+                    });
+                    if let Some(folder) = recording.active_folder() {
+                        live.prepare(folder);
+                    }
+                }
+            }
+            Command::SetCalendarLinks(links) => match shared.calendar.set_links(links) {
+                Ok(()) => {}
+                Err(err) => shared.error(format!("The calendar links were not saved: {err:#}")),
+            },
+            Command::RefreshCalendar => shared.calendar.reload(),
+            Command::PrepareMeeting { event, generate } => preparation.prepare(*event, generate),
             Command::StopRecording => {
                 live.stop();
                 recording.stop();
@@ -242,7 +330,16 @@ fn dispatch(shared: Arc<Shared>, commands: Sender<Command>, receiver: Receiver<C
             Command::WriteProjectNote(project_id) => ask.write_project_note(project_id),
             Command::WriteFollowUp(meeting_id) => ask.write_follow_up(meeting_id),
             Command::UpdateSettings(settings) => {
+                let before = shared.settings();
+                let calendar_changed = calendar_settings_changed(&before, &settings);
+                let calendar_turned_on =
+                    settings.calendar_detection_enabled && !before.calendar_detection_enabled;
                 *shared.settings.write() = *settings;
+                if calendar_turned_on {
+                    shared.calendar.reload();
+                } else if calendar_changed {
+                    shared.calendar.refresh();
+                }
                 models.publish_status();
                 autocomplete.settings_changed();
             }
@@ -262,6 +359,7 @@ fn dispatch(shared: Arc<Shared>, commands: Sender<Command>, receiver: Receiver<C
     autocomplete.stop();
     recording.stop_for_shutdown();
     detector.stop();
+    calendar.stop();
     day_memory.stop();
     screen.stop();
     digest.stop();

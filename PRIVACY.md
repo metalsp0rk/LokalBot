@@ -842,6 +842,23 @@ platform differences:
 - **The live transcript preview** runs only when you start it during a
   recording. It uses the local transcription model and is not saved; the
   full transcript replaces it after the meeting.
+- **Calendar** is off until you turn on **Use calendar to improve detection**
+  in Settings → Meetings. Instead of the Mac Calendar it reads:
+  - private calendar links you add (an iCal feed such as Google Calendar's
+    secret address or a published Outlook calendar, or a CalDAV collection).
+    Each link is fetched from its own server every five minutes while
+    calendar use is on. Links can carry credentials, so they are kept only in
+    the system credential store, and only their host appears in Settings and
+    in logs;
+  - on Linux, the calendars of Evolution Data Server (including GNOME Online
+    Accounts), read on this computer over D-Bus.
+  Events stay in memory. Matched recordings keep the same metadata as on
+  macOS, including the agenda only with **Use invitation agendas**. The
+  addresses you enter as your own are kept in settings to leave you out of
+  attendee lists and skip invitations you declined. The pre-meeting brief on
+  Today is written only by a Think model on this computer and is not saved.
+- **Network access** is limited to model and runtime downloads you request,
+  Agent Mode setup, AI servers you approve, and the calendar links you add.
 - **Remote Think** is off until you choose a server or plan under Settings →
   Models → Connections and turn on its approval. The built-in model on this
   PC stays the default.

@@ -338,6 +338,8 @@ pub(crate) struct NameSpeakerSheet {
     transcript: Transcript,
     speaker: ReviewSpeaker,
     name: Entity<InputState>,
+    /// Calendar guests and name hints to choose from.
+    suggestions: super::speaker_suggestions::SpeakerSuggestions,
     error: Option<SharedString>,
 }
 
@@ -361,12 +363,27 @@ impl NameSpeakerSheet {
                     .placeholder(crate::i18n::placeholder("Name this speaker", window, cx))
                     .default_value(current)
             });
+            let suggestions = super::speaker_suggestions::SpeakerSuggestions::new(
+                &meeting,
+                &transcript,
+                &speaker.key,
+                window,
+                cx,
+            );
+            if let Some(query) = &suggestions.query {
+                cx.subscribe(
+                    query,
+                    |_, _, _: &gpui_kit::component::input::InputEvent, cx| cx.notify(),
+                )
+                .detach();
+            }
             Self {
                 data,
                 meeting,
                 transcript,
                 speaker,
                 name,
+                suggestions,
                 error: None,
             }
         });
@@ -382,9 +399,25 @@ impl NameSpeakerSheet {
                 transcript
                     .speaker_aliases
                     .insert(self.speaker.key.clone(), alias.trim().to_string());
+                // The chosen calendar guest's opaque id, never the address.
+                match self.suggestions.identity_for_save() {
+                    Some(identity) => {
+                        transcript
+                            .speaker_calendar_identity_ids
+                            .insert(self.speaker.key.clone(), identity);
+                    }
+                    None => {
+                        transcript
+                            .speaker_calendar_identity_ids
+                            .remove(&self.speaker.key);
+                    }
+                }
             }
             None => {
                 transcript.speaker_aliases.remove(&self.speaker.key);
+                transcript
+                    .speaker_calendar_identity_ids
+                    .remove(&self.speaker.key);
             }
         }
         let library = self.data.read(cx).library.clone();
@@ -412,6 +445,25 @@ impl NameSpeakerSheet {
             });
         })
         .detach();
+    }
+}
+
+impl NameSpeakerSheet {
+    /// Fills the name from a suggestion and remembers which guest it was.
+    pub(super) fn choose_suggestion(
+        &mut self,
+        index: usize,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let Some(choice) = self.suggestions.choices.get(index) else {
+            return;
+        };
+        let name = choice.name.clone().unwrap_or_default();
+        self.suggestions.selected = choice.calendar.as_ref().map(|guest| guest.id.clone());
+        self.name
+            .update(cx, |input, cx| input.set_value(name, window, cx));
+        cx.notify();
     }
 }
 
@@ -449,6 +501,10 @@ impl Render for NameSpeakerSheet {
                     .child(div().text_size(ty::SECONDARY).text_color(lb.text_secondary).child(crate::ui::text::paragraph(lokalbot_i18n::tr("Name"))))
                     .child(Input::new(&self.name)),
             )
+            .children({
+                let name = self.name.read(cx).value().to_string();
+                self.suggestions.render(&name, cx)
+            })
             .child(
                 h_flex()
                     .gap(px(6.))

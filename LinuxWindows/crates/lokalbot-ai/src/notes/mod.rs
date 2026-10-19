@@ -175,7 +175,7 @@ pub fn generate_meeting_notes_with(
     let system =
         prompts::meeting_notes_system(template, language.as_deref(), &evidence::sections(template));
     let repair_system = prompts::meeting_notes_repair_system(language.as_deref());
-    let context = context_items(meeting, user_notes, &options.screen_titles);
+    let context = context_items(meeting, user_notes, &options.screen_titles, settings);
     let context_tokens = think.context_tokens();
     let mut limits = Limits::for_preset(settings.generation_budget_preset);
     // The time allowance assumes GPU decoding; a CPU-only PC gets three times as long.
@@ -355,13 +355,54 @@ fn grouped(count: usize) -> String {
     out
 }
 
-/// User notes, then the secondary meeting-context block (≤2,400 characters).
-fn context_items(meeting: &Meeting, user_notes: &str, screen_titles: &[String]) -> Vec<String> {
+/// User notes, then the secondary meeting-context block (≤2,400 characters,
+/// `MeetingGenerationContext`): the calendar title and invited names when
+/// `meetingNotesUseCalendarContext` is on, the saved agenda when
+/// `useCalendarAgenda` is on, and on-screen document titles.
+fn context_items(
+    meeting: &Meeting,
+    user_notes: &str,
+    screen_titles: &[String],
+    settings: &Settings,
+) -> Vec<String> {
     let mut items = Vec::new();
     if !user_notes.trim().is_empty() {
         items.push(prompts::user_notes_context(user_notes.trim()));
     }
     let mut lines = Vec::new();
+    if settings.meeting_notes_use_calendar_context {
+        calendar_lines(meeting, &mut lines);
+    }
+    if settings.use_calendar_agenda
+        && let Some(agenda) =
+            lokalbot_core::calendar::sanitize_agenda(meeting.calendar_agenda.as_deref())
+    {
+        lines.push(format!("Agenda from the calendar invitation:\n{agenda}"));
+    }
+    let titles: Vec<String> = screen_titles
+        .iter()
+        .take(8)
+        .map(|t| sanitize::collapse(t))
+        .filter(|t| !t.is_empty())
+        .collect();
+    if !titles.is_empty() {
+        lines.push(format!(
+            "Documents and pages on the user's screen during the meeting (titles only): {}",
+            titles.join("; ")
+        ));
+    }
+    if !lines.is_empty() {
+        items.push(format!(
+            "{}\n{}",
+            prompts::MEETING_CONTEXT_HEADER,
+            sanitize::sanitize(&lines.join("\n"), Some(2_400))
+        ));
+    }
+    items
+}
+
+/// The scheduled title and invited names; never email addresses.
+fn calendar_lines(meeting: &Meeting, lines: &mut Vec<String>) {
     if let Some(title) = meeting
         .calendar_title
         .as_deref()
@@ -401,26 +442,6 @@ fn context_items(meeting: &Meeting, user_notes: &str, screen_titles: &[String]) 
             names.join(", ")
         ));
     }
-    let titles: Vec<String> = screen_titles
-        .iter()
-        .take(8)
-        .map(|t| sanitize::collapse(t))
-        .filter(|t| !t.is_empty())
-        .collect();
-    if !titles.is_empty() {
-        lines.push(format!(
-            "Documents and pages on the user's screen during the meeting (titles only): {}",
-            titles.join("; ")
-        ));
-    }
-    if !lines.is_empty() {
-        items.push(format!(
-            "{}\n{}",
-            prompts::MEETING_CONTEXT_HEADER,
-            sanitize::sanitize(&lines.join("\n"), Some(2_400))
-        ));
-    }
-    items
 }
 
 // ------------------------------------------------------------------ sizing

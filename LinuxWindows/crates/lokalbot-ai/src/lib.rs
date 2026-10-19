@@ -33,6 +33,7 @@ pub mod prompts;
 pub mod runtime;
 pub mod sanitize;
 pub mod think;
+pub mod upcoming;
 
 #[cfg(test)]
 mod test_support;
