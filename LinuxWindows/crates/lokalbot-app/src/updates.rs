@@ -116,13 +116,13 @@ pub fn start(data: &Entity<AppData>, cx: &mut App) {
         ),
         _ => log::info!("updates: off in this build"),
     }
+    // Before anything can start a download into it.
+    if let Some(updater) = &updater {
+        updater.clear_work_dir();
+    }
     if let Some(installation) = &installation {
         let targets = installation.targets();
-        let cleanup = updater.clone();
         cx.background_spawn(async move {
-            if let Some(updater) = cleanup {
-                updater.clear_work_dir();
-            }
             // The copy this one replaced may still be closing.
             for delay in [0, 10, 60] {
                 smol::Timer::after(Duration::from_secs(delay)).await;

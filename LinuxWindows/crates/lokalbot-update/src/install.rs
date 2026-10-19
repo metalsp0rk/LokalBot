@@ -379,7 +379,11 @@ fn stage(replacement: &Replacement) -> io::Result<()> {
             fs::set_permissions(&replacement.staged, fs::Permissions::from_mode(0o755))?;
         }
     }
-    fs::File::open(&replacement.staged)?.sync_all()
+    // Windows flushes only through a handle that may write.
+    fs::OpenOptions::new()
+        .write(true)
+        .open(&replacement.staged)?
+        .sync_all()
 }
 
 /// A free `<name>.old` (or `<name>.<n>.old` while an older one is still in use).
@@ -511,10 +515,14 @@ fn refresh_desktop_entry(staged: &Path, dir: &Path, data_dir: &Path) {
         return;
     };
     let exec = dir.join(APP_BINARY);
+    let resolved = fs::canonicalize(&exec).ok();
     let ours = installed.lines().any(|line| {
         line.strip_prefix("Exec=")
             .and_then(|command| command.split_whitespace().next())
-            .is_some_and(|program| Path::new(program) == exec)
+            .is_some_and(|program| {
+                Path::new(program) == exec
+                    || resolved.is_some() && fs::canonicalize(program).ok() == resolved
+            })
     });
     if !ours {
         return;

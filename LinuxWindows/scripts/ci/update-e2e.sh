@@ -8,8 +8,9 @@
 #
 # The two archives may be the same file: the installed copy then pretends to
 # be 0.0.1 (LOKALBOT_UPDATE_CURRENT_VERSION), which the relaunched copy does
-# not inherit. Needs python3, openssl, and DISPLAY or Xvfb. Never touches the
-# real home folder or library.
+# not inherit. Needs python3, openssl, and DISPLAY or Xvfb (on a free display
+# number). Never touches the real home folder or library, and stops only the
+# LokalBot it installed.
 set -euo pipefail
 trap 'echo "update-e2e.sh: line $LINENO failed: $BASH_COMMAND" >&2' ERR
 
@@ -61,9 +62,15 @@ rm "$ICON"
 printf '{"onboardingCompleted": true, "checkForUpdates": true}\n' > "$WORK/library/settings.json"
 
 if [ -z "${DISPLAY:-}" ]; then
-  Xvfb :93 -screen 0 1280x800x24 -nolisten tcp >"$WORK/xvfb.log" 2>&1 &
+  # A display number nobody else on this machine uses.
+  for number in $(seq 160 199); do
+    if [ ! -e "/tmp/.X11-unix/X$number" ] && [ ! -e "/tmp/.X$number-lock" ]; then
+      break
+    fi
+  done
+  Xvfb ":$number" -screen 0 1280x800x24 -nolisten tcp >"$WORK/xvfb.log" 2>&1 &
   XVFB=$!
-  export DISPLAY=:93
+  export DISPLAY=":$number"
   sleep 1
 fi
 
