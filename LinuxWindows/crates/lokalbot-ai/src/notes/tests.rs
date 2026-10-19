@@ -384,3 +384,34 @@ fn chunks_split_long_transcripts_with_overlap() {
         );
     }
 }
+
+#[test]
+fn calendar_context_and_agenda_follow_their_settings() {
+    let (mut meeting, _) = northwind_meeting();
+    meeting.calendar_title = Some("Northwind renewal".into());
+    meeting.calendar_participant_identities = Some(vec![lokalbot_core::model::CalendarParticipantIdentity {
+        id: "a".into(),
+        name: Some("Jordan Lee".into()),
+        email_address: Some("jordan@example.com".into()),
+    }]);
+    meeting.calendar_agenda = Some("Renewal terms\nSSO timeline".into());
+    let block = |settings: &Settings| context_items(&meeting, "", &[], settings).join("\n");
+
+    let defaults = block(&Settings::default());
+    assert!(defaults.contains("Scheduled title: Northwind renewal"));
+    assert!(defaults.contains("Invited participants (names from the calendar; they may not all have spoken): Jordan Lee"));
+    assert!(!defaults.contains("jordan@example.com"), "addresses never reach a prompt");
+    assert!(!defaults.contains("Agenda"), "a saved agenda needs agenda use on");
+
+    let with_agenda = block(&Settings {
+        use_calendar_agenda: true,
+        ..Settings::default()
+    });
+    assert!(with_agenda.contains("Agenda from the calendar invitation:\nRenewal terms\nSSO timeline"));
+
+    let without_calendar = block(&Settings {
+        meeting_notes_use_calendar_context: false,
+        ..Settings::default()
+    });
+    assert!(without_calendar.is_empty(), "{without_calendar}");
+}

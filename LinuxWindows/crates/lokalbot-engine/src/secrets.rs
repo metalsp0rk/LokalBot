@@ -1,6 +1,6 @@
-//! API keys and the screen image key live in the system credential store
-//! (Windows Credential Manager, the Secret Service on Linux), never in
-//! `settings.json` or the library.
+//! API keys, private calendar links and the screen image key live in the
+//! system credential store (Windows Credential Manager, the Secret Service on
+//! Linux), never in `settings.json` or the library.
 
 use anyhow::{Context as _, Result};
 
@@ -74,4 +74,43 @@ pub fn screen_image_key(create: bool) -> Result<[u8; lokalbot_core::screen::IMAG
 
 fn decode_key(stored: &str) -> Option<[u8; lokalbot_core::screen::IMAGE_KEY_BYTES]> {
     hex::decode(stored.trim()).ok()?.try_into().ok()
+}
+
+const CALENDAR_LINKS: &str = "calendar-links";
+
+/// Private calendar links (iCal feeds and CalDAV collections), one per line.
+/// They grant read access to the user's calendar, so like API keys they live
+/// only in the credential store.
+pub fn calendar_links() -> Result<Vec<String>> {
+    match entry(CALENDAR_LINKS)?.get_password() {
+        Ok(stored) => Ok(stored
+            .lines()
+            .map(str::trim)
+            .filter(|line| !line.is_empty())
+            .map(str::to_string)
+            .collect()),
+        Err(keyring::Error::NoEntry) => Ok(Vec::new()),
+        Err(err) => Err(err).context("reading the calendar links"),
+    }
+}
+
+/// Saves the links, or removes the entry when there are none.
+pub fn save_calendar_links(links: &[String]) -> Result<()> {
+    let entry = entry(CALENDAR_LINKS)?;
+    let joined = links
+        .iter()
+        .map(|link| link.trim())
+        .filter(|link| !link.is_empty())
+        .collect::<Vec<_>>()
+        .join("\n");
+    if joined.is_empty() {
+        match entry.delete_credential() {
+            Ok(()) | Err(keyring::Error::NoEntry) => Ok(()),
+            Err(err) => Err(err).context("removing the calendar links"),
+        }
+    } else {
+        entry
+            .set_password(&joined)
+            .context("saving the calendar links")
+    }
 }

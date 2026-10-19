@@ -38,7 +38,7 @@ pub use insert::{InsertMethod, InsertOutcome, copy_to_clipboard, insert_text};
 pub use instance::{
     InstanceError, InstanceGuard, IpcCommand, IpcError, IpcServer, acquire_instance, listen, send,
 };
-pub use meeting::{DetectedMeeting, DetectorEvent, MeetingDetector};
+pub use meeting::{CalendarHint, DetectedMeeting, DetectorEvent, MeetingDetector};
 pub use notify::{NotificationHandle, notify, notify_with_timeout};
 pub use opener::{open_path, open_url, reveal_in_file_manager};
 pub use privacy::{PRIVATE_APP, SampleDisposition, disposition, redact};
