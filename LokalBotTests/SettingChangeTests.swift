@@ -62,6 +62,10 @@ final class SettingChangeTests: XCTestCase {
         XCTAssertEqual(try spec("retentionDays").classify(from: 14, to: 30), .widening)
         XCTAssertEqual(try spec("openRouterDataPolicy").classify(from: "privateOnly", to: "accountPolicy"), .widening)
         XCTAssertEqual(try spec("openRouterDataPolicy").classify(from: "accountPolicy", to: "privateOnly"), .narrowing)
+        XCTAssertEqual(try spec("modelDownloadSource").classify(from: "huggingFace", to: "hfMirror"), .widening)
+        XCTAssertEqual(try spec("modelDownloadSource").classify(from: "hfMirror", to: "modelScope"), .widening)
+        XCTAssertEqual(try spec("modelDownloadSource").classify(from: "modelScope", to: "hfMirror"), .narrowing)
+        XCTAssertEqual(try spec("modelDownloadSource").classify(from: "hfMirror", to: "huggingFace"), .narrowing)
     }
 
     func testEveryConsentSettingHasADirection() throws {
@@ -77,6 +81,7 @@ final class SettingChangeTests: XCTestCase {
             case ("autoRecordMode", _): narrowed = "Never auto-record"
             case ("screenContextCaptureMode", _): narrowed = "Activity only"
             case ("openRouterDataPolicy", _): narrowed = "privateOnly"
+            case ("modelDownloadSource", _): narrowed = "huggingFace"
             case (_, .bool): narrowed = false
             case (_, .text(.commaSeparated)):
                 // Adding an exclusion narrows; clearing the list would widen.

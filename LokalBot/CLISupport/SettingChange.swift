@@ -124,6 +124,11 @@ extension SettingSpec {
             return choiceRank(new) > choiceRank(old)
         case "openRouterDataPolicy":
             return new == choiceStored("accountPolicy")
+        case "modelDownloadSource":
+            // Each later source puts another third-party host ahead of the
+            // earlier ones (ModelScope, then HF-Mirror, then Hugging Face), so
+            // only moving back toward Hugging Face narrows.
+            return choiceRank(new) > choiceRank(old)
         default:
             break
         }
