@@ -25,6 +25,8 @@ pub struct CalendarState {
     addresses: Entity<InputState>,
     /// Saved links, read from the credential store when Settings opens.
     links: Option<Vec<String>>,
+    /// A read of the credential store is under way.
+    loading_links: bool,
     error: Option<SharedString>,
 }
 
@@ -48,6 +50,7 @@ impl CalendarState {
             link,
             addresses,
             links: None,
+            loading_links: false,
             error: None,
         }
     }
@@ -87,13 +90,18 @@ impl CalendarState {
         }
     }
 
-    /// Reads the saved links off the main thread.
-    pub fn load_links(cx: &mut Context<SettingsPage>) {
+    /// Reads the saved links off the main thread, once.
+    fn load_links(&mut self, cx: &mut Context<SettingsPage>) {
+        if self.links.is_some() || self.loading_links {
+            return;
+        }
+        self.loading_links = true;
         cx.spawn(async move |page, cx| {
             let links = cx
                 .background_spawn(async move { lokalbot_engine::secrets::calendar_links() })
                 .await;
             let _ = page.update(cx, |page, cx| {
+                page.calendar.loading_links = false;
                 match links {
                     Ok(links) => page.calendar.links = Some(links),
                     Err(err) => {
@@ -193,9 +201,7 @@ impl SettingsPage {
 
     fn calendar_links_row(&mut self, cx: &mut Context<Self>) -> gpui_kit::AnyElement {
         let lb = cx.lb().clone();
-        if self.calendar.links.is_none() {
-            CalendarState::load_links(cx);
-        }
+        self.calendar.load_links(cx);
         let links = self.calendar.links.clone().unwrap_or_default();
         let mut list = v_flex().gap(px(6.));
         for (index, link) in links.iter().enumerate() {
