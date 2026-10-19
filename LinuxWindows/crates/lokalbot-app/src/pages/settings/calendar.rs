@@ -312,13 +312,12 @@ impl SettingsPage {
 
     fn calendar_status_row(&self, cx: &mut Context<Self>) -> gpui_kit::AnyElement {
         let snapshot = self.data.read(cx).calendar.clone();
-        let today = chrono::Local::now().date_naive();
-        let (start, end) = lokalbot_core::time::local_day_bounds(today);
-        let meetings_today = snapshot
-            .events
-            .iter()
-            .filter(|e| e.end > start && e.start < end)
-            .count();
+        // Counted as Today lists them: personal appointments are not meetings.
+        let meetings_today = lokalbot_core::calendar::upcoming::schedule(
+            &snapshot.events,
+            chrono::Local::now().date_naive(),
+        )
+        .len();
         let status: SharedString = match snapshot.status {
             CalendarStatus::Off | CalendarStatus::NoSources => {
                 lokalbot_i18n::tr("No calendar is connected yet.").into()
