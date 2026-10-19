@@ -470,16 +470,41 @@ stays within the screen history profile. While a deletion is still being
 cleaned up, work memory and the timeline are left out.
 
 Another separate toggle, **Allow external agents to change LokalBot settings**,
-lets `lokalbot-cli config`, `status`, and `open` read your LokalBot settings and
-app status from the running app, and open Settings at a setting. They talk to the
-app over a local socket in the library's private `control/` folder that exists
-only while the toggle is on and accepts only your macOS user. Settings can
-include your writing profile, digest instructions, and folder paths; server URLs
-are shown without user names, passwords, or query strings, and API keys are
-never returned. When LokalBot is not running, these commands start it in the
+lets `lokalbot-cli config`, `status`, and `open` read and change your LokalBot
+settings in the running app, and open Settings at a setting. They talk to the app
+over a local socket in the library's private `control/` folder that exists only
+while the toggle is on and accepts only your macOS user. Settings can include
+your writing profile, digest instructions, and folder paths; server URLs are
+shown without user names, passwords, or query strings, and API keys are never
+returned. An agent can change preferences and narrow what LokalBot captures or
+sends, for example turn capture off or add an exclusion. A change that would
+widen it, such as turning on capture, a data source, autocomplete, or dictation,
+approving a server, removing an exclusion, or changing retention, waits for you:
+LokalBot posts a notification (or opens its approval window when notifications
+are off) and shows a card naming the program that asked and every change in the
+request, with lists showing each entry added or removed. Nothing changes unless
+you click Approve, which applies only the changes the card shows. If your settings
+change while it waits so that approving would allow more, the card shows the new
+changes and asks again. Requests expire after five minutes. A shorter retention policy shows the same cleanup review as Settings,
+and approving deletes only what it lists. `lokalbot-cli secret set` can save an
+API key, also only after you approve it; the card shows the key's last four
+characters, and keys are never read back. Each change is recorded, with the
+program that made it, in the library's `diagnostics/settings-changes.jsonl` and
+listed under the toggle with Undo. Turning the toggle off declines every request
+still waiting. When LokalBot is not running, these commands start it in the
 background, which also starts the capture and schedules you have turned on.
+
+An agent setting LokalBot up for you can ask for this access with
+`lokalbot-cli setup start`. The CLI leaves a short-lived request in the
+library's `control/` folder, and LokalBot shows it in a window that names the
+program that asked. Only clicking Allow turns access on. Read access to the
+meeting library or screen memory appears as separate boxes, off unless you
+tick them, and Don't Allow leaves everything off. With access, the agent can
+also choose a model preset (which downloads models), show you macOS permission
+prompts, set launch at login, and restart LokalBot when macOS needs it. The
+permissions themselves are always yours to grant.
 This toggle grants no meeting-library, screen-memory, or personal-context
-access, and none of those grants it. These commands do not change settings.
+access, and none of those grants it.
 
 **Open in Claude** and **Open in Codex**, in a meeting's More menu, start a new
 conversation in that installed app with the meeting's title, summary, and as much

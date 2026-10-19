@@ -107,16 +107,49 @@ lokalbot-cli config search "dark mode"           # find a setting's key by plain
 lokalbot-cli config describe autoRecordMode      # type, allowed values, tier
 lokalbot-cli config get autoRecordMode
 lokalbot-cli config list --changed --table
-lokalbot-cli config list --category privacy
-lokalbot-cli status                              # version, recording, permissions, agent access
-lokalbot-cli open settings dictationShortcut     # show the user that control in LokalBot
+lokalbot-cli config set noteTemplate=lecture summaryLanguage=en
+lokalbot-cli config set trackingEnabled=false --dry-run
+lokalbot-cli config reset dayDigestHour
+lokalbot-cli config export --changed > settings.json
+lokalbot-cli config import settings.json --dry-run
+lokalbot-cli config set calendarDetectionEnabled=true --wait 120   # waits for the user's approval
+lokalbot-cli config request <id> --wait 120      # answer to an earlier needs_approval
+lokalbot-cli secret list                         # which API keys are saved (never their values)
+printf %s "$KEY" | lokalbot-cli secret set openai-compatible --wait 120
+lokalbot-cli status                              # version, recording, models, permissions, agent access
+lokalbot-cli open settings dictationShortcut     # show the user a setting in LokalBot
+lokalbot-cli open settings permissions           # or a section
 ```
 
-`search`, `describe`, and `config schema` work any time. `list`, `get`, `status`, and `open` need the separate "Allow external agents to change LokalBot settings" toggle in LokalBot → Settings → Privacy. If a command returns `[settings_access_disabled]`, explain that setting and let the user choose. They start LokalBot in the background when it isn't running; pass `--no-launch` when the user doesn't want it started.
+`search`, `describe`, and `config schema` work any time. Everything else needs the separate "Allow external agents to change LokalBot settings" toggle in LokalBot → Settings → Privacy. If a command returns `[settings_access_disabled]`, explain that setting and let the user choose. These commands start LokalBot in the background when it isn't running; pass `--no-launch` when the user doesn't want it started.
 
-The CLI cannot change settings yet. When the user wants a change, run `open settings <key>` and let them make it in LokalBot. Never write LokalBot's preferences with `defaults write`, and never create or edit files in its `control/` folder: a partial preferences write silently resets other settings (it can turn automatic recording on), and the running app overwrites it anyway.
+Changing settings:
 
-In `describe` output, tier `consent` marks settings that widen what LokalBot captures, reads, records, or sends when turned on. Treat them as the user's decision.
+- Change only what the user asked for. Run `describe` first so you use the right tokens, and `--dry-run` when you are unsure. A `set` applies all of its pairs or none of them.
+- Preferences (tier `preference`), and changes that narrow what LokalBot captures or sends (turning capture off, adding an exclusion), apply right away. The user can undo them under the toggle.
+- Turning on capture, a data source, autocomplete or dictation, approving a server, removing an exclusion, or changing retention (tier `consent`) sends the whole request to the user in LokalBot and returns `[needs_approval]` (exit 3) with the request in `details`: its `id`, every change, and, for a shorter retention policy, what the cleanup deletes. Nothing is applied yet. Ask the user before making such a request, tell them a card is waiting in LokalBot, and pass `--wait <seconds>` (up to 300) or run `config request <id> --wait <seconds>` for the answer: exit 0 approved, 4 declined, 5 expired. Don't resend a declined request unless the user asks; an identical request still waiting is reused rather than asked twice.
+- API keys: `secret set <name>` reads the key from standard input and always waits for approval the same way. Never put a key on the command line, never echo it back, and never ask to read one; `secret list` only says whether each is saved. `secret clear <name>` removes one right away.
+- `[read_only]` settings can't be changed from the terminal.
+- Never write LokalBot's preferences with `defaults write`, and never create or edit files in its `control/` folder: a partial preferences write silently resets other settings (it can turn automatic recording on), and the running app overwrites it anyway.
+
+## Setting up LokalBot
+
+When the user wants LokalBot installed or set up, follow [AGENT_SETUP.md](https://github.com/stevyhacker/lokalbot/blob/master/AGENT_SETUP.md):
+
+```bash
+lokalbot-cli setup start --wait 300        # the user clicks Allow in LokalBot; the only way to get access
+lokalbot-cli setup plan > plan.json        # talk it through, then edit to the user's answers
+lokalbot-cli setup apply plan.json --wait 300
+lokalbot-cli models status                 # poll until meetingReady
+lokalbot-cli permissions                   # then: permissions request <name>, restart if macOS asks
+lokalbot-cli setup finish
+lokalbot-cli doctor                        # exit 0 when ready; nextSteps otherwise
+```
+
+- Ask before adding `--meeting-library` or `--screen-memory` to `setup start`, and before requesting any setting in the plan's `notes.needsApproval`.
+- Exit 3 means the user hasn't answered yet, 4 means they declined (don't ask again unless they say so), and 5 means the request expired.
+- For permissions, tell the user exactly what to click, then poll `permissions` until it shows the grant.
+- Never install by removing the quarantine attribute, and never write LokalBot's preferences or files in `control/` yourself.
 
 ## MCP alternative (and ask_library)
 

@@ -344,6 +344,28 @@ struct LokalBotApp: App {
         .windowStyle(.hiddenTitleBar)
         .defaultPosition(.center)
 
+        // An agent's `setup start` request.
+        Window(app.settings.appLanguage.localized("Set Up with Your Agent"), id: "agent-setup") {
+            AgentSetupView()
+                .environmentObject(app)
+                .brandTinted()
+                .appTextSizeRoot(app.settings.textSize)
+                .appLanguageRoot(app.settingsStore)
+        }
+        .windowResizability(.contentSize)
+        .defaultPosition(.center)
+
+        // Terminal requests that need the person: one card per request.
+        Window(app.settings.appLanguage.localized("Approve Settings Change"), id: "settings-approval") {
+            SettingsApprovalView()
+                .environmentObject(app)
+                .brandTinted()
+                .appTextSizeRoot(app.settings.textSize)
+                .appLanguageRoot(app.settingsStore)
+        }
+        .windowResizability(.contentSize)
+        .defaultPosition(.center)
+
 #if !LOKALBOT_UI_TEST_HOST
         MenuBarExtra {
             MenuBarView(dictation: app.dictation)

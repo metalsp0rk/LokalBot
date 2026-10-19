@@ -157,6 +157,8 @@ struct MenuBarView: View {
                 .buttonStyle(.plain).foregroundStyle(Brand.error)
             }
 
+            SettingsApprovalMenuRow(approvals: app.settingsApprovals)
+
             if !permissions.allGranted {
                 Button { WindowAccess.shared.open("onboarding") } label: {
                     Label("Grant permissions to record", systemImage: "exclamationmark.shield.fill")
