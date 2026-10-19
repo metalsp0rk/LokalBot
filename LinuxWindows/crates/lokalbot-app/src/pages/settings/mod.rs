@@ -533,7 +533,7 @@ impl SettingsPage {
                     (
                         lokalbot_core::access::meetings_access_enabled(&paths),
                         lokalbot_core::access::screen_access_scope(&paths),
-                        advanced::cli_install_path().exists(),
+                        lokalbot_cli::install::installed_for_current_user(),
                     )
                 })
                 .await;

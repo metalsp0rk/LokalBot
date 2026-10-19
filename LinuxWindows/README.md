@@ -55,7 +55,7 @@ the library's `logs` folder (Settings → Advanced → Logs).
 
 To let Claude Code, Codex and other coding agents read your library, turn on "Allow external agents to read
 your meeting library" in Settings → Privacy & Data, then click **Install for your coding agent…** in
-Settings → Advanced → Agent CLI (it reads **Reinstall…** after `install.sh`). It installs the LokalBot skill into `~/.agents/skills` and `~/.claude/skills`
+Settings → Advanced → Agent CLI. It installs the LokalBot skill into `~/.agents/skills` and `~/.claude/skills`
 (under your user folder on Windows) and puts `lokalbot-cli` here:
 
 - **Linux**: `~/.local/bin/lokalbot-cli`. If you used `install.sh`, the CLI is already there and is left as

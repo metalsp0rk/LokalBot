@@ -43,6 +43,13 @@ pub fn command_path_for_current_user() -> Option<PathBuf> {
     directories::BaseDirs::new().map(|d| command_path(d.home_dir()))
 }
 
+/// [`Installer::is_installed`] for the current user (the Agent CLI status in
+/// Settings).
+pub fn installed_for_current_user() -> bool {
+    directories::BaseDirs::new()
+        .is_some_and(|d| Installer::new(d.home_dir().to_path_buf(), PathBuf::new()).is_installed())
+}
+
 pub struct Installer {
     pub home: PathBuf,
     /// The binary to install (this executable).
@@ -121,6 +128,16 @@ impl Installer {
 
     fn exists(path: &Path) -> bool {
         path.exists() || std::fs::symlink_metadata(path).is_ok()
+    }
+
+    /// Whether `install-skill` has run: the command is there and so is a skill
+    /// this installer wrote. install.sh puts the command in place without the
+    /// skill, so the command alone does not count.
+    pub fn is_installed(&self) -> bool {
+        self.bin_link.is_file()
+            && [&self.skill_link, &self.claude_skill_link]
+                .into_iter()
+                .any(|skill| self.is_owned(skill) && skill.join("SKILL.md").is_file())
     }
 
     /// Whether the command path already runs this binary: it is the same file
@@ -361,6 +378,25 @@ mod tests {
         let metadata = std::fs::symlink_metadata(&installer.bin_link).unwrap();
         assert!(metadata.file_type().is_file());
         assert!(installer.claude_skill_link.join("SKILL.md").is_file());
+    }
+
+    #[test]
+    fn installed_needs_the_command_and_this_installers_skill() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut installer = installer_in(dir.path(), PathBuf::new());
+        assert!(!installer.is_installed());
+        // install.sh's copy alone is not an installed Agent CLI.
+        write(&installer.bin_link, b"bin");
+        assert!(!installer.is_installed());
+        installer.binary = installer.bin_link.clone();
+        installer.install(false).unwrap();
+        assert!(installer.is_installed());
+        installer.uninstall().unwrap();
+        assert!(!installer.is_installed());
+        // Someone else's skill folder does not count either.
+        write(&installer.bin_link, b"bin");
+        write(&installer.claude_skill_link.join("SKILL.md"), b"mine");
+        assert!(!installer.is_installed());
     }
 
     #[cfg(unix)]

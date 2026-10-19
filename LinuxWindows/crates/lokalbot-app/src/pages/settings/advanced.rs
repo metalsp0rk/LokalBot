@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use crate::i18n::h_flex;
 use gpui_kit::component::button::Button;
 use gpui_kit::component::{Icon, Sizable as _, v_flex};
-use gpui_kit::{Context, ParentElement as _, SharedString, Styled as _, px};
+use gpui_kit::{AppContext as _, Context, ParentElement as _, SharedString, Styled as _, px};
 
 use super::{Section, SettingsPage};
 use crate::state::AppEvent;
@@ -137,6 +137,53 @@ pub fn platform_line() -> String {
 }
 
 impl SettingsPage {
+    /// Runs the bundled `lokalbot-cli install-skill`, which installs the CLI
+    /// and the agent skill, then refreshes the Agent CLI status.
+    fn install_cli(&mut self, cx: &mut Context<Self>) {
+        let data = self.data.clone();
+        cx.spawn(async move |this, cx| {
+            let result = cx
+                .background_spawn(async move {
+                    let exe = std::env::current_exe()?;
+                    let name = if cfg!(windows) {
+                        "lokalbot-cli.exe"
+                    } else {
+                        "lokalbot-cli"
+                    };
+                    let cli = exe.with_file_name(name);
+                    anyhow::ensure!(
+                        cli.is_file(),
+                        "{} was not found next to LokalBot",
+                        cli.display()
+                    );
+                    let output = std::process::Command::new(&cli)
+                        .arg("install-skill")
+                        .output()?;
+                    if output.status.success() {
+                        Ok(())
+                    } else {
+                        anyhow::bail!("{}", String::from_utf8_lossy(&output.stderr).trim())
+                    }
+                })
+                .await;
+            data.update(cx, |data, cx| match result {
+                Ok(()) => data.show_message(
+                    lokalbot_i18n::tr("Installed lokalbot-cli for your coding agents."),
+                    cx,
+                ),
+                Err(err) => data.show_error(
+                    lokalbot_i18n::format(
+                        "Installing lokalbot-cli failed: {err}",
+                        &[("err", format!("{:#}", err))],
+                    ),
+                    cx,
+                ),
+            });
+            let _ = this.update(cx, |this, cx| this.reload_access(cx));
+        })
+        .detach();
+    }
+
     pub(super) fn advanced_sections(&mut self, cx: &mut Context<Self>) -> Vec<Section> {
         let (paths, data) = (
             self.data.read(cx).library.paths().clone(),
@@ -168,7 +215,6 @@ impl SettingsPage {
             ),
         );
 
-        let install_data = data.clone();
         let cli = Section::new(lokalbot_i18n::tr("Agent CLI"))
             .row("settings.agentCLI", settings_row::row("settings.agentCLI", lokalbot_i18n::tr("Status"), None, status, self.is_focused("settings.agentCLI"), cx))
             .row(
@@ -184,9 +230,7 @@ impl SettingsPage {
                                     .small()
                                     .icon(Icon::new(Ico::Terminal))
                                     .label(if installed == Some(true) { lokalbot_i18n::tr("Reinstall…") } else { lokalbot_i18n::tr("Install for your coding agent…") })
-                                    .on_click(move |_, _, cx| {
-                                        install_data.update(cx, |data, cx| data.request(AppEvent::InstallCli, cx))
-                                    }),
+                                    .on_click(cx.listener(|this, _, _, cx| this.install_cli(cx))),
                             ),
                         )
                         .child(settings_row::help(
