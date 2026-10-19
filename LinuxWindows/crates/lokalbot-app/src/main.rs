@@ -195,6 +195,17 @@ fn main() {
     };
     let settings = Settings::load(&paths.settings_file());
     log::info!("library: {}", paths.root().display());
+    // Only the instance that owns the library may decide a recording was
+    // abandoned, and before its engine starts processing.
+    if instance.is_some() {
+        let recovered = lokalbot_engine::recover_unfinished_recordings(&library, &settings);
+        if !recovered.is_empty() {
+            log::info!(
+                "closed {} recording(s) an earlier run left open",
+                recovered.len()
+            );
+        }
+    }
 
     gpui_kit::application()
         .with_assets(assets::Assets)

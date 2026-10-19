@@ -32,6 +32,7 @@ use lokalbot_core::{Library, Settings};
 
 pub use autocomplete::saved_facts as autocomplete_saved_facts;
 pub use events::*;
+pub use recording::recover_unfinished_recordings;
 
 /// State every subsystem shares.
 pub(crate) struct Shared {
