@@ -613,7 +613,8 @@ impl<S: Store> Store for Chunked<S> {
                     .map(|chunk| chunk.iter().collect())
                     .collect();
                 for (index, part) in parts.iter().enumerate() {
-                    self.inner.set(&Self::part(account, index + 1), Some(part))?;
+                    self.inner
+                        .set(&Self::part(account, index + 1), Some(part))?;
                 }
                 self.inner
                     .set(account, Some(&format!("{CHUNK_HEADER}{}", parts.len())))?;

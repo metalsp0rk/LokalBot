@@ -141,7 +141,9 @@ fn npm_shims_resolve_to_their_script() {
     assert_eq!(bundled.program, dir.path().join("node.exe"));
     assert_eq!(bundled.prefix, vec![script.clone().into_os_string()]);
     // A package that ships a native binary behind the shim.
-    let native_target = dir.path().join("node_modules/@anthropic-ai/claude-code/bin/claude.exe");
+    let native_target = dir
+        .path()
+        .join("node_modules/@anthropic-ai/claude-code/bin/claude.exe");
     std::fs::create_dir_all(native_target.parent().unwrap()).unwrap();
     std::fs::write(&native_target, "").unwrap();
     let native_shim = dir.path().join("claude-native.cmd");

@@ -768,7 +768,10 @@ fn long_sessions_are_split_for_small_credential_stores() {
     let long: String = "é".repeat(1_500) + &"x".repeat(1_700);
     store.set("creds", Some(&long)).unwrap();
     assert_eq!(store.get("creds").unwrap().as_deref(), Some(long.as_str()));
-    assert_eq!(store.inner.get("creds").unwrap().as_deref(), Some("lokalbot-chunks:4"));
+    assert_eq!(
+        store.inner.get("creds").unwrap().as_deref(),
+        Some("lokalbot-chunks:4")
+    );
     // A shorter value replaces it and leaves no parts behind.
     store.set("creds", Some("short")).unwrap();
     assert_eq!(store.get("creds").unwrap().as_deref(), Some("short"));
@@ -798,6 +801,8 @@ fn long_sessions_are_split_for_small_credential_stores() {
         expires_at: NOW + 3_600,
         scopes: [PLAN_SCOPE.to_string()].into_iter().collect(),
     };
-    account.write(CREDENTIALS_ACCOUNT, Some(&credentials)).unwrap();
+    account
+        .write(CREDENTIALS_ACCOUNT, Some(&credentials))
+        .unwrap();
     assert_eq!(account.access_token().unwrap(), "a".repeat(2_400));
 }
