@@ -16,8 +16,9 @@ final class PiLaunchPlannerTests: XCTestCase {
                           capability: String? = nil,
                           continuePrevious: Bool = false,
                           specificSession: URL? = nil,
-                          reasoningLevelFile: URL? = nil) -> PiLaunchPlan {
-        var environment = ["PATH": "/usr/bin:/bin", "HOME": "/Users/x"]
+                          reasoningLevelFile: URL? = nil,
+                          inheritedEnvironment: [String: String] = [:]) -> PiLaunchPlan {
+        var environment = ["PATH": "/usr/bin:/bin", "HOME": "/Users/x"].merging(inheritedEnvironment) { $1 }
         environment["LOKALBOT_LLM_API_KEY"] = inheritedAPIKey
         return PiLaunchPlanner.plan(
             bun: URL(fileURLWithPath: "/rt/bun/bun"),
@@ -65,6 +66,17 @@ final class PiLaunchPlannerTests: XCTestCase {
         XCTAssertEqual(env["PI_CODING_AGENT_DIR"], "/store/agent/pi-config")
         XCTAssertEqual(env["PATH"], "/app/Contents/Helpers:/usr/bin:/bin")
         XCTAssertEqual(env["HOME"], "/Users/x", "base environment is preserved")
+    }
+
+    func testCompiledCopiesOutsideTheVerifiedRuntimeAreDisabled() {
+        // Scripts/tests/pi-runtime.test.ts checks that these leave no cache.
+        let env = makePlan(inheritedEnvironment: [
+            "BUN_RUNTIME_TRANSPILER_CACHE_PATH": "/Users/x/Library/Caches/bun",
+            "JITI_FS_CACHE": "true",
+        ]).environment
+        XCTAssertEqual(env["BUN_RUNTIME_TRANSPILER_CACHE_PATH"], "0")
+        XCTAssertEqual(env["NODE_DISABLE_COMPILE_CACHE"], "1")
+        XCTAssertEqual(env["JITI_FS_CACHE"], "false")
     }
 
     func testEnvironmentNamesTheReasoningFieldsAndLevelFile() {
