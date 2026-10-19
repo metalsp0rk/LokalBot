@@ -876,6 +876,18 @@ mod tests {
         assert_eq!(events[0].participant_names, ["Ana Petrović"]);
     }
 
+    /// Floating times and unknown zones are read in this computer's zone;
+    /// on Windows its name comes from the system's time zone settings.
+    #[test]
+    fn this_computers_zone_is_known() {
+        assert!(
+            !default_zone(None).is_floating(),
+            "{:?}",
+            iana_time_zone::get_timezone()
+        );
+        assert!(!default_zone(Some("Central European Standard Time")).is_floating());
+    }
+
     #[test]
     fn unreadable_text_is_an_error() {
         assert!(
