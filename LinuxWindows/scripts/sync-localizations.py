@@ -92,9 +92,11 @@ def generate():
         rtl = "true" if code in ("ar", "ar-EG", "ur") else "false"
         lines.append(f"    Language {{ code: {rust_string(code)}, name: {rust_string(names[case])}, english_name: {rust_string(english_names[case])}, rtl: {rtl} }},")
     lines.extend([
-        "];", "", "pub fn lookup(locale: &str, key: &str) -> Option<&'static str> {",
-        "    match locale {",
+        "];", "",
+        "// One sorted table per language, searched by key. A single `match` over",
+        "// every string ran rustc out of memory in release builds.",
     ])
+    tables = []
     for code in cases.values():
         catalog = read_strings(ROOT / f"LokalBot/Resources/{code}.lproj/Localizable.strings")
         if catalog.keys() != english.keys():
@@ -107,10 +109,24 @@ def generate():
         if catalog.keys() & desktop[code].keys():
             raise ValueError(f"{code}: shared keys must be edited in the macOS catalog, not overridden")
         catalog.update(desktop[code])
-        lines.append(f"        {rust_string(code)} => match key {{")
-        lines.extend(f"            {rust_string(key)} => Some({rust_string(value)})," for key, value in sorted(catalog.items()))
-        lines.extend(["            _ => None,", "        },"])
-    lines.extend(["        _ => None,", "    }", "}", ""])
+        name = re.sub(r"[^A-Z0-9]", "_", code.upper())
+        tables.append((code, name))
+        # Python orders str by code point, which is Rust's UTF-8 byte order.
+        lines.append(f"static {name}: &[(&str, &str)] = &[")
+        lines.extend(f"    ({rust_string(key)}, {rust_string(value)})," for key, value in sorted(catalog.items()))
+        lines.extend(["];", ""])
+    lines.append("pub(crate) static TABLES: &[(&str, &[(&str, &str)])] = &[")
+    lines.extend(f"    ({rust_string(code)}, {name})," for code, name in tables)
+    lines.extend([
+        "];", "",
+        "pub fn lookup(locale: &str, key: &str) -> Option<&'static str> {",
+        "    let (_, table) = TABLES.iter().find(|(code, _)| *code == locale)?;",
+        "    table",
+        "        .binary_search_by(|(candidate, _)| (*candidate).cmp(key))",
+        "        .ok()",
+        "        .map(|index| table[index].1)",
+        "}", "",
+    ])
     return "\n".join(lines)
 
 
