@@ -210,6 +210,7 @@
 "Close find" = "Chiudi ricerca nel testo";
 "Close search" = "Chiudi ricerca";
 "Coding agent records to remove" = "Record degli agenti di programmazione da rimuovere";
+"Coding Agent Sessions" = "Sessioni degli agenti di programmazione";
 "Coding agent sessions" = "Sessioni degli agenti di programmazione";
 "Command Palette" = "Riquadro comandi";
 "Command Palette…" = "Riquadro comandi…";
@@ -723,6 +724,7 @@
 "Previously named voices" = "Voci con nome già assegnato";
 "Privacy" = "Privacy";
 "Privacy & Data" = "Privacy e dati";
+"Private and incognito browser windows are captured like any other window unless you exclude the browser or site in Settings → Privacy & Data." = "Le finestre private e in incognito del browser vengono acquisite come qualsiasi altra finestra, a meno che tu non escluda il browser o il sito in Impostazioni → Privacy e dati.";
 "Private endpoints only (Recommended)" = "Solo endpoint privati (consigliato)";
 "Processing" = "Elaborazione";
 "Project details" = "Dettagli del progetto";
@@ -734,6 +736,7 @@
 "Question or search" = "Domanda o ricerca";
 "Quit LokalBot" = "Esci da LokalBot";
 "Read coding agent sessions" = "Leggi le sessioni degli agenti di programmazione";
+"Read your Claude Code and Codex sessions so LokalBot remembers what your agents did. Files stay on this Mac." = "Legge le tue sessioni di Claude Code e Codex perché LokalBot ricordi cosa hanno fatto i tuoi agenti. I file restano su questo Mac.";
 "Reads the focused window's text from a screenshot. Needs Screen Recording; the image and text are not saved." = "Legge il testo della finestra attiva da uno screenshot. Richiede l’autorizzazione Registrazione schermo; l’immagine e il testo non vengono salvati.";
 "Reads visible interface text through Accessibility; no screenshots are stored." = "Legge il testo visibile dell’interfaccia tramite Accessibilità; non viene salvato alcuno screenshot.";
 "Reads window titles and visible interface text for activity and text-context features." = "Legge i titoli delle finestre e il testo visibile dell’interfaccia per le funzioni di attività e di contesto testuale.";

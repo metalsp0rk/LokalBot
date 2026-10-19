@@ -210,6 +210,7 @@
 "Close find" = "찾기 닫기";
 "Close search" = "검색 닫기";
 "Coding agent records to remove" = "삭제할 코딩 에이전트 기록";
+"Coding Agent Sessions" = "코딩 에이전트 세션";
 "Coding agent sessions" = "코딩 에이전트 세션";
 "Command Palette" = "명령 팔레트";
 "Command Palette…" = "명령 팔레트…";
@@ -723,6 +724,7 @@
 "Previously named voices" = "이전에 이름을 지정한 목소리";
 "Privacy" = "개인정보 보호";
 "Privacy & Data" = "개인정보 보호 및 데이터";
+"Private and incognito browser windows are captured like any other window unless you exclude the browser or site in Settings → Privacy & Data." = "설정 → 개인정보 보호 및 데이터에서 브라우저나 사이트를 제외하지 않으면 브라우저의 비공개 창과 시크릿 창도 다른 창처럼 캡처됩니다.";
 "Private endpoints only (Recommended)" = "비공개 엔드포인트만(권장)";
 "Processing" = "처리 중";
 "Project details" = "프로젝트 세부 정보";
@@ -734,6 +736,7 @@
 "Question or search" = "질문 또는 검색";
 "Quit LokalBot" = "LokalBot 종료";
 "Read coding agent sessions" = "코딩 에이전트 세션 읽기";
+"Read your Claude Code and Codex sessions so LokalBot remembers what your agents did. Files stay on this Mac." = "Claude Code와 Codex 세션을 읽어 에이전트가 한 일을 LokalBot이 기억하게 합니다. 파일은 이 Mac에만 남습니다.";
 "Reads the focused window's text from a screenshot. Needs Screen Recording; the image and text are not saved." = "스크린샷에서 포커스된 창의 텍스트를 읽습니다. 화면 기록 권한이 필요하며, 이미지와 텍스트는 저장하지 않습니다.";
 "Reads visible interface text through Accessibility; no screenshots are stored." = "손쉬운 사용을 통해 표시된 인터페이스 텍스트를 읽습니다. 스크린샷은 저장하지 않습니다.";
 "Reads window titles and visible interface text for activity and text-context features." = "활동 및 텍스트 맥락 기능을 위해 창 제목과 표시된 인터페이스 텍스트를 읽습니다.";

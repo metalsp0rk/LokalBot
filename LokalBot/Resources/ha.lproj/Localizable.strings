@@ -210,6 +210,7 @@
 "Close find" = "Rufe nema";
 "Close search" = "Rufe bincike";
 "Coding agent records to remove" = "Bayanan wakilin rubuta lamba da za a cire";
+"Coding Agent Sessions" = "Zaman wakilin rubuta lamba";
 "Coding agent sessions" = "Zaman wakilin rubuta lamba";
 "Command Palette" = "Jerin umarni";
 "Command Palette…" = "Jerin umarni…";
@@ -723,6 +724,7 @@
 "Previously named voices" = "Muryoyin da aka ba suna a baya";
 "Privacy" = "Sirri";
 "Privacy & Data" = "Sirri da bayanai";
+"Private and incognito browser windows are captured like any other window unless you exclude the browser or site in Settings → Privacy & Data." = "Ana ɗaukar tagogin burauza na sirri da na incognito kamar kowace taga, sai dai idan ka cire burauzar ko shafin a Saituna → Sirri da bayanai.";
 "Private endpoints only (Recommended)" = "Wuraren sabis na sirri kawai (shawarar da aka ba)";
 "Processing" = "Ana sarrafawa";
 "Project details" = "Bayanin aiki";
@@ -734,6 +736,7 @@
 "Question or search" = "Tambaya ko bincike";
 "Quit LokalBot" = "Fita daga LokalBot";
 "Read coding agent sessions" = "Karanta zaman wakilin rubuta lamba";
+"Read your Claude Code and Codex sessions so LokalBot remembers what your agents did. Files stay on this Mac." = "Karanta zaman Claude Code da Codex naka domin LokalBot ya tuna abin da wakilanka suka yi. Fayiloli suna nan a wannan Mac.";
 "Reads the focused window's text from a screenshot. Needs Screen Recording; the image and text are not saved." = "Yana karanta rubutun tagar da ake aiki da ita daga hoton allo. Yana buƙatar Rikodin Allo; ba a adana hoton ko rubutun ba.";
 "Reads visible interface text through Accessibility; no screenshots are stored." = "Yana karanta rubutun mu'amala da ake gani ta Sauƙin amfani; ba a adana hotunan allo ba.";
 "Reads window titles and visible interface text for activity and text-context features." = "Yana karanta taken tagogi da rubutun mu'amala da ake gani don fasalin ayyuka da mahallin rubutu.";

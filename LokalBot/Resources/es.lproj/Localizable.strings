@@ -210,6 +210,7 @@
 "Close find" = "Cerrar búsqueda";
 "Close search" = "Cerrar búsqueda";
 "Coding agent records to remove" = "Registros del agente de programación que se eliminarán";
+"Coding Agent Sessions" = "Sesiones del agente de programación";
 "Coding agent sessions" = "Sesiones del agente de programación";
 "Command Palette" = "Paleta de comandos";
 "Command Palette…" = "Paleta de comandos…";
@@ -723,6 +724,7 @@
 "Previously named voices" = "Voces nombradas anteriormente";
 "Privacy" = "Privacidad";
 "Privacy & Data" = "Privacidad y datos";
+"Private and incognito browser windows are captured like any other window unless you exclude the browser or site in Settings → Privacy & Data." = "Las ventanas privadas y de incógnito del navegador se capturan como cualquier otra ventana, salvo que excluyas el navegador o el sitio en Ajustes → Privacidad y datos.";
 "Private endpoints only (Recommended)" = "Solo endpoints privados (recomendado)";
 "Processing" = "Procesando";
 "Project details" = "Detalles del proyecto";
@@ -734,6 +736,7 @@
 "Question or search" = "Pregunta o búsqueda";
 "Quit LokalBot" = "Salir de LokalBot";
 "Read coding agent sessions" = "Leer sesiones de agentes de programación";
+"Read your Claude Code and Codex sessions so LokalBot remembers what your agents did. Files stay on this Mac." = "Lee tus sesiones de Claude Code y Codex para que LokalBot recuerde lo que hicieron tus agentes. Los archivos permanecen en este Mac.";
 "Reads the focused window's text from a screenshot. Needs Screen Recording; the image and text are not saved." = "Lee el texto de la ventana activa desde una captura de pantalla. Requiere Grabación de pantalla; la imagen y el texto no se guardan.";
 "Reads visible interface text through Accessibility; no screenshots are stored." = "Lee el texto visible de la interfaz mediante Accesibilidad; no se guardan capturas de pantalla.";
 "Reads window titles and visible interface text for activity and text-context features." = "Lee títulos de ventanas y texto visible de la interfaz para las funciones de actividad y contexto de texto.";

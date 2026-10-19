@@ -210,6 +210,7 @@
 "Close find" = "Textsuche schließen";
 "Close search" = "Suche schließen";
 "Coding agent records to remove" = "Zu entfernende Einträge von Programmieragenten";
+"Coding Agent Sessions" = "Sitzungen von Programmieragenten";
 "Coding agent sessions" = "Sitzungen von Programmieragenten";
 "Command Palette" = "Befehlspalette";
 "Command Palette…" = "Befehlspalette…";
@@ -723,6 +724,7 @@
 "Previously named voices" = "Zuvor benannte Stimmen";
 "Privacy" = "Datenschutz";
 "Privacy & Data" = "Datenschutz und Daten";
+"Private and incognito browser windows are captured like any other window unless you exclude the browser or site in Settings → Privacy & Data." = "Private und Inkognito-Browserfenster werden wie jedes andere Fenster erfasst, sofern du den Browser oder die Website nicht unter Einstellungen → Datenschutz und Daten ausschließt.";
 "Private endpoints only (Recommended)" = "Nur private Endpunkte (empfohlen)";
 "Processing" = "Verarbeitung";
 "Project details" = "Projektdetails";
@@ -734,6 +736,7 @@
 "Question or search" = "Frage oder Suche";
 "Quit LokalBot" = "LokalBot beenden";
 "Read coding agent sessions" = "Sitzungen von Programmieragenten lesen";
+"Read your Claude Code and Codex sessions so LokalBot remembers what your agents did. Files stay on this Mac." = "Liest deine Sitzungen aus Claude Code und Codex, damit sich LokalBot merkt, was deine Agenten getan haben. Die Dateien bleiben auf diesem Mac.";
 "Reads the focused window's text from a screenshot. Needs Screen Recording; the image and text are not saved." = "Liest den Text des fokussierten Fensters aus einem Bildschirmfoto. Erfordert Bildschirmaufnahme; Bild und Text werden nicht gespeichert.";
 "Reads visible interface text through Accessibility; no screenshots are stored." = "Liest sichtbaren Oberflächentext über Bedienungshilfen; Bildschirmfotos werden nicht gespeichert.";
 "Reads window titles and visible interface text for activity and text-context features." = "Liest Fenstertitel und sichtbaren Oberflächentext für Aktivitäts- und Textkontextfunktionen.";

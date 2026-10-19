@@ -210,6 +210,7 @@
 "Close find" = "शोधणे बंद करा";
 "Close search" = "शोध बंद करा";
 "Coding agent records to remove" = "काढायच्या कोडिंग एजंट नोंदी";
+"Coding Agent Sessions" = "कोडिंग एजंट सत्रे";
 "Coding agent sessions" = "कोडिंग एजंट सत्रे";
 "Command Palette" = "कमांड पॅलेट";
 "Command Palette…" = "कमांड पॅलेट…";
@@ -723,6 +724,7 @@
 "Previously named voices" = "आधी नाव दिलेले आवाज";
 "Privacy" = "गोपनीयता";
 "Privacy & Data" = "गोपनीयता आणि डेटा";
+"Private and incognito browser windows are captured like any other window unless you exclude the browser or site in Settings → Privacy & Data." = "ब्राउझरच्या प्रायव्हेट आणि इनकॉग्निटो विंडोसुद्धा इतर कोणत्याही विंडोप्रमाणे कॅप्चर होतात, जोपर्यंत तुम्ही सेटिंग्ज → गोपनीयता आणि डेटामध्ये तो ब्राउझर किंवा साइट वगळत नाही.";
 "Private endpoints only (Recommended)" = "फक्त खाजगी एंडपॉइंट (शिफारस केलेले)";
 "Processing" = "प्रक्रिया सुरू आहे";
 "Project details" = "प्रकल्पाचा तपशील";
@@ -734,6 +736,7 @@
 "Question or search" = "प्रश्न किंवा शोध";
 "Quit LokalBot" = "LokalBot बंद करा";
 "Read coding agent sessions" = "कोडिंग एजंट सत्रे वाचा";
+"Read your Claude Code and Codex sessions so LokalBot remembers what your agents did. Files stay on this Mac." = "तुमची Claude Code आणि Codex सत्रे वाचा, जेणेकरून तुमच्या एजंटांनी काय केले ते LokalBot लक्षात ठेवेल. फाइल्स याच Mac वर राहतात.";
 "Reads the focused window's text from a screenshot. Needs Screen Recording; the image and text are not saved." = "स्क्रीनशॉटमधून सक्रिय विंडोचा मजकूर वाचतो. स्क्रीन रेकॉर्डिंग आवश्यक; प्रतिमा आणि मजकूर जतन होत नाहीत.";
 "Reads visible interface text through Accessibility; no screenshots are stored." = "सुलभतेद्वारे दिसणारा इंटरफेस मजकूर वाचतो; स्क्रीनशॉट जतन होत नाहीत.";
 "Reads window titles and visible interface text for activity and text-context features." = "हालचाली आणि मजकूर संदर्भ सुविधांसाठी विंडोची शीर्षके आणि दिसणारा इंटरफेस मजकूर वाचतो.";

@@ -210,6 +210,7 @@
 "Close find" = "إغلاق البحث";
 "Close search" = "إغلاق البحث";
 "Coding agent records to remove" = "سجلات وكيل البرمجة المطلوب إزالتها";
+"Coding Agent Sessions" = "جلسات وكيل البرمجة";
 "Coding agent sessions" = "جلسات وكيل البرمجة";
 "Command Palette" = "لوحة الأوامر";
 "Command Palette…" = "لوحة الأوامر…";
@@ -723,6 +724,7 @@
 "Previously named voices" = "الأصوات التي سُميت سابقًا";
 "Privacy" = "الخصوصية";
 "Privacy & Data" = "الخصوصية والبيانات";
+"Private and incognito browser windows are captured like any other window unless you exclude the browser or site in Settings → Privacy & Data." = "تُلتقط نوافذ المتصفح الخاصة ونوافذ التصفح المتخفي مثل أي نافذة أخرى، ما لم تستبعد المتصفح أو الموقع ضمن الإعدادات ← الخصوصية والبيانات.";
 "Private endpoints only (Recommended)" = "نقاط النهاية الخاصة فقط (موصى به)";
 "Processing" = "جارٍ المعالجة";
 "Project details" = "تفاصيل المشروع";
@@ -734,6 +736,7 @@
 "Question or search" = "سؤال أو بحث";
 "Quit LokalBot" = "إنهاء LokalBot";
 "Read coding agent sessions" = "قراءة جلسات وكيل البرمجة";
+"Read your Claude Code and Codex sessions so LokalBot remembers what your agents did. Files stay on this Mac." = "قراءة جلسات Claude Code وCodex لديك ليتذكّر LokalBot ما فعله وكلاؤك. تبقى الملفات على هذا الـ Mac.";
 "Reads the focused window's text from a screenshot. Needs Screen Recording; the image and text are not saved." = "يقرأ نص النافذة النشطة من لقطة شاشة. يتطلب إذن تسجيل الشاشة؛ ولا تُحفَظ الصورة أو النص.";
 "Reads visible interface text through Accessibility; no screenshots are stored." = "يقرأ نص الواجهة الظاهر عبر تسهيلات الاستخدام؛ ولا تُخزَّن لقطات شاشة.";
 "Reads window titles and visible interface text for activity and text-context features." = "يقرأ عناوين النوافذ ونص الواجهة الظاهر لميزات النشاط والسياق النصي.";

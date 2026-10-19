@@ -210,6 +210,7 @@
 "Close find" = "Đóng tìm trong văn bản";
 "Close search" = "Đóng tìm kiếm";
 "Coding agent records to remove" = "Bản ghi tác nhân lập trình cần xóa";
+"Coding Agent Sessions" = "Phiên tác nhân lập trình";
 "Coding agent sessions" = "Phiên tác nhân lập trình";
 "Command Palette" = "Bảng lệnh";
 "Command Palette…" = "Bảng lệnh…";
@@ -723,6 +724,7 @@
 "Previously named voices" = "Giọng nói đã được đặt tên trước đây";
 "Privacy" = "Quyền riêng tư";
 "Privacy & Data" = "Quyền riêng tư và dữ liệu";
+"Private and incognito browser windows are captured like any other window unless you exclude the browser or site in Settings → Privacy & Data." = "Cửa sổ riêng tư và ẩn danh của trình duyệt được ghi lại như mọi cửa sổ khác, trừ khi bạn loại trừ trình duyệt hoặc trang web đó trong Cài đặt → Quyền riêng tư và dữ liệu.";
 "Private endpoints only (Recommended)" = "Chỉ điểm cuối riêng tư (khuyên dùng)";
 "Processing" = "Đang xử lý";
 "Project details" = "Chi tiết dự án";
@@ -734,6 +736,7 @@
 "Question or search" = "Câu hỏi hoặc tìm kiếm";
 "Quit LokalBot" = "Thoát LokalBot";
 "Read coding agent sessions" = "Đọc phiên tác nhân lập trình";
+"Read your Claude Code and Codex sessions so LokalBot remembers what your agents did. Files stay on this Mac." = "Đọc các phiên Claude Code và Codex của bạn để LokalBot nhớ các tác nhân đã làm gì. Tệp vẫn nằm trên Mac này.";
 "Reads the focused window's text from a screenshot. Needs Screen Recording; the image and text are not saved." = "Đọc văn bản cửa sổ đang được chọn từ ảnh chụp màn hình. Cần quyền Ghi màn hình; ảnh và văn bản không được lưu.";
 "Reads visible interface text through Accessibility; no screenshots are stored." = "Đọc văn bản giao diện hiển thị qua Trợ năng; không lưu ảnh chụp màn hình.";
 "Reads window titles and visible interface text for activity and text-context features." = "Đọc tiêu đề cửa sổ và văn bản giao diện hiển thị cho tính năng hoạt động và ngữ cảnh văn bản.";

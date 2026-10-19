@@ -210,6 +210,7 @@
 "Close find" = "Funga kitafutaji";
 "Close search" = "Funga utafutaji";
 "Coding agent records to remove" = "Rekodi za wakala wa programu za kuondoa";
+"Coding Agent Sessions" = "Vipindi vya Wakala wa Programu";
 "Coding agent sessions" = "Vipindi vya wakala wa programu";
 "Command Palette" = "Paleti ya Amri";
 "Command Palette…" = "Paleti ya Amri…";
@@ -723,6 +724,7 @@
 "Previously named voices" = "Sauti zilizopewa majina awali";
 "Privacy" = "Faragha";
 "Privacy & Data" = "Faragha na Data";
+"Private and incognito browser windows are captured like any other window unless you exclude the browser or site in Settings → Privacy & Data." = "Madirisha ya faragha na ya hali fiche ya kivinjari hunaswa kama dirisha lingine lolote, isipokuwa ukiondoa kivinjari au tovuti hiyo katika Mipangilio → Faragha na Data.";
 "Private endpoints only (Recommended)" = "Endpoint za faragha pekee (inapendekezwa)";
 "Processing" = "Inachakata";
 "Project details" = "Maelezo ya mradi";
@@ -734,6 +736,7 @@
 "Question or search" = "Swali au utafutaji";
 "Quit LokalBot" = "Ondoka LokalBot";
 "Read coding agent sessions" = "Soma vipindi vya wakala wa programu";
+"Read your Claude Code and Codex sessions so LokalBot remembers what your agents did. Files stay on this Mac." = "Soma vipindi vyako vya Claude Code na Codex ili LokalBot ikumbuke kile mawakala wako walifanya. Faili hubaki kwenye Mac hii.";
 "Reads the focused window's text from a screenshot. Needs Screen Recording; the image and text are not saved." = "Husoma maandishi ya dirisha linalotumika kutoka picha ya skrini. Inahitaji Kurekodi Skrini; picha na maandishi havihifadhiwi.";
 "Reads visible interface text through Accessibility; no screenshots are stored." = "Husoma maandishi ya kiolesura yanayoonekana kupitia Ufikivu; hakuna picha za skrini zinazohifadhiwa.";
 "Reads window titles and visible interface text for activity and text-context features." = "Husoma vichwa vya madirisha na maandishi ya kiolesura yanayoonekana kwa vipengele vya shughuli na muktadha wa maandishi.";

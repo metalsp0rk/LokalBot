@@ -210,6 +210,7 @@
 "Close find" = "文内検索を閉じる";
 "Close search" = "検索を閉じる";
 "Coding agent records to remove" = "削除するコーディングエージェントの記録";
+"Coding Agent Sessions" = "コーディングエージェントのセッション";
 "Coding agent sessions" = "コーディングエージェントのセッション";
 "Command Palette" = "コマンドパレット";
 "Command Palette…" = "コマンドパレット…";
@@ -723,6 +724,7 @@
 "Previously named voices" = "以前に名前を付けた声";
 "Privacy" = "プライバシー";
 "Privacy & Data" = "プライバシーとデータ";
+"Private and incognito browser windows are captured like any other window unless you exclude the browser or site in Settings → Privacy & Data." = "ブラウザのプライベートウィンドウやシークレットウィンドウも、設定 → プライバシーとデータでブラウザまたはサイトを除外しない限り、ほかのウィンドウと同じように取得されます。";
 "Private endpoints only (Recommended)" = "プライベートエンドポイントのみ（推奨）";
 "Processing" = "処理中";
 "Project details" = "プロジェクトの詳細";
@@ -734,6 +736,7 @@
 "Question or search" = "質問または検索";
 "Quit LokalBot" = "LokalBotを終了";
 "Read coding agent sessions" = "コーディングエージェントのセッションを読み取る";
+"Read your Claude Code and Codex sessions so LokalBot remembers what your agents did. Files stay on this Mac." = "Claude CodeとCodexのセッションを読み取り、エージェントが行ったことをLokalBotが記憶できるようにします。ファイルはこのMac上に残ります。";
 "Reads the focused window's text from a screenshot. Needs Screen Recording; the image and text are not saved." = "スクリーンショットからフォーカス中のウィンドウのテキストを読み取ります。画面収録の権限が必要です。画像とテキストは保存しません。";
 "Reads visible interface text through Accessibility; no screenshots are stored." = "アクセシビリティ経由で表示中のインターフェースのテキストを読み取ります。スクリーンショットは保存しません。";
 "Reads window titles and visible interface text for activity and text-context features." = "アクティビティとテキストコンテキスト機能のために、ウィンドウのタイトルと表示中のインターフェースのテキストを読み取ります。";

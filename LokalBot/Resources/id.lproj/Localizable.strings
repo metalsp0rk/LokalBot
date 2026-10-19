@@ -210,6 +210,7 @@
 "Close find" = "Tutup pencarian dalam teks";
 "Close search" = "Tutup pencarian";
 "Coding agent records to remove" = "Catatan agen pemrograman yang akan dihapus";
+"Coding Agent Sessions" = "Sesi Agen Pemrograman";
 "Coding agent sessions" = "Sesi agen pemrograman";
 "Command Palette" = "Palet Perintah";
 "Command Palette…" = "Palet Perintah…";
@@ -723,6 +724,7 @@
 "Previously named voices" = "Suara yang pernah diberi nama";
 "Privacy" = "Privasi";
 "Privacy & Data" = "Privasi & Data";
+"Private and incognito browser windows are captured like any other window unless you exclude the browser or site in Settings → Privacy & Data." = "Jendela browser pribadi dan penyamaran ditangkap seperti jendela lainnya, kecuali Anda mengecualikan browser atau situs tersebut di Pengaturan → Privasi & Data.";
 "Private endpoints only (Recommended)" = "Hanya endpoint privat (Direkomendasikan)";
 "Processing" = "Memproses";
 "Project details" = "Detail proyek";
@@ -734,6 +736,7 @@
 "Question or search" = "Pertanyaan atau pencarian";
 "Quit LokalBot" = "Keluar dari LokalBot";
 "Read coding agent sessions" = "Baca sesi agen pemrograman";
+"Read your Claude Code and Codex sessions so LokalBot remembers what your agents did. Files stay on this Mac." = "Baca sesi Claude Code dan Codex Anda agar LokalBot mengingat apa yang dilakukan agen Anda. File tetap di Mac ini.";
 "Reads the focused window's text from a screenshot. Needs Screen Recording; the image and text are not saved." = "Membaca teks jendela aktif dari tangkapan layar. Memerlukan Perekaman Layar; gambar dan teks tidak disimpan.";
 "Reads visible interface text through Accessibility; no screenshots are stored." = "Membaca teks antarmuka yang terlihat melalui Aksesibilitas; tidak ada tangkapan layar yang disimpan.";
 "Reads window titles and visible interface text for activity and text-context features." = "Membaca judul jendela dan teks antarmuka yang terlihat untuk fitur aktivitas dan konteks teks.";

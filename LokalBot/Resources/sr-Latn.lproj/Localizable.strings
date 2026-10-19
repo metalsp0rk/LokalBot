@@ -210,6 +210,7 @@
 "Close find" = "Zatvori pretragu u tekstu";
 "Close search" = "Zatvori pretragu";
 "Coding agent records to remove" = "Zapisi agenata za programiranje koji se uklanjaju";
+"Coding Agent Sessions" = "Sesije agenata za programiranje";
 "Coding agent sessions" = "Sesije agenata za programiranje";
 "Command Palette" = "Paleta komandi";
 "Command Palette…" = "Paleta komandi…";
@@ -723,6 +724,7 @@
 "Previously named voices" = "Ranije imenovani glasovi";
 "Privacy" = "Privatnost";
 "Privacy & Data" = "Privatnost i podaci";
+"Private and incognito browser windows are captured like any other window unless you exclude the browser or site in Settings → Privacy & Data." = "Privatni i anonimni prozori pregledača beleže se kao i svi drugi prozori, osim ako pregledač ili sajt ne isključite u odeljku Podešavanja → Privatnost i podaci.";
 "Private endpoints only (Recommended)" = "Samo privatne adrese (preporučeno)";
 "Processing" = "Obrada";
 "Project details" = "Detalji projekta";
@@ -734,6 +736,7 @@
 "Question or search" = "Pitanje ili pretraga";
 "Quit LokalBot" = "Izađi iz LokalBota";
 "Read coding agent sessions" = "Čitaj sesije agenata za programiranje";
+"Read your Claude Code and Codex sessions so LokalBot remembers what your agents did. Files stay on this Mac." = "Čita vaše sesije u alatima Claude Code i Codex da bi LokalBot zapamtio šta su vaši agenti uradili. Datoteke ostaju na ovom Mac-u.";
 "Reads the focused window's text from a screenshot. Needs Screen Recording; the image and text are not saved." = "Čita tekst aktivnog prozora sa snimka ekrana. Zahteva Snimanje ekrana; slika i tekst se ne čuvaju.";
 "Reads visible interface text through Accessibility; no screenshots are stored." = "Čita vidljivi tekst interfejsa preko Pristupačnosti; snimci ekrana se ne čuvaju.";
 "Reads window titles and visible interface text for activity and text-context features." = "Čita naslove prozora i vidljivi tekst interfejsa za funkcije aktivnosti i tekstualnog konteksta.";

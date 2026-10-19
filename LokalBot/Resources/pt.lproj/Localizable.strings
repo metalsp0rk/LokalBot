@@ -210,6 +210,7 @@
 "Close find" = "Fechar localização";
 "Close search" = "Fechar busca";
 "Coding agent records to remove" = "Registros de agentes de programação a remover";
+"Coding Agent Sessions" = "Sessões de agentes de programação";
 "Coding agent sessions" = "Sessões de agentes de programação";
 "Command Palette" = "Paleta de comandos";
 "Command Palette…" = "Paleta de comandos…";
@@ -723,6 +724,7 @@
 "Previously named voices" = "Vozes nomeadas anteriormente";
 "Privacy" = "Privacidade";
 "Privacy & Data" = "Privacidade e dados";
+"Private and incognito browser windows are captured like any other window unless you exclude the browser or site in Settings → Privacy & Data." = "Janelas privadas e anônimas do navegador são capturadas como qualquer outra janela, a menos que você exclua o navegador ou o site em Ajustes → Privacidade e dados.";
 "Private endpoints only (Recommended)" = "Somente endpoints privados (recomendado)";
 "Processing" = "Processando";
 "Project details" = "Detalhes do projeto";
@@ -734,6 +736,7 @@
 "Question or search" = "Pergunta ou busca";
 "Quit LokalBot" = "Encerrar LokalBot";
 "Read coding agent sessions" = "Ler sessões de agentes de programação";
+"Read your Claude Code and Codex sessions so LokalBot remembers what your agents did. Files stay on this Mac." = "Lê suas sessões do Claude Code e do Codex para que o LokalBot lembre o que seus agentes fizeram. Os arquivos ficam neste Mac.";
 "Reads the focused window's text from a screenshot. Needs Screen Recording; the image and text are not saved." = "Lê o texto da janela em foco a partir de uma captura de tela. Requer Gravação de Tela; a imagem e o texto não são salvos.";
 "Reads visible interface text through Accessibility; no screenshots are stored." = "Lê o texto visível da interface pela Acessibilidade; nenhuma captura de tela é armazenada.";
 "Reads window titles and visible interface text for activity and text-context features." = "Lê títulos de janelas e texto visível da interface para os recursos de atividade e contexto de texto.";
