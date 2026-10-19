@@ -59,7 +59,12 @@ struct GettingStartedCard: View {
                         modelStep
                     }
                     stepRow(done: app.isRecording || !app.meetings.isEmpty) {
-                        Text("Record a meeting — it appears in the list automatically.")
+                        HStack(spacing: 8) {
+                            Button("Import a recording") { RecordingImportPanel.choose(into: app) }
+                                .buttonStyle(.bordered).controlSize(.small)
+                                .accessibilityIdentifier("welcome.importRecording")
+                            Text("or record a meeting — it appears in the list automatically.")
+                        }
                     }
                     stepRow(done: nil) {
                         HStack(spacing: 8) {
@@ -88,6 +93,7 @@ struct GettingStartedCard: View {
             .frame(maxWidth: 560, alignment: .leading)
             .frame(maxWidth: .infinity, alignment: .topLeading)
         }
+        .recordingImportDropTarget(app)
         .onAppear {
             modelDownloaded = TranscriptionModelStore.downloadedChoices(
                 graniteConfiguration: app.settings.graniteSpeechModel,

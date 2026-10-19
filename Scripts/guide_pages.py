@@ -550,7 +550,7 @@ REFERENCES = [
         "eyebrow": "Fact sheet",
         "h1": "About LokalBot",
         "description": "What LokalBot is, what it runs, and what it does not do: a free, open-source Mac app for bot-free meeting notes, local transcription, and search.",
-        "updated": "2026-10-07",
+        "updated": "2026-10-19",
     },
     {
         "slug": "benchmarks",

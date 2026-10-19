@@ -1,6 +1,6 @@
 # LokalBot Privacy Policy
 
-Effective: October 15, 2026
+Effective: October 18, 2026
 
 LokalBot is a local-first macOS application. It has no LokalBot account,
 analytics service, advertising SDK, or telemetry backend. The project does not
@@ -11,7 +11,8 @@ calendar events, or usage history.
 
 LokalBot can store the following under its Application Support directory:
 
-- meeting microphone and system-audio tracks;
+- meeting microphone and system-audio tracks, and an AAC copy of the audio
+  in recordings you import;
 - transcripts, summaries, notes, search indexes, and meeting metadata,
   including attendee names and emails for calendar-matched meetings and,
   only when you turn on **Use invitation agendas**, the invitation's agenda
@@ -26,8 +27,8 @@ LokalBot can store the following under its Application Support directory:
   voice profiles;
 - saved screen moments, optional unencrypted daily-memory and meeting note
   exports, and optional routine drafts at folders you choose;
-- records of local coding-agent sessions (Claude Code and Codex), on by
-  default;
+- records of local coding-agent sessions (Claude Code and Codex), a setup
+  choice that is on by default;
 - opt-in Agent Mode sessions and the agent runtime;
 - facts, preferences, goals, and principles you ask Ask to remember about
   you, encrypted; and
@@ -45,6 +46,19 @@ audio is deleted after transcription by default. Dictated text is not kept,
 except briefly for learning while **Learn from my dictation** is on (see About
 you below). You can delete an individual
 meeting in the app or remove the entire LokalBot Application Support directory.
+
+**Read coding agent sessions** is on by default. On a new install, setup shows
+this choice with the other capture choices, and LokalBot reads no session until
+you finish setup. When LokalBot already has microphone access, as after a
+reinstall, setup is skipped and the saved or default choice applies. You can turn it off in
+**Imported recordings.** When you drop an audio or video file onto Meetings or
+choose **Import Recording…**, LokalBot reads the file without changing or
+moving it and saves an AAC copy of its audio as the meeting's system track.
+The meeting is dated from the file and processed like a recorded meeting with
+your current Transcribe and Think choices. Its voices are treated like a call's
+other participants, so they are never enrolled in or matched against voice
+profiles. Screen memory from the file's time span is not attached to it,
+because the recording was not made on this Mac.
 
 **Read coding agent sessions** is on by default and can be turned off in
 Settings → Day Memory. While it is on, LokalBot reads Claude Code session files
@@ -236,10 +250,17 @@ The app may make these outbound connections:
 - **Models:** model metadata and model files from Hugging Face or a model
   publisher's download host. Selected first-use models can download
   automatically; other downloads start when you request them.
+  If you choose HF-Mirror (hf-mirror.com) or ModelScope (modelscope.cn) under
+  Settings → Models, Hugging Face model files download from that source
+  instead, falling back to Hugging Face; with ModelScope, LokalBot also reads
+  ModelScope's file listings to find files identical to the pinned ones. Files
+  from every source are checked against the size and SHA-256 that LokalBot pins
+  before they are used. Browse Hugging Face still searches huggingface.co.
   Nemotron speaker diarization, the default on fresh installs, downloads its
-  pinned CoreML model on first use. With Qwen3-ASR or a transcription server,
-  speaker separation also downloads a pinned Qwen3 forced aligner (about 1 GB)
-  that times each word; alignment and speaker processing remain on this Mac. Remembering voices remains
+  pinned CoreML model on first use. With Qwen3-ASR, or a transcription server
+  that does not return word times, speaker separation also downloads a pinned
+  Qwen3 forced aligner (about 1 GB) that times each word; alignment and speaker
+  processing remain on this Mac. Remembering voices remains
   a separate opt-in and also uses the local Pyannote models.
 - **Updates:** the public GitHub Releases appcast and a signed update. Automatic
   checks are enabled for new installs and can be disabled in Settings; you can
@@ -319,13 +340,19 @@ The app may make these outbound connections:
   server you choose in Settings → Models → Transcribe, such as OpenAI, Groq,
   OpenRouter, or whisper.cpp on another computer, instead of a model on this
   Mac. It is off unless you select it. LokalBot then sends that server audio:
-  each meeting track as WAV clips of at most 30 seconds cut at pauses,
+  each meeting track, imported recordings included, as WAV clips of at most
+  30 seconds cut at pauses,
   dictation recordings, the live preview while recording when you turn it on,
   and the Transcribe model check's built-in spoken sample. Each clip carries
   the model id, the language hint, and the transcription vocabulary, including
   names added from your calendar, related meetings, and projects. The server
-  returns text; speaker separation, word timing, speech detection, echo
-  cancellation, and voice profiles still run on this Mac. A loopback server stays on your Mac.
+  returns text. For a meeting track with several voices, MAI-Transcribe-2,
+  Gemini 3.5 Transcribe, and Whisper large-v3 turbo on OpenRouter are also
+  asked when each word was spoken in the clip, and LokalBot matches those words
+  to voices without the word aligner; other servers are asked for text only,
+  and the aligner times their words on this Mac. Speaker
+  separation, speech detection, echo cancellation, and voice profiles still run
+  on this Mac. A loopback server stays on your Mac.
   Any other origin needs its own approval to receive audio, separate from the
   Think server approval: approving one never approves the other. Internet
   servers require HTTPS. A server on your own network (private and link-local
@@ -470,16 +497,41 @@ stays within the screen history profile. While a deletion is still being
 cleaned up, work memory and the timeline are left out.
 
 Another separate toggle, **Allow external agents to change LokalBot settings**,
-lets `lokalbot-cli config`, `status`, and `open` read your LokalBot settings and
-app status from the running app, and open Settings at a setting. They talk to the
-app over a local socket in the library's private `control/` folder that exists
-only while the toggle is on and accepts only your macOS user. Settings can
-include your writing profile, digest instructions, and folder paths; server URLs
-are shown without user names, passwords, or query strings, and API keys are
-never returned. When LokalBot is not running, these commands start it in the
+lets `lokalbot-cli config`, `status`, and `open` read and change your LokalBot
+settings in the running app, and open Settings at a setting. They talk to the app
+over a local socket in the library's private `control/` folder that exists only
+while the toggle is on and accepts only your macOS user. Settings can include
+your writing profile, digest instructions, and folder paths; server URLs are
+shown without user names, passwords, or query strings, and API keys are never
+returned. An agent can change preferences and narrow what LokalBot captures or
+sends, for example turn capture off or add an exclusion. A change that would
+widen it, such as turning on capture, a data source, autocomplete, or dictation,
+approving a server, removing an exclusion, or changing retention, waits for you:
+LokalBot posts a notification (or opens its approval window when notifications
+are off) and shows a card naming the program that asked and every change in the
+request, with lists showing each entry added or removed. Nothing changes unless
+you click Approve, which applies only the changes the card shows. If your settings
+change while it waits so that approving would allow more, the card shows the new
+changes and asks again. Requests expire after five minutes. A shorter retention policy shows the same cleanup review as Settings,
+and approving deletes only what it lists. `lokalbot-cli secret set` can save an
+API key, also only after you approve it; the card shows the key's last four
+characters, and keys are never read back. Each change is recorded, with the
+program that made it, in the library's `diagnostics/settings-changes.jsonl` and
+listed under the toggle with Undo. Turning the toggle off declines every request
+still waiting. When LokalBot is not running, these commands start it in the
 background, which also starts the capture and schedules you have turned on.
+
+An agent setting LokalBot up for you can ask for this access with
+`lokalbot-cli setup start`. The CLI leaves a short-lived request in the
+library's `control/` folder, and LokalBot shows it in a window that names the
+program that asked. Only clicking Allow turns access on. Read access to the
+meeting library or screen memory appears as separate boxes, off unless you
+tick them, and Don't Allow leaves everything off. With access, the agent can
+also choose a model preset (which downloads models), show you macOS permission
+prompts, set launch at login, and restart LokalBot when macOS needs it. The
+permissions themselves are always yours to grant.
 This toggle grants no meeting-library, screen-memory, or personal-context
-access, and none of those grants it. These commands do not change settings.
+access, and none of those grants it.
 
 **Open in Claude** and **Open in Codex**, in a meeting's More menu, start a new
 conversation in that installed app with the meeting's title, summary, and as much
@@ -753,6 +805,44 @@ decryption flag and produce owner-only ordinary image/text files. Private model
 runs require a pinned cached revision, safe tensor weights, disabled remote model
 code, and a network-denied macOS sandbox. Delete exported fixtures and results
 after review; application retention does not manage benchmark copies.
+
+## LokalBot for Linux and Windows
+
+The Linux and Windows app (`LinuxWindows/`) follows this policy with these
+platform differences:
+
+- **Storage.** The library is in `~/.local/share/LokalBot` on Linux and
+  `%LOCALAPPDATA%\LokalBot` on Windows, with logs in its `logs` folder. API
+  keys and the screen-image key are kept in the system credential store
+  (Secret Service on Linux, Windows Credential Manager).
+- **Screen context** is off until you turn it on.
+  - Visible text is read through accessibility first (AT-SPI on Linux, UI
+    Automation on Windows). Otherwise on-device OCR is used; its model
+    downloads only when you ask for it in Settings.
+  - Secrets are redacted before anything is stored, and an image is dropped
+    when anything was redacted.
+  - Excluded apps and sites, private and incognito windows, focused password
+    fields, the lock screen and LokalBot's own windows are not captured.
+  - Images are kept only in the text-and-images mode, encrypted with AES-GCM
+    under a key in the credential store; without one, only text is kept.
+    Retention works as described above.
+- **Autocomplete** is off until you turn it on.
+  - It reads the focused field's text around the caret, and nearby visible
+    text, through accessibility.
+  - It never reads password fields, terminals, excluded apps or LokalBot's own
+    windows.
+  - Nothing it reads is stored. Suggestions come from the local Autocomplete
+    model, and accepted text is typed into the field without the clipboard.
+- **Agent Mode** is off until you set it up.
+  - Setup downloads Bun from GitHub and the pi agent packages from npm, both
+    pinned and checksum-verified.
+  - File changes and commands need your approval. Session history stays in
+    the library.
+- **The live transcript preview** runs only when you start it during a
+  recording. It uses the local transcription model and is not saved; the
+  full transcript replaces it after the meeting.
+- **Network access** is limited to model and runtime downloads you request,
+  Agent Mode setup, and AI servers you approve.
 
 ## Security and changes
 

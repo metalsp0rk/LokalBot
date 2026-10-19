@@ -18,6 +18,8 @@ struct SelectionCaptureResult: Equatable, Sendable {
         case excludedApp
         /// A password or other secure field has focus; nothing was read.
         case secureField
+        /// Focus changed or could not be verified; no selection is accepted.
+        case focusChanged
     }
 
     var source: SelectionSource?
@@ -46,43 +48,70 @@ enum SelectionCapture {
     /// Longest selection kept in memory; the prompt uses less.
     nonisolated static let maximumCharacters = 50_000
 
-    static func capture(excludedApps: [String]) async -> SelectionCaptureResult {
-        guard let frontmost = FocusReturn.frontmostOtherApplication() else {
-            return SelectionCaptureResult()
+    struct Dependencies {
+        var source: @MainActor () -> SelectionSource?
+        var isTrusted: @MainActor () -> Bool
+        var focus: @MainActor () async -> DictationFocusCaptureResult
+        var read: @MainActor (SelectionSource, [String]) async -> String?
+        var copy: @MainActor (SelectionSource, [String]) async -> String?
+
+        static var live: Self {
+            Self(source: SelectionCapture.currentSource, isTrusted: { CotypingAXHelper.isTrusted },
+                 focus: { await DictationFocusSnapshotExecutor.shared.capture(deadlineMilliseconds: 300) },
+                 read: SelectionCapture.readThroughAccessibility,
+                 copy: { await SelectionClipboardCopy.copySelection(from: $0, excludedApps: $1) })
         }
-        let source = SelectionSource(
-            processID: frontmost.processIdentifier,
-            bundleID: frontmost.bundleIdentifier,
-            appName: frontmost.localizedName ?? "")
+    }
+
+    static func currentSource() -> SelectionSource? {
+        FocusReturn.frontmostOtherApplication().map {
+            SelectionSource(processID: $0.processIdentifier, bundleID: $0.bundleIdentifier,
+                            appName: $0.localizedName ?? "")
+        }
+    }
+
+    static func capture(excludedApps: [String], dependencies: Dependencies = .live) async -> SelectionCaptureResult {
+        guard let source = dependencies.source() else { return SelectionCaptureResult() }
         var result = SelectionCaptureResult(source: source)
         guard !CotypingAvailability.isExcluded(
             appName: source.appName, bundleID: source.bundleID, excluded: excludedApps) else {
             result.issue = .excludedApp
             return result
         }
-        guard CotypingAXHelper.isTrusted else {
+        guard dependencies.isTrusted() else {
             result.issue = .accessibilityNeeded
             return result
         }
 
-        let focus = await DictationFocusSnapshotExecutor.shared.capture(deadlineMilliseconds: 300)
-        if let snapshot = focus.snapshot, !focus.timedOut, snapshot.processID == source.processID {
-            guard !snapshot.isSecureOrBlocked else {
-                result.issue = .secureField
-                return result
-            }
-            // Only an editable field has an identity; read-only text cannot
-            // take a replacement.
-            if snapshot.focusIdentityKey?.isEmpty == false {
-                result.target = DictationDeliveryTarget.captured(from: snapshot)
-            }
+        let focus = await dependencies.focus()
+        guard !Task.isCancelled, dependencies.source() == source,
+              !focus.timedOut, let snapshot = focus.snapshot,
+              snapshot.processID == source.processID, snapshot.bundleID == source.bundleID else {
+            result.issue = .focusChanged
+            return result
+        }
+        guard !snapshot.isSecureOrBlocked else {
+            result.issue = .secureField
+            return result
+        }
+        // Only an editable field has an identity; read-only text cannot take a replacement.
+        if snapshot.focusIdentityKey?.isEmpty == false {
+            result.target = DictationDeliveryTarget.captured(from: snapshot)
         }
 
-        if let text = await readThroughAccessibility() {
+        let accessibleText = await dependencies.read(source, excludedApps)
+        guard !Task.isCancelled, dependencies.source() == source else {
+            return SelectionCaptureResult(source: source, issue: .focusChanged)
+        }
+        if let text = accessibleText {
             result.text = text
             return result
         }
-        if let text = await SelectionClipboardCopy.copySelection(),
+        let copiedText = await dependencies.copy(source, excludedApps)
+        guard !Task.isCancelled, dependencies.source() == source else {
+            return SelectionCaptureResult(source: source, issue: .focusChanged)
+        }
+        if let text = copiedText,
            !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             result.text = text.count > maximumCharacters ? String(text.prefix(maximumCharacters)) : text
             result.readThroughClipboard = true
@@ -92,12 +121,19 @@ enum SelectionCapture {
 
     /// Off the main thread with a wall-clock deadline, so a wedged app costs
     /// a short wait instead of a beachball.
-    private static func readThroughAccessibility() async -> String? {
+    private static func readThroughAccessibility(source: SelectionSource, excludedApps: [String]) async -> String? {
         let limit = maximumCharacters
+        return await boundedRead {
+            CotypingAXHelper.selectedTextForSelectionAction(
+                source: source, excludedApps: excludedApps, maxCharacters: limit)
+        }
+    }
+
+    static func boundedRead<Value: Sendable>(_ read: @escaping @Sendable () -> Value?) async -> Value? {
         return await withCheckedContinuation { continuation in
             let once = ResumeOnce(continuation)
             DispatchQueue.global(qos: .userInitiated).async {
-                once.resume(CotypingAXHelper.selectedTextForSelectionAction(maxCharacters: limit))
+                once.resume(read())
             }
             DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + .milliseconds(400)) {
                 once.resume(nil)
@@ -107,15 +143,15 @@ enum SelectionCapture {
 }
 
 /// Resumes a continuation with the first value only.
-private final class ResumeOnce: @unchecked Sendable {
+private final class ResumeOnce<Value: Sendable>: @unchecked Sendable {
     private let lock = NSLock()
-    private var continuation: CheckedContinuation<String?, Never>?
+    private var continuation: CheckedContinuation<Value?, Never>?
 
-    init(_ continuation: CheckedContinuation<String?, Never>) {
+    init(_ continuation: CheckedContinuation<Value?, Never>) {
         self.continuation = continuation
     }
 
-    func resume(_ value: String?) {
+    func resume(_ value: Value?) {
         lock.lock()
         let pending = continuation
         continuation = nil
@@ -129,25 +165,62 @@ private final class ResumeOnce: @unchecked Sendable {
 /// restored right after, marked as generated.
 @MainActor
 enum SelectionClipboardCopy {
-    static func copySelection(timeout: Duration = .milliseconds(450)) async -> String? {
+    struct Dependencies {
+        var waitForModifiers: @MainActor () async -> Void
+        var isAllowed: @MainActor (SelectionSource, [String]) async -> Bool
+        var isFrontmost: @MainActor (SelectionSource) -> Bool
+        var changeCount: @MainActor () -> Int
+        var saveClipboard: @MainActor () -> @MainActor () -> Void
+        var postCopy: @MainActor (pid_t) -> Bool
+        var readText: @MainActor () -> String?
+
+        static var live: Self {
+            Self(waitForModifiers: { await waitForModifierRelease(timeout: .milliseconds(400)) },
+                 isAllowed: { source, excluded in
+                     await SelectionCapture.boundedRead {
+                         CotypingAXHelper.selectionActionFocusIsAllowed(source: source, excludedApps: excluded)
+                     } == true
+                 },
+                 isFrontmost: { SelectionCapture.currentSource() == $0 },
+                 changeCount: { NSPasteboard.general.changeCount },
+                 saveClipboard: {
+                     let saved = CotypingInserter.snapshotPasteboard(NSPasteboard.general)
+                     return { CotypingInserter.restorePasteboard(saved, to: NSPasteboard.general) }
+                 },
+                 postCopy: postCommandC,
+                 readText: {
+                     let pasteboard = NSPasteboard.general
+                     let concealed = pasteboard.types?.contains(DictationPasteboardHandoff.concealedType) ?? false
+                     return concealed ? nil : pasteboard.string(forType: .string)
+                 })
+        }
+    }
+
+    static func copySelection(from source: SelectionSource, excludedApps: [String],
+                              timeout: Duration = .milliseconds(450),
+                              dependencies: Dependencies = .live) async -> String? {
         // The shortcut's own modifiers may still be held; ⌃⇧⌘C is not Copy.
-        await waitForModifierRelease(timeout: .milliseconds(400))
-        let pasteboard = NSPasteboard.general
-        let saved = CotypingInserter.snapshotPasteboard(pasteboard)
-        let before = pasteboard.changeCount
-        guard postCommandC() else { return nil }
+        await dependencies.waitForModifiers()
+        guard !Task.isCancelled, await dependencies.isAllowed(source, excludedApps),
+              !Task.isCancelled, dependencies.isFrontmost(source) else { return nil }
+        let restore = dependencies.saveClipboard()
+        let before = dependencies.changeCount()
+        guard dependencies.isFrontmost(source), dependencies.postCopy(source.processID) else { return nil }
         let clock = ContinuousClock()
         let deadline = clock.now.advanced(by: timeout)
-        while pasteboard.changeCount == before, clock.now < deadline {
+        while dependencies.changeCount() == before, clock.now < deadline, !Task.isCancelled {
             try? await Task.sleep(for: .milliseconds(15))
         }
         // Nothing selected: the app copied nothing and the clipboard is untouched.
-        guard pasteboard.changeCount != before else { return nil }
-        // A password manager's concealed copy is never read.
-        let concealed = pasteboard.types?.contains(DictationPasteboardHandoff.concealedType) ?? false
-        let text = concealed ? nil : pasteboard.string(forType: .string)
-        CotypingInserter.restorePasteboard(saved, to: pasteboard)
-        return text
+        guard dependencies.changeCount() != before else { return nil }
+        let copiedGeneration = dependencies.changeCount()
+        defer { if dependencies.changeCount() == copiedGeneration { restore() } }
+        // Re-check after the app handles Copy. A changed app/secure field is
+        // never read, and a newer clipboard generation is not ours to restore.
+        guard !Task.isCancelled, await dependencies.isAllowed(source, excludedApps),
+              !Task.isCancelled, dependencies.isFrontmost(source),
+              dependencies.changeCount() == copiedGeneration else { return nil }
+        return dependencies.readText()
     }
 
     private static func waitForModifierRelease(timeout: Duration) async {
@@ -160,7 +233,7 @@ enum SelectionClipboardCopy {
         }
     }
 
-    private static func postCommandC() -> Bool {
+    private static func postCommandC(processID: pid_t) -> Bool {
         let source = CGEventSource(stateID: .combinedSessionState)
         source?.setLocalEventsFilterDuringSuppressionState(
             [.permitLocalMouseEvents, .permitSystemDefinedEvents],
@@ -175,8 +248,9 @@ enum SelectionClipboardCopy {
         // Marked so Autocomplete's and Dictation's input taps ignore it.
         CotypingSyntheticMarker.mark(down)
         CotypingSyntheticMarker.mark(up)
-        down.post(tap: .cgAnnotatedSessionEventTap)
-        up.post(tap: .cgAnnotatedSessionEventTap)
+        // Bind the event destination even if focus moves between validation and posting.
+        down.postToPid(processID)
+        up.postToPid(processID)
         return true
     }
 }

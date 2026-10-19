@@ -12,9 +12,10 @@ struct SettingDescriptor: Identifiable {
         if id == "settings.generationBudgetPreset" { return settings.generationBudgetPreset.displayName }
         if id == "settings.thinkReasoningLevel" { return settings.thinkReasoningLevel.displayName }
         if id == "settings.appTheme" { return language.localized(settings.appTheme.displayName) }
-        if id == "settings.appLanguage" { return language.localized(settings.appLanguage.displayName) }
+        if id == "settings.appLanguage" { return settings.appLanguage.pickerLabel(in: language) }
         if id == "settings.textSize" { return language.localized(settings.textSize.displayName) }
         if id == "settings.cotypingBackend" { return language.localized(settings.cotypingBackend.title) }
+        if id == "settings.modelDownloadSource" { return language.localized(settings.modelDownloadSource.displayName) }
         guard let data = try? JSONEncoder().encode(settings),
               let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let value = object[String(id.dropFirst("settings.".count))] else { return language.localized("Open details") }
@@ -88,6 +89,8 @@ struct SettingDescriptor: Identifiable {
         .init(id: "settings.thinkReasoningLevel", title: "Think reasoning level", category: .models,
               aliases: "reasoning effort thinking budget think off low medium high"),
         .init(id: "settings.transcriptionModel", title: "Transcribe model", category: .models, aliases: "ASR speech whisper qwen"),
+        .init(id: "settings.modelDownloadSource", title: "Download models from", category: .models,
+              aliases: "model download source mirror hf-mirror modelscope hugging face china mainland blocked 下载 模型下载 下载源 镜像 魔搭 中国 大陆"),
         .init(id: "settings.transcriptionLanguage", title: "Transcription language", category: .models, aliases: "ASR spoken language"),
         .init(id: "settings.transcriptionPrompt", title: "Transcription vocabulary", category: .models, aliases: "names acronyms spelling"),
         .init(id: "settings.autoTranscriptionVocabulary", title: "Add known names to transcription", category: .models, aliases: "names attendees calendar vocabulary spelling"),
@@ -96,7 +99,8 @@ struct SettingDescriptor: Identifiable {
               aliases: "run autocomplete remote cloud api key url openrouter ollama lm studio llama-server tailscale network another computer think's server request type"),
         .init(id: "settings.menuBarOnly", title: "Menu bar only (hide Dock icon)", category: .general, aliases: "menuBarOnly"),
         .init(id: "settings.appTheme", title: "Theme", category: .general, aliases: "appearance dark mode light mode color scheme"),
-        .init(id: "settings.appLanguage", title: "App language", category: .general, aliases: "interface language English Chinese 中文 简体中文 语言 界面"),
+        .init(id: "settings.appLanguage", title: "App language", category: .general, aliases: "interface language 中文 语言 界面 "
+                + AppLanguage.allCases.flatMap { [$0.englishName, $0.displayName] }.joined(separator: " ")),
         .init(id: "settings.textSize", title: "Text size", category: .general, aliases: "font size larger text smaller text zoom readability"),
         .init(id: "settings.quickRecallEnabled", title: "Enable the system-wide Ask shortcut", category: .general, aliases: "quickRecallEnabled"),
         .init(id: "settings.quickRecallShortcut", title: "Ask shortcut", category: .general, aliases: "quick recall hotkey keyboard key combination change"),

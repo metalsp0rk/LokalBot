@@ -84,9 +84,9 @@ final class AppControlTests: XCTestCase {
         let root = makeRoot()
         try SettingsControlGate(root: root).enable()
         let client = AppControlClient(root: root)
-        let server = AppControlServer(path: client.socketPath) { request in
+        let server = AppControlServer(path: client.socketPath) { request, peer in
             request.method == "hello"
-                ? .success(["echo": .string(request.method)])
+                ? .success(["echo": .string(request.method), "pid": .number(Double(peer.pid ?? 0))])
                 : .failure(.unknownMethod(request.method))
         }
         try server.start()
@@ -95,7 +95,9 @@ final class AppControlTests: XCTestCase {
         // The client blocks on the socket; keep it off the main actor that
         // runs the server's handler.
         let reply = try await Task.detached { try client.request(.hello, launch: false) }.value
-        XCTAssertEqual(reply, ["echo": "hello"])
+        XCTAssertEqual(reply["echo"], "hello")
+        // The server identifies its peer: here, this test process.
+        XCTAssertEqual(reply["pid"]?.intValue, Int(ProcessInfo.processInfo.processIdentifier))
 
         let refused = await Task.detached { () -> String? in
             do {
@@ -116,7 +118,7 @@ final class AppControlTests: XCTestCase {
         let path = AppControlSocket.path(controlDirectory: SettingsControlGate(root: root).controlDirectory)
         try FileManager.default.createDirectory(
             at: SettingsControlGate(root: root).controlDirectory, withIntermediateDirectories: true)
-        let server = AppControlServer(path: path) { _ in .success(true) }
+        let server = AppControlServer(path: path) { _, _ in .success(true) }
         try server.start()
         defer { server.stop() }
 
@@ -134,7 +136,7 @@ final class AppControlTests: XCTestCase {
         let control = SettingsControlGate(root: root).controlDirectory
         try FileManager.default.createDirectory(at: control, withIntermediateDirectories: true)
         let path = AppControlSocket.path(controlDirectory: control)
-        let server = AppControlServer(path: path) { _ in .success(true) }
+        let server = AppControlServer(path: path) { _, _ in .success(true) }
         try server.start()
         XCTAssertTrue(FileManager.default.fileExists(atPath: path))
         server.stop()

@@ -44,6 +44,7 @@ final class SettingRegistryTests: XCTestCase {
             "speechVoice": try stored(KokoroVoice.allCases),
             "summarizerBackend": try stored(AppSettings.SummarizerBackend.allCases),
             "openRouterDataPolicy": try stored(OpenRouterDataPolicy.allCases),
+            "modelDownloadSource": try stored(ModelDownloadSource.allCases),
             "generationBudgetPreset": try stored(GenerationBudgetPreset.allCases),
             "thinkReasoningLevel": try stored(ThinkReasoningLevel.allCases),
             "agentReasoningLevel": try stored(ThinkReasoningLevel.allCases),
@@ -117,6 +118,14 @@ final class SettingRegistryTests: XCTestCase {
         }
         XCTAssertEqual(Set(SettingCategory.allCases.map(\.rawValue)),
                        Set(AppState.SettingsTab.allCases.map(\.rawValue)))
+    }
+
+    func testOpenDestinationsAreSettingsSections() {
+        let ids = Set(SettingDescriptor.all.map(\.id))
+        for destination in AppControlProtocol.settingsDestinations {
+            XCTAssertTrue(ids.contains("settings.\(destination)"), destination)
+            XCTAssertNil(SettingRegistry.spec(for: destination), "\(destination) is a setting key, not a section")
+        }
     }
 
     func testSchemaDescribesEveryKey() throws {

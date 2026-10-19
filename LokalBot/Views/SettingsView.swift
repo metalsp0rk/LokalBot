@@ -272,7 +272,7 @@ struct SettingsView: View {
                 Section("Appearance") {
                     Picker(selection: $app.settings.appLanguage) {
                         ForEach(AppLanguage.allCases) { language in
-                            Text(LocalizedStringKey(language.displayName)).tag(language)
+                            Text(verbatim: language.pickerLabel(in: app.settings.appLanguage)).tag(language)
                         }
                     } label: {
                         SettingsLabel("App language", help: "Changes the interface immediately. Transcription and notes languages are set separately.")
@@ -588,16 +588,13 @@ struct SettingsView: View {
                     .settingTarget("settings.stopDebounceSeconds", selected: app.focusedSettingID)
                 }
                 Section("Calendar") {
-                    Toggle(isOn: $app.settings.calendarDetectionEnabled) {
+                    Toggle(isOn: Binding(
+                        get: { app.settings.calendarDetectionEnabled },
+                        set: { enabled in app.changeSettings { $0.calendarDetectionEnabled = enabled } })) {
                         SettingsLabel("Use calendar to improve detection",
                                       help: "Reads your Mac Calendar to confirm meetings and suggest attendee names for speakers. Attendee emails stay in local meeting metadata.")
                     }
                     .settingTarget("settings.calendarDetectionEnabled", selected: app.focusedSettingID)
-                        .onChange(of: app.settings.calendarDetectionEnabled) { _, enabled in
-                            if enabled, app.calendar.authorizationStatus == .notDetermined {
-                                app.calendar.requestAccess { _ in }
-                            }
-                        }
                     if app.settings.calendarDetectionEnabled {
                         Toggle("Use calendar titles for recordings", isOn: $app.settings.useCalendarTitles)
                     .settingTarget("settings.useCalendarTitles", selected: app.focusedSettingID)
@@ -754,14 +751,7 @@ struct SettingsView: View {
                 Section("Day Memory") {
                     Toggle(isOn: Binding(
                         get: { app.settings.trackingEnabled },
-                        set: { app.settings.trackingEnabled = $0
-                               if $0 {
-                                   PermissionGuidanceController.shared.requestAccess(
-                                       for: .accessibility)
-                               } else {
-                                   app.settings.screenContextCaptureMode = .activityOnly
-                                   app.settings.screenshotsEnabled = false
-                               } })) {
+                        set: { enabled in app.changeSettings { $0.trackingEnabled = enabled } })) {
                         SettingsLabel("Track app & window activity",
                                       help: "Records which app and window you're using for the Timeline and day digest.")
                     }
@@ -778,19 +768,7 @@ struct SettingsView: View {
                     }
                     Picker(selection: Binding(
                         get: { app.settings.effectiveScreenContextCaptureMode },
-                        set: { mode in
-                            app.settings.screenContextCaptureMode = mode
-                            app.settings.screenshotsEnabled = mode.capturesPixels
-                            if mode.capturesText {
-                                app.settings.trackingEnabled = true
-                                PermissionGuidanceController.shared.requestAccess(
-                                    for: .accessibility)
-                            }
-                            if mode.capturesPixels {
-                                PermissionGuidanceController.shared.requestAccess(
-                                    for: .screenRecording)
-                            }
-                        })) {
+                        set: { mode in app.changeSettings { $0.screenContextCaptureMode = mode } })) {
                         ForEach(AppSettings.ScreenContextCaptureMode.allCases) { mode in
                             Text(LocalizedStringKey(mode.rawValue)).tag(mode)
                         }
@@ -1159,6 +1137,7 @@ struct SettingsView: View {
                     .settingTarget("settings.personalContextAccess", selected: app.focusedSettingID)
                     SettingsControlAccessToggleRow(manager: app.settingsControl)
                     .settingTarget("settings.settingsControlAccess", selected: app.focusedSettingID)
+                    AgentSettingsChangesList(changes: app.agentSettingsChanges)
                 }
             }
 
@@ -1339,7 +1318,7 @@ struct SettingsView: View {
                         if let cliMessage {
                             SettingsHelp(cliMessage)
                         }
-                        SettingsHelp("Symlinks the bundled CLI at ~/.local/bin/lokalbot-cli and the skill into ~/.agents/skills and ~/.claude/skills. Read-only by design.")
+                        SettingsHelp("Symlinks the bundled CLI at ~/.local/bin/lokalbot-cli and the skill into ~/.agents/skills and ~/.claude/skills. Library access is read-only; changing settings needs its own toggle under Privacy.")
                     }
                 }
             }
@@ -1531,8 +1510,71 @@ private struct SettingsControlAccessToggleRow: View {
             get: { manager.isEnabled },
             set: { manager.setEnabled($0) })) {
             SettingsLabel("Allow external agents to change LokalBot settings",
-                          help: "Lets lokalbot-cli read your settings and app status, open Settings at a setting, and start LokalBot in the background. Separate from the other agent access toggles. Off by default.")
+                          help: "Lets lokalbot-cli read and change your preferences, show you a setting, and start LokalBot in the background. Turning on capture, a data source, or sharing still needs you here. Separate from the other agent access toggles. Off by default.")
         }
+    }
+}
+
+/// Settings an agent changed from the terminal, newest first, with Undo while
+/// the setting still holds the agent's value.
+private struct AgentSettingsChangesList: View {
+    @EnvironmentObject private var app: AppState
+    @ObservedObject var changes: AgentSettingsChanges
+
+    var body: some View {
+        Group {
+            if !changes.recent.isEmpty {
+                DisclosureGroup {
+                    ForEach(changes.recent.prefix(10)) { entry in
+                        LabeledContent {
+                            Button("Undo") {
+                                do {
+                                    try changes.undo(entry, in: app)
+                                } catch {
+                                    app.lastError = error.localizedDescription
+                                }
+                            }
+                            .disabled(!changes.canUndo(entry, in: app.settings))
+                        } label: {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(verbatim: summary(entry))
+                                Text(verbatim: "\(entry.caller) · \(entry.time.formatted(date: .abbreviated, time: .shortened))")
+                                    .settingsSecondary()
+                            }
+                        }
+                    }
+                } label: {
+                    SettingsLabel("Recent changes by agents",
+                                  help: "Settings changed from the terminal. Undo restores the earlier value while the setting still holds the agent's.")
+                }
+            }
+        }
+    }
+
+    private func summary(_ entry: AgentSettingsChanges.Entry) -> String {
+        switch entry.key {
+        case "setup.access": return "Agent setup allowed: \(entry.value?.stringValue ?? "settings")"
+        case "models.preset": return "Model preset: \(entry.value?.stringValue ?? "changed")"
+        case "launchAtLogin": return "Launch at login: \(entry.value == .bool(true) ? "on" : "off")"
+        default: break
+        }
+        if let secret = AppSecret(rawValue: String(entry.key.dropFirst("secret.".count))), entry.key.hasPrefix("secret.") {
+            return "\(secret.title): \(entry.value?.stringValue ?? "changed")"
+        }
+        guard let spec = SettingRegistry.spec(for: entry.key) else { return entry.key }
+        func shown(_ value: JSONValue?) -> String {
+            guard let value else { return "default" }
+            let presented = spec.presented(value)
+            let text: String
+            switch presented {
+            case .string(let string): text = string.isEmpty ? "empty" : string
+            case .bool(let flag): text = flag ? "on" : "off"
+            case .number(let number): text = number == number.rounded() ? String(Int(number)) : String(number)
+            default: text = "changed"
+            }
+            return text.count > 40 ? String(text.prefix(39)) + "…" : text
+        }
+        return "\(spec.title): \(shown(entry.previous)) → \(shown(entry.value))"
     }
 }
 

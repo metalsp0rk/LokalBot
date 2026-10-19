@@ -115,10 +115,14 @@ final class AppState: ObservableObject {
     nonisolated static var isUnitTesting: Bool { UITestRuntime.isUnitTesting }
 
     /// UserDefaults flag: the permission onboarding has been shown once. Also
-    /// read by `AppDelegate` to keep the first run windowed.
+    /// read by `AppDelegate` to keep the first run windowed, and by the
+    /// coding-agent reader, which waits for it.
     nonisolated static let onboardingShownKey = "lokalbotv3.onboarding.shown"
 
     @Published private(set) var meetings: [Meeting] = []
+    /// File names of recordings still being converted for import, in order.
+    @Published private(set) var importingRecordings: [String] = []
+    private var recordingImportTask: Task<Void, Never>?
     @Published var lastError: String?
     /// A recording or dictation start was refused because microphone access
     /// is denied at the system level. Cleared when the user opens System
@@ -593,11 +597,20 @@ final class AppState: ObservableObject {
     private(set) lazy var settingsControl = SettingsControlAccessManager(
         gate: SettingsControlGate(root: storage.rootURL),
         makeHandler: { [weak self] in
-            guard let self else { return { _ in .failure(.appNotRunning("LokalBot is shutting down.")) } }
+            guard let self else { return { _, _ in .failure(.appNotRunning("LokalBot is shutting down.")) } }
             let handler = AppControlHandler(app: self, gate: SettingsControlGate(root: self.storage.rootURL))
-            return { request in await handler.handle(request) }
+            return { request, peer in await handler.handle(request, from: peer) }
         },
-        onError: { [weak self] message in self?.lastError = message })
+        onError: { [weak self] message in self?.lastError = message },
+        onDisable: { [weak self] in self?.settingsApprovals.denyAll() })
+    /// Settings changed from the terminal, for the audit log and Undo.
+    private(set) lazy var agentSettingsChanges = AgentSettingsChanges(root: storage.rootURL)
+    /// Terminal requests waiting for the person: widening changes and API keys.
+    private(set) lazy var settingsApprovals = SettingsApprovals()
+    /// An agent's `setup start` request, the one way the terminal asks for access.
+    private(set) lazy var agentSetup = AgentSetupRequests(
+        controlDirectory: SettingsControlGate(root: storage.rootURL).controlDirectory)
+    var agentSecrets = AgentSecretStore.keychain
     private(set) lazy var quickRecallHotKey: QuickRecallHotKeyController = {
         let controller = QuickRecallHotKeyController()
         controller.onInvoke = { [weak self] in self?.openQuickRecall() }
@@ -789,10 +802,10 @@ final class AppState: ObservableObject {
         prepareEvidence: { [weak self] day in await self?.codingAgentEvidence.refresh(including: day) },
         onGenerated: { [weak self] day in self?.dayDigestDidChange(on: day) })
     /// Settled Claude Code and Codex work, read into the activity store while
-    /// the person has opted in.
+    /// the person has opted in, and never before setup is finished.
     private(set) lazy var codingAgentEvidence = CodingAgentEvidenceIngestor(
         store: activityStore,
-        configuration: { [store = settingsStore] in .init(settings: store.current) },
+        configuration: { [store = settingsStore] in AppState.codingAgentConfiguration(store.current) },
         mutateEvidence: { [weak self] days, mutation in
             try self?.withPrimaryEvidenceChange(on: days, .revision, mutation)
         },
@@ -990,6 +1003,7 @@ final class AppState: ObservableObject {
     /// True only on the real interactive launch path (not headless / UI test) —
     /// gates recording notifications and first-run onboarding.
     private var interactive = false
+    var isInteractiveLaunch: Bool { interactive }
     private var terminationCleanupTask: Task<Bool, Never>?
     /// Serializes cotyping model lifecycle transitions. A disable must finish
     /// unloading both runtimes before a rapid re-enable can prewarm a fresh
@@ -1280,13 +1294,22 @@ final class AppState: ObservableObject {
         agentAccess.start()
         screenMemoryAccess.start()
         personalContextAccess.start()
+        settingsApprovals.announce = { request in RecordingNotifier.shared.settingsApprovalRequested(request) }
+        settingsApprovals.withdraw = { request in RecordingNotifier.shared.withdrawSettingsApproval(request.id) }
         settingsControl.start()
+        // `lokalbot-cli setup start` leaves a request and launches the app,
+        // or tells a running copy to look for it.
+        DistributedNotificationCenter.default().addObserver(
+            forName: Notification.Name(AgentSetup.notificationName), object: nil, queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in self?.showAgentSetupIfRequested() }
+        }
+        showAgentSetupIfRequested()
         applyQuickRecallSetting()
         applySelectionActionsSetting()
         applyDailyMemoryExportSetting()
         applyMeetingNoteExportSetting()
         applyDayDigestSetting()
-        applyCodingAgentEvidenceSetting()
         applyMemoryRoutineSetting()
         applyDreamingSetting()
         applyDictationLearningSetting()
@@ -1301,10 +1324,15 @@ final class AppState: ObservableObject {
         if !UserDefaults.standard.bool(forKey: Self.onboardingShownKey) {
             if PermissionManager.shared.allGranted {
                 UserDefaults.standard.set(true, forKey: Self.onboardingShownKey)
-            } else {
+            } else if agentSetup.pending == nil {
+                // An agent's setup request replaces the wizard; declining it
+                // opens onboarding instead.
                 WindowAccess.shared.open("onboarding")
             }
         }
+        // After the first-run check: until setup is finished, a new install
+        // reads no coding-agent session (`finishOnboarding` starts it).
+        applyCodingAgentEvidenceSetting()
         // Bring optional system-wide automation up if the user left it enabled
         // and the grants are in place; otherwise it parks itself.
         dictation.applySettings()
@@ -1737,6 +1765,41 @@ final class AppState: ObservableObject {
         return result.meeting
     }
 
+    /// Imports audio or video files as meetings, one file at a time, and
+    /// queues each for transcription and, when enabled, a summary. Choosing a
+    /// file is an explicit request, so a missing speech model downloads as it
+    /// does for Retry. Failures are reported together once the batch ends.
+    func importRecordings(_ urls: [URL]) {
+        let files = urls.filter(\.isFileURL)
+        guard !files.isEmpty else { return }
+        navSection = .meetings
+        importingRecordings += files.map(\.lastPathComponent)
+        let previous = recordingImportTask
+        recordingImportTask = Task { @MainActor [weak self] in
+            await previous?.value
+            guard let self else { return }
+            var failures: [String] = []
+            for url in files {
+                do {
+                    let meeting = try await MeetingImportService.importRecording(from: url, storage: self.storage)
+                    self.meetings.append(meeting)
+                    self.meetings.sort { $0.startedAt > $1.startedAt }
+                    self.selectedMeetingIDs = [meeting.id]
+                    lokalbotLog("recording imported meeting=\(meeting.id) extension=\(url.pathExtension.lowercased())")
+                    self.reprocess(meeting, transcribe: true, summarize: self.settings.autoSummarize)
+                } catch {
+                    // The message names the file; keep user file names out of the log.
+                    lokalbotLog("recording import failed extension=\(url.pathExtension.lowercased())")
+                    failures.append(error.localizedDescription)
+                }
+                if let index = self.importingRecordings.firstIndex(of: url.lastPathComponent) {
+                    self.importingRecordings.remove(at: index)
+                }
+            }
+            if !failures.isEmpty { self.lastError = failures.joined(separator: "\n") }
+        }
+    }
+
     /// Removes a generated merged record and restores its original source
     /// rows. Source folders are retained; their durable merge markers and
     /// search tombstones are cleared before the restored evidence is indexed.
@@ -1909,7 +1972,7 @@ final class AppState: ObservableObject {
         let fallbackEnd = meeting.startedAt.addingTimeInterval(fallbackDuration)
         var end = meeting.endedAt.map { max($0, meeting.startedAt) } ?? fallbackEnd
         if end <= meeting.startedAt { end = fallbackEnd }
-        let ocr = activityStore.ocrText(from: meeting.startedAt, to: end, maxChars: 12_000)
+        let ocr = meeting.isImported ? "" : activityStore.ocrText(from: meeting.startedAt, to: end, maxChars: 12_000)
         return SpeakerNameHintExtractor.hints(
             calendarNames: meeting.resolvedCalendarParticipantIdentities.compactMap(\.name),
             ocrText: ocr)
@@ -2217,6 +2280,24 @@ final class AppState: ObservableObject {
     /// already saved, like the other capture sources; deletion is explicit.
     func applyCodingAgentEvidenceSetting() {
         codingAgentEvidence.start()
+    }
+
+    /// What the coding-agent reader may read: the settings' choice once setup
+    /// is finished, and nothing on a new install before then.
+    static func codingAgentConfiguration(
+        _ settings: AppSettings, defaults: UserDefaults = .standard
+    ) -> CodingAgentEvidenceIngestor.Configuration {
+        .init(settings: settings, onboardingFinished: defaults.bool(forKey: onboardingShownKey))
+    }
+
+    /// Setup's final step: applies its choices and marks setup finished. A
+    /// new install has read no coding-agent session until now, so reading
+    /// starts here if the person kept it on.
+    func finishOnboarding(applying draft: CaptureSetupDraft) {
+        let firstFinish = !UserDefaults.standard.bool(forKey: Self.onboardingShownKey)
+        settings = draft.applying(to: settings)
+        UserDefaults.standard.set(true, forKey: Self.onboardingShownKey)
+        if firstFinish && interactive { applyCodingAgentEvidenceSetting() }
     }
 
     /// New settled work usually lands today, before the evening digest.
@@ -2619,15 +2700,20 @@ final class AppState: ObservableObject {
 
         var updated = settings
         updated.dreamingEnabled = enabled
-        if enabled {
-            let calendar = Calendar.current
-            updated.dreamingFirstEligibleDayKey = DreamDay.key(
-                for: DreamScheduler.previousDay(of: Date(), calendar: calendar),
-                calendar: calendar)
-        } else {
-            updated.dreamingFirstEligibleDayKey = nil
-        }
+        updated.dreamingFirstEligibleDayKey = Self.dreamingFirstEligibleDayKey(enabled: enabled)
         settings = updated
+    }
+
+    /// Turning dreaming on starts at yesterday, so a new opt-in never
+    /// backfills older days; turning it off clears the boundary. Shared with
+    /// changes made from the terminal.
+    nonisolated static func dreamingFirstEligibleDayKey(
+        enabled: Bool,
+        now: Date = Date(),
+        calendar: Calendar = .current
+    ) -> String? {
+        guard enabled else { return nil }
+        return DreamDay.key(for: DreamScheduler.previousDay(of: now, calendar: calendar), calendar: calendar)
     }
 
     func dreamNow() {

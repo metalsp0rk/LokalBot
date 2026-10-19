@@ -170,9 +170,39 @@ protocol TranscriptionEngine {
     func prepare(progress: ModelPreparationProgressHandler?) async throws
     func transcribe(audio: URL, language: String?) async throws -> Transcript
     func transcribe(audio: URL, language: String?, prompt: String?) async throws -> Transcript
-    /// Whole-track transcription whose words will be re-timed by forced
-    /// alignment (`.alignedWords`), so decode windows may be longer.
-    func transcribeForWordAttribution(audio: URL, language: String?, prompt: String?) async throws -> Transcript
+    /// Whole-track transcription whose words will be attributed to speakers
+    /// (`.alignedWords`), so decode windows may be longer. Segments without
+    /// the engine's own word times are re-timed by forced alignment.
+    func transcribeForWordAttribution(audio: URL, language: String?, prompt: String?) async throws -> WordTimedTranscript
+    /// Word-attribution transcripts are expected to carry the engine's own
+    /// word times, so the forced aligner is fetched only for segments without them.
+    var providesWordTimings: Bool { get }
+}
+
+/// A whole-track transcript for word attribution. An engine that times words
+/// itself (a transcription server answering `timestamp_granularities[]=word`)
+/// fills `words`; the rest are left to the forced aligner.
+struct WordTimedTranscript {
+    struct Segment: Sendable {
+        var segment: Transcript.Segment
+        /// On the track timeline; nil when the engine returned no word times.
+        var words: [AlignedWordTiming]?
+    }
+
+    var segments: [Segment]
+    var engine: String
+
+    init(segments: [Segment], engine: String) {
+        self.segments = segments
+        self.engine = engine
+    }
+
+    /// Text without word times, for the forced aligner.
+    init(_ transcript: Transcript) {
+        self.init(segments: transcript.segments.map { Segment(segment: $0) }, engine: transcript.engine)
+    }
+
+    var transcript: Transcript { Transcript(segments: segments.map(\.segment), engine: engine) }
 }
 
 /// How a diarized (or content-trimmed) track is attributed to speakers.
@@ -189,8 +219,10 @@ extension TranscriptionEngine {
     var checkpointIdentity: String { displayName }
     var speakerAttribution: SpeakerAttributionStrategy { .regions }
 
-    func transcribeForWordAttribution(audio: URL, language: String?, prompt: String?) async throws -> Transcript {
-        try await transcribe(audio: audio, language: language, prompt: prompt)
+    var providesWordTimings: Bool { false }
+
+    func transcribeForWordAttribution(audio: URL, language: String?, prompt: String?) async throws -> WordTimedTranscript {
+        WordTimedTranscript(try await transcribe(audio: audio, language: language, prompt: prompt))
     }
 }
 

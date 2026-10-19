@@ -232,9 +232,13 @@ enum SelectionDelivery {
         let focus = await DictationFocusSnapshotExecutor.shared.capture(deadlineMilliseconds: 400)
         let check: DictationDeliveryCheck = focus.timedOut
             ? .fieldUnreadable
-            : focus.snapshot.map { target.check($0) } ?? .fieldUnreadable
+            : focus.snapshot.map { Self.check(target: target, snapshot: $0) } ?? .fieldUnreadable
         guard check == .deliverable else { return copied(text, reason: message(for: check)) }
-        switch await inserter.insertViaPaste(text) {
+        switch await inserter.insertViaPaste(text, revalidateAfterWaiting: {
+            let current = await DictationFocusSnapshotExecutor.shared.capture(deadlineMilliseconds: 400)
+            guard !current.timedOut, let snapshot = current.snapshot else { return false }
+            return Self.check(target: target, snapshot: snapshot) == .deliverable
+        }) {
         case .pasted:
             return .inserted
         case .unconfirmed:
@@ -243,6 +247,14 @@ enum SelectionDelivery {
         case .failed, .skipped:
             return copied(text, reason: "LokalBot could not paste the result, so it was copied to the clipboard.")
         }
+    }
+
+    /// Replacement requires the exact optional selection, including a range
+    /// being cleared to a caret. Dictation's app-only fallback is less strict.
+    static func check(target: DictationDeliveryTarget, snapshot: DictationFocusSnapshot) -> DictationDeliveryCheck {
+        let check = target.check(snapshot)
+        guard check == .deliverable else { return check }
+        return target.selection == snapshot.selection ? .deliverable : .selectionChanged
     }
 
     static func copy(_ text: String) {

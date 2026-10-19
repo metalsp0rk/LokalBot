@@ -201,6 +201,8 @@ private struct SelectionActionsContent: View {
             "\(appName) is in your excluded apps, so LokalBot did not read anything from it."
         case .secureField:
             "A password field has focus. LokalBot does not read or paste into password fields."
+        case .focusChanged:
+            "LokalBot could not confirm the selected field. Select the text again and press the shortcut."
         }
         return VStack(spacing: 12) {
             Image(systemName: issue == .accessibilityNeeded ? "hand.raised" : "lock.shield")
