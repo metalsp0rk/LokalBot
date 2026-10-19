@@ -303,7 +303,7 @@ fn dispatch(shared: Arc<Shared>, commands: Sender<Command>, receiver: Receiver<C
                 Ok(()) => {}
                 Err(err) => shared.error(format!("The calendar links were not saved: {err:#}")),
             },
-            Command::RefreshCalendar => shared.calendar.refresh(),
+            Command::RefreshCalendar => shared.calendar.reload(),
             Command::PrepareMeeting { event, generate } => preparation.prepare(*event, generate),
             Command::StopRecording => {
                 live.stop();
@@ -329,9 +329,14 @@ fn dispatch(shared: Arc<Shared>, commands: Sender<Command>, receiver: Receiver<C
             Command::WriteProjectNote(project_id) => ask.write_project_note(project_id),
             Command::WriteFollowUp(meeting_id) => ask.write_follow_up(meeting_id),
             Command::UpdateSettings(settings) => {
-                let calendar_changed = calendar_settings_changed(&shared.settings(), &settings);
+                let before = shared.settings();
+                let calendar_changed = calendar_settings_changed(&before, &settings);
+                let calendar_turned_on =
+                    settings.calendar_detection_enabled && !before.calendar_detection_enabled;
                 *shared.settings.write() = *settings;
-                if calendar_changed {
+                if calendar_turned_on {
+                    shared.calendar.reload();
+                } else if calendar_changed {
                     shared.calendar.refresh();
                 }
                 models.publish_status();

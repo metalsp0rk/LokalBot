@@ -79,6 +79,13 @@ impl Calendar {
         self.state.lock().clone()
     }
 
+    /// Reads the links from the credential store again, then every source
+    /// (Refresh in Settings, or calendar use turned back on).
+    pub fn reload(&self) {
+        *self.links.lock() = None;
+        self.refresh();
+    }
+
     /// Reads every source again soon (settings or links changed).
     pub fn refresh(&self) {
         if let Some(wake) = self.wake.lock().as_ref() {
@@ -105,7 +112,9 @@ impl Calendar {
                 links
             }
             Err(err) => {
+                // Not retried every minute: a locked store would ask each time.
                 log::warn!("calendar: links could not be read from the credential store: {err:#}");
+                *cached = Some(Vec::new());
                 Vec::new()
             }
         }
