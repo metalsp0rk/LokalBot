@@ -30,9 +30,7 @@ impl ImportFailure {
                 "LokalBot can't read audio from “{name}”. Try an MP3, M4A, WAV, MP4, or MOV file.",
                 &[name],
             ),
-            Self::NoAudio => {
-                lokalbot_i18n::format("“{name}” has no audio to transcribe.", &[name])
-            }
+            Self::NoAudio => lokalbot_i18n::format("“{name}” has no audio to transcribe.", &[name]),
             Self::Conversion(reason) => lokalbot_i18n::format(
                 "Couldn't convert the audio in “{name}”: {reason}",
                 &[name, ("reason", reason.clone())],
@@ -96,9 +94,12 @@ pub fn import_recording(
         meeting.has_system_track = true;
         meeting.imported_file_names = Some(vec![name.clone()]);
         let folder = library.meeting_dir(&meeting);
-        let moved = fs::rename(&converted, folder.join(lokalbot_core::library::SYSTEM_TRACK))
-            .map_err(anyhow::Error::from)
-            .and_then(|()| library.save_meeting(&meeting));
+        let moved = fs::rename(
+            &converted,
+            folder.join(lokalbot_core::library::SYSTEM_TRACK),
+        )
+        .map_err(anyhow::Error::from)
+        .and_then(|()| library.save_meeting(&meeting));
         if let Err(err) = moved {
             let _ = fs::remove_dir_all(&folder);
             return Err(cannot(&format!("{err:#}")));
@@ -162,8 +163,8 @@ mod tests {
         let frames = (seconds * rate as f64) as usize;
         let mut data = Vec::with_capacity(frames * channels as usize * 2);
         for i in 0..frames {
-            let sample = ((i as f64 * 440.0 * std::f64::consts::TAU / rate as f64).sin()
-                * 8000.0) as i16;
+            let sample =
+                ((i as f64 * 440.0 * std::f64::consts::TAU / rate as f64).sin() * 8000.0) as i16;
             for _ in 0..channels {
                 data.extend_from_slice(&sample.to_le_bytes());
             }
@@ -197,7 +198,10 @@ mod tests {
         let meeting = import_recording(&library, &source, now).unwrap();
         assert_eq!(meeting.title, "Design review");
         assert_eq!(meeting.app_name, "Imported file");
-        assert_eq!(meeting.imported_file_names.as_deref(), Some(&["Design review.wav".to_string()][..]));
+        assert_eq!(
+            meeting.imported_file_names.as_deref(),
+            Some(&["Design review.wav".to_string()][..])
+        );
         assert!(meeting.has_system_track && meeting.is_imported() && !meeting.is_live());
         assert!((meeting.recorded_duration.unwrap() - 2.0).abs() < 0.05);
         assert!(meeting.ended_at.unwrap() <= now + Duration::seconds(1));
@@ -208,16 +212,21 @@ mod tests {
         assert_eq!(system.file_name().unwrap(), "system.wav");
         let info = lokalbot_audio::read_info(&system).unwrap();
         assert_eq!((info.sample_rate, info.channels), (16_000, 1));
-        assert_eq!(fs::read(&source).unwrap(), original, "the original file is only read");
+        assert_eq!(
+            fs::read(&source).unwrap(),
+            original,
+            "the original file is only read"
+        );
         let listed = library.list_meetings().unwrap();
         assert_eq!(listed.len(), 1);
         assert_eq!(listed[0].imported_file_names, meeting.imported_file_names);
         // Staging beside the library is cleaned up.
-        assert!(
-            fs::read_dir(library.paths().root())
-                .unwrap()
-                .all(|e| !e.unwrap().file_name().to_string_lossy().starts_with(".import-"))
-        );
+        assert!(fs::read_dir(library.paths().root()).unwrap().all(|e| {
+            !e.unwrap()
+                .file_name()
+                .to_string_lossy()
+                .starts_with(".import-")
+        }));
     }
 
     #[test]
@@ -265,7 +274,12 @@ mod tests {
             let mut meeting = library
                 .create_meeting(&format!("Part {}", index + 1), "Zoom", started)
                 .unwrap();
-            write_tone(&library.meeting_dir(&meeting).join("mic.wav"), seconds, 16_000, 1);
+            write_tone(
+                &library.meeting_dir(&meeting).join("mic.wav"),
+                seconds,
+                16_000,
+                1,
+            );
             meeting.ended_at = Some(started + Duration::seconds(seconds as i64));
             meeting.recorded_duration = Some(seconds);
             library.save_meeting(&meeting).unwrap();
@@ -273,7 +287,13 @@ mod tests {
         }
         // Keep only 0.5–2.5 s of the first part.
         sources[0] = library
-            .set_meeting_boundaries(&sources[0], ContentRange { start: 0.5, end: 2.5 })
+            .set_meeting_boundaries(
+                &sources[0],
+                ContentRange {
+                    start: 0.5,
+                    end: 2.5,
+                },
+            )
             .unwrap();
 
         let result = merge_meetings(&library, &sources, "  Whole   call ").unwrap();
@@ -286,7 +306,12 @@ mod tests {
         let mic = lokalbot_audio::duration_seconds(audio.mic.as_ref().unwrap()).unwrap();
         assert!((mic - 4.0).abs() < 0.01, "{mic}");
         assert!(audio.system.is_none());
-        let visible: Vec<_> = library.list_meetings().unwrap().iter().map(|m| m.id).collect();
+        let visible: Vec<_> = library
+            .list_meetings()
+            .unwrap()
+            .iter()
+            .map(|m| m.id)
+            .collect();
         assert_eq!(visible, [merged.id]);
         let manifest: merge::Manifest = lokalbot_core::library::read_json(
             &library.meeting_dir(merged).join(merge::MANIFEST_FILE),
@@ -301,7 +326,12 @@ mod tests {
         let restored = undo_merge(&library, merged).unwrap();
         assert_eq!(restored.len(), 2);
         assert!(restored.iter().all(|m| m.merged_into_meeting_id.is_none()));
-        let mut visible: Vec<_> = library.list_meetings().unwrap().iter().map(|m| m.id).collect();
+        let mut visible: Vec<_> = library
+            .list_meetings()
+            .unwrap()
+            .iter()
+            .map(|m| m.id)
+            .collect();
         visible.sort();
         let mut expected: Vec<_> = sources.iter().map(|m| m.id).collect();
         expected.sort();

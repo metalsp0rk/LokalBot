@@ -46,28 +46,29 @@ pub enum MergeError {
 impl MergeError {
     /// The message in the interface language.
     pub fn localized(&self) -> String {
-        let with_title = |key: &str, title: &str| {
-            lokalbot_i18n::format(key, &[("title", title.to_string())])
-        };
+        let title = |title: &String| [("title", title.clone())];
         match self {
             Self::NeedsAtLeastTwo => {
                 lokalbot_i18n::tr("Select at least two completed meetings to merge.").into()
             }
-            Self::RecordingStillActive(title) => {
-                with_title("{title} is still recording. Stop it before merging.", title)
-            }
-            Self::ProcessingInProgress(title) => with_title(
-                "{title} is still being processed. Wait for it to finish before merging.",
-                title,
+            Self::RecordingStillActive(t) => lokalbot_i18n::format(
+                "{title} is still recording. Stop it before merging.",
+                &title(t),
             ),
-            Self::AlreadyMerged(title) => {
-                with_title("{title} is already folded into another merged meeting.", title)
-            }
-            Self::NoUsableEvidence(title) => {
-                with_title("{title} has no readable audio or transcript to merge.", title)
-            }
-            Self::InvalidDuration(title) => {
-                with_title("{title} has no usable recorded duration.", title)
+            Self::ProcessingInProgress(t) => lokalbot_i18n::format(
+                "{title} is still being processed. Wait for it to finish before merging.",
+                &title(t),
+            ),
+            Self::AlreadyMerged(t) => lokalbot_i18n::format(
+                "{title} is already folded into another merged meeting.",
+                &title(t),
+            ),
+            Self::NoUsableEvidence(t) => lokalbot_i18n::format(
+                "{title} has no readable audio or transcript to merge.",
+                &title(t),
+            ),
+            Self::InvalidDuration(t) => {
+                lokalbot_i18n::format("{title} has no usable recorded duration.", &title(t))
             }
             Self::CannotCreateMeeting(reason) => lokalbot_i18n::format(
                 "The merged meeting could not be created: {reason}",
@@ -165,7 +166,15 @@ pub fn merge_meetings(
         .map_err(|e| MergeError::CannotCreateMeeting(format!("{e:#}")))?;
     let folder = library.paths().meeting_dir(&relative);
     let mut folded: Vec<Meeting> = Vec::new();
-    let result = build(library, &sources, &title, &relative, &folder, &mut folded, splice);
+    let result = build(
+        library,
+        &sources,
+        &title,
+        &relative,
+        &folder,
+        &mut folded,
+        splice,
+    );
     if result.is_err() {
         for source in &folded {
             let mut restored = source.clone();
@@ -353,7 +362,9 @@ fn normalized_title(title: &str, sources: &[Source]) -> String {
 
 /// The sources' segments inside their ranges, shifted onto the merged
 /// timeline, with source-scoped speakers. Also returns which sources had any.
-fn merged_transcript(sources: &[Source]) -> Result<(Option<Transcript>, BTreeSet<usize>), MergeError> {
+fn merged_transcript(
+    sources: &[Source],
+) -> Result<(Option<Transcript>, BTreeSet<usize>), MergeError> {
     let mut merged = Transcript {
         engine: "merged".into(),
         ..Default::default()
@@ -382,7 +393,11 @@ fn merged_transcript(sources: &[Source]) -> Result<(Option<Transcript>, BTreeSet
                 let key = format!(
                     "source{}:{}",
                     index + 1,
-                    if original.is_empty() { "speaker" } else { &original }
+                    if original.is_empty() {
+                        "speaker"
+                    } else {
+                        &original
+                    }
                 );
                 let mut shifted = segment.clone();
                 shifted.speaker = key.clone();
@@ -391,7 +406,11 @@ fn merged_transcript(sources: &[Source]) -> Result<(Option<Transcript>, BTreeSet
                 merged.segments.push(shifted);
                 merged.speaker_aliases.insert(
                     key.clone(),
-                    format!("{} · source {}", transcript.speaker_name(&original), index + 1),
+                    format!(
+                        "{} · source {}",
+                        transcript.speaker_name(&original),
+                        index + 1
+                    ),
                 );
                 if let Some(id) = transcript.speaker_calendar_identity_ids.get(&original) {
                     merged.speaker_calendar_identity_ids.insert(key, id.clone());
@@ -412,7 +431,13 @@ fn merged_transcript(sources: &[Source]) -> Result<(Option<Transcript>, BTreeSet
     Ok((Some(merged), covered))
 }
 
-fn write_summary(library: &Library, title: &str, merged: &Meeting, sources: &[Source], folder: &Path) {
+fn write_summary(
+    library: &Library,
+    title: &str,
+    merged: &Meeting,
+    sources: &[Source],
+    folder: &Path,
+) {
     let date = merged
         .started_at
         .with_timezone(&chrono::Local)
@@ -442,7 +467,8 @@ fn write_summary(library: &Library, title: &str, merged: &Meeting, sources: &[So
             _ => body.push_str("No saved summary was available for this source meeting.\n\n"),
         }
     }
-    let _ = crate::library::write_atomic(&folder.join(crate::library::SUMMARY_FILE), body.as_bytes());
+    let _ =
+        crate::library::write_atomic(&folder.join(crate::library::SUMMARY_FILE), body.as_bytes());
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -510,7 +536,9 @@ pub fn undo_merge(library: &Library, merged: &Meeting) -> Result<Vec<Meeting>, U
     for source in &sources {
         match library.restore_merged_source(source) {
             Ok(meeting) => restored.push(meeting),
-            Err(err) => log::warn!("restoring a merge source failed; retried on next load: {err:#}"),
+            Err(err) => {
+                log::warn!("restoring a merge source failed; retried on next load: {err:#}")
+            }
         }
     }
     restored.sort_by_key(|m| m.started_at);
@@ -529,8 +557,8 @@ pub fn preserve_transcript_only_sources(
     let Some(previous) = previous else {
         return Ok(regenerated);
     };
-    let Some(manifest) = read_json::<Manifest>(&folder.join(MANIFEST_FILE))
-        .context("reading the merge manifest")?
+    let Some(manifest) =
+        read_json::<Manifest>(&folder.join(MANIFEST_FILE)).context("reading the merge manifest")?
     else {
         return Ok(regenerated);
     };
@@ -572,7 +600,9 @@ pub fn preserve_transcript_only_sources(
         .sort_by(|a, b| a.start.total_cmp(&b.start).then(a.end.total_cmp(&b.end)));
     for speaker in speakers.keys() {
         if let Some(alias) = previous.speaker_aliases.get(speaker) {
-            combined.speaker_aliases.insert(speaker.clone(), alias.clone());
+            combined
+                .speaker_aliases
+                .insert(speaker.clone(), alias.clone());
         }
         if let Some(id) = previous.speaker_calendar_identity_ids.get(speaker) {
             combined
@@ -610,7 +640,9 @@ mod tests {
             segments,
             ..Default::default()
         };
-        transcript.speaker_aliases.insert("them".into(), "Ana".into());
+        transcript
+            .speaker_aliases
+            .insert("them".into(), "Ana".into());
         transcript
             .speaker_calendar_identity_ids
             .insert("them".into(), "ana-id".into());
@@ -631,17 +663,29 @@ mod tests {
             with_transcript(
                 &library,
                 meeting,
-                vec![segment(10.0, 20.0, "me", "Hello"), segment(30.0, 40.0, "them", "Hi")],
+                vec![
+                    segment(10.0, 20.0, "me", "Hello"),
+                    segment(30.0, 40.0, "them", "Hi"),
+                ],
             );
-            library.save_summary(meeting, &format!("## TL;DR\n{}", meeting.title)).unwrap();
+            library
+                .save_summary(meeting, &format!("## TL;DR\n{}", meeting.title))
+                .unwrap();
         }
         library.save_notes(&first, "Bring the roadmap").unwrap();
 
-        let result = merge_meetings(&library, &[second.clone(), first.clone()], "", &no_audio).unwrap();
+        let result =
+            merge_meetings(&library, &[second.clone(), first.clone()], "", &no_audio).unwrap();
         let merged = &result.meeting;
         assert!(merged.is_merged_meeting());
-        assert_eq!(merged.merged_source_meeting_ids.as_deref(), Some(&[first.id, second.id][..]));
-        assert_eq!(merged.title, "Design review", "the first meeting's title by default");
+        assert_eq!(
+            merged.merged_source_meeting_ids.as_deref(),
+            Some(&[first.id, second.id][..])
+        );
+        assert_eq!(
+            merged.title, "Design review",
+            "the first meeting's title by default"
+        );
         assert_eq!(result.transcript_segments, 4);
         assert!(result.transcript_coverage_complete);
         assert_eq!(merged.recorded_duration, Some(3_600.0));
@@ -651,14 +695,25 @@ mod tests {
         assert!(transcript.segments[2].start >= 1_800.0);
         assert_eq!(transcript.speaker_aliases["source1:me"], "Me · source 1");
         assert_eq!(transcript.speaker_aliases["source2:them"], "Ana · source 2");
-        assert_eq!(transcript.speaker_calendar_identity_ids["source2:them"], "ana-id");
+        assert_eq!(
+            transcript.speaker_calendar_identity_ids["source2:them"],
+            "ana-id"
+        );
         let summary = library.summary(merged).unwrap().unwrap();
         assert!(summary.contains("## Design review") && summary.contains("## Launch check"));
         assert!(summary.contains("non-destructive merge"));
-        assert_eq!(library.notes(merged).unwrap(), "## Design review\n\nBring the roadmap");
+        assert_eq!(
+            library.notes(merged).unwrap(),
+            "## Design review\n\nBring the roadmap"
+        );
         assert!(library.meeting_dir(merged).join(MANIFEST_FILE).is_file());
 
-        let visible: Vec<_> = library.list_meetings().unwrap().iter().map(|m| m.id).collect();
+        let visible: Vec<_> = library
+            .list_meetings()
+            .unwrap()
+            .iter()
+            .map(|m| m.id)
+            .collect();
         assert_eq!(visible, [merged.id]);
         let all = library.list_all_meetings().unwrap();
         assert_eq!(all.len(), 3);
@@ -676,7 +731,11 @@ mod tests {
         let first = finished(&library, "Typed up", 120, 600.0);
         let second = finished(&library, "Recorded", 60, 600.0);
         fs::write(library.meeting_dir(&second).join("system.wav"), b"audio").unwrap();
-        with_transcript(&library, &first, vec![segment(5.0, 9.0, "them", "From the notes")]);
+        with_transcript(
+            &library,
+            &first,
+            vec![segment(5.0, 9.0, "them", "From the notes")],
+        );
         let second_has_audio = |slices: &[Slice], dest: &Path| {
             fs::write(dest, b"audio")?;
             Ok((0..slices.len()).map(|i| i == 1).collect())
@@ -718,9 +777,13 @@ mod tests {
         let all = library.list_all_meetings().unwrap();
         assert_eq!(all.len(), 2);
         assert!(all.iter().all(|m| !m.is_merged_source()));
-        let folders = fs::read_dir(library.paths().meetings_dir().join(
-            crate::time::local_day(crate::time::now_seconds()).format("%Y/%m").to_string(),
-        ))
+        let folders = fs::read_dir(
+            library.paths().meetings_dir().join(
+                crate::time::local_day(crate::time::now_seconds())
+                    .format("%Y/%m")
+                    .to_string(),
+            ),
+        )
         .unwrap()
         .count();
         assert_eq!(folders, 2, "the half-made merged meeting is removed");
@@ -769,11 +832,20 @@ mod tests {
             .collect();
         let unrelated = finished(&library, "Unrelated", 5, 60.0);
         let first = merge_meetings(&library, &meetings[..2], "", &no_audio).unwrap();
-        let nested =
-            merge_meetings(&library, &[first.meeting.clone(), meetings[2].clone()], "", &no_audio)
-                .unwrap();
+        let nested = merge_meetings(
+            &library,
+            &[first.meeting.clone(), meetings[2].clone()],
+            "",
+            &no_audio,
+        )
+        .unwrap();
         library.delete_meeting(&nested.meeting).unwrap();
-        let left: Vec<_> = library.list_all_meetings().unwrap().iter().map(|m| m.id).collect();
+        let left: Vec<_> = library
+            .list_all_meetings()
+            .unwrap()
+            .iter()
+            .map(|m| m.id)
+            .collect();
         assert_eq!(left, [unrelated.id]);
     }
 }

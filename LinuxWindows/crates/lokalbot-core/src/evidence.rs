@@ -354,11 +354,20 @@ mod tests {
         assert!(state.invalidates(None));
         assert!(state.invalidates(Some(&built(4, vec![source("meeting", "x", "2026-10-15")]))));
         assert!(!state.invalidates(Some(&built(5, vec![source("meeting", "x", "2026-10-15")]))));
-        assert!(state.invalidates(Some(&built(3, vec![source("meeting", "abc", "2026-09-01")]))));
-        assert!(!state.invalidates(Some(&built(4, vec![source("meeting", "abc", "2026-09-01")]))));
+        assert!(state.invalidates(Some(&built(
+            3,
+            vec![source("meeting", "abc", "2026-09-01")]
+        ))));
+        assert!(!state.invalidates(Some(&built(
+            4,
+            vec![source("meeting", "abc", "2026-09-01")]
+        ))));
         // Activity-only changes leave meeting sources alone.
         assert!(!state.invalidates(Some(&built(4, vec![source("meeting", "y", "2026-10-20")]))));
-        assert!(state.invalidates(Some(&built(4, vec![source("screenDay", "2026-10-20", "2026-10-20")]))));
+        assert!(state.invalidates(Some(&built(
+            4,
+            vec![source("screenDay", "2026-10-20", "2026-10-20")]
+        ))));
         assert!(state.invalidates(Some(&built(4, vec![]))));
         assert!(!EvidenceState::default().invalidates(None));
     }
@@ -368,9 +377,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let started = Utc.with_ymd_and_hms(2026, 10, 15, 9, 0, 0).unwrap();
         let meeting = meeting(started);
-        let built = |id: &str, day: &str| {
-            serde_json::json!({"sources": [{"kind": "meeting", "id": id, "dayKey": day}], "revision": 0})
-        };
+        let built = |id: &str, day: &str| serde_json::json!({"sources": [{"kind": "meeting", "id": id, "dayKey": day}], "revision": 0});
         fs::create_dir_all(dir.path().join("memory")).unwrap();
         let memory = serde_json::json!({
             "version": 3,
@@ -402,9 +409,16 @@ mod tests {
             .map(|p| p["name"].as_str().unwrap())
             .collect();
         assert_eq!(names, ["Atlas"]);
-        assert_eq!(read["recurringPatterns"], serde_json::json!(["Fridays are quiet"]));
         assert_eq!(
-            read["patternProvenance"].as_object().unwrap().keys().collect::<Vec<_>>(),
+            read["recurringPatterns"],
+            serde_json::json!(["Fridays are quiet"])
+        );
+        assert_eq!(
+            read["patternProvenance"]
+                .as_object()
+                .unwrap()
+                .keys()
+                .collect::<Vec<_>>(),
             ["Fridays are quiet"]
         );
         assert_eq!(read["version"], 3);

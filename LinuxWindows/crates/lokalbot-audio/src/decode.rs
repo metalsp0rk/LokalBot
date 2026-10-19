@@ -307,9 +307,11 @@ pub fn audio_track_ids(path: &Path) -> io::Result<Vec<u32>> {
         .tracks()
         .iter()
         .filter(|track| {
-            !track
-                .flags
-                .intersects(TrackFlags::COMMENTARY | TrackFlags::VISUALLY_IMPAIRED | TrackFlags::TEXT_DESCRIPTIONS)
+            !track.flags.intersects(
+                TrackFlags::COMMENTARY
+                    | TrackFlags::VISUALLY_IMPAIRED
+                    | TrackFlags::TEXT_DESCRIPTIONS,
+            )
         })
         .filter(|track| {
             track

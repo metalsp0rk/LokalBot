@@ -55,12 +55,15 @@ pub fn recording_start(
     if let Some(metadata) = plausible(metadata) {
         return metadata.min(latest);
     }
-    [plausible(file_created), plausible(file_modified).map(|m| m - length)]
-        .into_iter()
-        .flatten()
-        .min()
-        .unwrap_or(latest)
-        .min(latest)
+    [
+        plausible(file_created),
+        plausible(file_modified).map(|m| m - length),
+    ]
+    .into_iter()
+    .flatten()
+    .min()
+    .unwrap_or(latest)
+    .min(latest)
 }
 
 fn plausible(date: Option<DateTime<Utc>>) -> Option<DateTime<Utc>> {
@@ -76,7 +79,8 @@ mod tests {
     fn recording_start_prefers_the_recorder_and_never_ends_in_the_future() {
         let now = Utc.timestamp_opt(1_790_000_000, 0).unwrap();
         let recorded = Utc.timestamp_opt(1_780_000_000, 0).unwrap();
-        let start = |metadata, created, modified| recording_start(metadata, created, modified, 60.0, now);
+        let start =
+            |metadata, created, modified| recording_start(metadata, created, modified, 60.0, now);
 
         assert_eq!(start(Some(recorded), Some(now), Some(now)), recorded);
         assert_eq!(
@@ -105,7 +109,9 @@ mod tests {
 
     #[test]
     fn only_audio_and_video_files_are_importable() {
-        for name in ["call.mp3", "call.M4A", "call.wav", "call.mp4", "call.mov", "call.ogg"] {
+        for name in [
+            "call.mp3", "call.M4A", "call.wav", "call.mp4", "call.mov", "call.ogg",
+        ] {
             assert!(is_importable(Path::new(name)), "{name}");
         }
         for name in ["notes.txt", "slides.pdf", "photo.png", "noextension"] {

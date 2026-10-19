@@ -5,12 +5,12 @@ use gpui_kit::component::input::Input;
 use gpui_kit::component::menu::{ContextMenuExt as _, PopupMenuItem};
 use gpui_kit::component::scroll::ScrollableElement as _;
 use gpui_kit::component::spinner::Spinner;
-use gpui_kit::component::{Sizable as _, v_flex};
+use gpui_kit::component::{Disableable as _, Sizable as _, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
-    AnyElement, Context, FontWeight, InteractiveElement as _, IntoElement, KeyDownEvent,
-    MouseButton, ParentElement as _, StatefulInteractiveElement as _, Styled as _, Window, div,
-    list, px, white,
+    AnyElement, Context, ExternalPaths, FontWeight, InteractiveElement as _, IntoElement,
+    KeyDownEvent, MouseButton, ParentElement as _, StatefulInteractiveElement as _, Styled as _,
+    Window, div, list, px, white,
 };
 use lokalbot_core::Meeting;
 
@@ -74,7 +74,7 @@ impl MeetingsPage {
         self.entries_key = Some(key);
     }
 
-    fn meeting_ids(&self) -> Vec<uuid::Uuid> {
+    pub(super) fn meeting_ids(&self) -> Vec<uuid::Uuid> {
         self.entries
             .iter()
             .filter_map(|e| match e {
@@ -122,7 +122,10 @@ impl MeetingsPage {
             "up" => self.move_selection(-1, window, cx),
             "down" => self.move_selection(1, window, cx),
             "delete" => {
-                if let Some(id) = self.selected {
+                let ids: Vec<_> = self.selected_meetings(cx).iter().map(|m| m.id).collect();
+                if !ids.is_empty() {
+                    dialogs::confirm_delete(self.data.clone(), ids, window, cx);
+                } else if let Some(id) = self.selected {
                     dialogs::confirm_delete(self.data.clone(), vec![id], window, cx);
                 }
             }
@@ -152,7 +155,20 @@ impl MeetingsPage {
             .filter(|(_, stage)| matches!(stage, ProcessingStage::Failed(_)))
             .map(|(id, _)| *id)
             .collect();
+        let importing = data.importing.first().cloned();
+        let selection = self.selected_meetings(cx);
+        let can_merge = lokalbot_core::merge::can_merge(&selection, |id| data.is_processing(id));
         let data_entity = self.data.clone();
+
+        let import_button = {
+            let data_entity = data_entity.clone();
+            ui::controls::toolbar_icon(
+                "meetings-import",
+                Ico::Import,
+                lokalbot_i18n::tr("Import an audio or video recording"),
+            )
+            .on_click(move |_, _, cx| choose_recordings(data_entity.clone(), cx))
+        };
 
         let record_button = {
             let tint = lb.recording;
@@ -212,74 +228,89 @@ impl MeetingsPage {
                 })
         };
 
-        let header = v_flex()
-            .flex_none()
-            .p(metric::PANEL_PADDING)
-            .gap(px(10.))
-            .child(
-                h_flex()
-                    .gap(px(8.))
-                    .items_start()
-                    .child(
-                        v_flex()
-                            .flex_1()
-                            .min_w_0()
-                            .gap(px(2.))
-                            .child(
-                                div()
-                                    .text_size(ty::COLUMN_TITLE)
-                                    .font_weight(FontWeight::BOLD)
-                                    .text_color(lb.text)
-                                    .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
-                                        "Meetings",
-                                    ))),
-                            )
-                            .child(
-                                div()
-                                    .text_size(ty::SECONDARY)
-                                    .text_color(lb.text_secondary)
-                                    .child(lokalbot_i18n::count(count, "meeting")),
-                            ),
-                    )
-                    .child(record_button),
-            )
-            .child(Input::new(&self.search).small().cleanable(true))
-            .when(!failed.is_empty(), |this| {
-                let data_entity = data_entity.clone();
-                let failed = failed.clone();
-                this.child(
+        let header =
+            v_flex()
+                .flex_none()
+                .p(metric::PANEL_PADDING)
+                .gap(px(10.))
+                .child(
                     h_flex()
-                        .gap(px(6.))
-                        .items_center()
-                        .text_size(ty::SECONDARY)
-                        .child(ui::icon(Ico::TriangleAlert, px(14.), lb.attention_text))
-                        .child(div().flex_1().text_color(lb.attention_text).child(
-                            crate::ui::text::paragraph(lokalbot_i18n::format(
-                                "{0} failed",
-                                &[("0", format!("{}", failed.len()))],
-                            )),
-                        ))
-                        .child(ui::link(
-                            "meetings-retry-failed",
-                            lokalbot_i18n::tr("Retry"),
-                            move |_, cx| {
-                                data_entity.update(cx, |data, cx| {
-                                    for id in &failed {
-                                        data.request(
-                                            crate::state::AppEvent::ProcessMeeting {
-                                                meeting_id: *id,
-                                                transcribe: true,
-                                                summarize: true,
-                                            },
-                                            cx,
-                                        );
-                                    }
-                                })
-                            },
-                            cx,
-                        )),
+                        .gap(px(8.))
+                        .items_start()
+                        .child(
+                            v_flex()
+                                .flex_1()
+                                .min_w_0()
+                                .gap(px(2.))
+                                .child(
+                                    div()
+                                        .text_size(ty::COLUMN_TITLE)
+                                        .font_weight(FontWeight::BOLD)
+                                        .text_color(lb.text)
+                                        .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                                            "Meetings",
+                                        ))),
+                                )
+                                .child(
+                                    div()
+                                        .text_size(ty::SECONDARY)
+                                        .text_color(lb.text_secondary)
+                                        .child(lokalbot_i18n::count(count, "meeting")),
+                                ),
+                        )
+                        .child(import_button)
+                        .child(record_button),
                 )
-            });
+                .child(Input::new(&self.search).small().cleanable(true))
+                .when_some(importing, |this, name| {
+                    this.child(
+                        h_flex()
+                            .gap(px(8.))
+                            .items_center()
+                            .text_size(ty::SECONDARY)
+                            .text_color(lb.text_secondary)
+                            .child(Spinner::new().xsmall())
+                            .child(div().flex_1().min_w_0().truncate().child(
+                                lokalbot_i18n::tr("Importing %@…").replacen("%@", &name, 1),
+                            )),
+                    )
+                })
+                .when(!failed.is_empty(), |this| {
+                    let data_entity = data_entity.clone();
+                    let failed = failed.clone();
+                    this.child(
+                        h_flex()
+                            .gap(px(6.))
+                            .items_center()
+                            .text_size(ty::SECONDARY)
+                            .child(ui::icon(Ico::TriangleAlert, px(14.), lb.attention_text))
+                            .child(div().flex_1().text_color(lb.attention_text).child(
+                                crate::ui::text::paragraph(lokalbot_i18n::format(
+                                    "{0} failed",
+                                    &[("0", format!("{}", failed.len()))],
+                                )),
+                            ))
+                            .child(ui::link(
+                                "meetings-retry-failed",
+                                lokalbot_i18n::tr("Retry"),
+                                move |_, cx| {
+                                    data_entity.update(cx, |data, cx| {
+                                        for id in &failed {
+                                            data.request(
+                                                crate::state::AppEvent::ProcessMeeting {
+                                                    meeting_id: *id,
+                                                    transcribe: true,
+                                                    summarize: true,
+                                                },
+                                                cx,
+                                            );
+                                        }
+                                    })
+                                },
+                                cx,
+                            )),
+                    )
+                });
 
         let body: AnyElement = if !loaded {
             v_flex()
@@ -335,6 +366,70 @@ impl MeetingsPage {
                 .into_any_element()
         };
 
+        let merge_bar = (selection.len() > 1).then(|| {
+            let page = cx.entity().downgrade();
+            let meetings = selection.clone();
+            h_flex()
+                .flex_none()
+                .m(metric::PANEL_PADDING)
+                .px(px(12.))
+                .py(px(9.))
+                .gap(px(10.))
+                .items_center()
+                .rounded(metric::ROW_RADIUS)
+                .border_1()
+                .border_color(lb.accent_fill.opacity(0.22))
+                .bg(lb.hover)
+                .child(ui::icon(Ico::Group, px(16.), lb.accent_text))
+                .child(
+                    v_flex()
+                        .flex_1()
+                        .min_w_0()
+                        .gap(px(1.))
+                        .child(
+                            div()
+                                .text_size(ty::BODY)
+                                .font_weight(FontWeight::SEMIBOLD)
+                                .text_color(lb.text)
+                                .child(lokalbot_i18n::format(
+                                    "{count} meetings selected",
+                                    &[("count", selection.len().to_string())],
+                                )),
+                        )
+                        .child(
+                            div()
+                                .text_size(ty::SECONDARY)
+                                .text_color(lb.text_secondary)
+                                .child(crate::ui::text::paragraph(if can_merge {
+                                    lokalbot_i18n::tr(
+                                        "Create one timeline and fold the originals into it",
+                                    )
+                                } else {
+                                    lokalbot_i18n::tr(
+                                        "Select completed meetings that are not processing",
+                                    )
+                                })),
+                        ),
+                )
+                .child(
+                    ui::controls::bordered_icon(
+                        "meetings-merge",
+                        Ico::Group,
+                        lokalbot_i18n::tr("Merge…"),
+                    )
+                    .small()
+                    .disabled(!can_merge)
+                    .on_click(move |_, window, cx| {
+                        let meetings = meetings.clone();
+                        let _ = page.update(cx, |this, cx| {
+                            dialogs::MergeSheet::open(this.data.clone(), meetings, window, cx)
+                        });
+                    }),
+                )
+        });
+
+        let drop_target = lb.accent_fill;
+        let drop_data = data_entity.clone();
         v_flex()
             .id("meetings-column")
             .w(metric::CONTENT_COLUMN_WIDTH)
@@ -344,8 +439,19 @@ impl MeetingsPage {
             .border_color(lb.separator)
             .track_focus(&self.list_focus)
             .on_key_down(cx.listener(Self::on_list_key))
+            .drag_over::<ExternalPaths>(move |style, _, _, _| style.bg(drop_target.opacity(0.08)))
+            .on_drop(move |paths: &ExternalPaths, _, cx| {
+                let files: Vec<_> = paths
+                    .paths()
+                    .iter()
+                    .filter(|p| lokalbot_core::import::is_importable(p))
+                    .cloned()
+                    .collect();
+                drop_data.update(cx, |data, cx| data.import_recordings(files, cx));
+            })
             .child(header)
             .child(body)
+            .children(merge_bar)
     }
 
     fn render_entry(
@@ -369,8 +475,9 @@ impl MeetingsPage {
                 .child(label)
                 .into_any_element(),
             Entry::Meeting { meeting, live } => {
-                let selected = self.selected == Some(meeting.id);
-                let next_selected = matches!(self.entries.get(ix + 1), Some(Entry::Meeting { meeting: next, .. }) if Some(next.id) == self.selected);
+                let selected =
+                    self.selected == Some(meeting.id) || self.selection.contains(&meeting.id);
+                let next_selected = matches!(self.entries.get(ix + 1), Some(Entry::Meeting { meeting: next, .. }) if Some(next.id) == self.selected || self.selection.contains(&next.id));
                 let next_is_meeting =
                     matches!(self.entries.get(ix + 1), Some(Entry::Meeting { .. }));
                 let stage = self.data.read(cx).processing.get(&meeting.id).cloned();
@@ -448,18 +555,81 @@ impl MeetingsPage {
                             this.list_focus.focus(window, cx);
                         }),
                     )
-                    .on_click(cx.listener(move |this, _, window, cx| this.select(id, window, cx)))
+                    .on_click(
+                        cx.listener(move |this, event: &gpui_kit::ClickEvent, window, cx| {
+                            this.click_row(id, event.modifiers(), window, cx)
+                        }),
+                    )
                     .context_menu({
                         let data = self.data.clone();
+                        let page = cx.entity().downgrade();
+                        // A menu on a selected row acts on the whole selection.
+                        let group: Vec<Meeting> = {
+                            let selection = self.selected_meetings(cx);
+                            if selection.len() > 1 && selection.iter().any(|m| m.id == id) {
+                                selection
+                            } else {
+                                Vec::new()
+                            }
+                        };
+                        let can_merge = lokalbot_core::merge::can_merge(&group, |id| {
+                            self.data.read(cx).is_processing(id)
+                        });
                         move |menu, _, _| {
                             let data = data.clone();
-                            menu.item(
-                                PopupMenuItem::new(lokalbot_i18n::tr("Delete meeting…")).on_click(
-                                    move |_, window, cx| {
-                                        dialogs::confirm_delete(data.clone(), vec![id], window, cx);
-                                    },
-                                ),
-                            )
+                            if group.len() > 1 {
+                                let ids: Vec<_> = group.iter().map(|m| m.id).collect();
+                                let count = group.len().to_string();
+                                let page = page.clone();
+                                let meetings = group.clone();
+                                let merge_data = data.clone();
+                                menu.item(
+                                    PopupMenuItem::new(lokalbot_i18n::format(
+                                        "Merge {count} meetings…",
+                                        &[("count", count.clone())],
+                                    ))
+                                    .disabled(!can_merge)
+                                    .on_click(
+                                        move |_, window, cx| {
+                                            let meetings = meetings.clone();
+                                            let data = merge_data.clone();
+                                            let _ = page.update(cx, |_, cx| {
+                                                dialogs::MergeSheet::open(
+                                                    data, meetings, window, cx,
+                                                )
+                                            });
+                                        },
+                                    ),
+                                )
+                                .item(
+                                    PopupMenuItem::new(lokalbot_i18n::format(
+                                        "Delete {count} meetings…",
+                                        &[("count", count)],
+                                    ))
+                                    .on_click(
+                                        move |_, window, cx| {
+                                            dialogs::confirm_delete(
+                                                data.clone(),
+                                                ids.clone(),
+                                                window,
+                                                cx,
+                                            );
+                                        },
+                                    ),
+                                )
+                            } else {
+                                menu.item(
+                                    PopupMenuItem::new(lokalbot_i18n::tr("Delete meeting…"))
+                                        .on_click(move |_, window, cx| {
+                                            dialogs::confirm_delete(
+                                                data.clone(),
+                                                vec![id],
+                                                window,
+                                                cx,
+                                            );
+                                        }),
+                                )
+                            }
                         }
                     });
                 v_flex()
@@ -476,6 +646,31 @@ impl MeetingsPage {
             }
         }
     }
+}
+
+/// "Import Recording…": an open dialog for one or more audio or video files.
+pub(crate) fn choose_recordings(data: gpui_kit::Entity<AppData>, cx: &mut gpui_kit::App) {
+    let receiver = cx.prompt_for_paths(gpui_kit::PathPromptOptions {
+        files: true,
+        directories: false,
+        multiple: true,
+        prompt: Some(lokalbot_i18n::tr("Import Recording").into()),
+    });
+    cx.spawn(async move |cx| {
+        let picked = receiver.await;
+        data.update(cx, |data, cx| match picked {
+            Ok(Ok(Some(paths))) => data.import_recordings(paths, cx),
+            Ok(Ok(None)) | Err(_) => {}
+            Ok(Err(err)) => data.show_error(
+                lokalbot_i18n::format(
+                    "No file chooser is available: {err}",
+                    &[("err", format!("{:#}", err))],
+                ),
+                cx,
+            ),
+        });
+    })
+    .detach();
 }
 
 /// Processing status at the trailing edge of a row.

@@ -5,7 +5,7 @@
 //! `outcomes.json` and friends, plus `lokalbotv3.sqlite` for search indexes,
 //! activity blocks and screen context. A library written by either app can be
 //! read by the other; audio tracks are the one difference (`mic.wav`/`system.wav`
-//! here, `mic.m4a`/`system.m4a` on macOS).
+//! here, `mic.m4a`/`system.m4a` on macOS), and each app reads the other's.
 
 pub mod access;
 pub mod actions;
@@ -15,8 +15,8 @@ pub mod due;
 pub mod embeddings;
 pub mod evidence;
 pub mod ids;
-pub mod jobs;
 pub mod import;
+pub mod jobs;
 pub mod library;
 pub mod merge;
 pub mod model;

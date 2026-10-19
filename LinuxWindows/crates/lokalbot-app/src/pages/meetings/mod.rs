@@ -102,7 +102,13 @@ pub struct MeetingsPage {
     content_generation: u64,
     content_task: Option<Task<()>>,
     list_state: ListState,
+    /// The meeting the workspace shows.
     selected: Option<Uuid>,
+    /// Every selected meeting, for merging and deleting several at once;
+    /// just `selected` unless Ctrl- or Shift-clicked.
+    selection: Vec<Uuid>,
+    /// Where a Shift-click range starts.
+    selection_anchor: Option<Uuid>,
     doc: Option<Rc<MeetingDoc>>,
     doc_loading: bool,
     load_generation: u64,
@@ -226,6 +232,8 @@ impl MeetingsPage {
             content_task: None,
             list_state: ListState::new(0, ListAlignment::Top, px(400.)),
             selected: None,
+            selection: Vec::new(),
+            selection_anchor: None,
             doc: None,
             doc_loading: false,
             load_generation: 0,
@@ -288,6 +296,8 @@ impl MeetingsPage {
             self.tab = focus.tab;
             self.focus_at = focus.at;
             self.pending_reveal = focus.at.is_some();
+            self.selection = vec![focus.meeting_id];
+            self.selection_anchor = Some(focus.meeting_id);
             if self.selected != Some(focus.meeting_id) {
                 self.selected = Some(focus.meeting_id);
                 self.doc_loading = true;
@@ -316,11 +326,15 @@ impl MeetingsPage {
             return;
         }
         let live = data.recording.meeting().map(|m| m.id);
+        self.selection
+            .retain(|id| data.meeting(*id).is_some() || Some(*id) == live);
         let exists = self
             .selected
             .is_some_and(|id| data.meeting(id).is_some() || Some(id) == live);
         if !exists {
             self.selected = live.or_else(|| data.meetings.first().map(|m| m.id));
+            self.selection = self.selected.into_iter().collect();
+            self.selection_anchor = self.selected;
             self.doc = None;
             self.doc_loading = self.selected.is_some();
             self.load_doc(window, cx);
@@ -343,6 +357,77 @@ impl MeetingsPage {
     }
 
     pub(crate) fn select(&mut self, id: Uuid, window: &mut Window, cx: &mut Context<Self>) {
+        if self.selection != [id] {
+            self.selection = vec![id];
+            cx.notify();
+        }
+        self.selection_anchor = Some(id);
+        self.show(id, window, cx);
+    }
+
+    /// A row click: Ctrl (Cmd on macOS) adds or removes one meeting, Shift
+    /// selects the rows from the last plain click, anything else selects one.
+    pub(crate) fn click_row(
+        &mut self,
+        id: Uuid,
+        modifiers: gpui_kit::Modifiers,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let live = self.data.read(cx).recording.meeting().map(|m| m.id);
+        if Some(id) == live || !(modifiers.control || modifiers.platform || modifiers.shift) {
+            self.select(id, window, cx);
+            return;
+        }
+        if modifiers.shift {
+            let ids = self.meeting_ids();
+            let anchor = self.selection_anchor.unwrap_or(id);
+            let (Some(from), Some(to)) = (
+                ids.iter().position(|m| *m == anchor),
+                ids.iter().position(|m| *m == id),
+            ) else {
+                self.select(id, window, cx);
+                return;
+            };
+            let (from, to) = (from.min(to), from.max(to));
+            self.selection = ids[from..=to]
+                .iter()
+                .copied()
+                .filter(|m| Some(*m) != live)
+                .collect();
+        } else if let Some(at) = self.selection.iter().position(|m| *m == id) {
+            if self.selection.len() == 1 {
+                return;
+            }
+            self.selection.remove(at);
+            if self.selected == Some(id)
+                && let Some(last) = self.selection.last().copied()
+            {
+                self.show(last, window, cx);
+            }
+            cx.notify();
+            return;
+        } else {
+            self.selection.retain(|m| Some(*m) != live);
+            self.selection.push(id);
+            self.selection_anchor = Some(id);
+        }
+        self.show(id, window, cx);
+        cx.notify();
+    }
+
+    /// The selected meetings that exist, in list order.
+    pub(crate) fn selected_meetings(&self, cx: &App) -> Vec<Meeting> {
+        let data = self.data.read(cx);
+        data.meetings
+            .iter()
+            .filter(|m| self.selection.contains(&m.id))
+            .cloned()
+            .collect()
+    }
+
+    /// Shows one meeting in the workspace without changing the selection.
+    fn show(&mut self, id: Uuid, window: &mut Window, cx: &mut Context<Self>) {
         if self.selected == Some(id) {
             return;
         }
@@ -876,6 +961,14 @@ impl Page for MeetingsPage {
                 )
         });
         let has_transcript = self.doc.as_ref().is_some_and(|d| d.has_transcript());
+        let busy = self
+            .doc
+            .as_ref()
+            .is_some_and(|d| self.data.read(cx).is_processing(d.meeting.id));
+        let is_merged = self
+            .doc
+            .as_ref()
+            .is_some_and(|d| d.meeting.is_merged_meeting());
         let page = cx.entity().downgrade();
         let export_page = page.clone();
         let more_page = page;
@@ -993,6 +1086,43 @@ impl Page for MeetingsPage {
                                     }),
                             )
                             .separator();
+                        let boundaries = p.clone();
+                        let undo = p.clone();
+                        let menu = menu
+                            .item(
+                                PopupMenuItem::new(lokalbot_i18n::tr("Meeting boundaries…"))
+                                    .disabled(!has_transcript || busy)
+                                    .on_click(move |_, window, cx| {
+                                        let _ = boundaries.update(cx, |this, cx| {
+                                            if let Some(doc) = this.doc.clone() {
+                                                dialogs::BoundarySheet::open(
+                                                    this.data.clone(),
+                                                    doc.meeting.clone(),
+                                                    window,
+                                                    cx,
+                                                );
+                                            }
+                                        });
+                                    }),
+                            )
+                            .when(is_merged, |menu| {
+                                menu.item(
+                                    PopupMenuItem::new(lokalbot_i18n::tr("Undo merge…"))
+                                        .disabled(busy)
+                                        .on_click(move |_, window, cx| {
+                                            let _ = undo.update(cx, |this, cx| {
+                                                if let Some(doc) = this.doc.clone() {
+                                                    dialogs::confirm_undo_merge(
+                                                        this.data.clone(),
+                                                        &doc.meeting,
+                                                        window,
+                                                        cx,
+                                                    );
+                                                }
+                                            });
+                                        }),
+                                )
+                            });
                         menu.item(item(
                             lokalbot_i18n::tr("Transcribe & Summarize"),
                             |this, _, cx| this.process(true, true, cx),

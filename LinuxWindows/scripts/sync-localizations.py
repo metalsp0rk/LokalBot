@@ -16,6 +16,9 @@ ROOT = Path(__file__).resolve().parents[2]
 OUTPUT = ROOT / "LinuxWindows/crates/lokalbot-i18n/src/catalogs.rs"
 FIELDS = re.compile(r'\{\w+\}|%(?:\d+\$)?(?:lld|ld|[diufgs@])')
 BIDI_CONTROLS = re.compile('[\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]')
+# Zero-width spaces, soft hyphens and word joiners: machine-translation leftovers
+# that render as nothing and that clippy rejects in the generated Rust.
+INVISIBLE = re.compile('[\u00ad\u200b\u2060\ufeff]')
 KEYBOARD_TOKENS = re.compile(r'\b(?:Ctrl|Alt|Shift)(?:\+[A-Za-z]+)+|\b(?:Return|Tab|Esc)\b', re.ASCII)
 
 
@@ -47,6 +50,8 @@ def read_desktop_catalogs(codes):
                 raise ValueError(f"{code}: changed keyboard names: {key} => {value}")
             if key.count('\n') != value.count('\n') or BIDI_CONTROLS.search(value):
                 raise ValueError(f"{code}: changed line breaks or embedded direction controls: {key}")
+            if INVISIBLE.search(value):
+                raise ValueError(f"{code}: invisible characters: {key}")
             if code == "en" and value != key:
                 raise ValueError(f"English source key differs from value: {key}")
     return catalogs

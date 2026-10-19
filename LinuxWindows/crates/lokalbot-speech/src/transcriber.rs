@@ -853,10 +853,10 @@ mod tests {
 
     #[test]
     fn content_range_silences_before_and_drops_after() {
-        let mut samples = vec![1.0_f32; SAMPLE_RATE as usize * 10];
+        let mut samples = vec![1.0_f32; SAMPLE_RATE * 10];
         limit_to_range(&mut samples, (2.0, 7.5));
-        assert_eq!(samples.len(), SAMPLE_RATE as usize * 15 / 2);
-        let start = SAMPLE_RATE as usize * 2;
+        assert_eq!(samples.len(), SAMPLE_RATE * 15 / 2);
+        let start = SAMPLE_RATE * 2;
         assert!(samples[..start].iter().all(|s| *s == 0.0));
         assert!(samples[start..].iter().all(|s| *s == 1.0));
 

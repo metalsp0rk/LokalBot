@@ -238,7 +238,11 @@ impl Library {
     /// the transcript keeps the segments inside it, generated notes move aside
     /// to `*.previous.*` until they are written again, and the raw audio stays
     /// as recorded. The caller re-indexes and queues transcription and notes.
-    pub fn set_meeting_boundaries(&self, meeting: &Meeting, range: ContentRange) -> Result<Meeting> {
+    pub fn set_meeting_boundaries(
+        &self,
+        meeting: &Meeting,
+        range: ContentRange,
+    ) -> Result<Meeting> {
         if self.is_read_only() {
             bail!("the library is open read-only");
         }
@@ -257,7 +261,10 @@ impl Library {
             if let Some(mut transcript) = transcript {
                 range.apply(&mut transcript);
                 write_json(&dir.join(TRANSCRIPT_FILE), &transcript)?;
-                write_atomic(&dir.join(TRANSCRIPT_MD_FILE), transcript.markdown().as_bytes())?;
+                write_atomic(
+                    &dir.join(TRANSCRIPT_MD_FILE),
+                    transcript.markdown().as_bytes(),
+                )?;
             }
             self.save_meeting(&updated)
         })?;
@@ -738,7 +745,9 @@ pub fn resolve_merge_relationships(meetings: &[Meeting]) -> Vec<Option<Uuid>> {
         .map(|meeting| match meeting.merged_into_meeting_id {
             Some(parent)
                 if parent != meeting.id
-                    && sources.get(&parent).is_some_and(|s| s.contains(&meeting.id)) =>
+                    && sources
+                        .get(&parent)
+                        .is_some_and(|s| s.contains(&meeting.id)) =>
             {
                 Some(parent)
             }
@@ -983,12 +992,22 @@ mod tests {
     fn merge_sources_come_back_when_their_merged_meeting_is_gone() {
         let dir = tempfile::tempdir().unwrap();
         let (library, first, second, merged) = library_with_merge(dir.path());
-        let visible: Vec<Uuid> = library.list_meetings().unwrap().iter().map(|m| m.id).collect();
+        let visible: Vec<Uuid> = library
+            .list_meetings()
+            .unwrap()
+            .iter()
+            .map(|m| m.id)
+            .collect();
         assert_eq!(visible, [merged.id]);
 
         // macOS Undo, or a crash part-way through it, removes the merged meeting first.
         fs::remove_dir_all(library.meeting_dir(&merged)).unwrap();
-        let mut visible: Vec<Uuid> = library.list_meetings().unwrap().iter().map(|m| m.id).collect();
+        let mut visible: Vec<Uuid> = library
+            .list_meetings()
+            .unwrap()
+            .iter()
+            .map(|m| m.id)
+            .collect();
         visible.sort();
         let mut expected = vec![first.id, second.id];
         expected.sort();
@@ -1013,7 +1032,10 @@ mod tests {
         let untouched: Meeting = read_json(&library.meeting_dir(&first).join(META_FILE))
             .unwrap()
             .unwrap();
-        assert_eq!(untouched.merged_into_meeting_id, None, "read-only libraries never write");
+        assert_eq!(
+            untouched.merged_into_meeting_id, None,
+            "read-only libraries never write"
+        );
 
         assert_eq!(library.list_meetings().unwrap().len(), 1);
         let repaired: Meeting = read_json(&library.meeting_dir(&first).join(META_FILE))
@@ -1057,13 +1079,18 @@ mod tests {
         let meeting = library
             .create_meeting("Design review", "Zoom", crate::time::now_seconds())
             .unwrap();
-        library.save_transcript(&meeting, &Transcript::default()).unwrap();
+        library
+            .save_transcript(&meeting, &Transcript::default())
+            .unwrap();
         library
             .set_action_status(&meeting, "a1", ActionStatus::Done)
             .unwrap();
         let state = crate::evidence::read_state(dir.path()).unwrap();
         assert_eq!(state.revision, 2);
-        assert_eq!(state.invalidated_meetings.unwrap()[&ids::uuid_upper(&meeting.id)], 2);
+        assert_eq!(
+            state.invalidated_meetings.unwrap()[&ids::uuid_upper(&meeting.id)],
+            2
+        );
     }
 
     #[test]

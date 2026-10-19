@@ -21,6 +21,8 @@ gpui_kit::assets::icon_assets!(pub ExtraIcons, [
     // Agent Mode
     Archive, ArchiveRestore, CirclePlus, Download, GitBranch, Hand, ListPlus, LockOpen, Paperclip,
     PinOff,
+    // Meeting import, merge and boundaries
+    Group, Import, Scissors, Undo2,
 ]);
 
 /// Serves LokalBot's own files first, then the extra icons, then GPUI Kit's defaults.
