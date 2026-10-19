@@ -4,6 +4,7 @@
 "2. Review action owners" = "2. 确认行动项负责人";
 "A domain excludes its subdomains too. A URL with a path excludes that URL prefix. Existing rules are kept until you remove them." = "排除域名时也会排除其子域名。带路径的网址会排除以其为前缀的网址。现有规则会保留，直到你将其移除。";
 "A newly granted permission may require a relaunch. Finish setup first; relaunch from Settings if the feature remains unavailable." = "新授予的权限可能需要重启后生效。请先完成设置；若功能仍不可用，可在设置中重新启动。";
+"About" = "关于";
 "Accept next" = "接受下一段";
 "Accept punctuation with the word" = "接受单词时一并接受标点";
 "Accepted" = "已接受";
@@ -58,6 +59,7 @@
 "All retained history" = "所有保留的历史";
 "All three core models will run on this Mac." = "三个核心模型都会在这台 Mac 上运行。";
 "Allow Once" = "允许一次";
+"Allow external agents to change LokalBot settings" = "允许外部智能体更改 LokalBot 设置";
 "Allow external agents to read screen memory" = "允许外部智能体读取屏幕记忆";
 "Allow external agents to read your meeting library" = "允许外部智能体读取会议资料库";
 "Allow multi-line suggestions" = "允许多行建议";
@@ -161,6 +163,7 @@
 "Choose actions to change together" = "选择要批量修改的行动项";
 "Choose daily memory export folder" = "选择每日记忆导出文件夹";
 "Choose day" = "选择日期";
+"Choose meeting note export folder" = "选择会议笔记导出文件夹";
 "Choose routine output folder" = "选择例行任务输出文件夹";
 "Choose sources and result filters" = "选择来源和结果筛选条件";
 "Choose sources to include with your next message. Screen pixels are never attached." = "选择下一条消息要附带的来源。不会附加屏幕图像。";
@@ -333,10 +336,12 @@
 "Export Diagnostics…" = "导出诊断信息…";
 "Export Markdown" = "导出 Markdown";
 "Export a daily memory note" = "导出每日记忆笔记";
+"Export a note for each meeting" = "为每个会议导出一篇笔记";
 "Export result" = "导出结果";
 "External agents" = "外部智能体";
 "External meeting access" = "外部会议访问";
 "External screen access" = "外部屏幕访问";
+"External settings access" = "外部设置访问";
 "Failed" = "失败";
 "Feature" = "功能";
 "Files…" = "文件…";
@@ -412,6 +417,7 @@
 "Images to remove" = "将删除的图像";
 "In progress" = "进行中";
 "Include saved moments" = "包含已保存时刻";
+"Include the transcript" = "包含转录文本";
 "Includes scheduled daily summaries and overnight review, which can send activity titles, captured screen text, meeting evidence, and retained Dream memory to this origin without a prompt each time." = "包含定时每日摘要和夜间回顾；这些任务可向此来源发送活动标题、采集的屏幕文字、会议证据和保留的回顾记忆，而不会每次询问。";
 "Increase Text Size" = "放大文字";
 "Input Monitoring" = "输入监控";
@@ -453,6 +459,7 @@
 "Legacy rule · review" = "旧版规则 · 请检查";
 "Lets MCP clients and the lokalbot-cli skill (Claude, Cursor, …) list, read, search, and ask about your meetings — read-only and localhost only. Off by default." = "允许 MCP 客户端和 lokalbot-cli 技能（Claude、Cursor 等）列出、读取、搜索会议并就会议提问。仅支持只读和本机访问，默认关闭。";
 "Lets dictation and cotyping detect their global keyboard shortcuts." = "允许听写和自动补全检测各自的全局快捷键。";
+"Lets lokalbot-cli read your settings and app status, open Settings at a setting, and start LokalBot in the background. Separate from the other agent access toggles. Off by default." = "允许 lokalbot-cli 读取你的设置和应用状态、在“设置”中打开指定设置项，并在后台启动 LokalBot。与其他智能体访问开关相互独立。默认关闭。";
 "Library" = "资料库";
 "Library location" = "资料库位置";
 "Light" = "浅色";
@@ -472,6 +479,7 @@
 "Local models process on this Mac. Each remote server requires its own approval before context can leave the Mac." = "本地模型在这台 Mac 上处理数据。每个远程服务器都需单独授权，上下文才可离开本机。";
 "Logs, health reports, settings without secrets, and library counts. Never meeting audio, transcripts, notes, or screenshots." = "包含日志、健康报告、不含密钥的设置和资料库数量统计。绝不包含会议音频、转写、笔记或屏幕截图。";
 "LokalBot detects meeting apps automatically, or start a recording now." = "LokalBot 会自动检测会议应用，你也可以立即开始录制。";
+"LokalBot is free and built by one person. A GitHub star helps others find it." = "LokalBot 免费使用，由一人独立开发。在 GitHub 上加个星标，能帮助更多人发现它。";
 "LokalBot manages this model and rebuilds the local index when it changes." = "LokalBot 管理此模型，并在模型更改时重建本地索引。";
 "LokalBot never sends this. Copy it into your mail or chat app to send it yourself." = "LokalBot 不会发送此内容。请复制到邮件或聊天应用中自行发送。";
 "Looks done?" = "是否已完成？";
@@ -505,6 +513,7 @@
 "Meeting details" = "会议详情";
 "Meeting library" = "会议资料库";
 "Meeting models" = "会议模型";
+"Meeting note export" = "会议笔记导出";
 "Meeting notes" = "会议笔记";
 "Meeting notes, transcripts, and actions will look like this." = "会议笔记、转写和行动项将以此大小显示。";
 "Meeting playback" = "会议回放";
@@ -581,6 +590,7 @@
 "No transcript speakers are available yet." = "转写中暂时没有可用的说话人。";
 "None yet" = "暂无";
 "Not connected" = "未连接";
+"Not now" = "以后再说";
 "Not Yet" = "暂不";
 "Not ready" = "未就绪";
 "Not recording" = "未在录制";
@@ -625,6 +635,7 @@
 "Open in results" = "在结果中打开";
 "Open latest meeting" = "打开最近的会议";
 "Open meeting" = "打开会议";
+"Open source" = "开源";
 "Open the current recording" = "打开当前录制";
 "Open this capture in Timeline" = "在时间线中打开此采集";
 "Open this moment in Timeline" = "在时间线中打开此时刻";
@@ -906,6 +917,7 @@
 "Speech recognition runs on this Mac. No screen context or rewrite model is used." = "语音识别在本机运行，不使用屏幕上下文或改写模型。";
 "Speech speed" = "语速";
 "Speed" = "速度";
+"Star on GitHub" = "在 GitHub 上加星标";
 "Start" = "开始";
 "Start (seconds)" = "开始（秒）";
 "Start Dictation" = "开始听写";
@@ -973,7 +985,7 @@
 "These are captured window titles. Expand a title to inspect the activity behind it." = "这些是采集的窗口标题。展开标题可查看背后的活动。";
 "These choices are applied on the final Review step." = "这些选择将在最后的确认步骤生效。";
 "Think" = "思考";
-"Think may send meeting transcripts, screen text, Agent context, and inherited dictation requests to this server when you use those features. Scheduled daily summaries and overnight review also run here and can send activity titles, captured screen text, meeting evidence, and retained Dream memory without a prompt each time." = "使用相关功能时，思考模型可能向此服务器发送会议转写、屏幕文字、智能体上下文和沿用其配置的听写请求。定时每日摘要和夜间回顾也在此运行，可发送活动标题、采集的屏幕文字、会议证据和保留的回顾记忆，而不会每次询问。";
+"Think may send meeting transcripts, screen text, what you told Ask to remember about you, Agent context, and inherited dictation requests to this server when you use those features. Scheduled daily summaries and overnight review also run here and can send activity titles, captured screen text, meeting evidence, and retained Dream memory without a prompt each time." = "使用相关功能时，思考模型可能向此服务器发送会议转写、屏幕文字、你让 Ask 记住的关于你的信息、智能体上下文和沿用其配置的听写请求。定时每日摘要和夜间回顾也在此运行，可发送活动标题、采集的屏幕文字、会议证据和保留的回顾记忆，而不会每次询问。";
 "Think model" = "思考模型";
 "Think model backend" = "思考模型后端";
 "Think processing budget" = "思考模型处理预算";
@@ -1093,6 +1105,7 @@
 "Workspace navigation" = "工作区导航";
 "Write" = "写作";
 "Writes one unencrypted Markdown file per day with the digest, meeting links, app time, and saved moments. A day missed while your Mac was asleep is written later. Existing non-LokalBot content is never overwritten." = "每天写入一个未加密的 Markdown 文件，包含摘要、会议链接、应用用时和已保存时刻。Mac 睡眠期间错过的日期会稍后补写。绝不覆盖现有的非 LokalBot 内容。";
+"Writes one unencrypted Markdown note per meeting, including meetings already recorded, to a folder you choose, such as an Obsidian vault. Each note has the summary, action items as you corrected them, and the people and tracked projects involved. A note you edit, move, or delete is yours: LokalBot leaves it alone." = "为每个会议写入一篇未加密的 Markdown 笔记（包括已录制的会议），保存到你选择的文件夹，例如 Obsidian 库。每篇笔记包含摘要、经你更正的行动项，以及涉及的人员和跟踪的项目。你编辑、移动或删除的笔记归你所有：LokalBot 不会再改动它。";
 "Writes the Timeline digest to your local journal at the chosen time, then finalizes yesterday after midnight so late activity is included." = "在所选时间将时间线摘要写入本地日志，并在午夜后补齐前一天的日志，以包含较晚的活动。";
 "Writing" = "写作";
 "Writing for the focused app" = "正在为当前应用撰写内容";
@@ -1154,6 +1167,15 @@
 "Your subscription" = "你的订阅";
 "Server" = "服务器";
 "In use" = "使用中";
+"About you" = "关于你";
+"Remember what I tell Ask" = "记住我告诉 Ask 的内容";
+"Remembered" = "已记住";
+"Not remembered" = "未记住";
+"Share with agents" = "与智能体共享";
+"Share with Agents" = "与智能体共享";
+"Stop Sharing with Agents" = "停止与智能体共享";
+"Allow external agents to read what I shared about myself" = "允许外部智能体读取我共享的个人信息";
+"Choose items…" = "选择条目…";
 "Statistics" = "统计";
 "Autocomplete statistics" = "自动补全统计";
 "Period" = "时间范围";
@@ -1195,6 +1217,10 @@
 "Clear Statistics" = "清除统计";
 "Deletes the daily and monthly counts. Usage and timing measurements are kept." = "删除每日和每月的计数。“用量与耗时”中的测量数据会保留。";
 "Counted on this Mac while you type in other apps: suggestions shown and accepted, the characters you type yourself where autocomplete works, and the pauses between them, by day, kind of app and model. No text, app names or window titles are kept. Time saved is the keystrokes you did not type at your measured speed, not counting time spent reading suggestions." = "在你于其他应用中输入时，于本机统计：显示和采用的建议、你在自动补全可用的位置自己输入的字符数及按键间隔，按天、应用类型和模型分别记录。不保存任何文字、应用名称或窗口标题。节省的时间按你实测的输入速度计算你少按的键，不含阅读建议的时间。";
+"Learn about me from my meetings and work" = "从我的会议和工作中了解我";
+"Learn from my dictation" = "从我的口述中学习";
+"Keep" = "保留";
+"Keep Even If the Meeting Is Deleted" = "即使删除会议也保留";
 "CPU" = "CPU";
 "Memory" = "内存";
 "Models loaded" = "已加载模型";
@@ -1203,6 +1229,9 @@
 "%@ of RAM" = "占内存的 %@";
 "Updates every 2 seconds and counts LokalBot and its helpers. External Ollama and Apple Intelligence models aren't counted." = "每 2 秒更新，统计 LokalBot 及其辅助进程。外部 Ollama 和 Apple Intelligence 模型不计入。";
 "Diagnostics include logs, health reports, settings without secrets, and library counts. Never meeting audio, transcripts, notes, or screenshots." = "诊断信息包含日志、健康报告、不含密钥的设置和资料库数量统计。绝不包含会议音频、转写、笔记或屏幕截图。";
+
+"Keep Even If the Conversation Is Deleted" = "即使删除对话也保留";
+"Keep Even If the Source Is Deleted" = "即使删除来源也保留";
 "Autocomplete server" = "自动补全服务器";
 "Think's server" = "Think 的服务器";
 "Another server" = "其他服务器";
