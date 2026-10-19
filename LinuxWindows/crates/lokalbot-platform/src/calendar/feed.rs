@@ -248,6 +248,40 @@ fn base64_encode(bytes: &[u8]) -> String {
 mod tests {
     use super::*;
 
+    /// Asks a real CalDAV server: `LOKALBOT_CALDAV_TEST_URL=https://user:pass@host/cal/`
+    /// with a "Weekly review" event today.
+    #[test]
+    #[ignore = "needs a CalDAV server"]
+    fn live_caldav_report() {
+        let Ok(link) = std::env::var("LOKALBOT_CALDAV_TEST_URL") else {
+            return;
+        };
+        let now = Utc::now();
+        let options = ParseOptions {
+            provider: String::new(),
+            from: now - chrono::Duration::days(1),
+            to: now + chrono::Duration::days(1),
+            my_addresses: vec!["you@example.com".into()],
+            calendar_title: None,
+            default_zone: None,
+        };
+        let (url, authorization) = split_credentials(&normalize(&link).unwrap());
+        let events = caldav_query(&agent(), &url, authorization.as_deref(), &options).unwrap();
+        eprintln!("{events:#?}");
+        assert!(
+            events
+                .iter()
+                .any(|e| e.title == "Weekly review" && e.provider == "caldav")
+        );
+        // The same link also works through `fetch`, as a feed or as CalDAV.
+        assert!(
+            fetch(&link, &options)
+                .unwrap()
+                .iter()
+                .any(|e| e.title == "Weekly review")
+        );
+    }
+
     #[test]
     fn links_are_normalized_and_redacted_to_their_host() {
         assert_eq!(
