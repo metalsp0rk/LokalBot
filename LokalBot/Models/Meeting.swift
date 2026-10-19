@@ -45,15 +45,16 @@ struct Meeting: Identifiable, Codable, Equatable, Sendable {
     /// old row across launches without deleting its original evidence.
     var mergedIntoMeetingID: UUID?
 
-    /// The original file name when this meeting came from an audio or video
-    /// file the user imported rather than a recording made on this Mac. The
-    /// screen during the file's time span shows what the user was doing then,
-    /// not this meeting, so imported meetings take no screen context.
-    var importedFileName: String?
+    /// The original file names when this meeting came from audio or video
+    /// files the user imported rather than recordings made on this Mac. The
+    /// screen during their time span shows what the user was doing then, not
+    /// this meeting, so imported meetings take no screen context. A merge
+    /// keeps every imported source's names, so it stays imported.
+    var importedFileNames: [String]?
 
     var isMergedMeeting: Bool { !(mergedSourceMeetingIDs ?? []).isEmpty }
     var isMergedSource: Bool { mergedIntoMeetingID != nil }
-    var isImported: Bool { importedFileName != nil }
+    var isImported: Bool { !(importedFileNames ?? []).isEmpty }
 
     /// Shared, read-only library projection for the app and CLI/MCP. Parent
     /// manifests cover interrupted source-marker writes; missing parents make

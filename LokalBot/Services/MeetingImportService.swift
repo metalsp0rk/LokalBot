@@ -99,7 +99,7 @@ enum MeetingImportService {
                               relativePath: relativePath)
         meeting.recordedDuration = duration
         meeting.hasSystemTrack = true
-        meeting.importedFileName = name
+        meeting.importedFileNames = [name]
         let folder = meeting.folderURL(in: storage)
         do {
             try FileManager.default.moveItem(

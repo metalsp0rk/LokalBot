@@ -50,7 +50,7 @@ final class MeetingImportServiceTests: XCTestCase {
 
         XCTAssertEqual(meeting.title, "Design review")
         XCTAssertEqual(meeting.appName, MeetingImportService.appName)
-        XCTAssertEqual(meeting.importedFileName, "Design review.wav")
+        XCTAssertEqual(meeting.importedFileNames, ["Design review.wav"])
         XCTAssertTrue(meeting.isImported)
         XCTAssertTrue(meeting.hasSystemTrack)
         let duration = try XCTUnwrap(meeting.recordedDuration)
@@ -73,7 +73,7 @@ final class MeetingImportServiceTests: XCTestCase {
         XCTAssertEqual(try Data(contentsOf: source), original, "the original file is only read")
 
         let loaded = try XCTUnwrap(storage.loadMeetings().first { $0.id == meeting.id })
-        XCTAssertEqual(loaded.importedFileName, "Design review.wav")
+        XCTAssertEqual(loaded.importedFileNames, ["Design review.wav"])
         XCTAssertNotNil(loaded.endedAt, "an imported meeting must never load as a live recording")
         XCTAssertTrue(loaded.hasSystemTrack)
     }
@@ -148,7 +148,7 @@ final class MeetingImportServiceTests: XCTestCase {
         let recorded = ProcessingPipeline.meetingContextBlock(for: meeting, root: root, config: config)
         XCTAssertTrue(recorded?.contains("Q3 pricing.key") == true, "the fixture must reach a recorded meeting")
 
-        meeting.importedFileName = "Pricing review.m4a"
+        meeting.importedFileNames = ["Pricing review.m4a"]
         XCTAssertNil(ProcessingPipeline.meetingContextBlock(for: meeting, root: root, config: config))
     }
 }
