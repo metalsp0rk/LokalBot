@@ -1001,7 +1001,7 @@ impl AgentPage {
                         .label(lokalbot_i18n::tr("Open"))
                         .tooltip(lokalbot_i18n::format(
                             "Open {name} result",
-                            &[("name", format!("{}", name))],
+                            &[("name", name.to_string())],
                         ))
                         .on_click(cx.listener(move |this, _, _, cx| {
                             this.show_preview(preview.clone(), cx)
@@ -1097,10 +1097,7 @@ fn source_reference(tail: &str) -> Option<(usize, String)> {
         } else {
             lokalbot_i18n::format(
                 "{label} {marker}",
-                &[
-                    ("label", format!("{}", label)),
-                    ("marker", format!("{}", marker)),
-                ],
+                &[("label", label.to_string()), ("marker", marker.to_string())],
             )
         };
         return Some((close + 2 + end + 1, replacement));

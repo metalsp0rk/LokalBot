@@ -114,7 +114,7 @@ impl SettingsPage {
             };
             lokalbot_i18n::format(
                 "Audio stays on this PC. Transcripts and approved context may be sent to your remote Think model ({backend}). Other network access is for model downloads and optional Agent Mode setup.",
-                &[("backend", format!("{}", backend))],
+                &[("backend", backend.to_string())],
             )
         };
         let local = settings.think_is_local();
@@ -168,7 +168,7 @@ impl SettingsPage {
                 "settings.retentionDays",
                 settings_row::stacked_row(
                     "settings.retentionDays",
-                    lokalbot_i18n::format("Keep screen context {0}", &[("0", format!("{}", days_label(days)))]),
+                    lokalbot_i18n::format("Keep screen context {0}", &[("0", days_label(days).to_string())]),
                     Some(lokalbot_i18n::tr("Old images, screen text, screen titles, URLs, document names, and activity titles expire. App names and durations remain, and meetings are never removed. Saved moments stay until unsaved or deleted.").into()),
                     Slider::new(&self.retention_slider).w_full(),
                     self.is_focused("settings.retentionDays"),

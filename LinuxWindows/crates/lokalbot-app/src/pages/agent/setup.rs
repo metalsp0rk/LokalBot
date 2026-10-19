@@ -46,9 +46,9 @@ impl AgentPage {
         let description = lokalbot_i18n::format(
             "A local coding and file agent powered by your selected Think model. Setup downloads about {0} and uses about {1} after installation. {inference} Session history stays local; commands you approve run with your account’s permissions on this PC and may access files or the network.",
             &[
-                ("0", format!("{}", manifest.download_label())),
-                ("1", format!("{}", manifest.installed_label())),
-                ("inference", format!("{}", inference)),
+                ("0", manifest.download_label().to_string()),
+                ("1", manifest.installed_label().to_string()),
+                ("inference", inference.to_string()),
             ],
         );
 
@@ -78,12 +78,12 @@ impl AgentPage {
                         .text_color(lb.text_secondary)
                         .child(crate::ui::text::paragraph(lokalbot_i18n::format(
                             "Downloading {name}…",
-                            &[("name", format!("{}", name))],
+                            &[("name", name.to_string())],
                         ))),
                 )
                 .into_any_element(),
             InstallPhase::Installing { name } => status_line(
-                &lokalbot_i18n::format("Installing {name}…", &[("name", format!("{}", name))]),
+                &lokalbot_i18n::format("Installing {name}…", &[("name", name.to_string())]),
                 cx,
             ),
             InstallPhase::Failed(message) => v_flex()

@@ -345,7 +345,7 @@ impl AgentPage {
                             Ico::X,
                             lokalbot_i18n::format(
                                 "Remove {0}",
-                                &[("0", format!("{}", attachment.title))],
+                                &[("0", attachment.title.to_string())],
                             ),
                         )
                         .on_click(cx.listener(move |this, _, _, cx| {
@@ -526,12 +526,10 @@ impl AgentPage {
             "Same as Think ({0})",
             &[(
                 "0",
-                format!(
-                    "{}",
-                    lokalbot_i18n::tr(reasoning_name(
-                        choices.displayed(settings.think_reasoning_level)
-                    ))
-                ),
+                lokalbot_i18n::tr(reasoning_name(
+                    choices.displayed(settings.think_reasoning_level),
+                ))
+                .to_string(),
             )],
         );
         let data = self.data.clone();
@@ -540,7 +538,7 @@ impl AgentPage {
             .ghost()
             .small()
             .icon(Icon::new(Ico::Brain))
-            .label(lokalbot_i18n::format("Reasoning: {0}", &[("0", format!("{}", lokalbot_i18n::tr(reasoning_name(shown))))]))
+            .label(lokalbot_i18n::format("Reasoning: {0}", &[("0", lokalbot_i18n::tr(reasoning_name(shown)).to_string())]))
             .dropdown_caret(true)
             .tooltip(lokalbot_i18n::tr("How much the agent reasons before each step, from the levels this model accepts. Same as Think follows Settings → Models. A change applies from the agent's next step."))
             .dropdown_menu(move |mut menu, _, _| {
@@ -654,7 +652,7 @@ impl AgentPage {
                             )
                             .child(paragraph(lokalbot_i18n::tr(mode.detail()).to_string()))
                             .child(paragraph(lokalbot_i18n::tr("The working folder is separate from LokalBot’s private data. Meeting Library tools provide scoped local read access when this task runs. Saved screen moments require the separate screen-memory grant. Raw private-library file reads follow the approval mode even when a parent folder is selected.").to_string()))
-                            .child(paragraph(lokalbot_i18n::format("{destination}. Attached text is included when you send. Files and tool actions follow the approval mode above.", &[("destination", format!("{}", destination))])))
+                            .child(paragraph(lokalbot_i18n::format("{destination}. Attached text is included when you send. Files and tool actions follow the approval mode above.", &[("destination", destination.to_string())])))
                             .when_some(shell.clone(), |this, shell| this.child(paragraph(shell)))
                             .when(differs, |this| {
                                 this.child(paragraph(lokalbot_i18n::tr("New tasks use the model selected in Settings.").to_string()))

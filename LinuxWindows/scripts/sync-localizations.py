@@ -16,6 +16,9 @@ ROOT = Path(__file__).resolve().parents[2]
 OUTPUT = ROOT / "LinuxWindows/crates/lokalbot-i18n/src/catalogs.rs"
 FIELDS = re.compile(r'\{\w+\}|%(?:\d+\$)?(?:lld|ld|[diufgs@])')
 BIDI_CONTROLS = re.compile('[\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]')
+# Zero-width space, soft hyphen and word joiner: invisible, usually left by a
+# translation tool, and denied by clippy in the generated Rust.
+INVISIBLE = re.compile('[\u200b\u00ad\u2060]')
 KEYBOARD_TOKENS = re.compile(r'\b(?:Ctrl|Alt|Shift)(?:\+[A-Za-z]+)+|\b(?:Return|Tab|Esc)\b', re.ASCII)
 
 
@@ -47,6 +50,8 @@ def read_desktop_catalogs(codes):
                 raise ValueError(f"{code}: changed keyboard names: {key} => {value}")
             if key.count('\n') != value.count('\n') or BIDI_CONTROLS.search(value):
                 raise ValueError(f"{code}: changed line breaks or embedded direction controls: {key}")
+            if INVISIBLE.search(value):
+                raise ValueError(f"{code}: invisible character in translation: {key}")
             if code == "en" and value != key:
                 raise ValueError(f"English source key differs from value: {key}")
     return catalogs
@@ -68,8 +73,10 @@ def read_strings(path):
 
 
 def rust_string(value):
-    # JSON's Unicode escapes differ from Rust's. Keep non-ASCII text literal.
-    return json.dumps(value, ensure_ascii=False).replace("\\b", "\\u{8}").replace("\\f", "\\u{c}")
+    # JSON's Unicode escapes differ from Rust's. Keep non-ASCII text literal,
+    # except invisible characters, which Rust gets as escapes.
+    literal = json.dumps(value, ensure_ascii=False).replace("\\b", "\\u{8}").replace("\\f", "\\u{c}")
+    return INVISIBLE.sub(lambda m: f"\\u{{{ord(m.group()):x}}}", literal)
 
 
 def generate():

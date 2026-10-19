@@ -186,7 +186,7 @@ impl MeetingsPage {
                             .child(ui::icon(Ico::AudioLines, px(14.), lb.accent_text))
                             .child(crate::ui::text::paragraph(lokalbot_i18n::format(
                                 "Transcribed with {engine}",
-                                &[("engine", format!("{}", engine))],
+                                &[("engine", engine.to_string())],
                             ))),
                     )
                 })
@@ -247,7 +247,7 @@ impl MeetingsPage {
             .tooltip(move |window, cx| {
                 gpui_kit::component::tooltip::Tooltip::new(lokalbot_i18n::format(
                     "Play from {stamp}",
-                    &[("stamp", format!("{}", stamp))],
+                    &[("stamp", stamp.to_string())],
                 ))
                 .build(window, cx)
             })

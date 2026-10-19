@@ -85,7 +85,7 @@ pub fn evidence_pill(
         .unwrap_or_else(|| {
             lokalbot_i18n::format(
                 "Jump to evidence at {stamp}",
-                &[("stamp", format!("{}", stamp))],
+                &[("stamp", stamp.to_string())],
             )
             .into()
         });
