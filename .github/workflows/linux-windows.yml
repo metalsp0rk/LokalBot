@@ -1,0 +1,217 @@
+name: Linux & Windows
+
+on:
+  push:
+    branches: [master, dev]
+    paths:
+      - "LinuxWindows/**"
+      - "!LinuxWindows/docs/**"
+      - "!LinuxWindows/**/*.md"
+      - ".agents/skills/lokalbot-cli/**"
+      - ".github/workflows/linux-windows.yml"
+  pull_request:
+    branches: [master, dev]
+    paths:
+      - "LinuxWindows/**"
+      - "!LinuxWindows/docs/**"
+      - "!LinuxWindows/**/*.md"
+      - ".agents/skills/lokalbot-cli/**"
+      - ".github/workflows/linux-windows.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: linux-windows-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: LinuxWindows
+
+jobs:
+  linux:
+    name: Linux
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install build and display dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libxkbcommon-x11-dev libwayland-dev libvulkan1 mesa-vulkan-drivers libfontconfig-dev \
+            libasound2-dev libxcb1-dev libx11-xcb-dev libssl-dev pkg-config clang \
+            xvfb xfwm4 x11-xserver-utils xdotool ffmpeg
+
+      - name: Cache cargo
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            LinuxWindows/target
+          key: linux-cargo-${{ hashFiles('LinuxWindows/Cargo.lock', 'LinuxWindows/rust-toolchain.toml') }}
+          restore-keys: linux-cargo-
+
+      - name: Format
+        run: cargo fmt --all -- --check
+
+      - name: Test
+        run: cargo test --workspace --locked
+
+      - name: Build release
+        run: cargo build --release --locked -p lokalbot-app -p lokalbot-cli
+
+      - name: Package
+        run: scripts/package.sh
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: lokalbot-linux-x86_64
+          path: LinuxWindows/dist/*.tar.gz*
+          retention-days: 14
+
+      - name: Capture the app
+        run: |
+          sudo apt-get install -y --no-install-recommends hsetroot xfce4-panel x11-utils dbus-daemon
+          root="$RUNNER_TEMP/library"
+          LOKALBOT_STORAGE_ROOT="$root" target/release/lokalbot --seed-demo
+          pages="today meetings timeline people projects ask agent settings"
+          CAPTURE_WAIT=10 scripts/ci/capture-linux.sh target/release/lokalbot "$root" "$RUNNER_TEMP/screenshots" $pages
+          python3 -c "import json,sys; p=sys.argv[1]; s=json.load(open(p)) if __import__('os').path.exists(p) else {}; s['appTheme']='dark'; json.dump(s, open(p,'w'))" "$root/settings.json"
+          CAPTURE_WAIT=10 CAPTURE_SUFFIX=-dark scripts/ci/capture-linux.sh target/release/lokalbot "$root" "$RUNNER_TEMP/screenshots" today meetings ask
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: linux-screenshots
+          path: ${{ runner.temp }}/screenshots
+          retention-days: 14
+
+  source:
+    name: Windows sources
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Archive the Rust workspace
+        working-directory: .
+        run: git archive --format=tar.gz -o "$RUNNER_TEMP/lokalbot-src.tar.gz" HEAD LinuxWindows .agents LICENSE LICENSES THIRD_PARTY_NOTICES.md
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: windows-source
+          path: ${{ runner.temp }}/lokalbot-src.tar.gz
+          retention-days: 1
+
+  windows:
+    name: Windows
+    needs: source
+    runs-on: windows-2025
+    timeout-minutes: 75
+    steps:
+      # The repository's macOS fixtures use names with ':' that Git for Windows
+      # refuses to check out, so this job gets the Rust workspace as an archive.
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: windows-source
+          path: ${{ runner.temp }}
+
+      - name: Extract sources
+        working-directory: ${{ github.workspace }}
+        shell: pwsh
+        run: tar -xzf (Join-Path $env:RUNNER_TEMP "lokalbot-src.tar.gz") -C $env:GITHUB_WORKSPACE
+
+      - name: Cache cargo
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            LinuxWindows/target
+          key: windows-cargo-${{ hashFiles('LinuxWindows/Cargo.lock', 'LinuxWindows/rust-toolchain.toml') }}
+          restore-keys: windows-cargo-
+
+      - name: Test
+        run: cargo test --workspace --locked
+
+      - name: Build release
+        run: cargo build --release --locked -p lokalbot-app -p lokalbot-cli
+
+      - name: Package
+        shell: bash
+        run: scripts/package.sh
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: lokalbot-windows-x86_64
+          path: LinuxWindows/dist/*.zip*
+          retention-days: 14
+
+      - name: Show display details
+        shell: pwsh
+        run: |
+          Get-CimInstance Win32_VideoController | Select-Object Name, CurrentHorizontalResolution, CurrentVerticalResolution | Format-Table | Out-String | Write-Host
+          [System.Diagnostics.Process]::GetCurrentProcess().SessionId
+
+      - name: Capture the app
+        shell: pwsh
+        run: |
+          ./scripts/ci/set-resolution.ps1 -Width 1920 -Height 1080
+          (New-Object -ComObject Shell.Application).MinimizeAll()
+          $root = Join-Path $env:RUNNER_TEMP "library"
+          $exe = (Resolve-Path target\release\lokalbot.exe).Path
+          $env:LOKALBOT_STORAGE_ROOT = $root
+          # A release build is a GUI-subsystem program; wait for it explicitly.
+          Start-Process -FilePath $exe -ArgumentList "--seed-demo" -Wait -NoNewWindow
+          $out = Join-Path $env:RUNNER_TEMP "screenshots"
+          ./scripts/ci/capture-windows.ps1 -Exe $exe -Root $root -OutDir $out -Pages today,meetings,timeline,people,projects,ask,agent,settings -WaitSeconds 8
+          $settingsPath = Join-Path $root "settings.json"
+          $settings = if (Test-Path $settingsPath) { Get-Content $settingsPath -Raw | ConvertFrom-Json } else { [pscustomobject]@{} }
+          $settings | Add-Member -NotePropertyName appTheme -NotePropertyValue "dark" -Force
+          $settings | ConvertTo-Json -Depth 10 | Set-Content -Encoding utf8 $settingsPath
+          ./scripts/ci/capture-windows.ps1 -Exe $exe -Root $root -OutDir $out -Pages today,meetings,ask -Suffix "-dark" -WaitSeconds 8
+
+      # Checks autocomplete in another app on the runner's real desktop: the
+      # UI Automation field read, the ghost after the caret, Tab through the
+      # keyboard hook and the inserted text, in Notepad.
+      - name: Check autocomplete
+        shell: pwsh
+        run: |
+          $out = Join-Path $env:RUNNER_TEMP "screenshots\autocomplete-probe"
+          Get-Process notepad -ErrorAction SilentlyContinue | Stop-Process -Force
+          cargo run --release --locked -p lokalbot-app --example autocomplete_probe -- --out $out 2>&1 |
+            Tee-Object (Join-Path $env:RUNNER_TEMP "autocomplete-probe.txt")
+          $code = $LASTEXITCODE
+          New-Item -ItemType Directory -Force $out | Out-Null
+          Copy-Item (Join-Path $env:RUNNER_TEMP "autocomplete-probe.txt") $out
+          if ($code -ne 0) { throw "autocomplete_probe failed with $code" }
+
+      # Checks screen capture, UI Automation text and OCR on the runner's real
+      # desktop (an SSH session has none). Downloads the 12 MB OCR model.
+      - name: Check screen capture
+        shell: pwsh
+        run: |
+          $out = Join-Path $env:RUNNER_TEMP "screenshots"
+          New-Item -ItemType Directory -Force $out | Out-Null
+          Get-Process notepad -ErrorAction SilentlyContinue | Stop-Process -Force
+          cargo run --release --locked -p lokalbot-engine --example screen_capture -- --download-ocr `
+            --notepad "LokalBot screen check: the Zephyr invoice is 4821 euros." --delay 4 `
+            --save (Join-Path $out "screen-check.jpg") 2>&1 | Tee-Object (Join-Path $out "screen-check.txt")
+          if ($LASTEXITCODE -ne 0) { throw "screen_capture failed with $LASTEXITCODE" }
+          if (-not (Select-String -Path (Join-Path $out "screen-check.txt") -Pattern "4821" -Quiet)) {
+            throw "the known sentence was not read back"
+          }
+          cargo run --release --locked -p lokalbot-platform --example screen_text -- --delay 3 2>&1 |
+            Tee-Object (Join-Path $out "screen-text.txt")
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: windows-screenshots
+          path: ${{ runner.temp }}/screenshots
+          retention-days: 14
