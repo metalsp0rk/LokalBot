@@ -27,8 +27,8 @@ LokalBot can store the following under its Application Support directory:
   voice profiles;
 - saved screen moments, optional unencrypted daily-memory and meeting note
   exports, and optional routine drafts at folders you choose;
-- records of local coding-agent sessions (Claude Code and Codex), on by
-  default;
+- records of local coding-agent sessions (Claude Code and Codex), a setup
+  choice that is on by default;
 - opt-in Agent Mode sessions and the agent runtime;
 - facts, preferences, goals, and principles you ask Ask to remember about
   you, encrypted; and
@@ -47,6 +47,10 @@ except briefly for learning while **Learn from my dictation** is on (see About
 you below). You can delete an individual
 meeting in the app or remove the entire LokalBot Application Support directory.
 
+**Read coding agent sessions** is on by default. On a new install, setup shows
+this choice with the other capture choices, and LokalBot reads no session until
+you finish setup. When LokalBot already has microphone access, as after a
+reinstall, setup is skipped and the saved or default choice applies. You can turn it off in
 **Imported recordings.** When you drop an audio or video file onto Meetings or
 choose **Import Recording…**, LokalBot reads the file without changing or
 moving it and saves an AAC copy of its audio as the meeting's system track.
