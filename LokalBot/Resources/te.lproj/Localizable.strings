@@ -210,6 +210,7 @@
 "Close find" = "కనుగొనడం ఆపండి";
 "Close search" = "శోధనను మూసివేయండి";
 "Coding agent records to remove" = "తీసివేయాల్సిన కోడింగ్ ఏజెంట్ రికార్డ్‌లు";
+"Coding Agent Sessions" = "కోడింగ్ ఏజెంట్ సెషన్‌లు";
 "Coding agent sessions" = "కోడింగ్ ఏజెంట్ సెషన్‌లు";
 "Command Palette" = "కమాండ్ పాలెట్";
 "Command Palette…" = "కమాండ్ పాలెట్…";
@@ -723,6 +724,7 @@
 "Previously named voices" = "గతంలో పేర్లు పెట్టిన స్వరాలు";
 "Privacy" = "గోప్యత";
 "Privacy & Data" = "గోప్యత, డేటా";
+"Private and incognito browser windows are captured like any other window unless you exclude the browser or site in Settings → Privacy & Data." = "బ్రౌజర్ ప్రైవేట్, ఇన్‌కాగ్నిటో విండోలు కూడా ఇతర విండోల్లాగే సంగ్రహించబడతాయి, మీరు సెట్టింగ్‌లు → గోప్యత, డేటాలో ఆ బ్రౌజర్‌ను లేదా సైట్‌ను మినహాయించకపోతే.";
 "Private endpoints only (Recommended)" = "ప్రైవేట్ ఎండ్‌పాయింట్‌లు మాత్రమే (సిఫార్సు)";
 "Processing" = "ప్రాసెస్ చేస్తోంది";
 "Project details" = "ప్రాజెక్ట్ వివరాలు";
@@ -734,6 +736,7 @@
 "Question or search" = "ప్రశ్న లేదా శోధన";
 "Quit LokalBot" = "LokalBot నుంచి నిష్క్రమించండి";
 "Read coding agent sessions" = "కోడింగ్ ఏజెంట్ సెషన్‌లను చదవండి";
+"Read your Claude Code and Codex sessions so LokalBot remembers what your agents did. Files stay on this Mac." = "మీ Claude Code, Codex సెషన్‌లను చదవండి, తద్వారా మీ ఏజెంట్‌లు ఏమి చేశాయో LokalBot గుర్తుంచుకుంటుంది. ఫైల్‌లు ఈ Macలోనే ఉంటాయి.";
 "Reads the focused window's text from a screenshot. Needs Screen Recording; the image and text are not saved." = "స్క్రీన్‌షాట్ నుంచి ఫోకస్ ఉన్న విండో వచనం చదువుతుంది. స్క్రీన్ రికార్డింగ్ అవసరం; చిత్రం, వచనం సేవ్ కావు.";
 "Reads visible interface text through Accessibility; no screenshots are stored." = "యాక్సెసిబిలిటీ ద్వారా కనిపించే ఇంటర్‌ఫేస్ వచనం చదువుతుంది; స్క్రీన్‌షాట్‌లు సేవ్ కావు.";
 "Reads window titles and visible interface text for activity and text-context features." = "కార్యకలాపం, వచన సందర్భ సదుపాయాల కోసం విండో శీర్షికలు, కనిపించే ఇంటర్‌ఫేస్ వచనం చదువుతుంది.";
@@ -1285,3 +1288,9 @@
 "The model repeated text it was given, so its answer is hidden." = "మోడల్ ఇచ్చిన వచనాన్నే పునరావృతం చేసింది, అందుకే సమాధానం దాచబడింది.";
 "The answer did not fit at the cursor, so it is hidden." = "సమాధానం కర్సర్ వద్ద సరిపోలలేదు, అందుకే దాచబడింది.";
 "The model was unsure of the next word, so it suggested nothing." = "తదుపరి పదం గురించి మోడల్‌కు నిశ్చయత లేదు, అందుకే ఏదీ సూచించలేదు.";
+"Download models from" = "మోడల్ డౌన్‌లోడ్ మూలం";
+"HF-Mirror (hf-mirror.com)" = "HF-Mirror (hf-mirror.com)";
+"ModelScope (modelscope.cn)" = "ModelScope (modelscope.cn)";
+"Downloads from huggingface.co, where the models are published." = "మోడళ్లు ప్రచురించబడే huggingface.co నుండి డౌన్‌లోడ్ అవుతుంది.";
+"A community mirror of Hugging Face that works in mainland China. If it fails, LokalBot tries Hugging Face." = "చైనా ప్రధాన భూభాగంలో పనిచేసే Hugging Face కమ్యూనిటీ మిర్రర్. అది విఫలమైతే LokalBot Hugging Faceను ప్రయత్నిస్తుంది.";
+"Alibaba's model hub in mainland China, for files it carries unchanged. Other files come from HF-Mirror, then Hugging Face." = "చైనా ప్రధాన భూభాగంలోని Alibaba మోడల్ హబ్, అది మార్పు లేకుండా అందించే ఫైల్‌ల కోసం. ఇతర ఫైల్‌లు HF-Mirror నుండి, ఆ తర్వాత Hugging Face నుండి వస్తాయి.";

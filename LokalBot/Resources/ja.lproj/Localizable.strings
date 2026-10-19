@@ -210,6 +210,7 @@
 "Close find" = "文内検索を閉じる";
 "Close search" = "検索を閉じる";
 "Coding agent records to remove" = "削除するコーディングエージェントの記録";
+"Coding Agent Sessions" = "コーディングエージェントのセッション";
 "Coding agent sessions" = "コーディングエージェントのセッション";
 "Command Palette" = "コマンドパレット";
 "Command Palette…" = "コマンドパレット…";
@@ -723,6 +724,7 @@
 "Previously named voices" = "以前に名前を付けた声";
 "Privacy" = "プライバシー";
 "Privacy & Data" = "プライバシーとデータ";
+"Private and incognito browser windows are captured like any other window unless you exclude the browser or site in Settings → Privacy & Data." = "ブラウザのプライベートウィンドウやシークレットウィンドウも、設定 → プライバシーとデータでブラウザまたはサイトを除外しない限り、ほかのウィンドウと同じように取得されます。";
 "Private endpoints only (Recommended)" = "プライベートエンドポイントのみ（推奨）";
 "Processing" = "処理中";
 "Project details" = "プロジェクトの詳細";
@@ -734,6 +736,7 @@
 "Question or search" = "質問または検索";
 "Quit LokalBot" = "LokalBotを終了";
 "Read coding agent sessions" = "コーディングエージェントのセッションを読み取る";
+"Read your Claude Code and Codex sessions so LokalBot remembers what your agents did. Files stay on this Mac." = "Claude CodeとCodexのセッションを読み取り、エージェントが行ったことをLokalBotが記憶できるようにします。ファイルはこのMac上に残ります。";
 "Reads the focused window's text from a screenshot. Needs Screen Recording; the image and text are not saved." = "スクリーンショットからフォーカス中のウィンドウのテキストを読み取ります。画面収録の権限が必要です。画像とテキストは保存しません。";
 "Reads visible interface text through Accessibility; no screenshots are stored." = "アクセシビリティ経由で表示中のインターフェースのテキストを読み取ります。スクリーンショットは保存しません。";
 "Reads window titles and visible interface text for activity and text-context features." = "アクティビティとテキストコンテキスト機能のために、ウィンドウのタイトルと表示中のインターフェースのテキストを読み取ります。";
@@ -1285,3 +1288,9 @@
 "The model repeated text it was given, so its answer is hidden." = "モデルが与えられたテキストを繰り返したため、回答を非表示にしました。";
 "The answer did not fit at the cursor, so it is hidden." = "カーソル位置に合わない回答のため、非表示にしました。";
 "The model was unsure of the next word, so it suggested nothing." = "モデルが次の単語を確信できなかったため、候補を表示しませんでした。";
+"Download models from" = "モデルのダウンロード元";
+"HF-Mirror (hf-mirror.com)" = "HF-Mirror (hf-mirror.com)";
+"ModelScope (modelscope.cn)" = "ModelScope (modelscope.cn)";
+"Downloads from huggingface.co, where the models are published." = "モデルが公開されているhuggingface.coからダウンロードします。";
+"A community mirror of Hugging Face that works in mainland China. If it fails, LokalBot tries Hugging Face." = "中国本土で使えるHugging Faceのコミュニティミラーです。失敗した場合、LokalBotはHugging Faceを試します。";
+"Alibaba's model hub in mainland China, for files it carries unchanged. Other files come from HF-Mirror, then Hugging Face." = "中国本土にあるAlibabaのモデルハブで、元のまま提供されているファイルに使います。その他のファイルはHF-Mirror、次にHugging Faceから取得します。";

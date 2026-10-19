@@ -210,6 +210,7 @@
 "Close find" = "Fechar localização";
 "Close search" = "Fechar busca";
 "Coding agent records to remove" = "Registros de agentes de programação a remover";
+"Coding Agent Sessions" = "Sessões de agentes de programação";
 "Coding agent sessions" = "Sessões de agentes de programação";
 "Command Palette" = "Paleta de comandos";
 "Command Palette…" = "Paleta de comandos…";
@@ -723,6 +724,7 @@
 "Previously named voices" = "Vozes nomeadas anteriormente";
 "Privacy" = "Privacidade";
 "Privacy & Data" = "Privacidade e dados";
+"Private and incognito browser windows are captured like any other window unless you exclude the browser or site in Settings → Privacy & Data." = "Janelas privadas e anônimas do navegador são capturadas como qualquer outra janela, a menos que você exclua o navegador ou o site em Ajustes → Privacidade e dados.";
 "Private endpoints only (Recommended)" = "Somente endpoints privados (recomendado)";
 "Processing" = "Processando";
 "Project details" = "Detalhes do projeto";
@@ -734,6 +736,7 @@
 "Question or search" = "Pergunta ou busca";
 "Quit LokalBot" = "Encerrar LokalBot";
 "Read coding agent sessions" = "Ler sessões de agentes de programação";
+"Read your Claude Code and Codex sessions so LokalBot remembers what your agents did. Files stay on this Mac." = "Lê suas sessões do Claude Code e do Codex para que o LokalBot lembre o que seus agentes fizeram. Os arquivos ficam neste Mac.";
 "Reads the focused window's text from a screenshot. Needs Screen Recording; the image and text are not saved." = "Lê o texto da janela em foco a partir de uma captura de tela. Requer Gravação de Tela; a imagem e o texto não são salvos.";
 "Reads visible interface text through Accessibility; no screenshots are stored." = "Lê o texto visível da interface pela Acessibilidade; nenhuma captura de tela é armazenada.";
 "Reads window titles and visible interface text for activity and text-context features." = "Lê títulos de janelas e texto visível da interface para os recursos de atividade e contexto de texto.";
@@ -1285,3 +1288,9 @@
 "The model repeated text it was given, so its answer is hidden." = "O modelo repetiu o texto recebido, por isso sua resposta está oculta.";
 "The answer did not fit at the cursor, so it is hidden." = "A resposta não se encaixava na posição do cursor, por isso está oculta.";
 "The model was unsure of the next word, so it suggested nothing." = "O modelo não tinha certeza da próxima palavra, por isso não sugeriu nada.";
+"Download models from" = "Baixar modelos de";
+"HF-Mirror (hf-mirror.com)" = "HF-Mirror (hf-mirror.com)";
+"ModelScope (modelscope.cn)" = "ModelScope (modelscope.cn)";
+"Downloads from huggingface.co, where the models are published." = "Baixa de huggingface.co, onde os modelos são publicados.";
+"A community mirror of Hugging Face that works in mainland China. If it fails, LokalBot tries Hugging Face." = "Um espelho comunitário do Hugging Face que funciona na China continental. Se falhar, o LokalBot tenta o Hugging Face.";
+"Alibaba's model hub in mainland China, for files it carries unchanged. Other files come from HF-Mirror, then Hugging Face." = "O hub de modelos da Alibaba na China continental, para os arquivos que ele oferece sem alterações. Os demais arquivos vêm do HF-Mirror e depois do Hugging Face.";

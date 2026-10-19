@@ -210,6 +210,7 @@
 "Close find" = "Rufe nema";
 "Close search" = "Rufe bincike";
 "Coding agent records to remove" = "Bayanan wakilin rubuta lamba da za a cire";
+"Coding Agent Sessions" = "Zaman wakilin rubuta lamba";
 "Coding agent sessions" = "Zaman wakilin rubuta lamba";
 "Command Palette" = "Jerin umarni";
 "Command Palette…" = "Jerin umarni…";
@@ -723,6 +724,7 @@
 "Previously named voices" = "Muryoyin da aka ba suna a baya";
 "Privacy" = "Sirri";
 "Privacy & Data" = "Sirri da bayanai";
+"Private and incognito browser windows are captured like any other window unless you exclude the browser or site in Settings → Privacy & Data." = "Ana ɗaukar tagogin burauza na sirri da na incognito kamar kowace taga, sai dai idan ka cire burauzar ko shafin a Saituna → Sirri da bayanai.";
 "Private endpoints only (Recommended)" = "Wuraren sabis na sirri kawai (shawarar da aka ba)";
 "Processing" = "Ana sarrafawa";
 "Project details" = "Bayanin aiki";
@@ -734,6 +736,7 @@
 "Question or search" = "Tambaya ko bincike";
 "Quit LokalBot" = "Fita daga LokalBot";
 "Read coding agent sessions" = "Karanta zaman wakilin rubuta lamba";
+"Read your Claude Code and Codex sessions so LokalBot remembers what your agents did. Files stay on this Mac." = "Karanta zaman Claude Code da Codex naka domin LokalBot ya tuna abin da wakilanka suka yi. Fayiloli suna nan a wannan Mac.";
 "Reads the focused window's text from a screenshot. Needs Screen Recording; the image and text are not saved." = "Yana karanta rubutun tagar da ake aiki da ita daga hoton allo. Yana buƙatar Rikodin Allo; ba a adana hoton ko rubutun ba.";
 "Reads visible interface text through Accessibility; no screenshots are stored." = "Yana karanta rubutun mu'amala da ake gani ta Sauƙin amfani; ba a adana hotunan allo ba.";
 "Reads window titles and visible interface text for activity and text-context features." = "Yana karanta taken tagogi da rubutun mu'amala da ake gani don fasalin ayyuka da mahallin rubutu.";
@@ -1285,3 +1288,9 @@
 "The model repeated text it was given, so its answer is hidden." = "Samfurin ya maimaita rubutun da aka ba shi, saboda haka an ɓoye amsarsa.";
 "The answer did not fit at the cursor, so it is hidden." = "Amsar ba ta dace da wurin siginan kwamfuta ba, saboda haka an ɓoye ta.";
 "The model was unsure of the next word, so it suggested nothing." = "Samfurin bai tabbatar da kalma ta gaba ba, saboda haka bai ba da shawarar komai ba.";
+"Download models from" = "Tushen sauke samfura";
+"HF-Mirror (hf-mirror.com)" = "HF-Mirror (hf-mirror.com)";
+"ModelScope (modelscope.cn)" = "ModelScope (modelscope.cn)";
+"Downloads from huggingface.co, where the models are published." = "Ana saukewa daga huggingface.co, inda ake wallafa samfuran.";
+"A community mirror of Hugging Face that works in mainland China. If it fails, LokalBot tries Hugging Face." = "Madubin al'umma na Hugging Face da ke aiki a babban yankin China. Idan ya kasa, LokalBot zai gwada Hugging Face.";
+"Alibaba's model hub in mainland China, for files it carries unchanged. Other files come from HF-Mirror, then Hugging Face." = "Cibiyar samfura ta Alibaba a babban yankin China, don fayilolin da take ajiyewa ba tare da canji ba. Sauran fayiloli suna zuwa daga HF-Mirror, sannan daga Hugging Face.";

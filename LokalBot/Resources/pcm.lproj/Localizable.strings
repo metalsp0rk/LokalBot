@@ -210,6 +210,7 @@
 "Close find" = "Close find";
 "Close search" = "Close search";
 "Coding agent records to remove" = "Coding agent records wey you wan remove";
+"Coding Agent Sessions" = "Coding Agent Sessions";
 "Coding agent sessions" = "Coding agent sessions";
 "Command Palette" = "Command Menu";
 "Command Palette…" = "Command Menu…";
@@ -723,6 +724,7 @@
 "Previously named voices" = "Voices wey get name before";
 "Privacy" = "Privacy";
 "Privacy & Data" = "Privacy & Data";
+"Private and incognito browser windows are captured like any other window unless you exclude the browser or site in Settings → Privacy & Data." = "Private and incognito browser windows dey capture like any other window unless you exclude the browser or site for Settings → Privacy & Data.";
 "Private endpoints only (Recommended)" = "Only private endpoints (we recommend am)";
 "Processing" = "Dey process";
 "Project details" = "Details for project";
@@ -734,6 +736,7 @@
 "Question or search" = "Question or search";
 "Quit LokalBot" = "Quit LokalBot";
 "Read coding agent sessions" = "Read coding agent sessions";
+"Read your Claude Code and Codex sessions so LokalBot remembers what your agents did. Files stay on this Mac." = "Read your Claude Code and Codex sessions so LokalBot go remember wetin your agents do. Files dey stay for this Mac.";
 "Reads the focused window's text from a screenshot. Needs Screen Recording; the image and text are not saved." = "E dey read text for active window from screenshot. E need Screen Recording; e no dey save the image or text.";
 "Reads visible interface text through Accessibility; no screenshots are stored." = "E dey read interface text wey show through Accessibility; e no dey store screenshots.";
 "Reads window titles and visible interface text for activity and text-context features." = "E dey read window titles and interface text wey show for activity and text-context features.";
@@ -1285,3 +1288,9 @@
 "The model repeated text it was given, so its answer is hidden." = "Model repeat text wey dem give am, so im answer don hide.";
 "The answer did not fit at the cursor, so it is hidden." = "The answer no fit where cursor dey, so e don hide.";
 "The model was unsure of the next word, so it suggested nothing." = "Model no sure of the next word, so e no suggest anything.";
+"Download models from" = "Download models from";
+"HF-Mirror (hf-mirror.com)" = "HF-Mirror (hf-mirror.com)";
+"ModelScope (modelscope.cn)" = "ModelScope (modelscope.cn)";
+"Downloads from huggingface.co, where the models are published." = "E dey download from huggingface.co, where dem dey publish the models.";
+"A community mirror of Hugging Face that works in mainland China. If it fails, LokalBot tries Hugging Face." = "Community mirror of Hugging Face wey dey work for mainland China. If e fail, LokalBot go try Hugging Face.";
+"Alibaba's model hub in mainland China, for files it carries unchanged. Other files come from HF-Mirror, then Hugging Face." = "Alibaba model hub for mainland China, for files wey e carry without change. Other files dey come from HF-Mirror, then Hugging Face.";

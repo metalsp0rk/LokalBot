@@ -210,6 +210,7 @@
 "Close find" = "اقفل البحث";
 "Close search" = "اقفل البحث";
 "Coding agent records to remove" = "سجلات وكيل البرمجة المطلوب إزالتها";
+"Coding Agent Sessions" = "جلسات وكيل البرمجة";
 "Coding agent sessions" = "جلسات وكيل البرمجة";
 "Command Palette" = "لوحة الأوامر";
 "Command Palette…" = "لوحة الأوامر…";
@@ -723,6 +724,7 @@
 "Previously named voices" = "الأصوات التي سُميت سابقًا";
 "Privacy" = "الخصوصية";
 "Privacy & Data" = "الخصوصية والبيانات";
+"Private and incognito browser windows are captured like any other window unless you exclude the browser or site in Settings → Privacy & Data." = "نوافذ المتصفح الخاصة والمتخفية بتتلقط زي أي نافذة تانية، إلا لو استبعدت المتصفح أو الموقع من الإعدادات ← الخصوصية والبيانات.";
 "Private endpoints only (Recommended)" = "نقاط النهاية الخاصة فقط (موصى به)";
 "Processing" = "جاري المعالجة";
 "Project details" = "تفاصيل المشروع";
@@ -734,6 +736,7 @@
 "Question or search" = "سؤال أو بحث";
 "Quit LokalBot" = "اقفل LokalBot";
 "Read coding agent sessions" = "قراءة جلسات وكيل البرمجة";
+"Read your Claude Code and Codex sessions so LokalBot remembers what your agents did. Files stay on this Mac." = "اقرا جلسات Claude Code وCodex بتاعتك عشان LokalBot يفتكر الوكلاء بتوعك عملوا إيه. الملفات بتفضل على الـ Mac ده.";
 "Reads the focused window's text from a screenshot. Needs Screen Recording; the image and text are not saved." = "بيقرأ نص النافذة النشطة من لقطة شاشة. محتاج صلاحية تسجيل الشاشة؛ الصورة والنص مبيتحفظوش.";
 "Reads visible interface text through Accessibility; no screenshots are stored." = "بيقرأ نص الواجهة الظاهر من تسهيلات الاستخدام؛ مفيش لقطات شاشة بتتحفظ.";
 "Reads window titles and visible interface text for activity and text-context features." = "بيقرأ عناوين النوافذ ونص الواجهة الظاهر عشان ميزات النشاط والسياق النصي.";
@@ -1285,3 +1288,9 @@
 "The model repeated text it was given, so its answer is hidden." = "النموذج كرر النص اللي اتداله، عشان كده إجابته مستخبية.";
 "The answer did not fit at the cursor, so it is hidden." = "الإجابة مش مناسبة لمكان المؤشر، عشان كده مستخبية.";
 "The model was unsure of the next word, so it suggested nothing." = "النموذج مش متأكد من الكلمة اللي بعدها، فمقترحش حاجة.";
+"Download models from" = "مصدر تنزيل النماذج";
+"HF-Mirror (hf-mirror.com)" = "HF-Mirror (hf-mirror.com)";
+"ModelScope (modelscope.cn)" = "ModelScope (modelscope.cn)";
+"Downloads from huggingface.co, where the models are published." = "بينزّل من huggingface.co، المكان اللي النماذج بتتنشر عليه.";
+"A community mirror of Hugging Face that works in mainland China. If it fails, LokalBot tries Hugging Face." = "مرآة مجتمعية لـ Hugging Face شغّالة في البر الرئيسي للصين. لو فشلت، LokalBot بيجرّب Hugging Face.";
+"Alibaba's model hub in mainland China, for files it carries unchanged. Other files come from HF-Mirror, then Hugging Face." = "مركز نماذج Alibaba في البر الرئيسي للصين، للملفات اللي بيوفّرها من غير تعديل. باقي الملفات بتيجي من HF-Mirror، وبعدين من Hugging Face.";

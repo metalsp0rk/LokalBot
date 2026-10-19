@@ -210,6 +210,7 @@
 "Close find" = "Закрыть поиск в тексте";
 "Close search" = "Закрыть поиск";
 "Coding agent records to remove" = "Записи агента программирования для удаления";
+"Coding Agent Sessions" = "Сеансы агента программирования";
 "Coding agent sessions" = "Сеансы агента программирования";
 "Command Palette" = "Палитра команд";
 "Command Palette…" = "Палитра команд…";
@@ -723,6 +724,7 @@
 "Previously named voices" = "Ранее названные голоса";
 "Privacy" = "Конфиденциальность";
 "Privacy & Data" = "Конфиденциальность и данные";
+"Private and incognito browser windows are captured like any other window unless you exclude the browser or site in Settings → Privacy & Data." = "Приватные окна и окна в режиме инкогнито захватываются как любые другие окна, если вы не исключите браузер или сайт в разделе Настройки → Конфиденциальность и данные.";
 "Private endpoints only (Recommended)" = "Только приватные конечные точки (рекомендуется)";
 "Processing" = "Обработка";
 "Project details" = "Сведения о проекте";
@@ -734,6 +736,7 @@
 "Question or search" = "Вопрос или поиск";
 "Quit LokalBot" = "Завершить LokalBot";
 "Read coding agent sessions" = "Читать сеансы агента программирования";
+"Read your Claude Code and Codex sessions so LokalBot remembers what your agents did. Files stay on this Mac." = "Читает ваши сеансы Claude Code и Codex, чтобы LokalBot помнил, что сделали ваши агенты. Файлы остаются на этом Mac.";
 "Reads the focused window's text from a screenshot. Needs Screen Recording; the image and text are not saved." = "Читает текст активного окна со снимка экрана. Нужна Запись экрана; изображение и текст не сохраняются.";
 "Reads visible interface text through Accessibility; no screenshots are stored." = "Читает видимый текст интерфейса через Универсальный доступ; снимки экрана не сохраняются.";
 "Reads window titles and visible interface text for activity and text-context features." = "Читает заголовки окон и видимый текст интерфейса для функций активности и текстового контекста.";
@@ -1285,3 +1288,9 @@
 "The model repeated text it was given, so its answer is hidden." = "Модель повторила переданный ей текст, поэтому ответ скрыт.";
 "The answer did not fit at the cursor, so it is hidden." = "Ответ не подошёл к позиции курсора, поэтому скрыт.";
 "The model was unsure of the next word, so it suggested nothing." = "Модель не была уверена в следующем слове и ничего не предложила.";
+"Download models from" = "Источник загрузки моделей";
+"HF-Mirror (hf-mirror.com)" = "HF-Mirror (hf-mirror.com)";
+"ModelScope (modelscope.cn)" = "ModelScope (modelscope.cn)";
+"Downloads from huggingface.co, where the models are published." = "Загружает с huggingface.co, где публикуются модели.";
+"A community mirror of Hugging Face that works in mainland China. If it fails, LokalBot tries Hugging Face." = "Зеркало Hugging Face от сообщества, которое работает в материковом Китае. Если оно не отвечает, LokalBot обращается к Hugging Face.";
+"Alibaba's model hub in mainland China, for files it carries unchanged. Other files come from HF-Mirror, then Hugging Face." = "Хаб моделей Alibaba в материковом Китае — для файлов, которые он хранит без изменений. Остальные файлы загружаются с HF-Mirror, затем с Hugging Face.";

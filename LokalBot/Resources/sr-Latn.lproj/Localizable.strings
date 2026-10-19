@@ -210,6 +210,7 @@
 "Close find" = "Zatvori pretragu u tekstu";
 "Close search" = "Zatvori pretragu";
 "Coding agent records to remove" = "Zapisi agenata za programiranje koji se uklanjaju";
+"Coding Agent Sessions" = "Sesije agenata za programiranje";
 "Coding agent sessions" = "Sesije agenata za programiranje";
 "Command Palette" = "Paleta komandi";
 "Command Palette…" = "Paleta komandi…";
@@ -723,6 +724,7 @@
 "Previously named voices" = "Ranije imenovani glasovi";
 "Privacy" = "Privatnost";
 "Privacy & Data" = "Privatnost i podaci";
+"Private and incognito browser windows are captured like any other window unless you exclude the browser or site in Settings → Privacy & Data." = "Privatni i anonimni prozori pregledača beleže se kao i svi drugi prozori, osim ako pregledač ili sajt ne isključite u odeljku Podešavanja → Privatnost i podaci.";
 "Private endpoints only (Recommended)" = "Samo privatne adrese (preporučeno)";
 "Processing" = "Obrada";
 "Project details" = "Detalji projekta";
@@ -734,6 +736,7 @@
 "Question or search" = "Pitanje ili pretraga";
 "Quit LokalBot" = "Izađi iz LokalBota";
 "Read coding agent sessions" = "Čitaj sesije agenata za programiranje";
+"Read your Claude Code and Codex sessions so LokalBot remembers what your agents did. Files stay on this Mac." = "Čita vaše sesije u alatima Claude Code i Codex da bi LokalBot zapamtio šta su vaši agenti uradili. Datoteke ostaju na ovom Mac-u.";
 "Reads the focused window's text from a screenshot. Needs Screen Recording; the image and text are not saved." = "Čita tekst aktivnog prozora sa snimka ekrana. Zahteva Snimanje ekrana; slika i tekst se ne čuvaju.";
 "Reads visible interface text through Accessibility; no screenshots are stored." = "Čita vidljivi tekst interfejsa preko Pristupačnosti; snimci ekrana se ne čuvaju.";
 "Reads window titles and visible interface text for activity and text-context features." = "Čita naslove prozora i vidljivi tekst interfejsa za funkcije aktivnosti i tekstualnog konteksta.";
@@ -1285,3 +1288,9 @@
 "The model repeated text it was given, so its answer is hidden." = "Model je ponovio tekst koji je dobio, pa je njegov odgovor sakriven.";
 "The answer did not fit at the cursor, so it is hidden." = "Odgovor se nije uklopio na mestu kursora, pa je sakriven.";
 "The model was unsure of the next word, so it suggested nothing." = "Model nije bio siguran u sledeću reč, pa nije ništa predložio.";
+"Download models from" = "Izvor za preuzimanje modela";
+"HF-Mirror (hf-mirror.com)" = "HF-Mirror (hf-mirror.com)";
+"ModelScope (modelscope.cn)" = "ModelScope (modelscope.cn)";
+"Downloads from huggingface.co, where the models are published." = "Preuzima sa huggingface.co, gde se modeli objavljuju.";
+"A community mirror of Hugging Face that works in mainland China. If it fails, LokalBot tries Hugging Face." = "Mirror Hugging Face-a koji održava zajednica i koji radi u kontinentalnoj Kini. Ako ne uspe, LokalBot pokušava preko Hugging Face-a.";
+"Alibaba's model hub in mainland China, for files it carries unchanged. Other files come from HF-Mirror, then Hugging Face." = "Alibabin centar modela u kontinentalnoj Kini, za datoteke koje nudi neizmenjene. Ostale datoteke stižu sa HF-Mirror-a, pa sa Hugging Face-a.";

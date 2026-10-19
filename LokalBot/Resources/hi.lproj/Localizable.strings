@@ -210,6 +210,7 @@
 "Close find" = "ढूँढना बंद करें";
 "Close search" = "खोज बंद करें";
 "Coding agent records to remove" = "हटाने के लिए कोडिंग एजेंट रिकॉर्ड";
+"Coding Agent Sessions" = "कोडिंग एजेंट सत्र";
 "Coding agent sessions" = "कोडिंग एजेंट सत्र";
 "Command Palette" = "कमांड पैलेट";
 "Command Palette…" = "कमांड पैलेट…";
@@ -723,6 +724,7 @@
 "Previously named voices" = "पहले नाम दी गई आवाज़ें";
 "Privacy" = "गोपनीयता";
 "Privacy & Data" = "गोपनीयता और डेटा";
+"Private and incognito browser windows are captured like any other window unless you exclude the browser or site in Settings → Privacy & Data." = "ब्राउज़र की प्राइवेट और इनकॉग्निटो विंडो भी किसी दूसरी विंडो की तरह कैप्चर होती हैं, जब तक आप सेटिंग्स → गोपनीयता और डेटा में उस ब्राउज़र या साइट को बाहर नहीं रखते।";
 "Private endpoints only (Recommended)" = "केवल निजी एंडपॉइंट (सुझाया गया)";
 "Processing" = "प्रोसेस हो रहा है";
 "Project details" = "प्रोजेक्ट का विवरण";
@@ -734,6 +736,7 @@
 "Question or search" = "प्रश्न या खोज";
 "Quit LokalBot" = "LokalBot बंद करें";
 "Read coding agent sessions" = "कोडिंग एजेंट सत्र पढ़ें";
+"Read your Claude Code and Codex sessions so LokalBot remembers what your agents did. Files stay on this Mac." = "अपने Claude Code और Codex सत्र पढ़ें, ताकि LokalBot याद रखे कि आपके एजेंटों ने क्या किया। फ़ाइलें इसी Mac पर रहती हैं।";
 "Reads the focused window's text from a screenshot. Needs Screen Recording; the image and text are not saved." = "स्क्रीनशॉट से फ़ोकस की गई विंडो का टेक्स्ट पढ़ता है। स्क्रीन रिकॉर्डिंग की ज़रूरत है; चित्र और टेक्स्ट सहेजे नहीं जाते।";
 "Reads visible interface text through Accessibility; no screenshots are stored." = "सुलभता के ज़रिए दिखता इंटरफ़ेस टेक्स्ट पढ़ता है; कोई स्क्रीनशॉट सहेजा नहीं जाता।";
 "Reads window titles and visible interface text for activity and text-context features." = "गतिविधि और टेक्स्ट संदर्भ की सुविधाओं के लिए विंडो शीर्षक और दिखता इंटरफ़ेस टेक्स्ट पढ़ता है।";
@@ -1285,3 +1288,9 @@
 "The model repeated text it was given, so its answer is hidden." = "मॉडल ने दिया गया टेक्स्ट दोहराया, इसलिए उसका उत्तर छिपाया गया है।";
 "The answer did not fit at the cursor, so it is hidden." = "उत्तर कर्सर की जगह पर उपयुक्त नहीं था, इसलिए छिपाया गया है।";
 "The model was unsure of the next word, so it suggested nothing." = "मॉडल अगले शब्द के बारे में निश्चित नहीं था, इसलिए कोई सुझाव नहीं दिया।";
+"Download models from" = "मॉडल डाउनलोड का स्रोत";
+"HF-Mirror (hf-mirror.com)" = "HF-Mirror (hf-mirror.com)";
+"ModelScope (modelscope.cn)" = "ModelScope (modelscope.cn)";
+"Downloads from huggingface.co, where the models are published." = "huggingface.co से डाउनलोड होता है, जहाँ मॉडल प्रकाशित होते हैं।";
+"A community mirror of Hugging Face that works in mainland China. If it fails, LokalBot tries Hugging Face." = "Hugging Face का एक सामुदायिक मिरर, जो मुख्य भूमि चीन में काम करता है। यह विफल हो तो LokalBot Hugging Face आज़माता है।";
+"Alibaba's model hub in mainland China, for files it carries unchanged. Other files come from HF-Mirror, then Hugging Face." = "मुख्य भूमि चीन में Alibaba का मॉडल हब, उन फ़ाइलों के लिए जिन्हें वह बिना बदलाव के रखता है। बाकी फ़ाइलें HF-Mirror से, फिर Hugging Face से आती हैं।";
