@@ -76,6 +76,9 @@ pub struct Meeting {
         rename = "mergedIntoMeetingID"
     )]
     pub merged_into_meeting_id: Option<Uuid>,
+    /// Original file names of an imported recording (`MeetingImportService.swift`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub imported_file_names: Option<Vec<String>>,
     /// Longest recorded track, in seconds.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub recorded_duration: Option<f64>,
@@ -85,6 +88,10 @@ pub struct Meeting {
     pub content_range_source: Option<ContentRangeSource>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub capture_intent: Option<CaptureIntent>,
+    /// Keys this build doesn't know, written by macOS or a newer release. Kept
+    /// as they are so saving `meta.json` here never drops them.
+    #[serde(flatten)]
+    pub extra: serde_json::Map<String, serde_json::Value>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -102,6 +109,22 @@ pub struct CalendarParticipantIdentity {
 pub struct ContentRange {
     pub start: f64,
     pub end: f64,
+}
+
+impl ContentRange {
+    pub fn is_valid(&self) -> bool {
+        self.start.is_finite() && self.end.is_finite() && self.start >= 0.0 && self.end > self.start
+    }
+
+    /// Keeps segments wholly inside the range (`ContentRange.applying`). A
+    /// segment crossing a boundary can't be clipped as text; transcribing
+    /// again cuts the audio there instead.
+    pub fn apply(&self, transcript: &mut crate::model::Transcript) {
+        let valid = self.is_valid();
+        transcript
+            .segments
+            .retain(|s| valid && s.start >= self.start && s.end <= self.end);
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -145,10 +168,21 @@ impl Meeting {
         self.merged_into_meeting_id.is_some()
     }
 
+    pub fn is_imported(&self) -> bool {
+        self.imported_file_names
+            .as_ref()
+            .is_some_and(|names| !names.is_empty())
+    }
+
     pub fn is_merged_meeting(&self) -> bool {
         self.merged_source_meeting_ids
             .as_ref()
             .is_some_and(|ids| !ids.is_empty())
+    }
+
+    /// The reviewed range, when it is usable.
+    pub fn valid_content_range(&self) -> Option<ContentRange> {
+        self.content_range.filter(ContentRange::is_valid)
     }
 
     /// Wall-clock span, or the recorded duration when known.

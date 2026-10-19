@@ -51,6 +51,10 @@ pub struct TranscribeOptions {
     pub microphone_is_user: bool,
     /// Names and terms to spell correctly (prompt-capable models only).
     pub vocabulary_prompt: Option<String>,
+    /// The meeting's reviewed start and end, in seconds on the recording's
+    /// timeline (`Meeting.contentRange`). Audio outside it is left out, and
+    /// times stay on the original timeline.
+    pub content_range: Option<(f64, f64)>,
 }
 
 impl Default for TranscribeOptions {
@@ -60,6 +64,7 @@ impl Default for TranscribeOptions {
             diarize: false,
             microphone_is_user: true,
             vocabulary_prompt: None,
+            content_range: None,
         }
     }
 }
@@ -376,7 +381,7 @@ impl Transcriber {
         gate: Option<&BleedGate>,
         progress: &mut dyn FnMut(TranscribeProgress),
     ) -> Result<Option<TrackPlan>> {
-        let samples = read_track(path, gate)?;
+        let samples = read_track(path, gate, options.content_range)?;
         let duration = samples.len() as f64 / SAMPLE_RATE as f64;
         if duration < MIN_AUDIO_SECONDS {
             log::info!(
@@ -445,7 +450,7 @@ impl Transcriber {
         advance: &mut dyn FnMut(f64),
     ) -> Result<Transcript> {
         let started = Instant::now();
-        let samples = read_track(&plan.path, gate)?;
+        let samples = read_track(&plan.path, gate, options.content_range)?;
         let pieces = pieces(
             &plan.spans,
             plan.regions.as_deref(),
@@ -622,13 +627,33 @@ fn effective_threads(requested: usize) -> usize {
     requested.clamp(1, cap)
 }
 
-fn read_track(path: &Path, gate: Option<&BleedGate>) -> Result<Vec<f32>> {
+fn read_track(
+    path: &Path,
+    gate: Option<&BleedGate>,
+    content_range: Option<(f64, f64)>,
+) -> Result<Vec<f32>> {
     let mut samples = lokalbot_audio::read_mono_16k(path)
         .with_context(|| format!("could not read {}", path.display()))?;
     if let Some(gate) = gate {
         gate.apply(&mut samples);
     }
+    if let Some(range) = content_range {
+        limit_to_range(&mut samples, range);
+    }
     Ok(samples)
+}
+
+/// Silences audio before the range and drops audio after it, so speech is
+/// cut at both boundaries and every time keeps its place on the recording
+/// (`AttributedTrackTranscriber` partitions the audio the same way).
+fn limit_to_range(samples: &mut Vec<f32>, (start, end): (f64, f64)) {
+    if !(start.is_finite() && end.is_finite() && start >= 0.0 && end > start) {
+        return;
+    }
+    let at = |seconds: f64| ((seconds * SAMPLE_RATE as f64).round() as usize).min(samples.len());
+    let (first, last) = (at(start), at(end));
+    samples.truncate(last);
+    samples[..first].fill(0.0);
 }
 
 /// Looks for speaker bleed between the tracks, one track in memory at a time.
@@ -825,6 +850,21 @@ fn token_rows(decoded: &Decoded, span: Span) -> Option<Vec<(f64, f64, String, Ti
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn content_range_silences_before_and_drops_after() {
+        let mut samples = vec![1.0_f32; SAMPLE_RATE as usize * 10];
+        limit_to_range(&mut samples, (2.0, 7.5));
+        assert_eq!(samples.len(), SAMPLE_RATE as usize * 15 / 2);
+        let start = SAMPLE_RATE as usize * 2;
+        assert!(samples[..start].iter().all(|s| *s == 0.0));
+        assert!(samples[start..].iter().all(|s| *s == 1.0));
+
+        let mut untouched = vec![1.0_f32; 100];
+        limit_to_range(&mut untouched, (5.0, 1.0));
+        limit_to_range(&mut untouched, (f64::NAN, 1.0));
+        assert_eq!(untouched, vec![1.0_f32; 100]);
+    }
     use lokalbot_core::SpeakerAttribution;
 
     fn span(start: f64, end: f64) -> Span {

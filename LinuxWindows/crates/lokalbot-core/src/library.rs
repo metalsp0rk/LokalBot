@@ -173,34 +173,65 @@ impl Library {
     // ---------------------------------------------------------------- meetings
 
     /// Every visible meeting (merged sources hidden), newest first.
+    ///
+    /// Merge markers are resolved as on macOS (`StorageManager.loadAllMeetings`):
+    /// a merged meeting's source list covers a source marker an interrupted
+    /// merge never wrote, and a source whose merged meeting is gone is shown
+    /// again. A writable library saves those repairs.
     pub fn list_meetings(&self) -> Result<Vec<Meeting>> {
-        let mut meetings = Vec::new();
-        for meta in meeting_meta_files(&self.paths().meetings_dir()) {
-            match read_json::<Meeting>(&meta) {
-                Ok(Some(mut meeting)) => {
-                    if let Some(folder) = meta.parent()
-                        && let Ok(relative) = folder.strip_prefix(self.paths().root())
-                    {
-                        meeting.relative_path = relative.to_string_lossy().replace('\\', "/");
-                    }
-                    meetings.push(meeting);
-                }
-                Ok(None) => {}
-                Err(err) => log::warn!("skipping unreadable {}: {err:#}", meta.display()),
+        let mut meetings = self.list_all_meetings()?;
+        let resolved = resolve_merge_relationships(&meetings);
+        for (meeting, parent) in meetings.iter_mut().zip(resolved) {
+            if meeting.merged_into_meeting_id == parent {
+                continue;
+            }
+            if self.is_read_only() {
+                meeting.merged_into_meeting_id = parent;
+                continue;
+            }
+            let repaired = if parent.is_none() {
+                self.restore_merged_source(meeting)
+            } else {
+                let mut updated = meeting.clone();
+                updated.merged_into_meeting_id = parent;
+                self.save_meeting(&updated).map(|()| updated)
+            };
+            match repaired {
+                Ok(updated) => *meeting = updated,
+                // Keep the old marker: it is the journal a later load retries.
+                Err(err) => log::warn!("meeting merge recovery failed: {err:#}"),
             }
         }
-        let parents: std::collections::HashMap<Uuid, Uuid> = meetings
-            .iter()
-            .flat_map(|m| {
-                m.merged_source_meeting_ids
-                    .iter()
-                    .flatten()
-                    .map(move |s| (*s, m.id))
-            })
-            .collect();
-        meetings.retain(|m| !m.is_merged_source() && !parents.contains_key(&m.id));
+        meetings.retain(|m| !m.is_merged_source());
         meetings.sort_by_key(|m| std::cmp::Reverse(m.started_at));
         Ok(meetings)
+    }
+
+    /// Makes a merge source visible again once its merged meeting is gone
+    /// (`StorageManager.restoreMergedSource`): the merged meeting is
+    /// tombstoned, the source's tombstone removed so it is indexed again, and
+    /// the marker cleared last.
+    pub fn restore_merged_source(&self, source: &Meeting) -> Result<Meeting> {
+        let Some(merged) = source.merged_into_meeting_id else {
+            return Ok(source.clone());
+        };
+        self.with_db(|db| {
+            let tx = db.unchecked_transaction()?;
+            tx.execute(
+                "INSERT OR IGNORE INTO deleted_meetings(meeting_id, deleted_at) VALUES (?1, ?2)",
+                rusqlite::params![ids::uuid_upper(&merged), crate::time::to_epoch(Utc::now())],
+            )?;
+            tx.execute(
+                "DELETE FROM deleted_meetings WHERE meeting_id = ?1",
+                [ids::uuid_upper(&source.id)],
+            )?;
+            tx.commit()?;
+            Ok(())
+        })?;
+        let mut restored = source.clone();
+        restored.merged_into_meeting_id = None;
+        self.save_meeting(&restored)?;
+        Ok(restored)
     }
 
     pub fn meeting(&self, id: Uuid) -> Result<Option<Meeting>> {
@@ -296,10 +327,12 @@ impl Library {
             calendar_agenda: None,
             merged_source_meeting_ids: None,
             merged_into_meeting_id: None,
+            imported_file_names: None,
             recorded_duration: None,
             content_range: None,
             content_range_source: None,
             capture_intent: None,
+            extra: Default::default(),
         };
         fs::create_dir_all(self.meeting_dir(&meeting))?;
         self.save_meeting(&meeting)?;
@@ -323,11 +356,63 @@ impl Library {
         }
     }
 
-    /// Tombstones the meeting in the indexes, then removes its folder.
+    /// Deletes a meeting and, for a merged meeting, the sources folded into it
+    /// (`StorageManager.deletionOrder`): sources go first, so an interrupted
+    /// delete leaves the survivors folded and a retry skips what is gone.
+    /// Overnight memory built from them is withdrawn first.
     pub fn delete_meeting(&self, meeting: &Meeting) -> Result<()> {
         if self.is_read_only() {
             bail!("the library is open read-only");
         }
+        let order = self.deletion_order(meeting)?;
+        let affected: Vec<&Meeting> = order.iter().collect();
+        crate::evidence::with_meeting_mutation(self.paths().root(), &affected, || {
+            for meeting in &order {
+                self.remove_meeting(meeting)?;
+            }
+            Ok(())
+        })
+    }
+
+    /// Descendants before their merged meeting. A source that doesn't point
+    /// back at its merged meeting, or a cycle, means the markers are corrupt.
+    fn deletion_order(&self, meeting: &Meeting) -> Result<Vec<Meeting>> {
+        let all: std::collections::HashMap<Uuid, Meeting> = self
+            .list_all_meetings()?
+            .into_iter()
+            .map(|m| (m.id, m))
+            .collect();
+        fn visit(
+            current: &Meeting,
+            all: &std::collections::HashMap<Uuid, Meeting>,
+            visiting: &mut std::collections::HashSet<Uuid>,
+            ordered: &mut Vec<Meeting>,
+        ) -> Result<()> {
+            if ordered.iter().any(|m| m.id == current.id) {
+                return Ok(());
+            }
+            if !visiting.insert(current.id) {
+                bail!("merged meetings refer to each other in a loop");
+            }
+            for id in current.merged_source_meeting_ids.iter().flatten() {
+                let Some(source) = all.get(id) else { continue };
+                if source.merged_into_meeting_id != Some(current.id) {
+                    bail!("a merged meeting's source belongs to another meeting");
+                }
+                visit(source, all, visiting, ordered)?;
+            }
+            visiting.remove(&current.id);
+            ordered.push(current.clone());
+            Ok(())
+        }
+        let mut ordered = Vec::new();
+        let start = all.get(&meeting.id).unwrap_or(meeting);
+        visit(start, &all, &mut Default::default(), &mut ordered)?;
+        Ok(ordered)
+    }
+
+    /// Tombstones one meeting in the indexes, then removes its folder.
+    fn remove_meeting(&self, meeting: &Meeting) -> Result<()> {
         let id = ids::uuid_upper(&meeting.id);
         self.with_db(|db| {
             db.execute(
@@ -354,15 +439,18 @@ impl Library {
         read_json(&self.meeting_dir(meeting).join(TRANSCRIPT_FILE))
     }
 
-    /// Writes `transcript.json` and the matching `transcript.md`.
+    /// Writes `transcript.json` and the matching `transcript.md`, withdrawing
+    /// overnight memory built from the old transcript first.
     pub fn save_transcript(&self, meeting: &Meeting, transcript: &Transcript) -> Result<()> {
         let dir = self.meeting_dir(meeting);
-        write_json(&dir.join(TRANSCRIPT_FILE), transcript)?;
-        write_atomic(
-            &dir.join(TRANSCRIPT_MD_FILE),
-            transcript.markdown().as_bytes(),
-        )?;
-        Ok(())
+        crate::evidence::with_meeting_mutation(self.paths().root(), &[meeting], || {
+            write_json(&dir.join(TRANSCRIPT_FILE), transcript)?;
+            write_atomic(
+                &dir.join(TRANSCRIPT_MD_FILE),
+                transcript.markdown().as_bytes(),
+            )?;
+            Ok(())
+        })
     }
 
     pub fn summary(&self, meeting: &Meeting) -> Result<Option<String>> {
@@ -408,15 +496,20 @@ impl Library {
     }
 
     pub fn save_outcomes(&self, meeting: &Meeting, outcomes: &MeetingOutcomes) -> Result<()> {
-        write_json(&self.meeting_dir(meeting).join(OUTCOMES_FILE), outcomes)
+        crate::evidence::with_meeting_mutation(self.paths().root(), &[meeting], || {
+            write_json(&self.meeting_dir(meeting).join(OUTCOMES_FILE), outcomes)
+        })
     }
 
     pub fn outcome_state(&self, meeting: &Meeting) -> Result<OutcomeState> {
         Ok(read_json(&self.meeting_dir(meeting).join(OUTCOME_STATE_FILE))?.unwrap_or_default())
     }
 
+    /// Status and corrections are evidence too (`OutcomeIndex.mutateEvidence`).
     pub fn save_outcome_state(&self, meeting: &Meeting, state: &OutcomeState) -> Result<()> {
-        write_json(&self.meeting_dir(meeting).join(OUTCOME_STATE_FILE), state)
+        crate::evidence::with_meeting_mutation(self.paths().root(), &[meeting], || {
+            write_json(&self.meeting_dir(meeting).join(OUTCOME_STATE_FILE), state)
+        })
     }
 
     /// The saved follow-up draft (`follow-up-draft.json`), if any.
@@ -547,6 +640,37 @@ impl Library {
 // ------------------------------------------------------------------ helpers
 
 /// SHA-256 hex, as `ContentFingerprint.digest`.
+/// `Meeting.resolvingMergeRelationships`: the merged meeting each meeting is
+/// folded into, in the same order. A source marker holds only while its
+/// merged meeting still lists it; otherwise whichever merged meeting lists it
+/// (the last by uppercase ID, as on macOS) wins, or none.
+pub fn resolve_merge_relationships(meetings: &[Meeting]) -> Vec<Option<Uuid>> {
+    use std::collections::{HashMap, HashSet};
+    let mut by_id: Vec<&Meeting> = meetings.iter().collect();
+    by_id.sort_by_key(|m| ids::uuid_upper(&m.id));
+    let mut parents: HashMap<Uuid, Uuid> = HashMap::new();
+    let mut sources: HashMap<Uuid, HashSet<Uuid>> = HashMap::new();
+    for parent in by_id {
+        let listed = parent.merged_source_meeting_ids.iter().flatten();
+        sources.insert(parent.id, listed.clone().copied().collect());
+        for source in listed.filter(|id| **id != parent.id) {
+            parents.insert(*source, parent.id);
+        }
+    }
+    meetings
+        .iter()
+        .map(|meeting| match meeting.merged_into_meeting_id {
+            Some(parent)
+                if parent != meeting.id
+                    && sources.get(&parent).is_some_and(|s| s.contains(&meeting.id)) =>
+            {
+                Some(parent)
+            }
+            _ => parents.get(&meeting.id).copied(),
+        })
+        .collect()
+}
+
 pub fn sha256_hex(bytes: &[u8]) -> String {
     use sha2::Digest as _;
     hex::encode(sha2::Sha256::digest(bytes))
@@ -696,6 +820,174 @@ mod tests {
         );
         let chats = library.conversations().unwrap();
         assert_eq!(chats.len(), 2);
+    }
+
+    #[test]
+    fn macos_meta_keys_survive_a_save_here() {
+        let dir = tempfile::tempdir().unwrap();
+        let library = Library::open(LibraryPaths::new(dir.path())).unwrap();
+        let folder = dir.path().join("meetings/2026/10/17-pricing-review");
+        fs::create_dir_all(&folder).unwrap();
+        let written = serde_json::json!({
+            "appName": "Imported file",
+            "calendarAgenda": "Pricing for Q1",
+            "calendarEventID": "ABC#1792224000",
+            "calendarParticipantIdentities": [{"emailAddress": "ana@example.com", "id": "p1", "name": "Ana"}],
+            "calendarProvider": "eventkit",
+            "calendarTitle": "Pricing review",
+            "captureIntent": {"appBundleID": "us.zoom.xos", "systemAudioRequested": true},
+            "contentRange": {"end": 851.5, "start": 12.25},
+            "contentRangeSource": "userReviewed",
+            "endedAt": "2026-10-17T05:01:56Z",
+            "hasSystemTrack": true,
+            "id": "22222222-2222-4222-8222-222222222222",
+            "importedFileNames": ["Pricing review.m4a"],
+            "meetingURL": "https://zoom.us/j/123",
+            "mergedSourceMeetingIDs": ["33333333-3333-4333-8333-333333333333"],
+            "participantNameHints": ["Ana"],
+            "recordedDuration": 900.5,
+            "relativePath": "meetings/2026/10/17-pricing-review",
+            "scheduledEndAt": "2026-10-17T05:30:00Z",
+            "scheduledStartAt": "2026-10-17T04:30:00Z",
+            "startedAt": "2026-10-17T04:36:56Z",
+            "title": "Pricing review",
+            "aKeyFromANewerMac": {"nested": [1, 2]}
+        });
+        fs::write(folder.join(META_FILE), written.to_string()).unwrap();
+
+        let meeting = library.list_all_meetings().unwrap().pop().unwrap();
+        assert!(meeting.is_imported());
+        assert_eq!(meeting.valid_content_range().unwrap().end, 851.5);
+        library.save_meeting(&meeting).unwrap();
+        let saved: serde_json::Value =
+            serde_json::from_slice(&fs::read(folder.join(META_FILE)).unwrap()).unwrap();
+        assert_eq!(saved, written);
+    }
+
+    fn library_with_merge(dir: &Path) -> (Library, Meeting, Meeting, Meeting) {
+        let library = Library::open(LibraryPaths::new(dir)).unwrap();
+        let started = crate::time::now_seconds();
+        let mut first = library.create_meeting("Part one", "Zoom", started).unwrap();
+        let mut second = library.create_meeting("Part two", "Zoom", started).unwrap();
+        let mut merged = library
+            .create_meeting("Whole call", "Merged meetings", started)
+            .unwrap();
+        merged.merged_source_meeting_ids = Some(vec![first.id, second.id]);
+        for source in [&mut first, &mut second] {
+            source.merged_into_meeting_id = Some(merged.id);
+            library.save_meeting(source).unwrap();
+        }
+        library.save_meeting(&merged).unwrap();
+        library
+            .with_db(|db| {
+                for id in [first.id, second.id] {
+                    db.execute(
+                        "INSERT INTO deleted_meetings(meeting_id, deleted_at) VALUES (?1, 0)",
+                        [ids::uuid_upper(&id)],
+                    )?;
+                }
+                Ok(())
+            })
+            .unwrap();
+        (library, first, second, merged)
+    }
+
+    fn tombstoned(library: &Library) -> Vec<String> {
+        library
+            .with_db(|db| {
+                let mut statement =
+                    db.prepare("SELECT meeting_id FROM deleted_meetings ORDER BY meeting_id")?;
+                let rows = statement.query_map([], |row| row.get(0))?;
+                Ok(rows.collect::<rusqlite::Result<Vec<String>>>()?)
+            })
+            .unwrap()
+    }
+
+    #[test]
+    fn merge_sources_come_back_when_their_merged_meeting_is_gone() {
+        let dir = tempfile::tempdir().unwrap();
+        let (library, first, second, merged) = library_with_merge(dir.path());
+        let visible: Vec<Uuid> = library.list_meetings().unwrap().iter().map(|m| m.id).collect();
+        assert_eq!(visible, [merged.id]);
+
+        // macOS Undo, or a crash part-way through it, removes the merged meeting first.
+        fs::remove_dir_all(library.meeting_dir(&merged)).unwrap();
+        let mut visible: Vec<Uuid> = library.list_meetings().unwrap().iter().map(|m| m.id).collect();
+        visible.sort();
+        let mut expected = vec![first.id, second.id];
+        expected.sort();
+        assert_eq!(visible, expected);
+        let on_disk: Meeting = read_json(&library.meeting_dir(&first).join(META_FILE))
+            .unwrap()
+            .unwrap();
+        assert_eq!(on_disk.merged_into_meeting_id, None);
+        assert_eq!(tombstoned(&library), [ids::uuid_upper(&merged.id)]);
+    }
+
+    #[test]
+    fn a_source_the_merge_never_marked_is_still_folded() {
+        let dir = tempfile::tempdir().unwrap();
+        let (library, first, _, merged) = library_with_merge(dir.path());
+        let mut unmarked = first.clone();
+        unmarked.merged_into_meeting_id = None;
+        library.save_meeting(&unmarked).unwrap();
+
+        let read_only = Library::open_read_only(LibraryPaths::new(dir.path())).unwrap();
+        assert_eq!(read_only.list_meetings().unwrap().len(), 1);
+        let untouched: Meeting = read_json(&library.meeting_dir(&first).join(META_FILE))
+            .unwrap()
+            .unwrap();
+        assert_eq!(untouched.merged_into_meeting_id, None, "read-only libraries never write");
+
+        assert_eq!(library.list_meetings().unwrap().len(), 1);
+        let repaired: Meeting = read_json(&library.meeting_dir(&first).join(META_FILE))
+            .unwrap()
+            .unwrap();
+        assert_eq!(repaired.merged_into_meeting_id, Some(merged.id));
+    }
+
+    #[test]
+    fn deleting_a_merged_meeting_deletes_its_sources_and_withdraws_memory() {
+        let dir = tempfile::tempdir().unwrap();
+        let (library, first, second, merged) = library_with_merge(dir.path());
+        library.delete_meeting(&merged).unwrap();
+        assert!(library.list_all_meetings().unwrap().is_empty());
+        let mut expected: Vec<String> = [first.id, second.id, merged.id]
+            .iter()
+            .map(ids::uuid_upper)
+            .collect();
+        expected.sort();
+        assert_eq!(tombstoned(&library), expected);
+        let state = crate::evidence::read_state(dir.path()).unwrap();
+        assert_eq!(state.revision, 1);
+        let meetings: Vec<String> = state.invalidated_meetings.unwrap().into_keys().collect();
+        assert_eq!(meetings, expected);
+    }
+
+    #[test]
+    fn a_source_pointing_at_another_merge_stops_the_delete() {
+        let dir = tempfile::tempdir().unwrap();
+        let (library, mut first, _, merged) = library_with_merge(dir.path());
+        first.merged_into_meeting_id = Some(Uuid::new_v4());
+        library.save_meeting(&first).unwrap();
+        assert!(library.delete_meeting(&merged).is_err());
+        assert_eq!(library.list_all_meetings().unwrap().len(), 3);
+    }
+
+    #[test]
+    fn transcript_and_outcome_writes_withdraw_memory() {
+        let dir = tempfile::tempdir().unwrap();
+        let library = Library::open(LibraryPaths::new(dir.path())).unwrap();
+        let meeting = library
+            .create_meeting("Design review", "Zoom", crate::time::now_seconds())
+            .unwrap();
+        library.save_transcript(&meeting, &Transcript::default()).unwrap();
+        library
+            .set_action_status(&meeting, "a1", ActionStatus::Done)
+            .unwrap();
+        let state = crate::evidence::read_state(dir.path()).unwrap();
+        assert_eq!(state.revision, 2);
+        assert_eq!(state.invalidated_meetings.unwrap()[&ids::uuid_upper(&meeting.id)], 2);
     }
 
     #[test]

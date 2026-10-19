@@ -255,6 +255,7 @@ impl Inner {
                 microphone_is_user: settings.microphone_is_user,
                 vocabulary_prompt: Some(settings.transcription_prompt.clone())
                     .filter(|p| !p.trim().is_empty()),
+                content_range: meeting.valid_content_range().map(|r| (r.start, r.end)),
             };
             self.stage(&meeting, Stage::Transcribing, "Transcribing", None);
             let transcript = self
@@ -284,6 +285,10 @@ impl Inner {
                     )
                 })
                 .context("transcription")?;
+            let mut transcript = transcript;
+            if let Some(range) = meeting.valid_content_range() {
+                range.apply(&mut transcript);
+            }
             library.save_transcript(&meeting, &transcript)?;
             library.mark_transcription_completed(meeting.id)?;
             library.reindex_meeting(&meeting)?;

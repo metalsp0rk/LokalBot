@@ -13,6 +13,7 @@ pub mod demo;
 pub mod digest;
 pub mod due;
 pub mod embeddings;
+pub mod evidence;
 pub mod ids;
 pub mod jobs;
 pub mod library;
