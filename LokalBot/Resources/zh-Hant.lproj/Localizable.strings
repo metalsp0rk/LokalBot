@@ -315,6 +315,8 @@
 "Downloading…" = "正在下載…";
 "Downloads use the model provider. They do not send your meeting content. Existing downloaded models are kept." = "下載時會連線至模型供應商，不會傳送你的會議內容。已下載的模型會保留。";
 "Draft Follow-up…" = "草擬後續追蹤訊息…";
+"Drop an audio or video file to import it." = "請拖放音訊或影片檔案以匯入。";
+"Drop to import" = "拖放以匯入";
 "Draft follow-up for latest meeting" = "為最近的會議草擬後續追蹤訊息";
 "Due" = "到期";
 "Due date as agreed" = "約定的截止日期";
@@ -428,6 +430,12 @@
 "Image space recovered" = "可回收的影像空間";
 "Image zoom" = "影像縮放";
 "Images to remove" = "將移除的影像";
+"Import" = "匯入";
+"Import a recording" = "匯入錄音";
+"Import an audio or video recording" = "匯入音訊或影片錄音";
+"Import Recording" = "匯入錄音";
+"Import Recording…" = "匯入錄音…";
+"Importing %@…" = "正在匯入 %@…";
 "In progress" = "進行中";
 "Include saved moments" = "包含已儲存的時刻";
 "Include the transcript" = "包含逐字稿";
@@ -491,7 +499,7 @@
 "Local journal" = "本機日誌";
 "Local models process on this Mac. Each remote server requires its own approval before context can leave the Mac." = "本機模型會在這台 Mac 上處理資料。每個遠端伺服器都需要個別核准，上下文才能離開這台 Mac。";
 "Logs, health reports, settings without secrets, and library counts. Never meeting audio, transcripts, notes, or screenshots." = "包含記錄檔、健康狀態報告、不含機密資訊的設定，以及資料庫數量統計。絕不包含會議音訊、逐字稿、筆記或螢幕截圖。";
-"LokalBot detects meeting apps automatically, or start a recording now." = "LokalBot 會自動偵測會議 App，你也可以立即開始錄製。";
+"LokalBot detects meeting apps automatically, or start a recording now. You can also drop an audio or video file here." = "LokalBot 會自動偵測會議 App，你也可以立即開始錄製，或將音訊或影片檔案拖放到這裡。";
 "LokalBot is free and built by one person. A GitHub star helps others find it." = "LokalBot 免費提供，由一人獨立開發。在 GitHub 上給個星星，能幫助更多人發現它。";
 "LokalBot manages this model and rebuilds the local index when it changes." = "LokalBot 會管理此模型，並在模型變更時重建本機索引。";
 "LokalBot never sends this. Copy it into your mail or chat app to send it yourself." = "LokalBot 絕不會傳送此內容。請將它拷貝到你的郵件或聊天 App，自行傳送。";
@@ -658,6 +666,7 @@
 "OpenAI-compatible server" = "相容 OpenAI 的伺服器";
 "Opening Session…" = "正在打開工作階段…";
 "Opens the correct Settings pane and shows a draggable LokalBot app row." = "打開對應的設定面板，並顯示可拖移的 LokalBot App 列。";
+"or record a meeting — it appears in the list automatically." = "或錄製會議，它會自動出現在清單中。";
 "Original Wording" = "原始措辭";
 "Original wording or YYYY-MM-DD" = "原始措辭或 YYYY-MM-DD";
 "Other activity" = "其他活動";
@@ -737,7 +746,6 @@
 "Reconnect" = "重新連線";
 "Record Capture Trace (60 s)" = "記錄擷取追蹤資訊（60 秒）";
 "Record Now" = "立即錄製";
-"Record a meeting — it appears in the list automatically." = "錄製會議後，它會自動出現在清單中。";
 "Record automatically" = "自動錄製";
 "Record now" = "立即錄製";
 "Record your side of each call." = "錄下每次通話中你這一方的聲音。";

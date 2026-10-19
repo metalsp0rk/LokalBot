@@ -315,6 +315,8 @@
 "Downloading…" = "Preuzimanje…";
 "Downloads use the model provider. They do not send your meeting content. Existing downloaded models are kept." = "Preuzimanja koriste provajdera modela. Ne šalju sadržaj vaših sastanaka. Već preuzeti modeli se zadržavaju.";
 "Draft Follow-up…" = "Napiši nacrt naknadne poruke…";
+"Drop an audio or video file to import it." = "Prevucite audio ili video datoteku ovde da biste je uvezli.";
+"Drop to import" = "Otpustite za uvoz";
 "Draft follow-up for latest meeting" = "Napiši nacrt naknadne poruke za poslednji sastanak";
 "Due" = "Rok";
 "Due date as agreed" = "Dogovoreni rok";
@@ -428,6 +430,12 @@
 "Image space recovered" = "Prostor oslobođen uklanjanjem slika";
 "Image zoom" = "Uvećanje slike";
 "Images to remove" = "Slike za uklanjanje";
+"Import" = "Uvezi";
+"Import a recording" = "Uvezi snimak";
+"Import an audio or video recording" = "Uvezi audio ili video snimak";
+"Import Recording" = "Uvezi snimak";
+"Import Recording…" = "Uvezi snimak…";
+"Importing %@…" = "Uvoz datoteke %@…";
 "In progress" = "U toku";
 "Include saved moments" = "Obuhvati sačuvane trenutke";
 "Include the transcript" = "Izvozi i transkript";
@@ -491,7 +499,7 @@
 "Local journal" = "Lokalni dnevnik";
 "Local models process on this Mac. Each remote server requires its own approval before context can leave the Mac." = "Lokalni modeli obrađuju podatke na ovom Mac-u. Svaki udaljeni server zahteva posebno odobrenje pre nego što kontekst može napustiti Mac.";
 "Logs, health reports, settings without secrets, and library counts. Never meeting audio, transcripts, notes, or screenshots." = "Zapisnici, izveštaji o stanju, podešavanja bez tajnih podataka i broj stavki u biblioteci. Nikada zvuk sastanaka, transkripti, beleške ni snimci ekrana.";
-"LokalBot detects meeting apps automatically, or start a recording now." = "LokalBot automatski otkriva aplikacije za sastanke, a snimanje možete pokrenuti i odmah.";
+"LokalBot detects meeting apps automatically, or start a recording now. You can also drop an audio or video file here." = "LokalBot automatski otkriva aplikacije za sastanke, a snimanje možete pokrenuti i odmah. Ovde možete i prevući audio ili video datoteku.";
 "LokalBot is free and built by one person. A GitHub star helps others find it." = "LokalBot je besplatan i pravi ga jedna osoba. Zvezdica na GitHubu pomaže drugima da ga pronađu.";
 "LokalBot manages this model and rebuilds the local index when it changes." = "LokalBot upravlja ovim modelom i ponovo pravi lokalni indeks kada se model promeni.";
 "LokalBot never sends this. Copy it into your mail or chat app to send it yourself." = "LokalBot ovo nikada ne šalje. Kopirajte tekst u aplikaciju za e-poštu ili ćaskanje i sami ga pošaljite.";
@@ -658,6 +666,7 @@
 "OpenAI-compatible server" = "Server kompatibilan sa OpenAI API-jem";
 "Opening Session…" = "Otvaranje sesije…";
 "Opens the correct Settings pane and shows a draggable LokalBot app row." = "Otvara odgovarajući odeljak Sistemskih podešavanja i prikazuje red aplikacije LokalBot koji možete prevući.";
+"or record a meeting — it appears in the list automatically." = "ili snimite sastanak — automatski će se pojaviti na listi.";
 "Original Wording" = "Originalna formulacija";
 "Original wording or YYYY-MM-DD" = "Originalna formulacija ili YYYY-MM-DD";
 "Other activity" = "Ostale aktivnosti";
@@ -737,7 +746,6 @@
 "Reconnect" = "Ponovo poveži";
 "Record Capture Trace (60 s)" = "Snimi trag beleženja (60 s)";
 "Record Now" = "Snimi sada";
-"Record a meeting — it appears in the list automatically." = "Snimite sastanak — automatski će se pojaviti na listi.";
 "Record automatically" = "Snimaj automatski";
 "Record now" = "Snimi sada";
 "Record your side of each call." = "Snima vašu stranu svakog poziva.";
