@@ -227,6 +227,7 @@ enum AttributedTrackTranscriber {
             }
             aligned.append(.init(segment: segment, words: words))
         }
+        await QwenWordAligner.shared.finishBatch()
         return aligned
     }
 
