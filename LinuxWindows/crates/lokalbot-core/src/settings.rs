@@ -125,6 +125,29 @@ pub struct Settings {
     /// Let suggestions use relevant facts from saved meetings. A grant of
     /// its own, off by default, as on macOS.
     pub cotyping_use_meeting_memory: bool,
+
+    // Calendar (macOS `AppSettings` keys). Feed links are secrets and live in
+    // the system credential store, never here.
+    /// Read the user's calendars to confirm meetings and title recordings.
+    /// Off by default: calendar contents are sensitive.
+    pub calendar_detection_enabled: bool,
+    /// Prefer the matched event's title over the app-derived name.
+    pub use_calendar_titles: bool,
+    /// Only auto-record a browser call backed by an active calendar event
+    /// with a meeting link.
+    pub require_calendar_for_browser: bool,
+    /// Read the invitation agenda (notes without joining details) and save
+    /// it with calendar-matched recordings. Off by default.
+    pub use_calendar_agenda: bool,
+    /// Meeting notes may use the calendar title and invited names as
+    /// secondary context.
+    pub meeting_notes_use_calendar_context: bool,
+    /// Linux: also read calendars from Evolution Data Server, which includes
+    /// GNOME Online Accounts. Local; makes no network request of its own.
+    pub calendar_evolution_enabled: bool,
+    /// The user's own addresses, comma-separated, so feeds can tell the user
+    /// from other attendees and skip invitations the user declined.
+    pub calendar_my_email_addresses: String,
 }
 
 impl Default for Settings {
@@ -213,6 +236,14 @@ impl Default for Settings {
             cotyping_excluded_domains: String::new(),
             cotyping_use_visible_context: true,
             cotyping_use_meeting_memory: false,
+
+            calendar_detection_enabled: false,
+            use_calendar_titles: true,
+            require_calendar_for_browser: false,
+            use_calendar_agenda: false,
+            meeting_notes_use_calendar_context: true,
+            calendar_evolution_enabled: true,
+            calendar_my_email_addresses: String::new(),
         }
     }
 }
