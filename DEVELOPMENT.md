@@ -230,11 +230,18 @@ by total speakers (first and second language users) in the 2026 Ethnologue ranki
 ([methodology](https://shop.ethnologue.com/products/2026-ethnologue-200),
 [public ranking table](https://en.wikipedia.org/w/index.php?title=List_of_languages_by_total_number_of_speakers&oldid=1380301586)).
 The ranking counts Nigerian Pidgin and Egyptian Arabic separately, so both have
-full catalogs. Korean (`ko`, 한국어) is also available, bringing the total to 21.
+full catalogs. Korean (`ko`, 한국어), Traditional Chinese (`zh-Hant`, 繁體中文),
+Italian (`it`), and Serbian in Latin script (`sr-Latn`, Srpski (latinica)) are also
+available, bringing the total to 24.
 Egyptian Arabic uses the `ar-EG` catalog when explicitly selected, or when
 Follow System encounters the language code `arz`. System `ar-EG` and other
 `ar-*` preferences mean Arabic with a region and use Modern Standard Arabic.
-Nigerian Pidgin uses `pcm`. Chinese retains Simplified Chinese. Portuguese uses broadly
+Nigerian Pidgin uses `pcm`. Chinese preferences with the Traditional script, or
+with a Taiwan, Hong Kong, or Macau region and no explicit Simplified script, use
+Traditional Chinese with Taiwan terminology; other Chinese preferences use
+Simplified Chinese. Serbian in either script and Montenegrin (`cnr`) use the
+ekavian Latin Serbian catalog; Croatian and Bosnian are separate languages and
+fall back to English. Portuguese uses broadly
 understandable Brazilian terminology for both Brazilian and European locales.
 
 Follow System selects the first supported macOS language preference, including
