@@ -11,27 +11,16 @@ use super::{Section, SettingsPage};
 use crate::state::AppEvent;
 use crate::ui::{Ico, settings_row};
 
-/// Where `InstallCli` puts the command for coding agents.
+/// Where `InstallCli` puts the command for coding agents: the path
+/// `lokalbot-cli install-skill` installs to.
 pub fn cli_install_path() -> PathBuf {
-    if cfg!(target_os = "windows") {
-        directories::BaseDirs::new()
-            .map(|dirs| {
-                dirs.data_local_dir()
-                    .join("LokalBot")
-                    .join("bin")
-                    .join("lokalbot-cli.exe")
-            })
-            .unwrap_or_else(|| PathBuf::from("lokalbot-cli.exe"))
-    } else {
-        directories::BaseDirs::new()
-            .map(|dirs| {
-                dirs.home_dir()
-                    .join(".local")
-                    .join("bin")
-                    .join("lokalbot-cli")
-            })
-            .unwrap_or_else(|| PathBuf::from("lokalbot-cli"))
-    }
+    lokalbot_cli::install::command_path_for_current_user().unwrap_or_else(|| {
+        PathBuf::from(if cfg!(target_os = "windows") {
+            "lokalbot-cli.exe"
+        } else {
+            "lokalbot-cli"
+        })
+    })
 }
 
 /// Commands that connect a coding agent to LokalBot over MCP, each with a

@@ -4303,6 +4303,7 @@ dependencies = [
  "lokalbot-agent",
  "lokalbot-ai",
  "lokalbot-audio",
+ "lokalbot-cli",
  "lokalbot-core",
  "lokalbot-engine",
  "lokalbot-i18n",

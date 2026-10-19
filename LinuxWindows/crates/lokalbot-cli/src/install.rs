@@ -5,8 +5,10 @@
 //! `~/.agents/skills/lokalbot-cli` and `~/.claude/skills/lokalbot-cli`
 //! (copied with `--copy`). Windows: the binary is copied to
 //! `%LOCALAPPDATA%\Programs\LokalBot\bin` and the skill copied into the same
-//! skill folders under `%USERPROFILE%`. Paths this installer does not own are
-//! never replaced.
+//! skill folders under `%USERPROFILE%`. When this binary already sits at the
+//! command path (`packaging/linux/install.sh` copies it there and the app runs
+//! it from there), or an identical copy does, it is left in place and only the
+//! skill is written. Paths this installer does not own are never replaced.
 
 use std::path::{Path, PathBuf};
 
@@ -16,6 +18,30 @@ use anyhow::{Context as _, Result, bail};
 pub const SKILL: &str = include_str!("../../../../.agents/skills/lokalbot-cli/SKILL.md");
 pub const COPY_MARKER: &str = ".lokalbot-skill-copy";
 const PATH_EXPORT_LINE: &str = "export PATH=\"$HOME/.local/bin:$PATH\"";
+
+/// Where `install-skill` puts the command for `home`:
+/// `~/.local/bin/lokalbot-cli` on Linux and
+/// `%LOCALAPPDATA%\Programs\LokalBot\bin\lokalbot-cli.exe` on Windows, outside
+/// the library folder.
+pub fn command_path(home: &Path) -> PathBuf {
+    if cfg!(windows) {
+        std::env::var_os("LOCALAPPDATA")
+            .map(PathBuf::from)
+            .unwrap_or_else(|| home.join("AppData").join("Local"))
+            .join("Programs")
+            .join("LokalBot")
+            .join("bin")
+            .join("lokalbot-cli.exe")
+    } else {
+        home.join(".local").join("bin").join("lokalbot-cli")
+    }
+}
+
+/// [`command_path`] for the current user, which the app shows in Settings and
+/// in its MCP setup commands.
+pub fn command_path_for_current_user() -> Option<PathBuf> {
+    directories::BaseDirs::new().map(|d| command_path(d.home_dir()))
+}
 
 pub struct Installer {
     pub home: PathBuf,
@@ -41,17 +67,7 @@ impl Installer {
     }
 
     pub fn new(home: PathBuf, binary: PathBuf) -> Self {
-        let bin_link = if cfg!(windows) {
-            std::env::var_os("LOCALAPPDATA")
-                .map(PathBuf::from)
-                .unwrap_or_else(|| home.join("AppData").join("Local"))
-                .join("Programs")
-                .join("LokalBot")
-                .join("bin")
-                .join("lokalbot-cli.exe")
-        } else {
-            home.join(".local").join("bin").join("lokalbot-cli")
-        };
+        let bin_link = command_path(&home);
         Self {
             skill_source: home
                 .join(".local")
@@ -107,10 +123,29 @@ impl Installer {
         path.exists() || std::fs::symlink_metadata(path).is_ok()
     }
 
+    /// Whether the command path already runs this binary: it is the same file
+    /// (install.sh's copy that the app runs, or an earlier link to it), or a
+    /// regular file with the same contents. Either way it is left as it is.
+    fn binary_in_place(&self) -> bool {
+        let Ok(installed) = std::fs::canonicalize(&self.bin_link) else {
+            return false;
+        };
+        if std::fs::canonicalize(&self.binary).is_ok_and(|binary| binary == installed) {
+            return true;
+        }
+        std::fs::symlink_metadata(&self.bin_link).is_ok_and(|m| m.file_type().is_file())
+            && same_contents(&self.binary, &self.bin_link).unwrap_or(false)
+    }
+
     fn require_owned_or_missing(&self, path: &Path) -> Result<()> {
         if Self::exists(path) && !self.is_owned(path) {
+            let hint = if path == self.bin_link && cfg!(unix) {
+                " If an older LokalBot install.sh put it there, run install.sh from this version instead."
+            } else {
+                ""
+            };
             bail!(
-                "LokalBot did not replace {} because it is not owned by this installer. Move it to another location before installing.",
+                "LokalBot did not replace {} because it is not owned by this installer. Move it to another location before installing.{hint}",
                 path.display()
             );
         }
@@ -134,8 +169,12 @@ impl Installer {
     }
 
     pub fn install(&self, copy: bool) -> Result<()> {
-        let destinations = [&self.bin_link, &self.skill_link, &self.claude_skill_link];
-        for destination in destinations {
+        let keep_binary = self.binary_in_place();
+        let mut destinations = vec![&self.skill_link, &self.claude_skill_link];
+        if !keep_binary {
+            destinations.insert(0, &self.bin_link);
+        }
+        for destination in &destinations {
             self.require_owned_or_missing(destination)?;
         }
         for destination in destinations {
@@ -149,11 +188,13 @@ impl Installer {
             }
         }
         let link_mode = !copy && cfg!(unix);
-        if cfg!(windows) {
-            std::fs::copy(&self.binary, &self.bin_link)
-                .with_context(|| format!("Could not install at {}", self.bin_link.display()))?;
-        } else {
-            symlink(&self.binary, &self.bin_link)?;
+        if !keep_binary {
+            if cfg!(windows) {
+                std::fs::copy(&self.binary, &self.bin_link)
+                    .with_context(|| format!("Could not install at {}", self.bin_link.display()))?;
+            } else {
+                symlink(&self.binary, &self.bin_link)?;
+            }
         }
         if link_mode {
             std::fs::create_dir_all(&self.skill_source)?;
@@ -215,6 +256,26 @@ impl Installer {
     }
 }
 
+/// Compares two files byte for byte without reading either one whole.
+fn same_contents(a: &Path, b: &Path) -> std::io::Result<bool> {
+    use std::io::Read as _;
+    let (mut a, mut b) = (std::fs::File::open(a)?, std::fs::File::open(b)?);
+    if a.metadata()?.len() != b.metadata()?.len() {
+        return Ok(false);
+    }
+    let (mut left, mut right) = (vec![0u8; 64 * 1024], vec![0u8; 64 * 1024]);
+    loop {
+        let read = a.read(&mut left)?;
+        if read == 0 {
+            return Ok(true);
+        }
+        b.read_exact(&mut right[..read])?;
+        if left[..read] != right[..read] {
+            return Ok(false);
+        }
+    }
+}
+
 #[cfg(unix)]
 fn symlink(target: &Path, link: &Path) -> Result<()> {
     std::os::unix::fs::symlink(target, link)
@@ -228,10 +289,118 @@ fn symlink(target: &Path, link: &Path) -> Result<()> {
     Ok(())
 }
 
-#[cfg(all(test, unix))]
+#[cfg(test)]
 mod tests {
     use super::*;
 
+    /// An installer with every path inside `dir`, so a test never touches the
+    /// real home folder or `%LOCALAPPDATA%`.
+    fn installer_in(dir: &Path, binary: PathBuf) -> Installer {
+        let home = dir.join("home");
+        let mut installer = Installer::new(home.clone(), binary);
+        installer.bin_link = home.join("bin").join(if cfg!(windows) {
+            "lokalbot-cli.exe"
+        } else {
+            "lokalbot-cli"
+        });
+        installer
+    }
+
+    fn write(path: &Path, contents: &[u8]) {
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(path, contents).unwrap();
+    }
+
+    #[test]
+    fn command_path_is_the_one_install_uses() {
+        let home = PathBuf::from("home");
+        let path = command_path(&home);
+        assert_eq!(Installer::new(home.clone(), PathBuf::new()).bin_link, path);
+        if cfg!(windows) {
+            let tail: PathBuf = ["Programs", "LokalBot", "bin", "lokalbot-cli.exe"]
+                .iter()
+                .collect();
+            assert!(path.ends_with(tail), "{}", path.display());
+        } else {
+            assert_eq!(path, home.join(".local").join("bin").join("lokalbot-cli"));
+        }
+    }
+
+    #[test]
+    fn keeps_the_binary_that_already_sits_at_the_command_path() {
+        // install.sh copies lokalbot-cli to the command path and the app runs
+        // that copy with `install-skill`.
+        let dir = tempfile::tempdir().unwrap();
+        let mut installer = installer_in(dir.path(), PathBuf::new());
+        write(&installer.bin_link, b"bin");
+        installer.binary = installer.bin_link.clone();
+        installer.install(false).unwrap();
+        installer.install(false).unwrap();
+        let metadata = std::fs::symlink_metadata(&installer.bin_link).unwrap();
+        assert!(metadata.file_type().is_file());
+        assert_eq!(std::fs::read(&installer.bin_link).unwrap(), b"bin");
+        assert!(installer.skill_link.join("SKILL.md").is_file());
+        assert!(installer.claude_skill_link.join("SKILL.md").is_file());
+        installer.uninstall().unwrap();
+        assert!(!Installer::exists(&installer.skill_link));
+        if cfg!(unix) {
+            // install.sh's copy is left for `install.sh --uninstall`.
+            assert_eq!(std::fs::read(&installer.bin_link).unwrap(), b"bin");
+        }
+    }
+
+    #[test]
+    fn keeps_an_identical_copy_at_the_command_path() {
+        // install.sh's copy while the app runs from the extracted archive.
+        let dir = tempfile::tempdir().unwrap();
+        let binary = dir.path().join("archive").join("lokalbot-cli");
+        write(&binary, b"bin");
+        let installer = installer_in(dir.path(), binary);
+        write(&installer.bin_link, b"bin");
+        installer.install(false).unwrap();
+        let metadata = std::fs::symlink_metadata(&installer.bin_link).unwrap();
+        assert!(metadata.file_type().is_file());
+        assert!(installer.claude_skill_link.join("SKILL.md").is_file());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn refuses_a_different_file_at_the_command_path() {
+        let dir = tempfile::tempdir().unwrap();
+        let binary = dir.path().join("archive").join("lokalbot-cli");
+        write(&binary, b"bin");
+        let installer = installer_in(dir.path(), binary);
+        write(&installer.bin_link, b"mine");
+        let err = installer.install(false).unwrap_err();
+        assert!(
+            err.to_string().contains("not owned by this installer"),
+            "{err}"
+        );
+        assert_eq!(std::fs::read(&installer.bin_link).unwrap(), b"mine");
+        assert!(!Installer::exists(&installer.skill_link));
+        assert!(!Installer::exists(&installer.claude_skill_link));
+    }
+
+    #[test]
+    fn refuses_a_foreign_skill_folder_when_the_binary_is_kept() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut installer = installer_in(dir.path(), PathBuf::new());
+        write(&installer.bin_link, b"bin");
+        installer.binary = installer.bin_link.clone();
+        write(&installer.claude_skill_link.join("SKILL.md"), b"mine");
+        let err = installer.install(false).unwrap_err();
+        assert!(
+            err.to_string().contains("not owned by this installer"),
+            "{err}"
+        );
+        assert_eq!(
+            std::fs::read(installer.claude_skill_link.join("SKILL.md")).unwrap(),
+            b"mine"
+        );
+        assert!(!Installer::exists(&installer.skill_link));
+    }
+
+    #[cfg(unix)]
     #[test]
     fn installs_links_and_refuses_foreign_paths() {
         let dir = tempfile::tempdir().unwrap();
