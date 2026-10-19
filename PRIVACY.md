@@ -346,10 +346,11 @@ The app may make these outbound connections:
   and the Transcribe model check's built-in spoken sample. Each clip carries
   the model id, the language hint, and the transcription vocabulary, including
   names added from your calendar, related meetings, and projects. The server
-  returns text. For a meeting track with several voices, MAI-Transcribe-2 on
-  OpenRouter is also asked when each word was spoken in the clip, and LokalBot
-  matches those words to voices without the word aligner; other servers are
-  asked for text only, and the aligner times their words on this Mac. Speaker
+  returns text. For a meeting track with several voices, MAI-Transcribe-2,
+  Gemini 3.5 Transcribe, and Whisper large-v3 turbo on OpenRouter are also
+  asked when each word was spoken in the clip, and LokalBot matches those words
+  to voices without the word aligner; other servers are asked for text only,
+  and the aligner times their words on this Mac. Speaker
   separation, speech detection, echo cancellation, and voice profiles still run
   on this Mac. A loopback server stays on your Mac.
   Any other origin needs its own approval to receive audio, separate from the

@@ -295,7 +295,12 @@ final class RemoteTranscriptionEngineTests: XCTestCase {
         XCTAssertTrue(engine("https://openrouter.ai/api/v1", "microsoft/mai-transcribe-2").providesWordTimings)
         XCTAssertTrue(engine("https://openrouter.ai/api/v1/audio/transcriptions", " Microsoft/MAI-Transcribe-2 ")
             .providesWordTimings)
+        XCTAssertTrue(engine("https://openrouter.ai/api/v1", "google/gemini-3.5-transcribe").providesWordTimings)
+        XCTAssertTrue(engine("https://openrouter.ai/api/v1", "openai/whisper-large-v3-turbo").providesWordTimings)
+        XCTAssertFalse(engine("https://openrouter.ai/api/v1", "openai/whisper-large-v3").providesWordTimings,
+                       "One of its providers stretches words across pauses")
         XCTAssertFalse(engine("https://openrouter.ai/api/v1", "openai/gpt-4o-mini-transcribe").providesWordTimings)
+        XCTAssertFalse(engine("https://openrouter.ai/api/v1", "microsoft/mai-transcribe-1.5").providesWordTimings)
         XCTAssertFalse(engine("https://api.openai.com/v1", "whisper-1").providesWordTimings)
         XCTAssertFalse(engine("http://127.0.0.1:8080/inference", "microsoft/mai-transcribe-2").providesWordTimings)
 
