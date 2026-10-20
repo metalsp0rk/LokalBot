@@ -14,13 +14,12 @@ with the files and dependencies of the release's own Arch package
   `/usr/share/licenses/lokalbot-bin`.
 
 It provides and conflicts with `lokalbot`, the name of the release's own Arch
-package. Compared with that package, it depends on `libgcc` and `libstdc++`
-(Arch's `gcc-libs` is now a meta package that pulls in every GCC runtime) and
-on `hicolor-icon-theme`, which namcap asks for.
+package. Keep the two packages' `depends` the same.
 
-Like the release packages, it installs into `/usr/bin`, so LokalBot announces
-updates and offers the download instead of replacing its files. Users update
-with `yay -Syu` once the AUR has the new version.
+Like the release packages, it installs into `/usr/bin`, so LokalBot never
+replaces its own files. It finds that `lokalbot-bin` owns them (`pacman -Qo`)
+and, when a new version is out, tells the user to update with `yay -Syu`, which
+picks it up once the AUR has the new version.
 
 ## Checks
 
