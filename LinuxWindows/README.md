@@ -82,9 +82,8 @@ Hyprland has no settings screen for other apps' shortcuts, so bind LokalBot's co
 `~/.config/hypr/bindings.lua` (these keys are free in Omarchy's defaults):
 
 ```lua
--- Hold to dictate; releasing the keys inserts the text where you are typing.
-o.bind_hold("SUPER + ALT + D", "Start LokalBot dictation", "~/.local/bin/lokalbot dictate --start",
-  "Stop LokalBot dictation", "~/.local/bin/lokalbot dictate --stop")
+-- Press to start dictating, press again to insert the text where you are typing.
+o.bind("SUPER + ALT + D", "LokalBot dictation", "~/.local/bin/lokalbot dictate")
 -- Search your memory and ask about it (Quick Recall).
 o.bind("SUPER + ALT + A", "Ask LokalBot", "~/.local/bin/lokalbot quick-recall")
 ```
