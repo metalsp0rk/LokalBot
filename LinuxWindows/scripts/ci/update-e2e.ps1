@@ -100,6 +100,8 @@ try {
 
     # A file the update brings back: extracted folders get their notices refreshed.
     Set-Content -Path (Join-Path $app "THIRD_PARTY_NOTICES.md") -Value "edited by the test"
+    # A license text the installed copy lacks, as when a release adds one.
+    Remove-Item (Join-Path $app "LICENSES\MIT.txt")
 
     $env:LOKALBOT_UPDATE_FEED_URL = "http://127.0.0.1:$port/windows-x86_64.json"
     $env:LOKALBOT_UPDATE_PUBLIC_KEY = $public
@@ -114,7 +116,7 @@ try {
     $expected = Join-Path $Work "expected"
     Expand-Archive -Path $Update -DestinationPath $expected
     $expectedApp = Join-Path $expected "LokalBot-$newVersion-windows-x86_64"
-    foreach ($file in "lokalbot.exe", "lokalbot-cli.exe", "THIRD_PARTY_NOTICES.md") {
+    foreach ($file in "lokalbot.exe", "lokalbot-cli.exe", "THIRD_PARTY_NOTICES.md", "LICENSES\MIT.txt") {
         if ((Get-FileHash (Join-Path $app $file)).Hash -ne (Get-FileHash (Join-Path $expectedApp $file)).Hash) {
             throw "$file was not replaced"
         }

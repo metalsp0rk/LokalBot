@@ -229,7 +229,9 @@ static MODELS: [SpeechModel; 7] = [
         },
         files: &["nemo_en_titanet_small.onnx"],
         summary: "Tells voices apart.",
-        license: "CC-BY-4.0",
+        // NVIDIA's NGC card for titanet_small (the model sherpa-onnx
+        // converted) puts it under the NeMo toolkit's license.
+        license: "Apache-2.0",
         supports_prompt: false,
     },
 ];

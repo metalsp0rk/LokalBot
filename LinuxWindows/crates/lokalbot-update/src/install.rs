@@ -19,6 +19,8 @@ pub const AFTER_UPDATE_ARG: &str = "--after-update";
 /// install.sh's desktop entry and icon name.
 pub const APP_ID: &str = "com.lokalbot.LokalBot";
 const ICON_SIZES: [u32; 8] = [16, 24, 32, 48, 64, 128, 256, 512];
+/// The archive's folder of license texts.
+const LICENSES_DIR: &str = "LICENSES";
 
 pub const APP_BINARY: &str = if cfg!(windows) {
     "lokalbot.exe"
@@ -254,8 +256,10 @@ struct Replacement {
 /// Replaces the installed files with the unpacked update in `staged` (the
 /// archive's `LokalBot-<version>-<platform>` folder): both binaries, the
 /// Windows CLI copy, files the archive folder also holds (licenses, notices,
-/// when LokalBot runs from an extracted archive), then install.sh's desktop
-/// entry and icons. Nothing is replaced unless every file could be staged.
+/// when LokalBot runs from an extracted archive or the installer's folder),
+/// license texts the update adds to that folder's `LICENSES`, then
+/// install.sh's desktop entry and icons. Nothing is replaced unless every
+/// file could be staged.
 pub fn install(
     staged: &Path,
     targets: &Targets,
@@ -326,7 +330,13 @@ fn plan(staged: &Path, targets: &Targets) -> Result<Vec<Replacement>, InstallErr
             continue;
         }
         let target = targets.dir.join(&relative);
-        if fs::symlink_metadata(&target).is_ok_and(|m| m.is_file()) {
+        let present = fs::symlink_metadata(&target).is_ok_and(|m| m.is_file());
+        // A LICENSES folder already in place also gets the license texts the
+        // update adds, so the notices it ships stay complete.
+        let new_license = !present
+            && relative.parent() == Some(Path::new(LICENSES_DIR))
+            && fs::symlink_metadata(targets.dir.join(LICENSES_DIR)).is_ok_and(|m| m.is_dir());
+        if present || new_license {
             pairs.push((staged.join(&relative), target));
         }
     }
@@ -631,6 +641,7 @@ mod tests {
         write(&staged.join(CLI_BINARY), "new cli");
         write(&staged.join("THIRD_PARTY_NOTICES.md"), "new notices");
         write(&staged.join("LICENSES/AGPL-3.0.txt"), "new license");
+        write(&staged.join("LICENSES/MIT.txt"), "added license");
         write(
             &staged.join(format!("{APP_ID}.desktop")),
             "[Desktop Entry]\nName=LokalBot\nExec=lokalbot %U\nIcon=com.lokalbot.LokalBot\n",
@@ -708,6 +719,8 @@ mod tests {
             install(&staged, &targets(&folder), style).unwrap();
             assert_eq!(read(&folder.join("THIRD_PARTY_NOTICES.md")), "new notices");
             assert_eq!(read(&folder.join("LICENSES/AGPL-3.0.txt")), "new license");
+            // A license text new in this release is added beside the others.
+            assert_eq!(read(&folder.join("LICENSES/MIT.txt")), "added license");
             assert_eq!(read(&folder.join("settings-of-the-user.txt")), "kept");
             assert!(!folder.join("icons").exists());
         }

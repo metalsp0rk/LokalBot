@@ -83,3 +83,5 @@ Root: HKCU; Subkey: "Software\Classes\AppUserModelId\{#AppId}"; Flags: dontcreat
 [UninstallDelete]
 ; Old executables an in-place update renamed aside.
 Type: files; Name: "{app}\*.old"
+; License texts an in-place update added.
+Type: filesandordirs; Name: "{app}\LICENSES"
