@@ -20,7 +20,7 @@ final class SampleMeetingTests: XCTestCase {
 
     func testBundledSampleImportsAsTheMarkedSampleDatedNow() async throws {
         let storage = StorageManager(rootURL: try temporaryDirectory("SampleLibrary"))
-        let url = try XCTUnwrap(SampleMeeting.audioURL(for: .english), "the app bundles the sample recording")
+        let url = try XCTUnwrap(SampleMeeting.audioURL(for: SampleMeeting.english), "the app bundles the sample recording")
         let now = Date()
 
         let meeting = try await MeetingImportService.importRecording(
