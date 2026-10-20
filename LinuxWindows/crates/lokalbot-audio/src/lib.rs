@@ -9,10 +9,12 @@
 
 mod capture;
 mod decode;
+mod import;
 mod mic_capture;
 mod player;
 mod recorder;
 mod resample;
+mod splice;
 mod stretch;
 mod system;
 mod track;
@@ -20,7 +22,8 @@ mod wav;
 mod waveform;
 
 pub use capture::{AudioDevice, input_devices};
-pub use decode::{CompressedReader, TrackReader};
+pub use decode::{CompressedReader, TrackReader, audio_track_ids, mp4_creation_time};
+pub use import::{ImportError, ImportedAudio, MIN_IMPORT_SECONDS, import_audio};
 pub use mic_capture::MicCapture;
 pub use player::{MAX_SPEED, MIN_SPEED, Player};
 pub use recorder::{
@@ -28,6 +31,7 @@ pub use recorder::{
     TrackStatus,
 };
 pub use resample::{Resampler, resample};
+pub use splice::{SplicePart, splice_tracks};
 pub use track::{normalized_level, rms};
 pub use wav::{
     SAMPLE_RATE, SampleEncoding, WavInfo, WavReader, WavWriter, duration_seconds, read_info,

@@ -85,6 +85,7 @@ pub fn open(cx: &mut App) {
 }
 
 /// One selectable row.
+#[allow(clippy::large_enum_variant)]
 #[derive(Clone)]
 enum Row {
     Screen {

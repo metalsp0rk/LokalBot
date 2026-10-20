@@ -141,27 +141,31 @@ impl MeetingsPage {
             chips
                 .push(chip(Ico::Video, meeting.app_name.clone(), lb.supporting).into_any_element());
         }
-        if meeting.has_system_track {
-            chips.push(
-                chip(
-                    Ico::Volume2,
-                    lokalbot_i18n::tr("Mic + system").into(),
-                    lb.supporting,
-                )
-                .into_any_element(),
-            );
-        } else {
-            chips.push(
-                chip(Ico::TriangleAlert, lokalbot_i18n::tr("Mic only").into(), lb.attention_text)
-                    .id("mic-only")
-                    .tooltip(|window, cx| {
-                        gpui_kit::component::tooltip::Tooltip::new(
-                            lokalbot_i18n::tr("Only your microphone was recorded. Other participants are captured only if your mic picked them up."),
-                        )
-                        .build(window, cx)
-                    })
+        // An imported file's audio came from neither this PC's microphone nor
+        // its system audio, so neither label applies.
+        if !meeting.is_imported() {
+            if meeting.has_system_track {
+                chips.push(
+                    chip(
+                        Ico::Volume2,
+                        lokalbot_i18n::tr("Mic + system").into(),
+                        lb.supporting,
+                    )
                     .into_any_element(),
-            );
+                );
+            } else {
+                chips.push(
+                    chip(Ico::TriangleAlert, lokalbot_i18n::tr("Mic only").into(), lb.attention_text)
+                        .id("mic-only")
+                        .tooltip(|window, cx| {
+                            gpui_kit::component::tooltip::Tooltip::new(
+                                lokalbot_i18n::tr("Only your microphone was recorded. Other participants are captured only if your mic picked them up."),
+                            )
+                            .build(window, cx)
+                        })
+                        .into_any_element(),
+                );
+            }
         }
         v_flex()
             .gap(px(8.))

@@ -255,6 +255,7 @@ impl Inner {
                 microphone_is_user: settings.microphone_is_user,
                 vocabulary_prompt: Some(settings.transcription_prompt.clone())
                     .filter(|p| !p.trim().is_empty()),
+                content_range: meeting.valid_content_range().map(|r| (r.start, r.end)),
             };
             self.stage(&meeting, Stage::Transcribing, "Transcribing", None);
             let transcript = self
@@ -284,6 +285,17 @@ impl Inner {
                     )
                 })
                 .context("transcription")?;
+            let mut transcript = transcript;
+            if let Some(range) = meeting.valid_content_range() {
+                range.apply(&mut transcript);
+            }
+            if meeting.is_merged_meeting() {
+                transcript = lokalbot_core::merge::preserve_transcript_only_sources(
+                    library.transcript(&meeting)?.as_ref(),
+                    &library.meeting_dir(&meeting),
+                    transcript,
+                )?;
+            }
             library.save_transcript(&meeting, &transcript)?;
             library.mark_transcription_completed(meeting.id)?;
             library.reindex_meeting(&meeting)?;
@@ -329,6 +341,12 @@ impl Inner {
                 &library.meeting_dir(&meeting).join("summary-claims.json"),
                 &notes.claims,
             )?;
+            // Notes match the transcript again (`MeetingAttributionArtifacts`).
+            let _ = std::fs::remove_file(
+                library
+                    .meeting_dir(&meeting)
+                    .join(lokalbot_core::library::REFRESH_MARKER),
+            );
             library.reindex_meeting(&meeting)?;
             if settings.semantic_search_enabled
                 && self

@@ -1396,9 +1396,10 @@ fn bounded(mut text: String) -> String {
     text
 }
 
-/// Projects and goals from the overnight reviews a macOS library carries.
+/// Projects and goals from the overnight reviews a macOS library carries,
+/// without those built from meetings that changed since.
 fn work_memory_items(root: &std::path::Path) -> Vec<memory::Item> {
-    std::fs::read(root.join("memory/memory.json"))
+    lokalbot_core::evidence::read_work_memory(root)
         .map(|bytes| memory::work_memory_items(&bytes))
         .unwrap_or_default()
 }

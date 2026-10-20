@@ -227,7 +227,7 @@ fn work_memory(
     screen_on: bool,
     cutoff_day: Option<&str>,
 ) -> Option<String> {
-    let bytes = std::fs::read(session.paths.root().join("memory/memory.json")).ok()?;
+    let bytes = lokalbot_core::evidence::read_work_memory(session.paths.root())?;
     let memory: WorkMemory = serde_json::from_slice(&bytes).ok()?;
     let allowed = |provenance: &Option<Provenance>, last_day: &str| -> bool {
         let Some(provenance) = provenance else {

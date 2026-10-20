@@ -176,6 +176,8 @@ pub struct AppData {
     pub project_focus: Option<String>,
     pub recording: RecordingState,
     pub processing: HashMap<Uuid, ProcessingStage>,
+    /// File names waiting to be imported, the one in progress first.
+    pub importing: Vec<SharedString>,
     pub background: Vec<BackgroundItem>,
     pub toast: Option<Toast>,
     pub day_memory_paused: bool,
@@ -348,6 +350,7 @@ impl AppData {
             audio_inputs: Vec::new(),
             shortcut_recording: false,
             screen: Default::default(),
+            importing: Vec::new(),
             calendar: Default::default(),
             meeting_preparation: None,
         }
@@ -507,6 +510,125 @@ impl AppData {
                 }
                 this.revision += 1;
                 cx.notify();
+            });
+        })
+        .detach();
+    }
+
+    /// Processing that blocks merging, undoing a merge or new boundaries:
+    /// anything but a failed run.
+    pub fn is_processing(&self, meeting_id: Uuid) -> bool {
+        self.processing
+            .get(&meeting_id)
+            .is_some_and(|stage| !matches!(stage, ProcessingStage::Failed(_)))
+    }
+
+    /// Imports files as meetings one at a time, then queues each for
+    /// transcription and, when on, notes (`AppState.importRecordings`).
+    /// Failures are reported together once the batch ends.
+    pub fn import_recordings(&mut self, paths: Vec<std::path::PathBuf>, cx: &mut Context<Self>) {
+        let files: Vec<_> = paths.into_iter().filter(|p| p.is_file()).collect();
+        if files.is_empty() {
+            return;
+        }
+        self.section = Section::Meetings;
+        let name = |path: &std::path::Path| -> SharedString {
+            path.file_name()
+                .map(|n| n.to_string_lossy().into_owned())
+                .unwrap_or_default()
+                .into()
+        };
+        self.importing.extend(files.iter().map(|p| name(p)));
+        cx.notify();
+        let library = self.library.clone();
+        cx.spawn(async move |this, cx| {
+            let mut failures = Vec::new();
+            for path in files {
+                let label = name(&path);
+                let library = library.clone();
+                let source = path.clone();
+                let result = cx
+                    .background_spawn(async move {
+                        lokalbot_engine::library_ops::import_recording(
+                            &library,
+                            &source,
+                            chrono::Utc::now(),
+                        )
+                    })
+                    .await;
+                let extension = path
+                    .extension()
+                    .map(|e| e.to_string_lossy().to_lowercase())
+                    .unwrap_or_default();
+                let _ = this.update(cx, |this, cx| {
+                    if let Some(at) = this.importing.iter().position(|n| *n == label) {
+                        this.importing.remove(at);
+                    }
+                    match result {
+                        Ok(meeting) => {
+                            log::info!(
+                                "recording imported meeting={} extension={extension}",
+                                meeting.id
+                            );
+                            let summarize = this.settings.auto_summarize;
+                            this.request(
+                                AppEvent::ProcessMeeting {
+                                    meeting_id: meeting.id,
+                                    transcribe: true,
+                                    summarize,
+                                },
+                                cx,
+                            );
+                            this.reload(cx);
+                            this.open_meeting(meeting.id, MeetingTab::Summary, None, cx);
+                        }
+                        Err(failure) => {
+                            // The message names the file; keep file names out of the log.
+                            log::warn!("recording import failed extension={extension}");
+                            failures.push(failure.localized(&label));
+                        }
+                    }
+                    cx.notify();
+                });
+            }
+            if !failures.is_empty() {
+                let _ = this.update(cx, |this, cx| this.show_error(failures.join("\n"), cx));
+            }
+        })
+        .detach();
+    }
+
+    /// Removes a merged meeting and restores its sources (`AppState.undoMerge`).
+    pub fn undo_merge(&mut self, meeting_id: Uuid, cx: &mut Context<Self>) {
+        let Some(merged) = self.meeting(meeting_id).cloned() else {
+            return;
+        };
+        if self.is_processing(meeting_id) {
+            self.show_error(
+                lokalbot_i18n::tr(
+                    "Wait for the merged summary to finish before undoing the merge.",
+                ),
+                cx,
+            );
+            return;
+        }
+        let library = self.library.clone();
+        cx.spawn(async move |this, cx| {
+            let result = cx
+                .background_spawn(async move {
+                    lokalbot_engine::library_ops::undo_merge(&library, &merged)
+                })
+                .await;
+            let _ = this.update(cx, |this, cx| {
+                match result {
+                    Ok(restored) => {
+                        if let Some(first) = restored.first() {
+                            this.open_meeting(first.id, MeetingTab::Summary, None, cx);
+                        }
+                    }
+                    Err(err) => this.show_error(err.localized(), cx),
+                }
+                this.reload(cx);
             });
         })
         .detach();

@@ -9,6 +9,7 @@ rust-version.workspace = true
 
 [dependencies]
 lokalbot-core.workspace = true
+lokalbot-i18n.workspace = true
 lokalbot-ai.workspace = true
 lokalbot-audio.workspace = true
 lokalbot-speech.workspace = true

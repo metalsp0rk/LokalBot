@@ -816,6 +816,9 @@ platform differences:
   keys, the ChatGPT plan sign-in, and the screen-image key are kept in the
   system credential store (Secret Service on Linux, Windows Credential
   Manager).
+- **Imported recordings** are read without being changed or moved, as on
+  macOS, but their audio is kept as a 16 kHz WAV copy rather than AAC. Merged
+  meetings also keep WAV tracks. A Mac reads these tracks too.
 - **Screen context** is off until you turn it on.
   - Visible text is read through accessibility first (AT-SPI on Linux, UI
     Automation on Windows). Otherwise on-device OCR is used; its model
