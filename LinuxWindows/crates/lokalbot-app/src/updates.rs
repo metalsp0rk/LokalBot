@@ -9,8 +9,10 @@
 //! (size, SHA-256, Ed25519 signature) before unpacking, swaps the files,
 //! stops the llama.cpp servers, starts the new copy and quits; Agent Mode
 //! stops its processes as LokalBot quits. When this copy cannot replace its
-//! own files (a package, `/opt`, Program Files, a source build), the update
-//! is offered as a download from GitHub instead.
+//! own files (`/opt`, Program Files, a source build), the update is offered
+//! as a download from GitHub instead. A copy a package manager installed is
+//! told to update through it: the AUR's `lokalbot-bin` with `yay -Syu`, the
+//! release's own .deb, .rpm and Arch packages by installing the new package.
 
 use std::ffi::OsString;
 use std::sync::Arc;
@@ -18,7 +20,8 @@ use std::sync::atomic::AtomicBool;
 use std::time::{Duration, Instant};
 
 use gpui_kit::{App, AppContext as _, Context, Entity, Global, SharedString};
-use lokalbot_update::install::{self, Installation};
+use lokalbot_update::install::{self, Installation, Placement};
+use lokalbot_update::package::{self, Package};
 use lokalbot_update::{Check, Release, UpdateError, Updater, Version};
 
 use crate::state::{AppData, RecordingState};
@@ -62,6 +65,19 @@ pub enum Status {
     },
 }
 
+/// How the update on offer reaches this copy.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Route {
+    /// Install and Relaunch replaces this copy.
+    Install,
+    /// The release page: a copy that cannot replace itself, or the
+    /// release's own package, which has no repository to update from.
+    Download,
+    /// A package manager updates this copy from a repository (the AUR's
+    /// `lokalbot-bin`, a distribution's package).
+    PackageManager,
+}
+
 impl Status {
     /// The release on offer, in any state that has one.
     pub fn release(&self) -> Option<&Release> {
@@ -86,6 +102,9 @@ pub struct Updates {
     data: Entity<AppData>,
     updater: Option<Arc<Updater>>,
     installation: Option<Installation>,
+    /// The package that installed this copy, looked up with the first check
+    /// (the inner `None`: no package lists it).
+    package: Option<Option<Package>>,
     pub status: Status,
     next_check: Instant,
     /// The newest version a notification already announced.
@@ -140,6 +159,7 @@ pub fn start(data: &Entity<AppData>, cx: &mut App) {
         },
         updater,
         installation,
+        package: None,
         next_check: Instant::now() + FIRST_CHECK_DELAY,
         announced: None,
         install_when_found: false,
@@ -172,6 +192,16 @@ impl Updates {
                 .is_some_and(Installation::can_replace)
     }
 
+    /// Install and Relaunch, the download, or the package manager.
+    pub fn route(&self, release: &Release) -> Route {
+        route(self.can_install(release), self.package())
+    }
+
+    /// The package that installed this copy, once the first check looked.
+    pub fn package(&self) -> Option<&Package> {
+        self.package.as_ref().and_then(Option::as_ref)
+    }
+
     pub fn install_dir(&self) -> Option<String> {
         self.installation
             .as_ref()
@@ -200,9 +230,27 @@ impl Updates {
         let previous = self.status.clone();
         self.status = Status::Checking;
         cx.notify();
+        // Only a copy that cannot replace itself needs to know its package.
+        let executable = match (&self.package, &self.installation) {
+            (None, Some(installation)) if installation.placement == Placement::Managed => {
+                Some(installation.dir.join(install::APP_BINARY))
+            }
+            _ => None,
+        };
         cx.spawn(async move |this, cx| {
-            let result = cx.background_spawn(async move { updater.check() }).await;
-            let _ = this.update(cx, |this, cx| this.checked(result, previous, manual, cx));
+            let (result, package) = cx
+                .background_spawn(async move {
+                    let package = executable.map(|exe| package::owner(&exe));
+                    (updater.check(), package)
+                })
+                .await;
+            let _ = this.update(cx, |this, cx| {
+                if let Some(package) = package {
+                    log::info!("updates: installed by package {package:?}");
+                    this.package = Some(package);
+                }
+                this.checked(result, previous, manual, cx)
+            });
         })
         .detach();
     }
@@ -233,9 +281,9 @@ impl Updates {
             }
             Ok(Check::Newer(release)) => {
                 log::info!(
-                    "updates: LokalBot {} is available (installable here: {})",
+                    "updates: LokalBot {} is available ({:?} here)",
                     release.version,
-                    self.can_install(&release)
+                    self.route(&release)
                 );
                 Status::Available(*release)
             }
@@ -264,7 +312,14 @@ impl Updates {
         }
         if !manual && self.announced.is_none_or(|v| v < release.version) {
             self.announced = Some(release.version);
-            crate::desktop::notify_update_available(release.version.to_string(), cx);
+            let body = match self.route(&release) {
+                Route::Install => {
+                    lokalbot_i18n::tr("Choose Install and Relaunch in Settings or the tray menu.")
+                        .into()
+                }
+                _ => offer_text(self, &release),
+            };
+            crate::desktop::notify_update_available(release.version.to_string(), body, cx);
         }
     }
 
@@ -294,9 +349,17 @@ impl Updates {
         if self.status.busy() {
             return;
         }
-        if !self.can_install(&release) {
-            self.open_release_page(cx);
-            return;
+        match self.route(&release) {
+            Route::Install => {}
+            Route::Download => {
+                self.open_release_page(cx);
+                return;
+            }
+            Route::PackageManager => {
+                let text = offer_text(self, &release);
+                self.data.update(cx, |data, cx| data.show_message(text, cx));
+                return;
+            }
         }
         let recording = matches!(
             self.data.read(cx).recording,
@@ -530,19 +593,137 @@ pub fn offer_text(updates: &Updates, release: &Release) -> SharedString {
             &[("err", message.to_string())],
         )
         .into(),
+        _ => advice(updates.route(release), updates.package(), release, dir).into(),
+    }
+}
+
+fn route(can_install: bool, package: Option<&Package>) -> Route {
+    if can_install {
+        Route::Install
+    } else if package.is_some_and(|p| !p.from_release()) {
+        Route::PackageManager
+    } else {
+        Route::Download
+    }
+}
+
+/// [`offer_text`] while nothing is downloading or installing.
+fn advice(route: Route, package: Option<&Package>, release: &Release, dir: String) -> String {
+    match (route, package) {
+        (Route::Install, _) => lokalbot_i18n::format(
+            "Installing replaces LokalBot in {dir} and relaunches it.",
+            &[("dir", dir)],
+        ),
+        (Route::PackageManager, Some(package)) => lokalbot_i18n::format(
+            "Update LokalBot with your package manager, for example {command}.",
+            &[("command", package.update_command().to_string())],
+        ),
+        // The release's own package.
+        (_, Some(package)) => lokalbot_i18n::format(
+            "Download the new package and install it with {command}.",
+            &[("command", package.install_command(release.version))],
+        ),
         _ if !release.installable => lokalbot_i18n::tr(
             "This version is too old to update itself. Download the new version from GitHub.",
         )
-        .into(),
-        _ if !updates.can_install(release) => lokalbot_i18n::format(
+        .to_string(),
+        _ => lokalbot_i18n::format(
             "LokalBot can't replace itself in {dir}. Download the new version from GitHub instead.",
             &[("dir", dir)],
-        )
-        .into(),
-        _ => lokalbot_i18n::format(
-            "Installing replaces LokalBot in {dir} and relaunches it.",
-            &[("dir", dir)],
-        )
-        .into(),
+        ),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use lokalbot_update::package::Manager;
+
+    fn release(installable: bool) -> Release {
+        Release {
+            feed: lokalbot_update::Feed {
+                platform: "linux-x86_64".into(),
+                version: "0.11.1".into(),
+                minimum_version: "0.11.0".into(),
+                url: "https://github.com/stevyhacker/lokalbot/releases/download/v0.11.1/LokalBot-0.11.1-linux-x86_64.tar.gz".into(),
+                size: 1,
+                sha256: "0".repeat(64),
+                signature: String::new(),
+                release_notes_url: "https://github.com/stevyhacker/lokalbot/releases/tag/v0.11.1"
+                    .into(),
+            },
+            version: Version::new(0, 11, 1),
+            installable,
+        }
+    }
+
+    fn package(manager: Manager, name: &str) -> Package {
+        Package {
+            manager,
+            name: name.into(),
+        }
+    }
+
+    /// What a copy that cannot replace itself is told.
+    fn offered(package: Option<&Package>, installable: bool) -> (Route, String) {
+        let release = release(installable);
+        let route = route(false, package);
+        (route, advice(route, package, &release, "/usr/bin".into()))
+    }
+
+    #[test]
+    fn package_manager_copies_are_told_to_update_through_it() {
+        let aur = package(Manager::Pacman, "lokalbot-bin");
+        assert_eq!(
+            offered(Some(&aur), true),
+            (
+                Route::PackageManager,
+                "Update LokalBot with your package manager, for example yay -Syu.".into()
+            )
+        );
+        // Even when the copy is too old to update itself.
+        assert_eq!(offered(Some(&aur), false).0, Route::PackageManager);
+        let debian = package(Manager::Dpkg, "lokalbot-desktop");
+        assert_eq!(
+            offered(Some(&debian), true).1,
+            "Update LokalBot with your package manager, for example sudo apt upgrade."
+        );
+    }
+
+    #[test]
+    fn release_packages_are_told_to_install_the_new_package() {
+        let deb = package(Manager::Dpkg, "lokalbot");
+        assert_eq!(
+            offered(Some(&deb), true),
+            (
+                Route::Download,
+                "Download the new package and install it with \
+                 sudo apt install ./LokalBot-0.11.1-linux-amd64.deb."
+                    .into()
+            )
+        );
+        let arch = package(Manager::Pacman, "lokalbot");
+        assert_eq!(
+            offered(Some(&arch), false).1,
+            "Download the new package and install it with \
+             sudo pacman -U ./LokalBot-0.11.1-linux-x86_64.pkg.tar.zst."
+        );
+    }
+
+    #[test]
+    fn other_copies_keep_the_download_and_installable_ones_install() {
+        assert_eq!(
+            offered(None, true),
+            (
+                Route::Download,
+                "LokalBot can't replace itself in /usr/bin. Download the new version from GitHub instead."
+                    .into()
+            )
+        );
+        assert_eq!(route(true, None), Route::Install);
+        assert_eq!(
+            route(true, Some(&package(Manager::Pacman, "lokalbot-bin"))),
+            Route::Install
+        );
     }
 }

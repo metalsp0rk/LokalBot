@@ -47,4 +47,4 @@ pub use shortcuts::{
     GlobalShortcuts, Key, Shortcut, ShortcutError, ShortcutEvent, ShortcutParseError,
     ShortcutProblem,
 };
-pub use tray::{Tray, TrayEvent, TrayItem, TrayMenuState, TrayUpdate};
+pub use tray::{Tray, TrayEvent, TrayItem, TrayMenuState, TrayUpdate, TrayUpdateAction};
