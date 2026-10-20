@@ -2470,6 +2470,9 @@ struct EvidencePill: View {
 struct WorkspaceSection<Content: View>: View {
     let title: String
     let icon: String
+    /// App copy looks the title up in the interface catalog. Titles that
+    /// carry names or other content stay verbatim.
+    var localizesTitle = false
     var searchQuery = ""
     var activeMatchIndex: Int?
     var searchLocation: MeetingPageSearchMatch.Location?
@@ -2484,6 +2487,8 @@ struct WorkspaceSection<Content: View>: View {
                         query: searchQuery,
                         activeMatchIndex: activeMatchIndex)
                     .id(searchLocation)
+                } else if localizesTitle {
+                    Text(LocalizedStringKey(title))
                 } else {
                     Text(title)
                 }
