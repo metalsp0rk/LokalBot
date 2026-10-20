@@ -6,6 +6,9 @@ the terminal. The person still makes the choices that need them, in LokalBot:
 they allow access, approve changes to what LokalBot captures or shares, and
 grant macOS permissions.
 
+The journey below is for the Mac app. The Windows and Linux app (alpha) has no
+agent-driven setup yet; see [Windows and Linux](#windows-and-linux-alpha).
+
 ## Rules
 
 - **Install safely.** Install with Homebrew or the notarized DMG. Never remove
@@ -85,3 +88,27 @@ means the person has not allowed access yet; run `setup start`.
 - [The bundled skill](.agents/skills/lokalbot-cli/SKILL.md) covers everyday use
   after setup.
 - [PRIVACY.md](PRIVACY.md) explains what each access grants.
+
+## Windows and Linux (alpha)
+
+The Windows and Linux CLI has the read-only commands and the MCP server, but not
+`setup`, `config`, `secret`, `models`, `permissions`, `status`, `doctor`, `restart`, or
+`open`. The person sets LokalBot up in the app, and you help:
+
+1. **Install.** From the [latest release](https://github.com/stevyhacker/lokalbot/releases/latest),
+   take `LokalBot-<version>-linux-x86_64.tar.gz`, extract it, and run `./install.sh`
+   (Linux; the `.deb`, `.rpm` and Arch packages need the person's `sudo`), or have the person run `LokalBot-<version>-windows-x86_64-setup.exe`, which installs for
+   their user without administrator rights (Windows; a portable zip is there too). The Windows build isn't code-signed yet, so
+   SmartScreen asks first; the person confirms it. Never unblock the file or turn
+   SmartScreen off for them.
+2. **Onboarding.** The person chooses what LokalBot remembers and which models to
+   download, in the app.
+3. **Access.** If the person wants you to read their library, they turn on "Allow
+   external agents to read your meeting library" in Settings → Privacy & Data, and
+   screen memory separately. Never create LokalBot's `control/` files yourself.
+4. **CLI and skill.** Run `lokalbot-cli install-skill`, or have the person click
+   **Install for your coding agent…** in Settings → Advanced → Agent CLI. The CLI goes
+   to `~/.local/bin` on Linux and `%LOCALAPPDATA%\Programs\LokalBot\bin` on Windows;
+   [the Windows and Linux README](LinuxWindows/README.md#coding-agents) shows how to add
+   it to PATH.
+5. **Check.** `lokalbot-cli brief` shows which sources are on.

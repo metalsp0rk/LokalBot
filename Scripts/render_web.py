@@ -26,7 +26,7 @@ from datetime import date
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from comparison_pages import PAGES, VERIFIED  # noqa: E402
+from comparison_pages import LOKALBOT_UPDATED, PAGES, VERIFIED  # noqa: E402
 from guide_pages import GUIDES, GUIDES_INDEX, REFERENCES  # noqa: E402
 
 TOKEN_OPEN = "{{"
@@ -50,11 +50,11 @@ ORGANIZATION = {
 # Hand-written pages outside the generator, with the date each last changed.
 # Bump a date when you edit that page so the sitemap's lastmod stays honest.
 STATIC_PAGES = {
-    "": "2026-10-19",
-    "privacy": "2026-10-18",
-    "terms": "2026-10-14",
-    "support": "2026-10-14",
-    "enshittification-proof": "2026-10-14",
+    "": "2026-10-20",
+    "privacy": "2026-10-20",
+    "terms": "2026-10-20",
+    "support": "2026-10-20",
+    "enshittification-proof": "2026-10-20",
 }
 
 
@@ -188,6 +188,12 @@ def verified(page: dict) -> str:
     return page.get("verified", VERIFIED)
 
 
+def modified(page: dict) -> str:
+    """When anything on this page last changed: its competitor details or LokalBot's own facts."""
+
+    return max(verified(page), LOKALBOT_UPDATED)
+
+
 def guide_by_slug(slug: str) -> dict:
     try:
         return next(guide for guide in GUIDES if guide["slug"] == slug)
@@ -272,7 +278,7 @@ def comparison_structured_data(page: dict) -> str:
                 "headline": page["h1"],
                 "description": page["description"],
                 "datePublished": page["published"],
-                "dateModified": verified(page),
+                "dateModified": modified(page),
                 "mainEntityOfPage": url,
                 "image": OG_IMAGE,
                 "author": ORGANIZATION,
@@ -284,7 +290,7 @@ def comparison_structured_data(page: dict) -> str:
                         "name": "LokalBot",
                         "url": f"{SITE}/",
                         "applicationCategory": "BusinessApplication",
-                        "operatingSystem": "macOS 15+",
+                        "operatingSystem": "macOS 15+, Windows 10+, Linux",
                     },
                     {"@type": "SoftwareApplication", "name": page["competitor_name"]},
                 ],
@@ -297,7 +303,7 @@ def comparison_structured_data(page: dict) -> str:
 
 def guides_index_updated() -> str:
     return max(
-        [verified(page) for page in PAGES]
+        [modified(page) for page in PAGES]
         + [guide.get("updated", GUIDES_PUBLISHED) for guide in GUIDES]
         + [reference["updated"] for reference in REFERENCES]
     )
@@ -382,7 +388,7 @@ def render_sitemap() -> str:
         *((guide["slug"], guide.get("updated", GUIDES_PUBLISHED)) for guide in GUIDES),
         *((reference["slug"], reference["updated"]) for reference in REFERENCES),
         *((path, updated) for path, updated in STATIC_PAGES.items() if path),
-        *((page["slug"], verified(page)) for page in PAGES),
+        *((page["slug"], modified(page)) for page in PAGES),
     ]
     entries = [
         "  <url>\n"
