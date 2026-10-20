@@ -13,6 +13,7 @@
 
 pub mod anthropic;
 pub mod ask;
+pub mod ask_agent;
 pub mod autocomplete;
 pub mod catalog;
 pub mod dictation;

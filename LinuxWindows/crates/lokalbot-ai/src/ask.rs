@@ -36,6 +36,8 @@ pub struct AskScope {
     pub until: Option<DateTime<Utc>>,
     pub include_meetings: bool,
     pub include_screen: bool,
+    /// Time spent in apps (the tool loop's `activity_summary`).
+    pub include_activity: bool,
 }
 
 impl Default for AskScope {
@@ -46,6 +48,7 @@ impl Default for AskScope {
             until: None,
             include_meetings: true,
             include_screen: false,
+            include_activity: false,
         }
     }
 }
@@ -55,6 +58,9 @@ impl Default for AskScope {
 pub enum AskEvent {
     /// Visible answer text as it streams.
     Delta(String),
+    /// The whole visible answer so far, replacing earlier text (the tool loop
+    /// re-checks citations as it streams, so text can change).
+    Answer(String),
     /// A finished step: "searched meetings for “X”", "read “Title”".
     Activity(String),
     /// What is happening now: "Searching…", "Writing the answer…".
@@ -62,7 +68,8 @@ pub enum AskEvent {
 }
 
 pub const NOT_FOUND: &str = prompts::ASK_NOT_FOUND;
-const NO_ANSWER: &str = "I couldn't find enough information in your meetings to answer that.";
+pub(crate) const NO_ANSWER: &str =
+    "I couldn't find enough information in your meetings to answer that.";
 const MAX_MEETINGS: usize = 4;
 const MAX_MOMENTS_PER_MEETING: usize = 6;
 const MAX_SCREENS: usize = 5;
@@ -82,23 +89,45 @@ fn marker_time(seconds: f64) -> String {
     )
 }
 
-fn meeting_marker(id: &Uuid, at: Option<f64>) -> String {
+pub(crate) fn meeting_marker(id: &Uuid, at: Option<f64>) -> String {
     match at {
         Some(at) => format!("[meeting:{}@{}]", ids::uuid_upper(id), marker_time(at)),
         None => format!("[meeting:{}]", ids::uuid_upper(id)),
     }
 }
 
-/// The sources one answer was given: meeting moments and screen moments.
-#[derive(Default)]
-struct Sources {
-    text: String,
-    meetings: Vec<(Uuid, String)>,
+/// The sources one answer was given: meeting moments and screen moments
+/// (`ChatEvidence`). Only these may be cited.
+#[derive(Clone, Default)]
+pub(crate) struct Sources {
+    pub(crate) text: String,
+    pub(crate) meetings: Vec<(Uuid, String)>,
     /// Whole seconds of every moment marker handed to the model, per meeting.
-    moments: HashMap<Uuid, BTreeSet<u64>>,
-    screens: BTreeSet<i64>,
+    pub(crate) moments: HashMap<Uuid, BTreeSet<u64>>,
+    pub(crate) screens: BTreeSet<i64>,
     /// Source labels ("M1", "S2") and the markers they stand for.
-    labels: HashMap<String, String>,
+    pub(crate) labels: HashMap<String, String>,
+}
+
+impl Sources {
+    pub(crate) fn add_meeting(&mut self, id: Uuid, title: &str, at: Option<f64>) {
+        if !self.meetings.iter().any(|(m, _)| *m == id) {
+            self.meetings.push((id, title.to_string()));
+        }
+        if let Some(at) = at.filter(|a| a.is_finite() && *a >= 0.0) {
+            self.moments.entry(id).or_default().insert(at as u64);
+        }
+    }
+
+    pub(crate) fn merge(&mut self, other: &Sources) {
+        for (id, title) in &other.meetings {
+            self.add_meeting(*id, title, None);
+        }
+        for (id, seconds) in &other.moments {
+            self.moments.entry(*id).or_default().extend(seconds);
+        }
+        self.screens.extend(&other.screens);
+    }
 }
 
 fn summary_excerpt(summary: &str) -> String {
@@ -424,6 +453,36 @@ static LABEL: LazyLock<Regex> = LazyLock::new(|| {
 
 /// Small models often cite a source by its label ("[M1]", "[M1@00:00:43]")
 /// rather than its marker; turns labels into the markers they stand for.
+/// `[meetings:A, B]` or `[meeting:A; B@00:01:10]`: several meetings in one
+/// marker, which small models write despite the prompt.
+static GROUPED: LazyLock<Regex> = LazyLock::new(|| {
+    let one = r"(?:meeting:)?[A-Za-z0-9_-]{1,64}(?:@\d{1,2}(?::\d{2}){1,2})?";
+    Regex::new(&format!(
+        r"\[meetings?:\s*({one}(?:\s*[,;]\s*{one})+|{one})\]"
+    ))
+    .expect("valid regex")
+});
+
+/// Splits grouped meeting markers into one `[meeting:…]` per meeting, so each
+/// is verified on its own.
+fn split_grouped(text: &str) -> String {
+    GROUPED
+        .replace_all(text, |caps: &regex::Captures| {
+            caps[1]
+                .split([',', ';'])
+                .map(|part| {
+                    let part = part.trim();
+                    format!(
+                        "[meeting:{}]",
+                        part.strip_prefix("meeting:").unwrap_or(part)
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join(" ")
+        })
+        .into_owned()
+}
+
 fn expand_labels(text: &str, sources: &Sources) -> String {
     LABEL
         .replace_all(text, |caps: &regex::Captures| {
@@ -448,10 +507,30 @@ fn expand_labels(text: &str, sources: &Sources) -> String {
         .into_owned()
 }
 
+/// `verified` for a partial answer: a marker still being written is held
+/// back rather than shown and then retracted.
+pub(crate) fn verified_partial(text: &str, sources: &Sources) -> String {
+    let mut text = text;
+    if let Some(bracket) = text.rfind('[')
+        && !text[bracket..].contains(']')
+    {
+        let suffix = &text[bracket..];
+        if "[meetings:".starts_with(suffix)
+            || "[screen:".starts_with(suffix)
+            || suffix.starts_with("[meeting:")
+            || suffix.starts_with("[meetings:")
+            || suffix.starts_with("[screen:")
+        {
+            text = &text[..bracket];
+        }
+    }
+    verified(text, sources)
+}
+
 /// Rewrites markers to the canonical `[meeting:<UUID>@HH:MM:SS]` form, keeping
 /// only those the answer was given (`ChatEvidence`).
-fn verified(text: &str, sources: &Sources) -> String {
-    let text = expand_labels(text, sources);
+pub(crate) fn verified(text: &str, sources: &Sources) -> String {
+    let text = expand_labels(&split_grouped(text), sources);
     CITATION
         .replace_all(&text, |caps: &regex::Captures| {
             let id = &caps[2];
@@ -514,7 +593,7 @@ fn history_block(history: &[ChatMessage]) -> String {
     lines.join("\n")
 }
 
-fn assistant(text: String, activity: Vec<ChatActivity>) -> ChatMessage {
+pub(crate) fn assistant(text: String, activity: Vec<ChatActivity>) -> ChatMessage {
     ChatMessage {
         id: Uuid::new_v4(),
         role: ChatRole::Assistant,
@@ -585,7 +664,7 @@ pub fn answer(
 }
 
 /// The IANA zone name when the environment names one, else the UTC offset.
-fn time_zone_name() -> String {
+pub(crate) fn time_zone_name() -> String {
     if let Ok(zone) = std::env::var("TZ")
         && !zone.trim().is_empty()
     {
@@ -973,6 +1052,27 @@ mod tests {
                 "Friday [meeting:{marker}]. The demo [meeting:{marker}@00:00:43]. Both [meeting:{marker}] [screen:7]. Other (source not verified)."
             )
         );
+    }
+
+    #[test]
+    fn grouped_meeting_markers_are_verified_one_by_one() {
+        let first = Uuid::parse_str("00000024-0000-4000-8000-000000000024").unwrap();
+        let second = Uuid::parse_str("00000026-0000-4000-8000-000000000026").unwrap();
+        let mut sources = Sources::default();
+        sources.meetings.push((first, "Client call".into()));
+        sources.meetings.push((second, "Delivery check".into()));
+        sources.moments.entry(second).or_default().insert(70);
+        let (a, b) = (ids::uuid_upper(&first), ids::uuid_upper(&second));
+        assert_eq!(
+            verified(
+                "Cut [meetings:00000024, 00000026]. Mix [meeting:00000026@00:01:10; 99999999].",
+                &sources
+            ),
+            format!(
+                "Cut [meeting:{a}] [meeting:{b}]. Mix [meeting:{b}@00:01:10] (source not verified)."
+            )
+        );
+        assert_eq!(verified_partial("Cut [meetings:0000", &sources), "Cut ");
     }
 
     #[test]

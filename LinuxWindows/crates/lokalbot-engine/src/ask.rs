@@ -201,26 +201,43 @@ fn answer(
         until: scope.until,
         include_meetings: scope.include_meetings,
         include_screen: scope.include_screen,
+        include_activity: scope.include_activity,
     };
-    let reply = lokalbot_ai::ask::answer(
-        &think,
-        library,
-        question,
-        &history,
-        &scope,
-        cancel,
-        &mut |event| {
-            match event {
-                AskEvent::Delta(delta) => text.push_str(&delta),
-                AskEvent::Activity(step) => activity.push(step),
-                AskEvent::Status(status) => progress(&text, &activity, Some(status)),
-            }
-            if last_emit.elapsed() > Duration::from_millis(60) {
-                last_emit = Instant::now();
-                progress(&text, &activity, None);
-            }
-        },
-    )?;
+    let mut on_event = |event| {
+        match event {
+            AskEvent::Delta(delta) => text.push_str(&delta),
+            AskEvent::Answer(answer) => text = answer,
+            AskEvent::Activity(step) => activity.push(step),
+            AskEvent::Status(status) => progress(&text, &activity, Some(status)),
+        }
+        if last_emit.elapsed() > Duration::from_millis(60) {
+            last_emit = Instant::now();
+            progress(&text, &activity, None);
+        }
+    };
+    // Each tool call is a model call: a CPU-only or small-window model
+    // answers in one retrieve-first turn instead.
+    let reply = if lokalbot_ai::ask_agent::uses_tool_loop(&think) {
+        lokalbot_ai::ask_agent::answer_with_tools(
+            &think,
+            library,
+            question,
+            &history,
+            &scope,
+            cancel,
+            &mut on_event,
+        )?
+    } else {
+        lokalbot_ai::ask::answer(
+            &think,
+            library,
+            question,
+            &history,
+            &scope,
+            cancel,
+            &mut on_event,
+        )?
+    };
 
     conversation.messages.push(ChatMessage {
         id: Uuid::new_v4(),
