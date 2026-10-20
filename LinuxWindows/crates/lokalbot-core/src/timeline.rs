@@ -1,6 +1,7 @@
 //! Day memory reads and writes: activity blocks, screen moments, work
-//! sessions (`TimelineWorkSession.swift`) and the per-day projection Today
-//! and Timeline share (`DayActivityProjection.swift`).
+//! sessions and Timeline's session rail (`TimelineWorkSession.swift`), and
+//! the per-day projection Today and Timeline share
+//! (`DayActivityProjection.swift`).
 
 use std::collections::{HashMap, HashSet};
 
@@ -286,17 +287,19 @@ fn make_session(group: &[&Titled]) -> Option<WorkSession> {
         .filter(|(_, _, duration)| *duration >= active * 0.2)
         .map(|(title, _, _)| title.as_str())
         .collect();
+    // Apps glanced at for seconds (a password prompt, a notification) stay in
+    // `apps` but don't inflate the title's count.
+    let used_apps: Vec<&str> = apps
+        .iter()
+        .copied()
+        .filter(|app| app_durations[app] >= 60.0)
+        .collect();
     let title = if representative.is_empty() {
-        let mut label = apps
-            .iter()
-            .take(2)
-            .copied()
-            .collect::<Vec<_>>()
-            .join(" and ");
-        if apps.len() > 2 {
-            label.push_str(" and more");
-        }
-        label
+        app_summary(if used_apps.is_empty() {
+            &apps
+        } else {
+            &used_apps
+        })
     } else {
         representative
             .iter()
@@ -319,6 +322,7 @@ fn make_session(group: &[&Titled]) -> Option<WorkSession> {
     Some(WorkSession {
         id: format!("work-{}", first.id),
         title,
+        title_names_apps: representative.is_empty(),
         start: first.start,
         end,
         active_seconds: active,
@@ -331,6 +335,59 @@ fn make_session(group: &[&Titled]) -> Option<WorkSession> {
         context_switch_count: switches,
         meeting_id: None,
     })
+}
+
+/// "Claude", "Claude, Firefox" or "Claude, Firefox +2": the two busiest
+/// apps, then how many more (`TimelineWorkSession.appSummary`).
+pub fn app_summary(apps: &[impl AsRef<str>]) -> String {
+    let named = apps
+        .iter()
+        .take(2)
+        .map(AsRef::as_ref)
+        .collect::<Vec<_>>()
+        .join(", ");
+    if apps.len() > 2 {
+        format!("{named} +{}", apps.len() - 2)
+    } else {
+        named
+    }
+}
+
+/// Stretches with nothing recorded at least this long get an "Away" row.
+pub const AWAY_MINIMUM_GAP_SECONDS: f64 = 30.0 * 60.0;
+
+/// A row of Timeline's session rail (`TimelineRailRow`): a session or
+/// meeting by its index in the day's sessions, or a long stretch with no
+/// recorded activity between them.
+#[derive(Clone, Debug, PartialEq)]
+pub enum RailRow {
+    Session(usize),
+    Away {
+        start: DateTime<Utc>,
+        end: DateTime<Utc>,
+    },
+}
+
+/// The rail for `sessions`, ordered by start as `work_sessions` returns
+/// them, with an away row wherever nothing was recorded for at least
+/// `minimum_gap_seconds`. Sessions overlap (a meeting runs over the work
+/// beside it), so a gap starts at the latest end seen so far.
+pub fn rail_rows(sessions: &[WorkSession], minimum_gap_seconds: f64) -> Vec<RailRow> {
+    let mut rows = Vec::with_capacity(sessions.len());
+    let mut latest_end: Option<DateTime<Utc>> = None;
+    for (index, session) in sessions.iter().enumerate() {
+        if let Some(latest) = latest_end
+            && seconds(session.start - latest) >= minimum_gap_seconds
+        {
+            rows.push(RailRow::Away {
+                start: latest,
+                end: session.start,
+            });
+        }
+        rows.push(RailRow::Session(index));
+        latest_end = Some(latest_end.map_or(session.end, |latest| latest.max(session.end)));
+    }
+    rows
 }
 
 /// When a meeting item ends on the timeline (`CaptureTrackItem.meetingEnd`).
@@ -350,6 +407,7 @@ pub fn meeting_session(meeting: &Meeting, now: DateTime<Utc>) -> WorkSession {
     WorkSession {
         id: format!("meeting-{}", crate::ids::uuid_upper(&meeting.id)),
         title: meeting.display_title(),
+        title_names_apps: false,
         start: meeting.started_at,
         end,
         active_seconds: seconds(end - meeting.started_at).max(0.0),
@@ -806,7 +864,92 @@ mod tests {
             block(2, "Terminal", "", 5, 8),
             block(3, "Slack", "Home", 8, 9),
         ]);
-        assert_eq!(untitled[0].title, "Files and Terminal and more");
+        assert_eq!(untitled[0].title, "Files, Terminal +1");
+        assert!(untitled[0].title_names_apps);
+        assert!(!sessions[0].title_names_apps);
+    }
+
+    fn at_second(second: i64) -> DateTime<Utc> {
+        at(0) + chrono::Duration::seconds(second)
+    }
+
+    fn untitled_block(id: i64, app: &str, start: i64, end: i64) -> ActivityBlock {
+        ActivityBlock {
+            id,
+            app: app.into(),
+            title: String::new(),
+            start: at_second(start),
+            end: at_second(end),
+        }
+    }
+
+    #[test]
+    fn untitled_session_names_its_two_busiest_apps_and_counts_the_rest() {
+        let sessions = activity_sessions(&[
+            untitled_block(1, "Claude", 0, 600),
+            untitled_block(2, "Google Chrome", 600, 1_000),
+            untitled_block(3, "Discord", 1_000, 1_100),
+            untitled_block(4, "Spotify", 1_100, 1_150),
+        ]);
+        assert_eq!(sessions.len(), 1);
+        // Spotify's 50 seconds don't count toward "+1".
+        assert_eq!(sessions[0].title, "Claude, Google Chrome +1");
+        assert_eq!(sessions[0].apps.len(), 4);
+        assert!(sessions[0].title_names_apps);
+        assert_eq!(app_summary(&["Claude"]), "Claude");
+
+        // Only seconds of a second app: it stays evidence, not part of the title.
+        let brief = activity_sessions(&[
+            untitled_block(1, "Terminal", 0, 2_400),
+            untitled_block(2, "Firefox", 2_400, 2_408),
+        ]);
+        assert_eq!(brief[0].title, "Terminal");
+        assert_eq!(brief[0].apps, ["Terminal", "Firefox"]);
+    }
+
+    /// The rail marks a long stretch with nothing recorded. A meeting that
+    /// runs past the next session must not open a gap that never happened.
+    #[test]
+    fn rail_marks_long_gaps_from_the_latest_end_so_far() {
+        let titled = |id: i64, title: &str, start: i64, end: i64| ActivityBlock {
+            title: title.into(),
+            ..untitled_block(id, "Visual Studio Code", start, end)
+        };
+        let meeting: Meeting = serde_json::from_value(serde_json::json!({
+            "id": "66666666-6666-4666-8666-666666666666",
+            "title": "Planning",
+            "appName": "Zoom",
+            "startedAt": at_second(4_000),
+            "endedAt": at_second(8_000),
+            "relativePath": "meetings/planning",
+        }))
+        .unwrap();
+        let sessions = work_sessions(
+            &[
+                titled(1, "a.rs", 0, 600),
+                titled(2, "b.rs", 3_000, 3_300),
+                titled(3, "c.rs", 6_000, 6_300),
+                titled(4, "d.rs", 9_000, 9_600),
+            ],
+            &[meeting],
+        );
+        assert_eq!(sessions.len(), 5);
+
+        let rows = rail_rows(&sessions, AWAY_MINIMUM_GAP_SECONDS);
+
+        let gaps: Vec<(DateTime<Utc>, DateTime<Utc>)> = rows
+            .iter()
+            .filter_map(|row| match row {
+                RailRow::Away { start, end } => Some((*start, *end)),
+                RailRow::Session(_) => None,
+            })
+            .collect();
+        // 600 → 3,000 is 40 minutes away. 3,300 → 4,000 is under 30 minutes,
+        // and the meeting covers c.rs and ends 1,000 s before d.rs.
+        assert_eq!(gaps, [(at_second(600), at_second(3_000))]);
+        assert_eq!(rows.len(), sessions.len() + 1);
+        assert_eq!(rows[0], RailRow::Session(0));
+        assert!(matches!(rows[1], RailRow::Away { .. }));
     }
 
     #[test]
