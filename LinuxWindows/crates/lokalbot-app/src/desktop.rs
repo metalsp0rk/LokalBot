@@ -6,13 +6,15 @@ use std::path::Path;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use gpui_kit::{AnyWindowHandle, App, Entity, Global};
+use gpui_kit::{AnyWindowHandle, App, Entity, Global, SharedString};
 use parking_lot::Mutex;
 
 use lokalbot_core::settings::DictationTriggerMode;
 use lokalbot_engine::{Command, DictationCommand};
 use lokalbot_platform::shortcuts::{GlobalShortcuts, Shortcut, ShortcutEvent};
-use lokalbot_platform::tray::{self, Tray, TrayEvent, TrayMenuState, TrayUpdate, item_ids};
+use lokalbot_platform::tray::{
+    self, Tray, TrayEvent, TrayMenuState, TrayUpdate, TrayUpdateAction, item_ids,
+};
 use lokalbot_platform::{IpcCommand, IpcServer};
 
 use crate::state::{AppData, MeetingTab, RecordingState, SettingsCategory};
@@ -163,7 +165,11 @@ fn tray_update(cx: &App) -> Option<TrayUpdate> {
     let release = updates.status.release()?;
     Some(TrayUpdate {
         version: release.version.to_string(),
-        installable: updates.can_install(release),
+        action: match updates.route(release) {
+            crate::updates::Route::Install => TrayUpdateAction::Install,
+            crate::updates::Route::Download => TrayUpdateAction::Download,
+            crate::updates::Route::PackageManager => TrayUpdateAction::Show,
+        },
         busy: updates.status.busy(),
     })
 }
@@ -301,6 +307,12 @@ fn handle(data: &Entity<AppData>, event: DesktopEvent, cx: &mut App) {
                 }
             }
             item_ids::DOWNLOAD_UPDATE => crate::updates::open_release_page(cx),
+            item_ids::SHOW_UPDATE => {
+                show_main_window(cx);
+                data.update(cx, |data, cx| {
+                    data.open_settings(SettingsCategory::General, cx)
+                });
+            }
             item_ids::QUIT => cx.quit(),
             other => log::debug!("unknown tray item {other}"),
         },
@@ -446,9 +458,9 @@ pub fn notify_recording_saved(title: String, minutes: u64) {
 }
 
 /// "LokalBot <version> is available", once per version found by an
-/// automatic check (Sparkle shows its update alert then). Clicking it opens
-/// Settings → General, where Install and Relaunch is.
-pub fn notify_update_available(version: String, cx: &mut App) {
+/// automatic check (Sparkle shows its update alert then), with `body` saying
+/// how to get it. Clicking it opens Settings → General, where it is offered.
+pub fn notify_update_available(version: String, body: SharedString, cx: &mut App) {
     let Some(desktop) = desktop(cx) else { return };
     let tx = desktop.sender.clone();
     std::thread::spawn(move || {
@@ -456,7 +468,7 @@ pub fn notify_update_available(version: String, cx: &mut App) {
             lokalbot_i18n::format("LokalBot {version} is available", &[("version", version)]);
         let result = lokalbot_platform::notify(
             &title,
-            lokalbot_i18n::tr("Choose Install and Relaunch in Settings or the tray menu."),
+            &body,
             &[],
             Some(Box::new(move |action| {
                 if action == "default" {

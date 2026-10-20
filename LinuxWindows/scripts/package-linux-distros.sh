@@ -9,8 +9,10 @@
 # NFPM: the nfpm binary to use (default: nfpm on PATH).
 #
 # The packages install lokalbot and lokalbot-cli into /usr/bin, the desktop
-# entry and icons into /usr/share. LokalBot does not replace files it cannot
-# write, so a package install is told about updates and offered the download.
+# entry and icons into /usr/share. LokalBot does not replace a package's
+# files. It finds the package that owns it, and for one named lokalbot (these
+# packages, lokalbot-update's package::RELEASE_PACKAGE) shows the command that
+# installs the new package; the file names below are in that command too.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 VERSION=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)
@@ -65,13 +67,18 @@ contents:
     dst: /usr/share/licenses/lokalbot/LICENSE
     packager: archlinux
     file_info: {mode: 0644}
-  - src: $STAGE/LICENSES/AGPL-3.0.txt
-    dst: /usr/share/doc/lokalbot/AGPL-3.0.txt
-    file_info: {mode: 0644}
   - src: $STAGE/THIRD_PARTY_NOTICES.md
     dst: /usr/share/doc/lokalbot/THIRD_PARTY_NOTICES.md
     file_info: {mode: 0644}
 EOF
+  # Every license text the notices name, at the paths they give.
+  for license in "$STAGE"/LICENSES/*; do
+    cat <<EOF
+  - src: $license
+    dst: /usr/share/doc/lokalbot/LICENSES/$(basename "$license")
+    file_info: {mode: 0644}
+EOF
+  done
   for size in 16 24 32 48 64 128 256 512; do
     cat <<EOF
   - src: $ROOT/packaging/icons/lokalbot-$size.png
@@ -81,6 +88,8 @@ EOF
   done
   # The binaries need glibc 2.39 (built on Ubuntu 24.04). The app links ALSA,
   # xcb and xkbcommon and loads Vulkan and the Wayland client at run time.
+  # Arch's gcc-libs is a meta package of every GCC runtime; namcap asks for
+  # libgcc and libstdc++, and for hicolor-icon-theme, which owns the icon folders.
   # System audio uses PulseAudio or PipeWire's PulseAudio server; the
   # suggested tools enable typing and screenshots on some desktops.
   cat <<'EOF'
@@ -126,13 +135,15 @@ overrides:
   archlinux:
     depends:
       - glibc>=2.39
-      - gcc-libs
+      - libgcc
+      - libstdc++
       - alsa-lib
       - libxcb
       - libxkbcommon
       - libxkbcommon-x11
       - vulkan-icd-loader
       - wayland
+      - hicolor-icon-theme
 rpm:
   group: Applications/Productivity
   summary: Private work memory with on-device AI

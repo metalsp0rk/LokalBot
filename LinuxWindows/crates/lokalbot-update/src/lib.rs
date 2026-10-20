@@ -12,6 +12,7 @@
 pub mod feed;
 pub mod install;
 pub mod installed_apps;
+pub mod package;
 pub mod signature;
 pub mod version;
 
