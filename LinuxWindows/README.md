@@ -122,9 +122,11 @@ its old file is removed on a later start. Your library is never touched.
 
 When LokalBot cannot replace its own files, it says how to update instead. It asks the package database
 which package installed it (`pacman -Qo`, `dpkg-query -S`, `rpm -qf`). A package from a repository, such as
-an AUR package, updates with your package manager (for example `yay -Syu`). The release's own Arch package
-has no repository, so Settings shows the command that installs the downloaded package
-(`sudo pacman -U ./LokalBot-<version>-linux-x86_64.pkg.tar.zst`) next to **Download**. Other copies
+an AUR package, or a `.deb` or `.rpm` that added the LokalBot repository (below), updates with your package
+manager (for example `yay -Syu` or `sudo apt upgrade`). The release's Arch package, and a `.deb` or `.rpm`
+installed before the repository existed, have no repository, so Settings shows the command that installs the
+downloaded package (for example `sudo pacman -U ./LokalBot-<version>-linux-x86_64.pkg.tar.zst`) next to
+**Download**. Other copies
 (`/usr`, `/opt`, Program Files, a folder you cannot write) get the download from GitHub. Debug builds never
 update.
 
