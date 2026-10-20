@@ -636,9 +636,10 @@ any Linux machine with Docker:
    `gh workflow run linux-repos.yml -f tag=v0.11.0`, then
    `curl -fsS https://pkg.lokalbot.com/apt/dists/stable/InRelease`. Its
    packages don't add the repositories, so nobody uses them yet.
-5. Commit `lokalbot-archive-keyring.asc`. The next release's `.deb` and
-   `.rpm` add the repositories, and every release after it reaches them with
-   `apt upgrade` and `dnf upgrade`.
+5. Commit `lokalbot-archive-keyring.asc`, with the README and website copy
+   that tells users about the repositories (#339). The next release's `.deb`
+   and `.rpm` add the repositories, and every release after it reaches them
+   with `apt upgrade` and `dnf upgrade`.
 
 ### Key expiry and rotation
 
