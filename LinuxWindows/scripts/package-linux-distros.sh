@@ -17,7 +17,8 @@
 # installs the new package; the file names below are in that command too.
 # Once the repository key is in packaging/linux, the .deb and .rpm also add
 # the apt and dnf repositories at pkg.lokalbot.com (scripts/linux-repos.sh)
-# with that key, so later versions come with `apt upgrade` and `dnf upgrade`.
+# with that key, so later versions come with `apt upgrade` and `dnf upgrade`,
+# which LokalBot then suggests (package::repository_file).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 VERSION=${PACKAGE_VERSION:-$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)}

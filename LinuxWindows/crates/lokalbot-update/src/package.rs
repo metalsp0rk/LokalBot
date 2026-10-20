@@ -13,9 +13,11 @@ use crate::Version;
 
 /// The name of the release's own `.deb`, `.rpm` and Arch packages
 /// (`scripts/package-linux-distros.sh`). They are installed from a
-/// downloaded file with no repository behind them, so the package manager
-/// cannot fetch the next version. Other names, such as the AUR's
-/// `lokalbot-bin`, come from a repository.
+/// downloaded file. Once the repository key is committed, the `.deb` and
+/// `.rpm` also add LokalBot's apt or dnf repository ([`repository_file`]),
+/// and from then on the package manager fetches the next version; the Arch
+/// package never has one. Other names, such as the AUR's `lokalbot-bin`,
+/// come from a repository.
 pub const RELEASE_PACKAGE: &str = "lokalbot";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -29,12 +31,15 @@ pub enum Manager {
 pub struct Package {
     pub manager: Manager,
     pub name: String,
+    /// LokalBot's own repository is set up and enabled for this manager.
+    pub repository: bool,
 }
 
 impl Package {
-    /// One of the release's own packages, installed from a downloaded file.
+    /// One of the release's own packages with no repository to update it:
+    /// installed from a downloaded file, so the next one is too.
     pub fn from_release(&self) -> bool {
-        self.name == RELEASE_PACKAGE
+        self.name == RELEASE_PACKAGE && !self.repository
     }
 
     /// Updates a package from its repository.
@@ -60,32 +65,48 @@ impl Package {
     }
 }
 
+/// The repository file the release's `.deb` (deb822) or `.rpm` installs
+/// for LokalBot's apt or dnf repository (`packaging/linux`).
+pub fn repository_file(manager: Manager) -> Option<&'static Path> {
+    match manager {
+        Manager::Dpkg => Some(Path::new("/etc/apt/sources.list.d/lokalbot.sources")),
+        Manager::Rpm => Some(Path::new("/etc/yum.repos.d/lokalbot.repo")),
+        Manager::Pacman => None,
+    }
+}
+
 /// The package that installed `executable`, or `None` when no package
-/// database lists it. Starts the package tools, so call it off the UI thread.
+/// database lists it. Starts the package tools and reads the repository
+/// file, so call it off the UI thread.
 pub fn owner(executable: &Path) -> Option<Package> {
     if !cfg!(target_os = "linux") {
         return None;
     }
-    owner_with(executable, &|program, args| {
-        let output = Command::new(program)
-            .args(args)
-            .env("LC_ALL", "C")
-            .stdin(Stdio::null())
-            .stderr(Stdio::null())
-            .output()
-            .ok()?;
-        output
-            .status
-            .success()
-            .then(|| String::from_utf8_lossy(&output.stdout).into_owned())
-    })
+    owner_with(
+        executable,
+        &|program, args| {
+            let output = Command::new(program)
+                .args(args)
+                .env("LC_ALL", "C")
+                .stdin(Stdio::null())
+                .stderr(Stdio::null())
+                .output()
+                .ok()?;
+            output
+                .status
+                .success()
+                .then(|| String::from_utf8_lossy(&output.stdout).into_owned())
+        },
+        &|path| std::fs::read_to_string(path).ok(),
+    )
 }
 
 /// [`owner`] with `run` starting a package tool and returning what it
-/// printed when it succeeded.
+/// printed when it succeeded, and `read` reading a file.
 fn owner_with(
     executable: &Path,
     run: &dyn Fn(&str, &[&OsStr]) -> Option<String>,
+    read: &dyn Fn(&Path) -> Option<String>,
 ) -> Option<Package> {
     let path = executable.as_os_str();
     // A system can have another distribution's tools (dpkg on Arch, to build
@@ -106,7 +127,32 @@ fn owner_with(
     ];
     queries.into_iter().find_map(|(manager, program, args)| {
         let name = parse(manager, &run(program, args)?)?;
-        Some(Package { manager, name })
+        let repository = repository_file(manager)
+            .and_then(read)
+            .is_some_and(|text| enabled(&text));
+        Some(Package {
+            manager,
+            name,
+            repository,
+        })
+    })
+}
+
+/// Whether a repository file leaves its repository on: no `Enabled: no`
+/// (deb822) or `enabled=0` (dnf) line.
+fn enabled(text: &str) -> bool {
+    !text.lines().any(|line| {
+        let line = line.trim();
+        if line.starts_with('#') {
+            return false;
+        }
+        let Some((key, value)) = line.split_once([':', '=']) else {
+            return false;
+        };
+        key.trim().eq_ignore_ascii_case("enabled")
+            && ["no", "false", "off", "0"]
+                .iter()
+                .any(|off| value.trim().eq_ignore_ascii_case(off))
     })
 }
 
@@ -139,17 +185,34 @@ mod tests {
     use std::cell::RefCell;
 
     fn lookup(answers: &[(&str, &str)]) -> (Option<Package>, Vec<String>) {
+        lookup_with_files(answers, &[])
+    }
+
+    /// [`owner_with`] with tool answers and the files that exist.
+    fn lookup_with_files(
+        answers: &[(&str, &str)],
+        files: &[(&str, &str)],
+    ) -> (Option<Package>, Vec<String>) {
         let asked = RefCell::new(Vec::new());
-        let package = owner_with(Path::new("/usr/bin/lokalbot"), &|program, args| {
-            let args: Vec<_> = args.iter().map(|a| a.to_string_lossy()).collect();
-            asked
-                .borrow_mut()
-                .push(format!("{program} {}", args.join(" ")));
-            answers
-                .iter()
-                .find(|(tool, _)| *tool == program)
-                .map(|(_, out)| out.to_string())
-        });
+        let package = owner_with(
+            Path::new("/usr/bin/lokalbot"),
+            &|program, args| {
+                let args: Vec<_> = args.iter().map(|a| a.to_string_lossy()).collect();
+                asked
+                    .borrow_mut()
+                    .push(format!("{program} {}", args.join(" ")));
+                answers
+                    .iter()
+                    .find(|(tool, _)| *tool == program)
+                    .map(|(_, out)| out.to_string())
+            },
+            &|path| {
+                files
+                    .iter()
+                    .find(|(file, _)| Path::new(file) == path)
+                    .map(|(_, text)| text.to_string())
+            },
+        );
         (package, asked.into_inner())
     }
 
@@ -160,7 +223,8 @@ mod tests {
             package,
             Some(Package {
                 manager: Manager::Pacman,
-                name: "lokalbot-bin".into()
+                name: "lokalbot-bin".into(),
+                repository: false
             })
         );
         assert_eq!(asked, ["pacman -Qqo /usr/bin/lokalbot"]);
@@ -170,7 +234,8 @@ mod tests {
             package,
             Some(Package {
                 manager: Manager::Dpkg,
-                name: "lokalbot".into()
+                name: "lokalbot".into(),
+                repository: false
             })
         );
         assert_eq!(
@@ -187,6 +252,51 @@ mod tests {
             asked.last().unwrap(),
             "rpm -qf --queryformat %{NAME}\\n /usr/bin/lokalbot"
         );
+    }
+
+    #[test]
+    fn release_packages_with_the_repository_file_update_from_it() {
+        const SOURCES: &str = "/etc/apt/sources.list.d/lokalbot.sources";
+        const REPO: &str = "/etc/yum.repos.d/lokalbot.repo";
+        let sources = include_str!("../../../packaging/linux/lokalbot.sources");
+        let repo = include_str!("../../../packaging/linux/lokalbot.repo");
+        let deb = [("dpkg-query", "lokalbot: /usr/bin/lokalbot\n")];
+        let rpm = [("rpm", "lokalbot\n")];
+
+        let package = lookup_with_files(&deb, &[(SOURCES, sources)]).0.unwrap();
+        assert!(package.repository && !package.from_release());
+        let package = lookup_with_files(&rpm, &[(REPO, repo)]).0.unwrap();
+        assert!(package.repository && !package.from_release());
+
+        // Installed before the repository existed, or with it turned off.
+        assert!(lookup(&deb).0.unwrap().from_release());
+        let off = format!("{sources}Enabled: no\n");
+        assert!(
+            lookup_with_files(&deb, &[(SOURCES, &off)])
+                .0
+                .unwrap()
+                .from_release()
+        );
+        let off = repo.replace("enabled=1", "enabled=0");
+        assert!(
+            lookup_with_files(&rpm, &[(REPO, &off)])
+                .0
+                .unwrap()
+                .from_release()
+        );
+        // The other manager's file says nothing about this package.
+        assert!(
+            lookup_with_files(&deb, &[(REPO, repo)])
+                .0
+                .unwrap()
+                .from_release()
+        );
+        // The Arch package never has a repository.
+        let arch = lookup_with_files(
+            &[("pacman", "lokalbot\n")],
+            &[(SOURCES, sources), (REPO, repo)],
+        );
+        assert!(arch.0.unwrap().from_release());
     }
 
     #[test]
@@ -229,6 +339,7 @@ mod tests {
         let package = |manager, name: &str| Package {
             manager,
             name: name.into(),
+            repository: false,
         };
         assert!(package(Manager::Dpkg, "lokalbot").from_release());
         assert!(!package(Manager::Pacman, "lokalbot-bin").from_release());
