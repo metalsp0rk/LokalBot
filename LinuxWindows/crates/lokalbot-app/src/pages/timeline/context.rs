@@ -400,9 +400,9 @@ impl TimelinePage {
                                 ))
                                 .child(ui::stat_chip(
                                     Ico::LayoutGrid,
-                                    apps.to_string(),
+                                    lokalbot_i18n::number(apps),
                                     if apps == 1 {
-                                        "app"
+                                        lokalbot_i18n::tr("app")
                                     } else {
                                         lokalbot_i18n::tr("apps")
                                     },
@@ -855,8 +855,8 @@ pub(super) fn capture_counts(model: &DayModel) -> String {
     lokalbot_i18n::format(
         "Activity entries: {blocks} · Screen moments: {moments}",
         &[
-            ("blocks", blocks.to_string()),
-            ("moments", moments.to_string()),
+            ("blocks", lokalbot_i18n::number(blocks)),
+            ("moments", lokalbot_i18n::number(moments)),
         ],
     )
 }
