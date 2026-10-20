@@ -12,7 +12,7 @@ $log = Join-Path $tmp 'lokalbot-setup.log'
 $p = Start-Process (Resolve-Path $Setup).Path -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', "/LOG=$log" -Wait -PassThru
 if ($p.ExitCode -ne 0) { Get-Content $log -ErrorAction SilentlyContinue; throw "setup exited with $($p.ExitCode)" }
 
-foreach ($file in 'lokalbot.exe', 'lokalbot-cli.exe', 'LICENSE.txt', 'THIRD_PARTY_NOTICES.md') {
+foreach ($file in 'lokalbot.exe', 'lokalbot-cli.exe', 'LICENSE.txt', 'THIRD_PARTY_NOTICES.md', 'LICENSES\rust-crates.md', 'LICENSES\Apache-2.0.txt') {
   if (-not (Test-Path (Join-Path $app $file))) { throw "the installer did not install $file" }
 }
 if (-not (Test-Path $shortcut)) { throw 'no Start menu shortcut' }
@@ -29,11 +29,16 @@ Write-Output "Installed LokalBot $($entry.DisplayVersion) in $app"
 & (Join-Path $app 'lokalbot-cli.exe') --help | Out-Null
 if ($LASTEXITCODE -ne 0) { throw "lokalbot-cli --help exited with $LASTEXITCODE" }
 
+# An in-place update can add license texts the installer didn't install.
+Set-Content -Path (Join-Path $app 'LICENSES\added-by-update.txt') -Value 'added'
+
 $uninstaller = $entry.UninstallString.Trim('"')
 Start-Process $uninstaller -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART' -Wait | Out-Null
 # The uninstaller finishes from a copy of itself in TEMP; wait for it.
 $deadline = (Get-Date).AddSeconds(60)
-while ((Test-Path (Join-Path $app 'lokalbot.exe')) -and (Get-Date) -lt $deadline) { Start-Sleep -Seconds 1 }
+$left = { (Test-Path (Join-Path $app 'lokalbot.exe')) -or (Test-Path (Join-Path $app 'LICENSES')) }
+while ((& $left) -and (Get-Date) -lt $deadline) { Start-Sleep -Seconds 1 }
 if (Test-Path (Join-Path $app 'lokalbot.exe')) { throw 'uninstalling left lokalbot.exe behind' }
 if (Test-Path $shortcut) { throw 'uninstalling left the Start menu shortcut behind' }
+if (Test-Path (Join-Path $app 'LICENSES')) { throw 'uninstalling left the LICENSES folder behind' }
 Write-Output 'Install and uninstall checks passed'

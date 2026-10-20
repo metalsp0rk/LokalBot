@@ -30,6 +30,12 @@ impl Desktop {
             Self::Headless => "no desktop session".into(),
         }
     }
+
+    /// Hyprland (Omarchy) and Sway tile every ordinary window. Both float a
+    /// window that has a parent window, as they do dialogs.
+    pub fn tiles_windows(&self) -> bool {
+        matches!(self, Self::Hyprland | Self::Sway)
+    }
 }
 
 fn env(name: &str) -> Option<String> {

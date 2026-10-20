@@ -9,9 +9,10 @@ with the files and dependencies of the release's own Arch package
 
 - `/usr/bin/lokalbot` and `/usr/bin/lokalbot-cli`;
 - `/usr/share/applications/com.lokalbot.LokalBot.desktop` and the hicolor icons;
-- `LICENSE` (GPL-3.0), `AGPL-3.0.txt` and `THIRD_PARTY_NOTICES.md` (the
-  Autocomplete code ported from Cotabby is AGPL-3.0) in
-  `/usr/share/licenses/lokalbot-bin`.
+- `LICENSE` (GPL-3.0), `THIRD_PARTY_NOTICES.md` and the `LICENSES/` folder
+  of license texts it names (AGPL-3.0 for the Autocomplete code ported from
+  Cotabby and, in releases after 0.11.0, the Rust crates' licenses) in
+  `/usr/share/licenses/lokalbot-bin`, at the paths the notices give.
 
 It provides and conflicts with `lokalbot`, the name of the release's own Arch
 package. Keep the two packages' `depends` the same.

@@ -31,7 +31,7 @@ More screenshots of both apps are in [docs/screenshots](docs/screenshots).
 | Meeting detection | ✓ (PulseAudio source outputs) | ✓ (WASAPI capture sessions) | Asks with a notification by default. |
 | System tray, launch at login | ✓ (StatusNotifierItem; GNOME needs the AppIndicator extension) | ✓ | |
 | `lokalbot-cli` + MCP for coding agents | ✓ | ✓ | Read-only, off until you allow it in Settings → Privacy & Data. |
-| Signed automatic updates | ✓ (installed with `install.sh`, or run from the extracted folder) | ✓ (run from the extracted folder) | Checks GitHub daily; installs only when you choose Install and Relaunch. Copies under `/usr`, `/opt` or Program Files are pointed at the download instead. |
+| Signed automatic updates | ✓ (installed with `install.sh`, or run from the extracted folder) | ✓ (run from the extracted folder) | Checks GitHub daily; installs only when you choose Install and Relaunch. Package installs are told how to update with the package manager; other copies under `/usr`, `/opt` or Program Files are pointed at the download. |
 | Live transcript preview while recording | ✓ | ✓ | Opt-in from the live meeting view. Each track is transcribed in 4–12 s chunks cut at a pause, as Me and Remote speaker; the full transcript replaces it after the meeting. |
 | Autocomplete in other apps | X11 (GTK; Qt, Chromium/Electron and Firefox once system accessibility is on); Wayland: the practice editor in Settings only | ✓ (apps whose fields support UI Automation) | Off until you turn it on in Settings → Writing. LFM2.5 1.2B on this computer by default, about 250 ms to a suggestion on CPU. Tab accepts a word, Esc dismisses. Password fields, terminals and excluded apps are never read, and nothing is stored. |
 | Agent Mode | ✓ | ✓ (Git Bash, or PowerShell without it) | Runs the pi coding agent with your Think model. Setup downloads Bun and pi (pinned and checksum-verified, about 65 MB on Linux and 70 MB on Windows). File changes and commands need your approval. |
@@ -74,8 +74,9 @@ release has none yet, use a CI run's artifacts (`lokalbot-linux-x86_64`, `lokalb
   The same release has packages that install into `/usr/bin` with their dependencies:
   `LokalBot-<version>-linux-amd64.deb` (Debian, Ubuntu: `sudo apt install ./LokalBot-…deb`),
   `LokalBot-<version>-linux-x86_64.rpm` (Fedora, openSUSE: `sudo dnf install ./LokalBot-…rpm`) and
-  `LokalBot-<version>-linux-x86_64.pkg.tar.zst` (Arch: `sudo pacman -U ./LokalBot-…zst`). A package
-  install tells you about updates and offers the download instead of replacing its files.
+  `LokalBot-<version>-linux-x86_64.pkg.tar.zst` (Arch: `sudo pacman -U ./LokalBot-…zst`). These packages
+  come from no repository, so when a newer version is out LokalBot asks you to download the new package and
+  install it the same way.
 - **Windows** 10/11 (x64): run `LokalBot-<version>-windows-x86_64-setup.exe`. It installs for your user into
   `%LOCALAPPDATA%\Programs\LokalBot` without administrator rights, adds a Start menu shortcut (which also
   lets notifications show LokalBot's name) and an Installed apps entry; uninstalling keeps your library. Or
@@ -102,8 +103,8 @@ same commands again. An AUR package, `lokalbot-bin`, is on its way. Once it is p
 `yay -S lokalbot-bin` replaces this package and `yay -Syu` keeps it up to date. You can also use `./install.sh`
 from the `.tar.gz` (see above), which installs into `~/.local/bin` and lets LokalBot update itself.
 
-Either way, LokalBot is in the app launcher and its tray icon appears in Omarchy's bar. The dictation pill and
-Quick Recall float above your windows instead of being tiled.
+Either way, LokalBot is in the app launcher and its tray icon appears in Omarchy's bar. The welcome window, the
+dictation pill and Quick Recall float above your windows instead of being tiled.
 
 Hyprland has no settings screen for other apps' shortcuts, so bind LokalBot's commands in
 `~/.config/hypr/bindings.lua` (these keys are free in Omarchy's defaults):
@@ -128,14 +129,23 @@ checks at any time. Like the macOS app, it never installs on its own: when a new
 and the tray menu offer **Install and Relaunch**, and a notification says so once. `lokalbot install-update`
 does the same from a terminal.
 
+`lokalbot --version` and `lokalbot-cli --version` print the installed version. On Windows the app has no
+console window, so use `lokalbot-cli --version` or pipe the app's output: `lokalbot.exe --version | Write-Output`.
+
 Installing downloads the archive and checks its size, SHA-256 and Ed25519 signature (the macOS app's
 Sparkle key) before unpacking anything. It then replaces `lokalbot` and `lokalbot-cli` where they are
 (Linux: `~/.local/bin`, refreshing the applications-menu entry and icons that `install.sh` added; Windows:
 the extracted folder, and the copy `lokalbot-cli install-skill` made), stops the local model servers and Agent
 Mode, and starts the new version. On Windows a running `lokalbot-cli` (an agent's MCP server) keeps working;
-its old file is removed on a later start. Your library is never touched. When LokalBot cannot replace its own
-files (a package manager's copy, `/usr`, `/opt`, Program Files, a folder you cannot write), it offers the
-download from GitHub instead. Debug builds never update.
+its old file is removed on a later start. Your library is never touched.
+
+When LokalBot cannot replace its own files, it says how to update instead. It asks the package database
+which package installed it (`pacman -Qo`, `dpkg-query -S`, `rpm -qf`). A package from a repository, such as
+an AUR package, updates with your package manager (for example `yay -Syu`). The release's own `.deb`, `.rpm`
+and Arch packages have no repository, so Settings shows the command that installs the downloaded package
+(for example `sudo apt install ./LokalBot-<version>-linux-amd64.deb`) next to **Download**. Other copies
+(`/usr`, `/opt`, Program Files, a folder you cannot write) get the download from GitHub. Debug builds never
+update.
 
 On first launch LokalBot asks what to remember and downloads the models you choose: about 4 GB for the
 default transcription, Think and search models.

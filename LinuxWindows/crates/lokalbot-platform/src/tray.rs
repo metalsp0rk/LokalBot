@@ -59,10 +59,20 @@ pub struct TrayMenuState {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TrayUpdate {
     pub version: String,
-    /// LokalBot can replace itself; otherwise the row opens the download.
-    pub installable: bool,
+    pub action: TrayUpdateAction,
     /// Downloading or installing.
     pub busy: bool,
+}
+
+/// What the update row does.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TrayUpdateAction {
+    /// LokalBot replaces itself and relaunches.
+    Install,
+    /// Opens the download.
+    Download,
+    /// A package manager updates this copy: opens Settings, which says how.
+    Show,
 }
 
 /// Menu item ids used by [`standard_items`].
@@ -77,6 +87,7 @@ pub mod item_ids {
     pub const CAPTURE_SCREEN: &str = "capture-screen";
     pub const INSTALL_UPDATE: &str = "install-update";
     pub const DOWNLOAD_UPDATE: &str = "download-update";
+    pub const SHOW_UPDATE: &str = "show-update";
     pub const QUIT: &str = "quit";
 }
 
@@ -118,19 +129,23 @@ pub fn standard_items(state: &TrayMenuState) -> Vec<TrayItem> {
     items.push(TrayItem::Separator);
     if let Some(update) = &state.update {
         let version = [("version", update.version.clone())];
-        items.push(match (update.busy, update.installable) {
+        items.push(match (update.busy, update.action) {
             (true, _) => TrayItem::Action {
                 id: INSTALL_UPDATE.into(),
                 label: lokalbot_i18n::format("Installing LokalBot {version}…", &version),
                 enabled: false,
             },
-            (false, true) => TrayItem::action(
+            (false, TrayUpdateAction::Install) => TrayItem::action(
                 INSTALL_UPDATE,
                 &lokalbot_i18n::format("Install LokalBot {version} and Relaunch", &version),
             ),
-            (false, false) => TrayItem::action(
+            (false, TrayUpdateAction::Download) => TrayItem::action(
                 DOWNLOAD_UPDATE,
                 &lokalbot_i18n::format("Download LokalBot {version}…", &version),
+            ),
+            (false, TrayUpdateAction::Show) => TrayItem::action(
+                SHOW_UPDATE,
+                &lokalbot_i18n::format("LokalBot {version} is available", &version),
             ),
         });
     }
@@ -659,17 +674,17 @@ mod tests {
 
     #[test]
     fn an_offered_update_sits_above_quit() {
-        let update = |installable, busy| {
+        let update = |action, busy| {
             standard_items(&TrayMenuState {
                 update: Some(TrayUpdate {
                     version: "0.10.11".into(),
-                    installable,
+                    action,
                     busy,
                 }),
                 ..Default::default()
             })
         };
-        let items = update(true, false);
+        let items = update(TrayUpdateAction::Install, false);
         let count = items.len();
         assert_eq!(
             items[count - 2],
@@ -682,15 +697,26 @@ mod tests {
             items[count - 1],
             TrayItem::action(item_ids::QUIT, "Quit LokalBot")
         );
-        assert!(update(false, false).contains(&TrayItem::action(
-            item_ids::DOWNLOAD_UPDATE,
-            "Download LokalBot 0.10.11…"
-        )));
-        assert!(update(true, true).contains(&TrayItem::Action {
-            id: item_ids::INSTALL_UPDATE.into(),
-            label: "Installing LokalBot 0.10.11…".into(),
-            enabled: false,
-        }));
+        assert!(
+            update(TrayUpdateAction::Download, false).contains(&TrayItem::action(
+                item_ids::DOWNLOAD_UPDATE,
+                "Download LokalBot 0.10.11…"
+            ))
+        );
+        // A package manager's copy: Settings says how to update it.
+        assert!(
+            update(TrayUpdateAction::Show, false).contains(&TrayItem::action(
+                item_ids::SHOW_UPDATE,
+                "LokalBot 0.10.11 is available"
+            ))
+        );
+        assert!(
+            update(TrayUpdateAction::Install, true).contains(&TrayItem::Action {
+                id: item_ids::INSTALL_UPDATE.into(),
+                label: "Installing LokalBot 0.10.11…".into(),
+                enabled: false,
+            })
+        );
         assert!(
             !standard_items(&TrayMenuState::default())
                 .iter()

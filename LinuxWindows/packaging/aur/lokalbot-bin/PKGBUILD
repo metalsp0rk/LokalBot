@@ -51,7 +51,9 @@ package() {
     install -Dm644 "icons/lokalbot-$size.png" \
       "$pkgdir/usr/share/icons/hicolor/${size}x${size}/apps/com.lokalbot.LokalBot.png"
   done
-  # GPL-3.0 for LokalBot; AGPL-3.0 for the Autocomplete code ported from Cotabby.
-  install -Dm644 LICENSE LICENSES/AGPL-3.0.txt THIRD_PARTY_NOTICES.md \
-    -t "$pkgdir/usr/share/licenses/$pkgname/"
+  # GPL-3.0 for LokalBot. THIRD_PARTY_NOTICES.md names every other license
+  # (AGPL-3.0 for the Autocomplete code ported from Cotabby, the Rust crates'
+  # licenses) by its path under LICENSES/, so keep that layout.
+  install -Dm644 LICENSE THIRD_PARTY_NOTICES.md -t "$pkgdir/usr/share/licenses/$pkgname/"
+  install -Dm644 LICENSES/* -t "$pkgdir/usr/share/licenses/$pkgname/LICENSES/"
 }
