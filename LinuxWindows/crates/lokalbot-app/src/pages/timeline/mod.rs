@@ -1,6 +1,8 @@
-//! Timeline: one day at a time, with its digest, open actions, the day's
-//! overview and work sessions, and a context panel for the selected session,
-//! meeting or screen moment (`CaptureView.swift`, `CaptureDetailView.swift`,
+//! Timeline: one day at a time. The day column leads with what needs action
+//! (the digest's state, open actions, then the digest by task status), a
+//! rail holds the day's totals and its sessions on one time line, and a
+//! context panel shows the selected session, meeting or screen moment
+//! (`CaptureView.swift`, `CaptureDetailView.swift`,
 //! `ScreenMomentDetailView.swift`).
 
 mod context;
@@ -12,34 +14,38 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 use crate::i18n::h_flex;
-use chrono::{Days, Local, NaiveDate};
-use gpui_kit::component::button::Button;
+use chrono::{DateTime, Days, Local, NaiveDate, Utc};
+use gpui_kit::component::button::{Button, ButtonVariants as _};
 use gpui_kit::component::calendar::{Calendar, CalendarEvent, CalendarState, Date, Matcher};
 use gpui_kit::component::input::InputState;
 use gpui_kit::component::popover::Popover;
 use gpui_kit::component::scroll::ScrollableElement as _;
-use gpui_kit::component::{Disableable as _, Icon, v_flex};
+use gpui_kit::component::spinner::Spinner;
+use gpui_kit::component::{Disableable as _, Icon, Sizable as _, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
-    AnyElement, App, AppContext as _, Bounds, Context, Entity, FontWeight, Hsla,
+    AnyElement, App, AppContext as _, Bounds, Context, Div, Entity, FontWeight, Hsla,
     InteractiveElement as _, IntoElement, MouseButton, ParentElement as _, Pixels, Render,
     RenderImage, SharedString, StatefulInteractiveElement as _, Styled as _, Subscription, Window,
     canvas, div, px,
 };
+use lokalbot_core::timeline::RailRow;
 use lokalbot_core::{ActionThread, DayActivity, DayDigest, Meeting, ScreenMoment, WorkSession};
 use uuid::Uuid;
 
 use self::context::MeetingPreview;
 use crate::pages::Page;
-use crate::pages::today::digest::{self, DigestMode};
+use crate::pages::today::digest;
 use crate::pages::today::threads;
 use crate::state::{AppData, AppEvent};
-use crate::theme::{LbThemeExt as _, metric, ty};
+use crate::theme::{LbThemeExt as _, Palette, metric, ty};
 use crate::ui::{self, Ico};
 
 /// Below this page width, selections open in a drawer over a single column.
 const DRAWER_BREAKPOINT: f32 = 820.;
 const DAY_MIN_WIDTH: f32 = 440.;
+/// Needs Attention rows shown; the heading counts them all.
+const ATTENTION_ROWS: usize = 3;
 
 /// One day's data, loaded off the main thread.
 pub(crate) struct DayModel {
@@ -198,7 +204,9 @@ impl TimelinePage {
                             DayActivity::default()
                         }),
                         digest: library.day_digest(day).unwrap_or_default(),
-                        attention: library.needs_attention(Some(day), 3).unwrap_or_default(),
+                        attention: library
+                            .needs_attention(Some(day), usize::MAX)
+                            .unwrap_or_default(),
                         meetings: library
                             .list_meetings()
                             .unwrap_or_default()
@@ -309,6 +317,19 @@ impl TimelinePage {
                     Calendar::new(&calendar).first_day_of_week(lokalbot_i18n::first_weekday()),
                 )
             });
+        // On today the jump back has nowhere to go, so it reads as a label.
+        let today_control: AnyElement = if is_today {
+            div()
+                .pl(px(2.))
+                .text_size(ty::BODY)
+                .text_color(lb.text_secondary)
+                .child(lokalbot_i18n::tr("Today"))
+                .into_any_element()
+        } else {
+            ui::controls::bordered("timeline-today", lokalbot_i18n::tr("Today"))
+                .on_click(cx.listener(|this, _, _, cx| this.set_day(Local::now().date_naive(), cx)))
+                .into_any_element()
+        };
         let controls = h_flex()
             .gap(px(7.))
             .items_center()
@@ -324,13 +345,6 @@ impl TimelinePage {
             )
             .child(date_button)
             .child(
-                ui::controls::bordered("timeline-today", lokalbot_i18n::tr("Today"))
-                    .disabled(is_today)
-                    .on_click(
-                        cx.listener(|this, _, _, cx| this.set_day(Local::now().date_naive(), cx)),
-                    ),
-            )
-            .child(
                 Button::new("timeline-next")
                     .outline()
                     .icon(Icon::new(Ico::ChevronRight))
@@ -340,10 +354,12 @@ impl TimelinePage {
                         let day = this.day + Days::new(1);
                         this.set_day(day, cx)
                     })),
-            );
+            )
+            .child(today_control);
         let digest_controls = digest::digest_controls(
             self.day,
             self.model.as_ref().and_then(|m| m.digest.as_ref()),
+            true,
             true,
             &self.data,
             cx,
@@ -372,13 +388,14 @@ impl TimelinePage {
 
     // ------------------------------------------------------------------ day
 
+    /// What needs action first: the digest's state, Needs Attention, then
+    /// the digest by task status. Narrow layouts add the rail below.
     fn render_day_column(
         &self,
         model: &DayModel,
         include_rail: bool,
         cx: &mut Context<Self>,
     ) -> AnyElement {
-        let lb = cx.lb().clone();
         let page = cx.entity().downgrade();
         let toggle: digest::TaskToggle = Rc::new(move |ix, _, cx| {
             let _ = page.update(cx, |this, cx| {
@@ -388,81 +405,175 @@ impl TimelinePage {
                 cx.notify();
             });
         });
-        let digest_panel = ui::panel(cx).flex().flex_col().gap(px(10.)).child(
-            div()
-                .text_size(ty::SECTION)
-                .font_weight(FontWeight::BOLD)
-                .text_color(lb.text)
-                .child(crate::ui::text::paragraph(lokalbot_i18n::tr("Day Digest"))),
-        );
-        let digest_panel = digest_panel.child(digest::digest_card(
-            model.digest.as_ref(),
-            DigestMode::Timeline,
-            px(600.),
-            &self.expanded_tasks,
-            toggle,
-            cx,
-        ));
-        let attention = (!model.attention.is_empty()).then(|| {
-            let count = model.attention.len();
-            let rows = model.attention.iter().enumerate().map(|(ix, thread)| {
-                v_flex()
-                    .child(threads::thread_row(
-                        format!("timeline-thread-{ix}").into(),
-                        thread,
-                        false,
-                        &self.data,
-                        cx,
-                    ))
-                    .when(ix + 1 < count, |this| {
-                        this.child(div().h(px(1.)).bg(lb.separator))
-                    })
-            });
-            let data = self.data.clone();
-            ui::section(
-                lokalbot_i18n::tr("Needs Attention"),
-                v_flex().children(rows).child(
-                    h_flex().pt(px(8.)).child(
-                        ui::controls::bordered(
-                            "timeline-review-actions",
-                            lokalbot_i18n::tr("Review Actions…"),
-                        )
-                        .on_click(move |_, _, cx| {
-                            data.update(cx, |data, cx| data.open_actions(cx))
-                        }),
-                    ),
-                ),
-                cx,
-            )
-        });
+        let status = self.render_digest_status(model, cx);
+        let attention = self.render_attention(model, cx);
+        let digest = model
+            .digest
+            .as_ref()
+            .map(|digest| digest::timeline_digest(digest, &self.expanded_tasks, toggle, cx));
         div()
             .id("timeline-day")
             .size_full()
             .overflow_y_scrollbar()
             .child(
                 v_flex()
-                    .p(metric::DETAIL_PADDING)
+                    .px(px(32.))
+                    .py(px(24.))
                     .gap(metric::SECTION_SPACING)
-                    .child(digest_panel)
+                    .children(status)
                     .children(attention)
+                    .children(digest)
                     .when(include_rail, |this| {
-                        this.child(self.render_rail_content(model, cx))
+                        this.child(ui::divider(cx))
+                            .child(self.render_rail_content(model, false, cx))
                     }),
             )
             .into_any_element()
     }
 
+    /// The digest's state in one line: an invitation before the first
+    /// digest, progress while one is written, and an Update button once
+    /// activity has arrived since the last one. A current digest needs none.
+    fn render_digest_status(&self, model: &DayModel, cx: &mut Context<Self>) -> Option<AnyElement> {
+        let lb = cx.lb().clone();
+        let busy = self.data.read(cx).digest_running == Some(self.day);
+        let strip = || {
+            h_flex()
+                .w_full()
+                .min_h(px(40.))
+                .gap(px(10.))
+                .items_center()
+                .pl(px(12.))
+                .pr(px(8.))
+                .py(px(7.))
+                .rounded(metric::GROUP_RADIUS)
+                .bg(lb.accent_text.opacity(0.08))
+                .text_size(ty::BODY)
+                .text_color(lb.text)
+        };
+        if busy {
+            let message = if model.digest.is_none() {
+                lokalbot_i18n::tr("Writing this day's digest…")
+            } else {
+                lokalbot_i18n::tr("Updating the digest with new activity…")
+            };
+            return Some(
+                strip()
+                    .child(Spinner::new().xsmall().color(lb.accent_text))
+                    .child(crate::ui::text::paragraph(message))
+                    .into_any_element(),
+            );
+        }
+        let Some(digest) = model.digest.as_ref() else {
+            return Some(
+                div()
+                    .text_size(ty::BODY)
+                    .text_color(lb.text_secondary)
+                    .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
+                        "Your digest brings together this day's meetings and captured activity.",
+                    )))
+                    .into_any_element(),
+            );
+        };
+        if !digest.is_stale {
+            return None;
+        }
+        let message = match digest::digest_updated_at(digest) {
+            Some(at) => lokalbot_i18n::format(
+                "New activity since this digest was written at {0}.",
+                &[("0", lokalbot_core::time::clock_time(at))],
+            ),
+            None => lokalbot_i18n::tr("New activity since this digest was written.").to_string(),
+        };
+        let data = self.data.clone();
+        let day = self.day;
+        Some(
+            strip()
+                .child(ui::icon(Ico::RefreshCw, px(14.), lb.accent_text))
+                .child(
+                    div()
+                        .flex_1()
+                        .min_w_0()
+                        .child(crate::ui::text::paragraph(message)),
+                )
+                .child(
+                    Button::new("timeline-update-digest")
+                        .primary()
+                        .label(lokalbot_i18n::tr("Update Digest"))
+                        .on_click(move |_, _, cx| {
+                            data.update(cx, |data, cx| {
+                                data.request(AppEvent::RegenerateDigest(day), cx)
+                            })
+                        }),
+                )
+                .into_any_element(),
+        )
+    }
+
+    /// Needs Attention as rows on the page, with Review Actions beside the
+    /// heading. Nothing to act on means no section at all.
+    fn render_attention(&self, model: &DayModel, cx: &mut Context<Self>) -> Option<AnyElement> {
+        if model.attention.is_empty() {
+            return None;
+        }
+        let lb = cx.lb().clone();
+        let shown = &model.attention[..model.attention.len().min(ATTENTION_ROWS)];
+        let rows = shown.iter().enumerate().map(|(ix, thread)| {
+            v_flex()
+                .child(div().py(px(6.)).child(threads::thread_row(
+                    format!("timeline-thread-{ix}").into(),
+                    thread,
+                    false,
+                    &self.data,
+                    cx,
+                )))
+                .when(ix + 1 < shown.len(), |this| {
+                    this.child(div().h(px(1.)).bg(lb.separator))
+                })
+        });
+        let data = self.data.clone();
+        Some(
+            v_flex()
+                .gap(px(2.))
+                .child(
+                    h_flex()
+                        .pb(px(4.))
+                        .gap(px(8.))
+                        .items_baseline()
+                        .child(digest::counted_heading(
+                            lokalbot_i18n::tr("Needs Attention"),
+                            model.attention.len(),
+                            cx,
+                        ))
+                        .child(div().flex_1())
+                        .child(div().text_size(ty::SECONDARY).child(ui::link(
+                            "timeline-review-actions",
+                            lokalbot_i18n::tr("Review Actions…"),
+                            move |_, cx| data.update(cx, |data, cx| data.open_actions(cx)),
+                            cx,
+                        ))),
+                )
+                .children(rows)
+                .into_any_element(),
+        )
+    }
+
     // ----------------------------------------------------------------- rail
 
-    fn render_rail_content(&self, model: &DayModel, cx: &mut Context<Self>) -> AnyElement {
-        let lb = cx.lb().clone();
+    /// The day's totals above its sessions, so they lead the list. `in_rail`
+    /// is false when narrow layouts place this under the digest.
+    fn render_rail_content(
+        &self,
+        model: &DayModel,
+        in_rail: bool,
+        cx: &mut Context<Self>,
+    ) -> AnyElement {
         let tracking = self.data.read(cx).settings.tracking_enabled;
-        let sessions: Vec<&WorkSession> = model.activity.sessions.iter().collect();
         let nothing = model.activity.blocks.is_empty()
             && model.meetings.is_empty()
             && model.moments.is_empty();
-        let sessions_block: AnyElement = if nothing {
-            ui::empty_state(
+        if nothing {
+            return ui::empty_state(
                 Ico::Clock,
                 lokalbot_i18n::tr("No activity recorded"),
                 if tracking {
@@ -474,40 +585,173 @@ impl TimelinePage {
                 },
                 cx,
             )
+            .into_any_element();
+        }
+        v_flex()
+            .gap(metric::SECTION_SPACING)
+            .children(self.render_day_totals(model, cx))
+            .child(self.render_sessions(model, in_rail, cx))
+            .into_any_element()
+    }
+
+    /// Tracked time as the one large number, the day's counts beneath it,
+    /// and the split by app.
+    fn render_day_totals(&self, model: &DayModel, cx: &mut Context<Self>) -> Option<AnyElement> {
+        let lb = cx.lb().clone();
+        let activity = &model.activity;
+        let shares = digest::app_shares(activity);
+        if shares.is_empty() && activity.meeting_count == 0 {
+            return None;
+        }
+        let work_sessions = activity.sessions.iter().filter(|s| !s.is_meeting()).count();
+        let mut counts = vec![lokalbot_i18n::count(work_sessions, "work session")];
+        if activity.meeting_count > 0 {
+            counts.push(lokalbot_i18n::count(activity.meeting_count, "meeting"));
+        }
+        counts.push(lokalbot_i18n::count(digest::app_count(activity), "app"));
+        let segments: Vec<(Hsla, f32)> = shares
+            .iter()
+            .map(|share| (digest::share_color(share, cx), share.seconds as f32))
+            .collect();
+        // Two columns, each app's time flush right so the numbers line up.
+        let legend = v_flex().gap(px(6.)).children(shares.chunks(2).map(|pair| {
+            h_flex()
+                .gap(px(20.))
+                .children(pair.iter().map(|share| {
+                    h_flex()
+                        .flex_1()
+                        .min_w_0()
+                        .gap(px(7.))
+                        .items_center()
+                        .text_size(ty::SECONDARY)
+                        .child(ui::status_dot(digest::share_color(share, cx), px(7.)))
+                        .child(
+                            div()
+                                .min_w_0()
+                                .truncate()
+                                .text_color(lb.text)
+                                .child(share.label.clone()),
+                        )
+                        .child(div().flex_1().min_w(px(6.)))
+                        .child(
+                            div()
+                                .flex_none()
+                                .text_color(lb.text_secondary)
+                                .child(digest::hm(share.seconds)),
+                        )
+                }))
+                .when(pair.len() == 1, |this| this.child(div().flex_1()))
+        }));
+        Some(
+            v_flex()
+                .gap(px(12.))
+                .child(
+                    v_flex()
+                        .gap(px(2.))
+                        .child(
+                            h_flex()
+                                .gap(px(6.))
+                                .items_baseline()
+                                .child(
+                                    div()
+                                        .text_size(px(24.))
+                                        .font_weight(FontWeight::SEMIBOLD)
+                                        .text_color(lb.text)
+                                        .child(digest::hm(activity.tracked_seconds)),
+                                )
+                                .child(
+                                    div()
+                                        .text_size(ty::BODY)
+                                        .text_color(lb.text_secondary)
+                                        .child(lokalbot_i18n::tr("tracked")),
+                                ),
+                        )
+                        .child(
+                            div()
+                                .text_size(ty::SECONDARY)
+                                .text_color(lb.supporting)
+                                .child(counts.join(" · ")),
+                        ),
+                )
+                .when(!shares.is_empty(), |this| {
+                    this.child(ui::proportion_bar(&segments, cx)).child(legend)
+                })
+                .into_any_element(),
+        )
+    }
+
+    /// Work sessions and meetings in order on one time line, with long
+    /// stretches of no activity marked, followed by Browse Raw Capture.
+    fn render_sessions(
+        &self,
+        model: &DayModel,
+        in_rail: bool,
+        cx: &mut Context<Self>,
+    ) -> AnyElement {
+        let lb = cx.lb().clone();
+        let sessions = &model.activity.sessions;
+        let rows = lokalbot_core::timeline::rail_rows(
+            sessions,
+            lokalbot_core::timeline::AWAY_MINIMUM_GAP_SECONDS,
+        );
+        let metrics = RailMetrics::new(if in_rail {
+            lb.window.blend(rail_background(&lb))
+        } else {
+            lb.window
+        });
+        let list: AnyElement = if rows.is_empty() {
+            ui::empty_state(
+                Ico::Layers,
+                lokalbot_i18n::tr("No meaningful sessions"),
+                lokalbot_i18n::tr(
+                    "Only system activity or raw context was captured. You can still inspect it below.",
+                ),
+                cx,
+            )
             .into_any_element()
         } else {
-            let rows: Vec<AnyElement> = sessions
+            let rows: Vec<AnyElement> = rows
                 .iter()
-                .enumerate()
-                .map(|(ix, s)| self.render_session_row(ix, s, cx))
-                .collect();
-            v_flex()
-                .gap(px(10.))
-                .child(div().text_size(ty::SECTION).font_weight(FontWeight::BOLD).text_color(lb.text).child(crate::ui::text::paragraph(lokalbot_i18n::tr("Work Sessions"))))
-                .when(rows.is_empty(), |this| {
-                    this.child(ui::empty_state(
-                        Ico::Layers,
-                        lokalbot_i18n::tr("No meaningful sessions"),
-                        lokalbot_i18n::tr("Only system activity or raw context was captured. You can still inspect it below."),
-                        cx,
-                    ))
+                .map(|row| match row {
+                    RailRow::Session(ix) => {
+                        let session = &sessions[*ix];
+                        if session.is_meeting() {
+                            self.render_meeting_row(*ix, session, &metrics, cx)
+                        } else {
+                            self.render_session_row(*ix, session, &metrics, cx)
+                        }
+                    }
+                    RailRow::Away { start, end } => away_row(*start, *end, &metrics, cx),
                 })
-                .child(v_flex().gap(px(8.)).children(rows))
-                .child(self.render_raw_capture_row(model, cx))
+                .collect();
+            div()
+                .relative()
+                // One line runs through the dots, so the list reads as a day.
+                .child(
+                    div()
+                        .absolute()
+                        .top(px(14.))
+                        .bottom(px(14.))
+                        .left(px(metrics.dot_center() - 0.75))
+                        .w(px(1.5))
+                        .bg(lb.text.opacity(0.10)),
+                )
+                .child(v_flex().children(rows))
                 .into_any_element()
         };
         v_flex()
-            .gap(metric::SECTION_SPACING)
-            .when(!nothing, |this| {
-                this.child(digest::day_overview(
-                    lokalbot_i18n::tr("Day Overview"),
-                    &model.activity,
-                    true,
-                    true,
-                    cx,
-                ))
-            })
-            .child(sessions_block)
+            .gap(px(8.))
+            .child(digest::counted_heading(
+                lokalbot_i18n::tr("Sessions"),
+                sessions.len(),
+                cx,
+            ))
+            .child(list)
+            .child(
+                div()
+                    .pt(px(12.))
+                    .child(self.render_raw_capture_row(model, cx)),
+            )
             .into_any_element()
     }
 
@@ -515,29 +759,26 @@ impl TimelinePage {
     fn render_raw_capture_row(&self, model: &DayModel, cx: &mut Context<Self>) -> AnyElement {
         let lb = cx.lb().clone();
         let selected = self.selection == Some(Selection::RawCapture);
-        let (fill, stroke) = if selected {
-            (lb.accent_text.opacity(0.11), lb.accent_text.opacity(0.8))
-        } else {
-            (lb.text.opacity(0.035), lb.text.opacity(0.10))
-        };
         h_flex()
             .id("timeline-raw-capture")
-            .mt(px(4.))
             .w_full()
-            .p(px(10.))
+            .px(px(8.))
+            .py(px(10.))
             .gap(px(10.))
             .items_center()
-            .rounded(metric::GROUP_RADIUS)
-            .bg(fill)
-            .border_1()
-            .border_color(stroke)
+            .border_t_1()
             .cursor_pointer()
-            .hover(move |s| s.bg(fill.opacity(1.6)))
-            .child(div().w(px(24.)).flex().justify_center().child(ui::icon(
-                Ico::Activity,
-                px(16.),
-                lb.text_secondary,
-            )))
+            .map(|this| {
+                if selected {
+                    this.border_color(gpui_kit::transparent_black())
+                        .rounded(metric::ROW_RADIUS)
+                        .bg(lb.accent_text.opacity(0.11))
+                } else {
+                    this.border_color(lb.separator)
+                        .hover(|s| s.bg(lb.text.opacity(0.04)))
+                }
+            })
+            .child(ui::icon(Ico::Activity, px(15.), lb.text_secondary))
             .child(
                 v_flex()
                     .flex_1()
@@ -545,7 +786,7 @@ impl TimelinePage {
                     .gap(px(2.))
                     .child(
                         div()
-                            .text_size(ty::BODY)
+                            .text_size(px(13.))
                             .font_weight(FontWeight::MEDIUM)
                             .text_color(lb.text)
                             .child(crate::ui::text::paragraph(lokalbot_i18n::tr(
@@ -565,148 +806,149 @@ impl TimelinePage {
             .into_any_element()
     }
 
+    /// A work session: start time, a dot in its app's color on the day's
+    /// line, its title and active time.
     fn render_session_row(
         &self,
         ix: usize,
         session: &WorkSession,
+        metrics: &RailMetrics,
         cx: &mut Context<Self>,
     ) -> AnyElement {
         let lb = cx.lb().clone();
-        let meeting = session.meeting_id;
-        let selected = match (&self.selection, meeting) {
-            (Some(Selection::Meeting(id)), Some(mid)) => *id == mid,
-            (Some(Selection::Session(id)), None) => *id == session.id,
-            _ => false,
+        let selected = self.selection == Some(Selection::Session(session.id.clone()));
+        let selection = Selection::Session(session.id.clone());
+        h_flex()
+            .id(("timeline-session", ix))
+            .w_full()
+            .gap(px(RAIL_SPACING))
+            .items_center()
+            .py(px(6.))
+            .pr(px(8.))
+            .rounded(metric::ROW_RADIUS)
+            .border_1()
+            .cursor_pointer()
+            .map(|this| {
+                if selected {
+                    this.bg(lb.accent_text.opacity(0.11))
+                        .border_color(lb.accent_text.opacity(0.8))
+                } else {
+                    this.border_color(gpui_kit::transparent_black())
+                        .hover(|s| s.bg(lb.text.opacity(0.04)))
+                }
+            })
+            .child(metrics.time(session.start, None, cx))
+            .child(metrics.dot(lb.app_color(&session.primary_app)))
+            // A title that only lists apps stays quieter than one that names
+            // what was open.
+            .child(
+                div()
+                    .flex_1()
+                    .min_w_0()
+                    .truncate()
+                    .text_size(px(13.))
+                    .map(|this| {
+                        if session.title_names_apps {
+                            this.text_color(lb.supporting)
+                        } else {
+                            this.font_weight(FontWeight::MEDIUM).text_color(lb.text)
+                        }
+                    })
+                    .child(session.title.clone()),
+            )
+            .child(
+                div()
+                    .flex_none()
+                    .text_size(ty::CAPTION)
+                    .font_weight(FontWeight::SEMIBOLD)
+                    .text_color(lb.text_secondary)
+                    .child(digest::hm(session.active_seconds)),
+            )
+            .on_click(cx.listener(move |this, _, _, cx| this.select(Some(selection.clone()), cx)))
+            .into_any_element()
+    }
+
+    /// The one tinted row: meetings are first-class events in the day.
+    fn render_meeting_row(
+        &self,
+        ix: usize,
+        session: &WorkSession,
+        metrics: &RailMetrics,
+        cx: &mut Context<Self>,
+    ) -> AnyElement {
+        let lb = cx.lb().clone();
+        let Some(meeting) = session.meeting_id else {
+            return self.render_session_row(ix, session, metrics, cx);
         };
-        let live = meeting.is_some_and(|id| {
-            self.data
-                .read(cx)
-                .recording
-                .meeting()
-                .is_some_and(|m| m.id == id)
-        });
-        let tint: Hsla = if meeting.is_some() {
+        let selected = self.selection == Some(Selection::Meeting(meeting));
+        let live = self
+            .data
+            .read(cx)
+            .recording
+            .meeting()
+            .is_some_and(|m| m.id == meeting);
+        let tint = if live {
+            lb.recording_text
+        } else {
             lb.accent_text
-        } else {
-            lb.app_color(&session.primary_app)
-        };
-        let (fill, stroke) = match (meeting.is_some(), selected) {
-            (false, false) => (lb.text.opacity(0.035), lb.text.opacity(0.10)),
-            (false, true) => (lb.accent_text.opacity(0.11), lb.accent_text.opacity(0.8)),
-            (true, false) => (lb.accent_text.opacity(0.045), lb.accent_text.opacity(0.20)),
-            (true, true) => (lb.accent_text.opacity(0.13), lb.accent_text.opacity(0.85)),
-        };
-        let apps = {
-            let visible: Vec<&str> = session.apps.iter().take(3).map(String::as_str).collect();
-            let rest = session.apps.len().saturating_sub(3);
-            if rest > 0 {
-                lokalbot_i18n::format(
-                    "{0} · +{rest}",
-                    &[
-                        ("0", visible.join(" · ").to_string()),
-                        ("rest", format!("{}", rest)),
-                    ],
-                )
-            } else {
-                visible.join(" · ")
-            }
-        };
-        let detail = if meeting.is_some() {
-            if live {
-                lokalbot_i18n::tr("Meeting · Recording").to_string()
-            } else {
-                lokalbot_i18n::tr("Meeting").to_string()
-            }
-        } else {
-            apps
-        };
-        let duration = if meeting.is_some() {
-            (session.end - session.start).num_seconds().max(0) as f64
-        } else {
-            session.active_seconds
-        };
-        let selection = match meeting {
-            Some(id) => Selection::Meeting(id),
-            None => Selection::Session(session.id.clone()),
         };
         h_flex()
             .id(("timeline-session", ix))
             .w_full()
-            .p(px(10.))
-            .gap(px(10.))
+            .gap(px(RAIL_SPACING))
             .items_center()
-            .rounded(metric::GROUP_RADIUS)
-            .bg(fill)
-            .border_1()
-            .border_color(stroke)
+            .py(px(3.))
             .cursor_pointer()
-            .hover(move |s| s.bg(fill.opacity(1.6)))
+            .child(metrics.time(session.start, Some(tint), cx))
+            .child(metrics.dot(if live { lb.recording } else { lb.accent_text }))
             .child(
-                v_flex()
-                    .w(px(64.))
-                    .flex_none()
-                    .items_end()
-                    .gap(px(2.))
-                    .text_size(ty::CAPTION)
-                    .child(
-                        div()
-                            .text_color(lb.text)
-                            .child(lokalbot_core::time::clock_time(session.start)),
-                    )
-                    .child(
-                        div()
-                            .text_color(lb.supporting)
-                            .child(lokalbot_core::time::clock_time(session.end)),
-                    ),
-            )
-            .child(ui::icon_tile(
-                if meeting.is_some() {
-                    Ico::AudioLines
-                } else {
-                    Ico::Briefcase
-                },
-                tint,
-                px(24.),
-            ))
-            .child(
-                v_flex()
+                h_flex()
                     .flex_1()
                     .min_w_0()
-                    .gap(px(3.))
+                    .gap(px(7.))
+                    .items_center()
+                    .px(px(8.))
+                    .py(px(6.))
+                    .rounded(metric::ROW_RADIUS)
+                    .bg(lb.accent_text.opacity(if selected { 0.16 } else { 0.07 }))
+                    .border_1()
+                    .border_color(lb.accent_text.opacity(if selected { 0.85 } else { 0.22 }))
+                    .child(ui::icon(Ico::AudioLines, px(12.), lb.accent_text))
                     .child(
                         div()
+                            .min_w_0()
                             .truncate()
-                            .text_size(ty::BODY)
+                            .text_size(px(13.))
                             .font_weight(FontWeight::MEDIUM)
                             .text_color(lb.text)
                             .child(session.title.clone()),
                     )
                     .child(
-                        h_flex()
-                            .gap(px(6.))
+                        div()
+                            .flex_none()
                             .text_size(ty::CAPTION)
-                            .child(
-                                div()
-                                    .min_w_0()
-                                    .truncate()
-                                    .text_color(if live {
-                                        lb.recording_text
-                                    } else {
-                                        lb.supporting
-                                    })
-                                    .child(detail),
-                            )
-                            .child(
-                                div()
-                                    .flex_none()
-                                    .font_weight(FontWeight::SEMIBOLD)
-                                    .text_color(lb.text)
-                                    .child(crate::pages::today::digest::hm(duration)),
-                            ),
+                            .text_color(tint)
+                            .child(if live {
+                                lokalbot_i18n::tr("Recording")
+                            } else {
+                                lokalbot_i18n::tr("Meeting")
+                            }),
+                    )
+                    .child(div().flex_1().min_w(px(4.)))
+                    .child(
+                        div()
+                            .flex_none()
+                            .text_size(ty::CAPTION)
+                            .font_weight(FontWeight::SEMIBOLD)
+                            .text_color(lb.accent_text)
+                            .child(digest::hm(session.duration_seconds())),
                     ),
             )
-            .child(ui::icon(Ico::ChevronRight, px(13.), lb.text_tertiary))
-            .on_click(cx.listener(move |this, _, _, cx| this.select(Some(selection.clone()), cx)))
+            .on_click(
+                cx.listener(move |this, _, _, cx| {
+                    this.select(Some(Selection::Meeting(meeting)), cx)
+                }),
+            )
             .into_any_element()
     }
 
@@ -899,11 +1141,15 @@ impl Render for TimelinePage {
                             .w(self.rail_width())
                             .flex_none()
                             .h_full()
-                            .bg(lb.sidebar.opacity(if lb.dark { 0.6 } else { 0.55 }))
+                            .bg(rail_background(&lb))
                             .border_l_1()
                             .border_color(lb.separator)
                             .overflow_y_scrollbar()
-                            .child(div().p(px(16.)).child(self.render_rail_content(&model, cx))),
+                            .child(
+                                div()
+                                    .p(px(16.))
+                                    .child(self.render_rail_content(&model, true, cx)),
+                            ),
                     )
                     .into_any_element()
             }
@@ -915,4 +1161,100 @@ impl Render for TimelinePage {
             .child(header)
             .child(body)
     }
+}
+
+// ------------------------------------------------------------ rail parts
+
+/// The rail's tint over the window.
+fn rail_background(lb: &Palette) -> Hsla {
+    lb.sidebar.opacity(if lb.dark { 0.6 } else { 0.55 })
+}
+
+const RAIL_SPACING: f32 = 8.;
+const RAIL_DOT_COLUMN: f32 = 12.;
+
+/// Column widths of a rail row. The time column follows the clock: "18:45"
+/// needs less room than "10:40 AM".
+struct RailMetrics {
+    time_width: f32,
+    /// The background behind the rail, ringing each dot where it crosses
+    /// the day's line.
+    ring: Hsla,
+}
+
+impl RailMetrics {
+    fn new(ring: Hsla) -> Self {
+        let twelve_hour = lokalbot_i18n::date_pattern("%-I:%M %p").contains("%p");
+        Self {
+            time_width: if twelve_hour { 58. } else { 38. },
+            ring,
+        }
+    }
+
+    fn dot_center(&self) -> f32 {
+        self.time_width + RAIL_SPACING + RAIL_DOT_COLUMN / 2.
+    }
+
+    /// A start time, emphasized in `tint` for meetings.
+    fn time(&self, at: DateTime<Utc>, tint: Option<Hsla>, cx: &App) -> Div {
+        let lb = cx.lb();
+        h_flex()
+            .w(px(self.time_width))
+            .flex_none()
+            .justify_end()
+            .text_size(ty::CAPTION)
+            .whitespace_nowrap()
+            .map(|this| match tint {
+                Some(tint) => this.font_weight(FontWeight::SEMIBOLD).text_color(tint),
+                None => this.text_color(lb.text_secondary),
+            })
+            .child(lokalbot_core::time::clock_time(at))
+    }
+
+    fn dot(&self, color: Hsla) -> Div {
+        div()
+            .w(px(RAIL_DOT_COLUMN))
+            .flex_none()
+            .flex()
+            .justify_center()
+            .child(
+                div()
+                    .size(px(13.))
+                    .flex_none()
+                    .rounded_full()
+                    .bg(self.ring)
+                    .flex()
+                    .items_center()
+                    .justify_center()
+                    .child(ui::status_dot(color, px(9.))),
+            )
+    }
+}
+
+/// A stretch with nothing recorded between two rows.
+fn away_row(
+    start: DateTime<Utc>,
+    end: DateTime<Utc>,
+    metrics: &RailMetrics,
+    cx: &App,
+) -> AnyElement {
+    let seconds = (end - start).num_seconds().max(0) as f64;
+    h_flex()
+        .gap(px(RAIL_SPACING))
+        .py(px(4.))
+        .child(
+            div()
+                .flex_none()
+                .w(px(metrics.time_width + RAIL_SPACING + RAIL_DOT_COLUMN)),
+        )
+        .child(
+            div()
+                .text_size(ty::CAPTION)
+                .text_color(cx.lb().text_tertiary)
+                .child(lokalbot_i18n::format(
+                    "Away {0}",
+                    &[("0", digest::hm(seconds))],
+                )),
+        )
+        .into_any_element()
 }

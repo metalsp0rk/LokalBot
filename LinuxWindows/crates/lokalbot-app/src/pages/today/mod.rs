@@ -26,7 +26,6 @@ use gpui_kit::{
 use lokalbot_core::{ActionThread, DayActivity, DayDigest, WorkSession};
 
 use self::actions::ActionsWorkspace;
-use self::digest::DigestMode;
 use crate::pages::Page;
 use crate::state::{AppData, AskRequest, RecordingState, Section};
 use crate::theme::{LbThemeExt as _, metric, ty};
@@ -350,6 +349,7 @@ impl TodayPage {
                 model.day,
                 model.digest.as_ref(),
                 false,
+                false,
                 &self.data,
                 cx,
             ));
@@ -384,7 +384,6 @@ impl TodayPage {
             .child(ui::divider(cx))
             .child(digest::digest_card(
                 model.digest.as_ref(),
-                DigestMode::Today,
                 self.content_width(),
                 &self.expanded_tasks,
                 toggle,

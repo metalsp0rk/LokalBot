@@ -623,6 +623,122 @@ pub fn parse_digest(markdown: &str) -> DayDigest {
     }
 }
 
+/// Timeline's task sections in order: open work first, finished work last.
+pub const TASK_GROUP_ORDER: [TaskStatus; 4] = [
+    TaskStatus::Blocked,
+    TaskStatus::InProgress,
+    TaskStatus::Unknown,
+    TaskStatus::Completed,
+];
+
+/// One-line rows a section shows before "Show N more".
+pub const BRIEF_ROW_LIMIT: usize = 8;
+
+/// A status section of the task list: its tasks' indices in
+/// `DayDigest::tasks`, in journal order.
+#[derive(Clone, Debug, PartialEq)]
+pub struct TaskGroup {
+    pub status: TaskStatus,
+    pub tasks: Vec<usize>,
+}
+
+/// How Timeline shows a section's tasks (`DayDigestPresentation.timelineRows`).
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct TimelineRows {
+    /// Shown in full, with the title, next step and summary.
+    pub full: Vec<usize>,
+    /// Shown as one-line rows whose summary opens on demand.
+    pub brief: Vec<usize>,
+}
+
+impl DayDigest {
+    /// Task-first journals give their tasks a status; older journals never do.
+    pub fn is_task_first(&self) -> bool {
+        self.tasks.iter().any(|t| t.status != TaskStatus::Unknown)
+    }
+
+    /// The non-empty status sections, in `TASK_GROUP_ORDER`.
+    pub fn task_groups(&self) -> Vec<TaskGroup> {
+        TASK_GROUP_ORDER
+            .iter()
+            .map(|status| TaskGroup {
+                status: *status,
+                tasks: (0..self.tasks.len())
+                    .filter(|ix| self.tasks[*ix].status == *status)
+                    .collect(),
+            })
+            .filter(|group| !group.tasks.is_empty())
+            .collect()
+    }
+
+    /// Timeline shows a section's tasks that carry a next step, and every
+    /// blocked task, in full; the rest become one-line rows, as does all of
+    /// Done. Older journals have neither statuses nor next steps, and their
+    /// summary is the only description, so all of their tasks stay in full.
+    pub fn timeline_rows(&self, group: &TaskGroup) -> TimelineRows {
+        if !self.is_task_first() || group.status == TaskStatus::Blocked {
+            return TimelineRows {
+                full: group.tasks.clone(),
+                brief: Vec::new(),
+            };
+        }
+        if group.status == TaskStatus::Completed {
+            return TimelineRows {
+                full: Vec::new(),
+                brief: group.tasks.clone(),
+            };
+        }
+        let (full, brief) = group
+            .tasks
+            .iter()
+            .partition(|ix| self.tasks[**ix].next_step.is_some());
+        TimelineRows { full, brief }
+    }
+}
+
+/// Whether `count` one-line rows show only the first `BRIEF_ROW_LIMIT` until
+/// asked for the rest. Hiding a single row would cost as much room as
+/// showing it.
+pub fn folds_brief_rows(count: usize) -> bool {
+    count > BRIEF_ROW_LIMIT + 1
+}
+
+/// Splits a trailing parenthetical off a task title, such as the project in
+/// "Review all open PRs (LokalBot)" or the pull request in "Staging
+/// deployment (PR #487)", so it can show as a tag
+/// (`DayDigestPresentation.titleAndTag`). Nested parentheses stay inside the
+/// tag; a title that is only a parenthetical, or one over 32 characters, has
+/// no tag.
+pub fn title_and_tag(title: &str) -> (&str, Option<&str>) {
+    let trimmed = title.trim();
+    if !trimmed.ends_with(')') {
+        return (trimmed, None);
+    }
+    let mut depth = 0;
+    let mut open = None;
+    for (index, ch) in trimmed.char_indices().rev() {
+        if ch == ')' {
+            depth += 1;
+        }
+        if ch == '(' {
+            depth -= 1;
+            if depth == 0 {
+                open = Some(index);
+                break;
+            }
+        }
+    }
+    let Some(open) = open else {
+        return (trimmed, None);
+    };
+    let tag = trimmed[open + 1..trimmed.len() - 1].trim();
+    let head = trimmed[..open].trim();
+    if head.is_empty() || tag.is_empty() || tag.chars().count() > 32 {
+        return (trimmed, None);
+    }
+    (head, Some(tag))
+}
+
 const MEETING_ARTIFACTS: &[&str] = &[
     "transcript.json",
     "summary.md",
@@ -760,6 +876,97 @@ mod tests {
         );
         assert!(digest.highlights.is_empty());
         assert_eq!(digest.meetings_markdown, None);
+    }
+
+    /// Timeline gives full rows to open tasks with a next step and to blocked
+    /// tasks; the rest of a section, and all of Done, become one-line rows.
+    #[test]
+    fn timeline_rows_keep_next_steps_and_blockers_in_full() {
+        let digest = parse_digest(
+            "## Day summary\n\n### Tasks\n\
+- **Publish the release** — Completed. Pushed the release branch.\n\
+- **Fix overlay positioning (PR #169)** — In progress. Pushed a fix.\n\
+- **Review open PRs** — In progress. Read three diffs.\n\
+- **Generate voiceover** — Blocked. Waiting for audio credits.\n\n\
+### Decisions and next steps\n\
+- Next — Fix overlay positioning (PR #169): Enable text metrics in Chrome.\n",
+        );
+        let rows = |status: TaskStatus| {
+            digest
+                .task_groups()
+                .iter()
+                .find(|g| g.status == status)
+                .map(|g| digest.timeline_rows(g))
+                .unwrap_or_default()
+        };
+        assert!(digest.is_task_first());
+        assert_eq!(
+            digest
+                .task_groups()
+                .iter()
+                .map(|g| g.status)
+                .collect::<Vec<_>>(),
+            [
+                TaskStatus::Blocked,
+                TaskStatus::InProgress,
+                TaskStatus::Completed
+            ]
+        );
+        assert_eq!(rows(TaskStatus::InProgress).full, [1]);
+        assert_eq!(rows(TaskStatus::InProgress).brief, [2]);
+        assert_eq!(rows(TaskStatus::Blocked).full, [3]);
+        assert!(rows(TaskStatus::Completed).full.is_empty());
+        assert_eq!(rows(TaskStatus::Completed).brief, [0]);
+
+        let legacy = parse_digest(
+            "## Day summary\n\n### Focus blocks\n\
+- **09:00–10:30 · Fixture implementation** — User updated the Timeline UI.\n",
+        );
+        assert!(!legacy.is_task_first());
+        let rows = legacy.timeline_rows(&legacy.task_groups()[0]);
+        assert_eq!(rows.full, [0], "older journals keep every summary visible");
+        assert!(rows.brief.is_empty());
+
+        assert!(!folds_brief_rows(BRIEF_ROW_LIMIT + 1));
+        assert!(folds_brief_rows(BRIEF_ROW_LIMIT + 2));
+    }
+
+    #[test]
+    fn title_tag_splits_only_a_trailing_parenthetical() {
+        assert_eq!(
+            title_and_tag("Review all open PRs (LokalBot)"),
+            ("Review all open PRs", Some("LokalBot"))
+        );
+        assert_eq!(
+            title_and_tag("alpha: Base/Monad staging deployment (PR #487)"),
+            ("alpha: Base/Monad staging deployment", Some("PR #487"))
+        );
+        assert_eq!(
+            title_and_tag("Protocol fee extraction code review (fork 2) (alpha)"),
+            (
+                "Protocol fee extraction code review (fork 2)",
+                Some("alpha")
+            )
+        );
+        assert_eq!(
+            title_and_tag("Fix layout (overlay (caret))"),
+            ("Fix layout", Some("overlay (caret)"))
+        );
+        assert_eq!(
+            title_and_tag("Machine maintenance, Mojo PR #230"),
+            ("Machine maintenance, Mojo PR #230", None)
+        );
+        assert_eq!(
+            title_and_tag("(LokalBot)"),
+            ("(LokalBot)", None),
+            "a title is never only its tag"
+        );
+        assert_eq!(
+            title_and_tag("Ship it (and then (a long aside that keeps going))"),
+            ("Ship it (and then (a long aside that keeps going))", None),
+            "a long parenthetical is part of the sentence, not a tag"
+        );
+        assert_eq!(title_and_tag("Unbalanced)"), ("Unbalanced)", None));
     }
 
     #[test]
