@@ -39,10 +39,39 @@ pub fn open(cx: &mut App) {
     if super::activate(existing, cx) {
         return;
     }
+    let kind = window_kind(&lokalbot_platform::session::desktop());
+    // A floating window's parent is the focused window, and on first launch
+    // the main window has only just opened.
+    #[cfg(target_os = "linux")]
+    if kind == WindowKind::Floating {
+        super::when_focused(cx, move |cx| open_window(kind, cx));
+        return;
+    }
+    open_window(kind, cx);
+}
+
+/// Hyprland and Sway would tile the welcome window beside the main window.
+/// Opened as `Floating`, it gets the main window as its parent, so they
+/// float it, centered, at its own size. Other desktops place a normal window
+/// themselves.
+fn window_kind(desktop: &lokalbot_platform::session::Desktop) -> WindowKind {
+    if desktop.tiles_windows() {
+        WindowKind::Floating
+    } else {
+        WindowKind::Normal
+    }
+}
+
+fn open_window(kind: WindowKind, cx: &mut App) {
+    // It may have opened while `open` waited for the main window.
+    let existing = super::secondary(cx).onboarding;
+    if super::activate(existing, cx) {
+        return;
+    }
     let bounds = Bounds::centered(None, size(px(WIDTH), px(HEIGHT)), cx);
     let options = WindowOptions {
         window_bounds: Some(WindowBounds::Windowed(bounds)),
-        kind: WindowKind::Normal,
+        kind,
         is_resizable: false,
         is_minimizable: false,
         app_id: Some("com.lokalbot.LokalBot".into()),
@@ -854,4 +883,25 @@ fn model_row(
             )
         })
         .into_any_element()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use lokalbot_platform::session::Desktop;
+
+    #[test]
+    fn floats_only_where_the_compositor_tiles() {
+        assert!(window_kind(&Desktop::Hyprland) == WindowKind::Floating);
+        assert!(window_kind(&Desktop::Sway) == WindowKind::Floating);
+        for desktop in [
+            Desktop::Windows,
+            Desktop::X11,
+            Desktop::Kde,
+            Desktop::Gnome,
+            Desktop::OtherWayland("niri".into()),
+        ] {
+            assert!(window_kind(&desktop) == WindowKind::Normal, "{desktop:?}");
+        }
+    }
 }
