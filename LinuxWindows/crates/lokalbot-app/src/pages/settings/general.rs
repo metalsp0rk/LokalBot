@@ -211,7 +211,7 @@ impl SettingsPage {
         let offer = updates.status.release().cloned().map(|release| {
             (
                 updates::offer_text(updates, &release),
-                updates.can_install(&release),
+                updates.route(&release),
                 release,
             )
         });
@@ -262,22 +262,29 @@ impl SettingsPage {
                 cx,
             ),
         );
-        if let Some((help, installable, release)) = offer {
+        if let Some((help, route, release)) = offer {
             let install = entity.clone();
             let notes = release.feed.release_notes_url.clone();
-            let action = if installable {
-                Button::new("settings-install-update")
-                    .primary()
-                    .small()
-                    .label(lokalbot_i18n::tr("Install and Relaunch"))
-                    .disabled(busy)
-                    .on_click(move |_, _, cx| install.update(cx, |updates, cx| updates.install(cx)))
-            } else {
-                Button::new("settings-download-update")
-                    .outline()
-                    .small()
-                    .label(lokalbot_i18n::tr("Download"))
-                    .on_click(|_, _, cx| updates::open_release_page(cx))
+            // A package manager's copy has nothing to download here.
+            let action = match route {
+                updates::Route::Install => Some(
+                    Button::new("settings-install-update")
+                        .primary()
+                        .small()
+                        .label(lokalbot_i18n::tr("Install and Relaunch"))
+                        .disabled(busy)
+                        .on_click(move |_, _, cx| {
+                            install.update(cx, |updates, cx| updates.install(cx))
+                        }),
+                ),
+                updates::Route::Download => Some(
+                    Button::new("settings-download-update")
+                        .outline()
+                        .small()
+                        .label(lokalbot_i18n::tr("Download"))
+                        .on_click(|_, _, cx| updates::open_release_page(cx)),
+                ),
+                updates::Route::PackageManager => None,
             };
             section = section.row(
                 "settings.updateAvailable",
@@ -288,7 +295,7 @@ impl SettingsPage {
                         &[("version", release.version.to_string())],
                     ),
                     Some(help),
-                    h_flex().gap(px(10.)).items_center().child(action).child(
+                    h_flex().gap(px(10.)).items_center().children(action).child(
                         settings_row::link_button(
                             "settings-release-notes",
                             lokalbot_i18n::tr("Release Notes"),
