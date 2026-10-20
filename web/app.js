@@ -72,12 +72,54 @@
     demos.forEach(function (video) { demoIO.observe(video); });
   }
 
-  /* ---------- phones and tablets: a DMG is no use here, so hand the link to a Mac ---------- */
+  /* the visible label is the last non-empty text node; icons stay put */
+  var labelNode = function (el) {
+    var last = null;
+    for (var i = 0; i < el.childNodes.length; i++) {
+      var n = el.childNodes[i];
+      if (n.nodeType === 3 && n.nodeValue.trim()) last = n;
+    }
+    if (!last) { last = document.createTextNode(""); el.appendChild(last); }
+    return last;
+  };
+  var relabel = function (el, text, icon) {
+    labelNode(el).nodeValue = text;
+    var glyph = $("i.ph", el);
+    if (glyph && icon) glyph.className = "ph " + icon;
+  };
+
+  /* ---------- phones and tablets: an installer is no use here, so hand the link to a computer ---------- */
   var ua = navigator.userAgent || "";
   var handheld = /iPhone|iPad|iPod|Android/i.test(ua) ||
     (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1) ||
     !!(navigator.userAgentData && navigator.userAgentData.mobile);
-  var dmgLinks = $$('a[href$="LokalBot.dmg"]');
+  var dmgLinks = $$('a[href$="LokalBot.dmg"]:not([data-download-alt])');
+
+  /* ---------- Windows and Linux desktops: offer their own download ---------- */
+  var RELEASE = "https://github.com/stevyhacker/lokalbot/releases/latest/download/";
+  var desktop = (function () {
+    if (handheld) return "";
+    var platform = (navigator.userAgentData && navigator.userAgentData.platform) || "";
+    if (/CrOS|Chrome OS|Android/i.test(platform + " " + ua)) return "";
+    if (/Win/i.test(platform) || /Windows NT/.test(ua)) return "windows";
+    if (/Linux/i.test(platform) || /Linux|X11/.test(ua)) return "linux";
+    return "";
+  })();
+  var DOWNLOADS = {
+    windows: { file: "LokalBot-windows-x86_64.zip", name: "Windows", icon: "ph-windows-logo" },
+    linux: { file: "LokalBot-linux-x86_64.tar.gz", name: "Linux", icon: "ph-linux-logo" }
+  };
+  if (desktop) {
+    var target = DOWNLOADS[desktop];
+    $$("a[data-download]").forEach(function (link) {
+      link.setAttribute("href", RELEASE + target.file);
+      relabel(link, labelNode(link).nodeValue.replace(/(macOS|Mac)\s*$/, target.name), target.icon);
+    });
+    $$("[data-download-req]").forEach(function (el) {
+      var text = el.getAttribute("data-req-" + desktop);
+      if (text) el.textContent = text;
+    });
+  }
 
   if (handheld && dmgLinks.length) {
     var SITE_URL = "https://www.lokalbot.com/";
@@ -90,21 +132,6 @@
       document.body.appendChild(status);
     }
 
-    /* the visible label is the last non-empty text node; icons stay put */
-    var labelNode = function (el) {
-      var last = null;
-      for (var i = 0; i < el.childNodes.length; i++) {
-        var n = el.childNodes[i];
-        if (n.nodeType === 3 && n.nodeValue.trim()) last = n;
-      }
-      if (!last) { last = document.createTextNode(""); el.appendChild(last); }
-      return last;
-    };
-    var relabel = function (el, text, icon) {
-      labelNode(el).nodeValue = text;
-      var glyph = $("i.ph", el);
-      if (glyph && icon) glyph.className = "ph " + icon;
-    };
 
     var legacyCopy = function () {
       var ta = document.createElement("textarea");
@@ -122,11 +149,11 @@
     };
     var flash = function (el, ok) {
       if (!ok) {
-        window.prompt("Copy this link and open it on your Mac:", SITE_URL);
+        window.prompt("Copy this link and open it on your computer:", SITE_URL);
         return;
       }
       status.textContent = "";
-      status.textContent = "Link copied. Open it on your Mac to download LokalBot.";
+      status.textContent = "Link copied. Open it on your computer to download LokalBot.";
       if (el.dataset.copying) return;
       var node = labelNode(el);
       var glyph = $("i.ph", el);
@@ -150,7 +177,7 @@
         flash(el, legacyCopy());
       }
     };
-    var sendToMac = function (e) {
+    var sendToComputer = function (e) {
       e.preventDefault();
       var el = e.currentTarget;
       if (!canShare) { copyLink(el); return; }
@@ -160,13 +187,13 @@
     };
 
     dmgLinks.forEach(function (link) {
-      relabel(link, canShare ? "Send to my Mac" : "Copy link", canShare ? "ph-share" : "ph-copy");
+      relabel(link, canShare ? "Send to my computer" : "Copy link", canShare ? "ph-share" : "ph-copy");
       link.setAttribute("href", SITE_URL);
       link.setAttribute("role", "button");
       link.removeAttribute("download");
-      link.addEventListener("click", sendToMac);
+      link.addEventListener("click", sendToComputer);
       link.addEventListener("keydown", function (e) {
-        if (e.key === " ") sendToMac(e);
+        if (e.key === " ") sendToComputer(e);
       });
     });
     $$("[data-phone-label]").forEach(function (el) {

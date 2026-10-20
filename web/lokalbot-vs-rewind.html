@@ -28,7 +28,7 @@
 
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="icons.css" />
-  <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Article","headline":"LokalBot vs Rewind","description":"Compare discontinued Rewind with LokalBot's local day timeline, searchable meeting notes, encrypted screenshots, and open-source Mac app.","datePublished":"2026-07-01","dateModified":"2026-09-24","mainEntityOfPage":"https://www.lokalbot.com/lokalbot-vs-rewind","image":"https://www.lokalbot.com/assets/og-image.png","author":{"@type":"Organization","@id":"https://www.lokalbot.com/#organization","name":"LokalBot project","url":"https://www.lokalbot.com/"},"publisher":{"@type":"Organization","@id":"https://www.lokalbot.com/#organization","name":"LokalBot project","url":"https://www.lokalbot.com/"},"about":[{"@type":"SoftwareApplication","@id":"https://www.lokalbot.com/#software","name":"LokalBot","url":"https://www.lokalbot.com/","applicationCategory":"BusinessApplication","operatingSystem":"macOS 15+"},{"@type":"SoftwareApplication","name":"Rewind"}]},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://www.lokalbot.com/"},{"@type":"ListItem","position":2,"name":"Guides","item":"https://www.lokalbot.com/guides"},{"@type":"ListItem","position":3,"name":"LokalBot vs Rewind","item":"https://www.lokalbot.com/lokalbot-vs-rewind"}]},{"@type":"FAQPage","@id":"https://www.lokalbot.com/lokalbot-vs-rewind#faq","mainEntity":[{"@type":"Question","name":"Is LokalBot a drop-in Rewind replacement?","acceptedAnswer":{"@type":"Answer","text":"Not entirely, and it doesn't try to be. Rewind recorded your screen continuously and let you scrub it like a video. LokalBot tracks app and window activity by default, and adds periodic screenshots with OCR only if you opt in — lighter on disk, easier to reason about, and combined with full meeting capture. You get the search and the timeline, not the video scrubber."}},{"@type":"Question","name":"What actually happened to Rewind?","acceptedAnswer":{"@type":"Answer","text":"The company behind it shifted to Limitless, a wearable pendant with cloud-hosted memory, and stopped developing the Mac app. Meta acquired Limitless in December 2025. The rewind.ai domain now hosts an unrelated service — the original app is simply gone."}},{"@type":"Question","name":"How is this different from Windows Recall?","acceptedAnswer":{"@type":"Answer","text":"Recall is Windows-only and drew heavy privacy scrutiny. LokalBot is for the Mac. Out of the box it logs only which app and window you had open; screen text and screenshots stay off until you turn them on. Screenshots are encrypted at rest, captures are deleted after 14 days by default, and the code that does all of that is open for you to audit."}}]}]}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Article","headline":"LokalBot vs Rewind","description":"Compare discontinued Rewind with LokalBot's local day timeline, searchable meeting notes, encrypted screenshots, and open-source Mac app.","datePublished":"2026-07-01","dateModified":"2026-10-20","mainEntityOfPage":"https://www.lokalbot.com/lokalbot-vs-rewind","image":"https://www.lokalbot.com/assets/og-image.png","author":{"@type":"Organization","@id":"https://www.lokalbot.com/#organization","name":"LokalBot project","url":"https://www.lokalbot.com/"},"publisher":{"@type":"Organization","@id":"https://www.lokalbot.com/#organization","name":"LokalBot project","url":"https://www.lokalbot.com/"},"about":[{"@type":"SoftwareApplication","@id":"https://www.lokalbot.com/#software","name":"LokalBot","url":"https://www.lokalbot.com/","applicationCategory":"BusinessApplication","operatingSystem":"macOS 15+, Windows 10+, Linux"},{"@type":"SoftwareApplication","name":"Rewind"}]},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://www.lokalbot.com/"},{"@type":"ListItem","position":2,"name":"Guides","item":"https://www.lokalbot.com/guides"},{"@type":"ListItem","position":3,"name":"LokalBot vs Rewind","item":"https://www.lokalbot.com/lokalbot-vs-rewind"}]},{"@type":"FAQPage","@id":"https://www.lokalbot.com/lokalbot-vs-rewind#faq","mainEntity":[{"@type":"Question","name":"Is LokalBot a drop-in Rewind replacement?","acceptedAnswer":{"@type":"Answer","text":"Not entirely, and it doesn't try to be. Rewind recorded your screen continuously and let you scrub it like a video. LokalBot tracks app and window activity by default, and adds periodic screenshots with OCR only if you opt in — lighter on disk, easier to reason about, and combined with full meeting capture. You get the search and the timeline, not the video scrubber."}},{"@type":"Question","name":"What actually happened to Rewind?","acceptedAnswer":{"@type":"Answer","text":"The company behind it shifted to Limitless, a wearable pendant with cloud-hosted memory, and stopped developing the Mac app. Meta acquired Limitless in December 2025. The rewind.ai domain now hosts an unrelated service — the original app is simply gone."}},{"@type":"Question","name":"How is this different from Windows Recall?","acceptedAnswer":{"@type":"Answer","text":"Recall is Windows-only and drew heavy privacy scrutiny. LokalBot runs on the Mac and, in alpha, on Windows, where it's an open-source, opt-in alternative to Recall. Out of the box it logs only which app and window you had open; screen text and screenshots stay off until you turn them on. Screenshots are encrypted at rest, captures are deleted after 14 days by default, and the code that does all of that is open for you to audit."}}]}]}</script>
   <script src="app.js" defer></script>
 </head>
 <body>
@@ -128,12 +128,12 @@
             </tr>
             <tr>
               <th scope="row">System-wide dictation</th>
-              <td><i class="ph ph-check" aria-hidden="true"></i>Hold ⌥ Space in any app</td>
+              <td><i class="ph ph-check" aria-hidden="true"></i>Hold ⌥ Space (Alt+Space on Windows and Linux) in any app</td>
               <td><i class="ph ph-x" aria-hidden="true"></i>No</td>
             </tr>
             <tr>
               <th scope="row">Writing autocomplete</th>
-              <td><i class="ph ph-check" aria-hidden="true"></i>Cotyping, in almost any app</td>
+              <td><i class="ph ph-check" aria-hidden="true"></i>Cotyping, in almost any app (on Linux, X11 only)</td>
               <td><i class="ph ph-x" aria-hidden="true"></i>No</td>
             </tr>
             <tr>
@@ -148,7 +148,7 @@
             </tr>
             <tr>
               <th scope="row">Platforms</th>
-              <td>macOS 15+ on Apple Silicon</td>
+              <td>macOS 15+ on Apple Silicon; Windows 10/11 x64 and Linux x86_64 in alpha</td>
               <td>macOS (app no longer available)</td>
             </tr>
           </tbody>
@@ -202,7 +202,7 @@
         </details>
         <details class="qa">
           <summary>How is this different from Windows Recall?<i class="ph ph-plus" aria-hidden="true"></i></summary>
-          <p>Recall is Windows-only and drew heavy privacy scrutiny. LokalBot is for the Mac. Out of the box it logs only which app and window you had open; screen text and screenshots stay off until you turn them on. Screenshots are encrypted at rest, captures are deleted after 14 days by default, and the code that does all of that is open for you to audit.</p>
+          <p>Recall is Windows-only and drew heavy privacy scrutiny. LokalBot runs on the Mac and, in alpha, on Windows, where it's an open-source, opt-in alternative to Recall. Out of the box it logs only which app and window you had open; screen text and screenshots stay off until you turn them on. Screenshots are encrypted at rest, captures are deleted after 14 days by default, and the code that does all of that is open for you to audit.</p>
         </details>
       </div>
     </section>
@@ -214,11 +214,12 @@
         <p class="eyebrow">Download</p>
         <h2 class="section__title">Your timeline, back on your Mac.</h2>
         <p class="section__lead">Free and open source. Models download on first use; built-in inference then works offline.</p>
-        <a class="btn btn--primary btn--lg" href="https://github.com/stevyhacker/lokalbot/releases" target="_blank" rel="noopener">
-          <i class="ph ph-download-simple" aria-hidden="true"></i>
+        <a class="btn btn--primary btn--lg" href="https://github.com/stevyhacker/lokalbot/releases/latest/download/LokalBot.dmg" data-download>
+          <i class="ph ph-apple-logo" aria-hidden="true"></i>
           Download for macOS
         </a>
-        <p class="download__sub">.dmg installer &middot; <code>brew install --cask stevyhacker/tap/lokalbot</code> &middot; <a href="https://github.com/stevyhacker/lokalbot/releases" target="_blank" rel="noopener">all releases and notes</a></p>
+        <p class="download__sub" data-download-req data-req-windows="Windows 10 or 11, x64 &middot; Alpha, not code-signed yet" data-req-linux="x86_64 with glibc 2.39+ &middot; Alpha">Apple Silicon &middot; macOS 15+ &middot; <code>brew install --cask stevyhacker/tap/lokalbot</code></p>
+        <p class="download__sub"><a href="https://github.com/stevyhacker/lokalbot/releases/latest/download/LokalBot.dmg" data-download-alt>macOS</a> &middot; <a href="https://github.com/stevyhacker/lokalbot/releases/latest/download/LokalBot-windows-x86_64.zip" data-download-alt>Windows</a> &middot; <a href="https://github.com/stevyhacker/lokalbot/releases/latest/download/LokalBot-linux-x86_64.tar.gz" data-download-alt>Linux</a> (alpha) &middot; <a href="system-requirements">requirements</a> &middot; <a href="https://github.com/stevyhacker/lokalbot/releases" target="_blank" rel="noopener">all releases and notes</a></p>
       </div>
     </section>
 
@@ -248,7 +249,7 @@
         <span class="brand__name">LokalBot</span>
       </a>
       <p>Your personal context engine.</p>
-      <p class="footer__meta">Apple Silicon &middot; macOS 15.0+ &middot; Free &amp; open source</p>
+      <p class="footer__meta">macOS &middot; Windows and Linux (alpha) &middot; Free &amp; open source</p>
     </div>
     <nav class="footer__col" aria-label="Product">
       <h3>Product</h3>
