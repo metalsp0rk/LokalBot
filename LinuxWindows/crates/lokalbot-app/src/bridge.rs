@@ -227,6 +227,7 @@ fn apply(data: &mut AppData, event: EngineEvent, cx: &mut Context<AppData>) {
         EngineEvent::Download(update) => {
             if update.finished {
                 data.downloads.remove(&update.id);
+                data.sample_models_changed(cx);
             } else if let Some(error) = update.error {
                 data.downloads.insert(
                     update.id,
@@ -257,6 +258,7 @@ fn apply(data: &mut AppData, event: EngineEvent, cx: &mut Context<AppData>) {
                 screen_text_ready: status.screen_text_ready,
                 runtime_backend: status.runtime_backend.map(SharedString::from),
             };
+            data.sample_models_changed(cx);
         }
         EngineEvent::Digest { running } => data.digest_running = running,
         EngineEvent::ProjectNote {

@@ -177,6 +177,7 @@ pub fn hits(
     for (index, meeting) in meetings.iter().enumerate() {
         let short = short_id(meeting);
         let title = meeting.title.clone();
+        let sample = meeting.is_sample().then_some(true);
         consider(&meeting.title, index, 0, 0, &|_| {
             Some(SearchHit {
                 meeting_id: short.clone(),
@@ -184,6 +185,7 @@ pub fn hits(
                 match_kind: "title".into(),
                 snippet: title.clone(),
                 timestamp: None,
+                sample,
             })
         });
         if let Some(summary) = session.summary(meeting) {
@@ -194,6 +196,7 @@ pub fn hits(
                     match_kind: "summary".into(),
                     snippet: text,
                     timestamp: None,
+                    sample,
                 })
             });
         }
@@ -206,6 +209,7 @@ pub fn hits(
                         match_kind: "transcript".into(),
                         snippet: segment.text.clone(),
                         timestamp: Some(lokalbot_core::time::stamp(segment.start)),
+                        sample,
                     })
                 });
             }

@@ -215,6 +215,8 @@ pub struct AppData {
     pub calendar: lokalbot_engine::CalendarSnapshot,
     /// Today's preparation for the next meeting (in memory only).
     pub meeting_preparation: Option<lokalbot_engine::MeetingPreparation>,
+    /// "Try a sample meeting" waiting for its models (`sample.rs`).
+    pub sample_setup: Option<crate::sample::SampleSetup>,
 }
 
 /// A follow-up being rewritten with Think (`FollowUpDraftSheet`).
@@ -353,6 +355,7 @@ impl AppData {
             importing: Vec::new(),
             calendar: Default::default(),
             meeting_preparation: None,
+            sample_setup: None,
         }
     }
 

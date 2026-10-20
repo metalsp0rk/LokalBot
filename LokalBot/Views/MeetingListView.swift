@@ -186,6 +186,8 @@ struct MeetingListView: View {
             } actions: {
                 Button("Import Recording…") { RecordingImportPanel.choose(into: app) }
                     .accessibilityIdentifier("meeting.emptyImport")
+                Button("Try a sample meeting") { app.trySampleMeeting() }
+                    .accessibilityIdentifier("meeting.emptySample")
             }
         } else {
             ContentUnavailableView(
@@ -297,8 +299,9 @@ struct MeetingRowView: View {
                         LiveWaveform(barCount: 5, barWidth: 2.5, maxHeight: 10)
                     }
                 }
+                // The sample says what it is where a meeting names its app.
                 Text(meeting.isMergedMeeting ? "\(time) · \(duration)"
-                     : "\(meeting.appName) · \(time) · \(duration)")
+                     : "\(meeting.isSample ? app.settings.appLanguage.localized("Sample") : meeting.appName) · \(time) · \(duration)")
                     .font(.scaled(.callout))
                     // Selected rows take the title's own foreground, which the
                     // list turns white on teal and keeps dark on the inactive

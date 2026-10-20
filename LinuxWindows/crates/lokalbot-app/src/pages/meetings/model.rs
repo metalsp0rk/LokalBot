@@ -660,10 +660,16 @@ pub fn row_detail(meeting: &Meeting, live: bool) -> String {
             ],
         )
     } else {
+        // The sample says what it is where a meeting names its app.
+        let source = if meeting.is_sample() {
+            lokalbot_i18n::tr("Sample").to_string()
+        } else {
+            meeting.app_name.to_string()
+        };
         lokalbot_i18n::format(
             "{0} · {time} · {duration}",
             &[
-                ("0", meeting.app_name.to_string()),
+                ("0", source),
                 ("time", time.to_string()),
                 ("duration", duration.to_string()),
             ],

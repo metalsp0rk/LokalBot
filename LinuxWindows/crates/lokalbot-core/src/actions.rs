@@ -380,11 +380,12 @@ impl Library {
             .unwrap_or_default())
     }
 
-    /// Every action from meetings started in the last `days` days (all when `None`).
+    /// Every action from meetings started in the last `days` days (all when
+    /// `None`). The sample meeting's actions stay on its own page.
     pub fn action_references(&self, days: Option<u32>) -> Result<Vec<ActionReference>> {
         let cutoff = days.map(|d| Utc::now() - chrono::Duration::days(i64::from(d.max(1))));
         let mut out = Vec::new();
-        for meeting in self.list_meetings()? {
+        for meeting in self.list_own_meetings()? {
             if cutoff.is_some_and(|cutoff| meeting.started_at < cutoff) {
                 continue;
             }

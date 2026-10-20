@@ -147,7 +147,7 @@ pub fn can_merge(meetings: &[Meeting], processing: impl Fn(Uuid) -> bool) -> boo
     meetings.len() >= 2
         && meetings
             .iter()
-            .all(|m| !m.is_live() && !m.is_merged_source() && !processing(m.id))
+            .all(|m| !m.is_live() && m.is_own_work() && !processing(m.id))
 }
 
 /// Builds the merged meeting. On any failure the sources are left unfolded

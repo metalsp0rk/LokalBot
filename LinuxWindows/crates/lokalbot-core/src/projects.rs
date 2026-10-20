@@ -940,7 +940,7 @@ fn profile(
 pub fn build_people_and_projects(
     library: &Library,
 ) -> Result<(Vec<PersonProfile>, Vec<ProjectProfile>)> {
-    let meetings: Vec<Meeting> = library.list_meetings()?;
+    let meetings: Vec<Meeting> = library.list_own_meetings()?;
     let projections: Vec<OutcomeProjection> = meetings
         .iter()
         .filter_map(|m| library.outcome_projection(m).ok().flatten())

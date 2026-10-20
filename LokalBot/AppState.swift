@@ -337,6 +337,8 @@ final class AppState: ObservableObject {
 
     /// The meeting whose follow-up draft sheet is open, from any entry point.
     @Published var followUpDraftMeeting: Meeting?
+    /// "Try a sample meeting" is waiting for its models (`SampleMeetingSetupSheet`).
+    @Published var showsSampleSetup = false
 
     func draftFollowUp(for meeting: Meeting) {
         followUpDraftMeeting = meeting
@@ -397,11 +399,12 @@ final class AppState: ObservableObject {
     }
 
     func refreshConnections() {
-        let library = meetings.filter { !$0.isMergedSource }
+        let library = meetings.filter(\.isOwnWork)
         if libraryReady { projectStore.withdrawSummaries(missingFrom: Set(meetings.map(\.id))) }
+        let libraryIDs = Set(library.map(\.id))
         connections.refresh(.init(
             meetings: library,
-            projections: outcomeIndex.all,
+            projections: outcomeIndex.all.filter { libraryIDs.contains($0.id) },
             memory: dreamMemory,
             curation: projectStore.curation,
             peopleCuration: peopleStore.curation,
@@ -1193,7 +1196,9 @@ final class AppState: ObservableObject {
             }
             self.primaryEvidenceDidChange(for: meeting)
         }
-        pipeline.onSummaryCompleted = { [weak self] _ in
+        pipeline.onSummaryCompleted = { [weak self] meeting in
+            // The sample's notes don't count toward asking for a GitHub star.
+            guard !meeting.isSample else { return }
             self?.githubStar.recordSummaryCompleted()
         }
         if needsSynchronousLibrary {
@@ -1797,6 +1802,46 @@ final class AppState: ObservableObject {
                 }
             }
             if !failures.isEmpty { self.lastError = failures.joined(separator: "\n") }
+        }
+    }
+
+    /// Adds LokalBot's sample meeting through the same import as a chosen
+    /// file, then transcribes it and writes its notes (even with automatic
+    /// notes off). The models it needs are downloaded first, as their own
+    /// step, by `SampleMeetingSetupSheet`.
+    func importSampleMeeting() {
+        showsSampleSetup = false
+        if let existing = sampleMeeting {
+            openMeeting(existing.id)
+            return
+        }
+        let recording = SampleMeeting.recording(for: settings.appLanguage.localizationIdentifier())
+        guard !importingRecordings.contains(recording.title) else { return }
+        guard let url = SampleMeeting.audioURL(for: recording) else {
+            lastError = "The sample meeting is missing from this copy of LokalBot."
+            return
+        }
+        navSection = .meetings
+        importingRecordings.append(recording.title)
+        let previous = recordingImportTask
+        recordingImportTask = Task { @MainActor [weak self] in
+            await previous?.value
+            guard let self else { return }
+            do {
+                let meeting = try await MeetingImportService.importRecording(
+                    from: url, storage: self.storage, sample: recording)
+                self.meetings.append(meeting)
+                self.meetings.sort { $0.startedAt > $1.startedAt }
+                self.selectedMeetingIDs = [meeting.id]
+                lokalbotLog("sample meeting added meeting=\(meeting.id)")
+                self.reprocess(meeting, transcribe: true, summarize: true)
+            } catch {
+                lokalbotLog("sample meeting import failed")
+                self.lastError = error.localizedDescription
+            }
+            if let index = self.importingRecordings.firstIndex(of: recording.title) {
+                self.importingRecordings.remove(at: index)
+            }
         }
     }
 

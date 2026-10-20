@@ -28,6 +28,10 @@ impl MeetingsPage {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> AnyElement {
+        // "Try a sample meeting" holds the pane until its models are here or it is cancelled.
+        if self.data.read(cx).sample_setup.is_some() {
+            return crate::sample::render_setup(&self.data, cx);
+        }
         let Some(doc) = self
             .doc
             .clone()
@@ -137,7 +141,16 @@ impl MeetingsPage {
             .into_any_element(),
             chip(Ico::Clock, model::duration_label(meeting), lb.supporting).into_any_element(),
         ];
-        if !meeting.is_merged_meeting() {
+        if meeting.is_sample() {
+            chips.push(
+                chip(
+                    Ico::Sparkles,
+                    lokalbot_i18n::tr("Sample meeting").to_string(),
+                    lb.accent_text,
+                )
+                .into_any_element(),
+            );
+        } else if !meeting.is_merged_meeting() {
             chips
                 .push(chip(Ico::Video, meeting.app_name.clone(), lb.supporting).into_any_element());
         }
@@ -352,6 +365,17 @@ impl MeetingsPage {
     ) -> Vec<AnyElement> {
         let lb = cx.lb().clone();
         let mut out = Vec::new();
+        if doc.meeting.is_sample() {
+            out.push(crate::sample::render_banner(
+                &self.data,
+                doc.meeting.id,
+                doc.transcript
+                    .as_ref()
+                    .is_some_and(|t| !t.segments.is_empty()),
+                doc.summary.is_some(),
+                cx,
+            ));
+        }
         if let Some(stage) = self.data.read(cx).processing.get(&doc.meeting.id).cloned() {
             let (icon, color) = match &stage {
                 ProcessingStage::Failed(_) => (Ico::TriangleAlert, lb.attention_text),

@@ -234,7 +234,7 @@ impl DayEvidence {
             })
             .collect();
         let mut meetings = Vec::new();
-        for meeting in library.list_meetings()? {
+        for meeting in library.list_own_meetings()? {
             if lokalbot_core::time::local_day(meeting.started_at) != day {
                 continue;
             }

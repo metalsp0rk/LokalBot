@@ -715,7 +715,7 @@ impl Library {
         let (start, end) = crate::time::local_day_bounds(day);
         let blocks = clip_blocks(&self.activity_blocks(start, end)?, start, end);
         let meetings: Vec<Meeting> = self
-            .list_meetings()?
+            .list_own_meetings()?
             .into_iter()
             .filter(|m| crate::time::local_day(m.started_at) == day)
             .collect();

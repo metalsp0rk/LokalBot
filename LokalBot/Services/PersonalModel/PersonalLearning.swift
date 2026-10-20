@@ -78,7 +78,7 @@ enum PersonalLearning {
         let start = calendar.startOfDay(for: day)
         let end = calendar.date(byAdding: .day, value: 1, to: start) ?? start.addingTimeInterval(86_400)
         let meetings = try SessionLookup.loadAllMeetings(root: storageRoot)
-            .filter { $0.startedAt >= start && $0.startedAt < end }
+            .filter { !$0.isSample && $0.startedAt >= start && $0.startedAt < end }
             .sorted { $0.startedAt < $1.startedAt }
         let dayKey = DreamDay.key(for: start, calendar: calendar)
         var turns: [(order: Int, score: Int, utterance: Utterance)] = []

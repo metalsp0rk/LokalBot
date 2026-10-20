@@ -33,7 +33,9 @@ enum PeopleReport {
         let meetings: [ActionItemsReport.MeetingRef]
     }
 
-    static func people(meetings: [Meeting], root: URL, now: Date = Date()) -> [PersonProfile] {
+    static func people(meetings allMeetings: [Meeting], root: URL, now: Date = Date()) -> [PersonProfile] {
+        // The sample meeting's people are made up.
+        let meetings = allMeetings.filter(\.isOwnWork)
         let projections = meetings.compactMap { MeetingOutcomeProjection.load(for: $0, root: root) }
         return PeopleDirectory.build(.init(
             meetings: meetings, projections: projections,

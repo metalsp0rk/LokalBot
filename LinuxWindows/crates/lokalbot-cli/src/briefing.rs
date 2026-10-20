@@ -11,6 +11,7 @@
 use std::collections::{BTreeSet, HashMap};
 
 use chrono::{DateTime, Local, Utc};
+use lokalbot_core::Meeting;
 use lokalbot_core::access::{ScreenScope, screen_access_scope};
 use serde::Deserialize;
 
@@ -67,14 +68,21 @@ pub fn render(session: &Session, meeting_access: bool, now: DateTime<Utc>) -> St
 
     let mut lines = vec!["## What you can ask LokalBot".to_string()];
     if meeting_access {
-        match meetings.iter().max_by_key(|m| m.started_at) {
+        let own: Vec<&Meeting> = meetings.iter().filter(|m| m.is_own_work()).collect();
+        match own.iter().max_by_key(|m| m.started_at) {
             Some(newest) => lines.push(format!(
                 "- Meetings: on. {} recorded, newest \"{}\" ({}). Tools: search_meetings, get_meeting, list_meetings, get_action_items, list_people, get_person, and ask_library while the app runs.",
-                meetings.len(),
+                own.len(),
                 clean(&newest.title, 80),
                 day_key(newest.started_at)
             )),
             None => lines.push("- Meetings: on, none recorded yet.".into()),
+        }
+        if let Some(sample) = meetings.iter().find(|m| m.is_sample()) {
+            lines.push(format!(
+                "- The library also holds LokalBot's sample meeting, \"{}\": a made-up call with synthetic voices, not the user's work. Its results carry \"sample\": true.",
+                clean(&sample.title, 80)
+            ));
         }
     } else {
         lines.push("- Meetings: off. The user can turn on Settings → Privacy & Data → \"Allow external agents to read your meeting library\".".into());

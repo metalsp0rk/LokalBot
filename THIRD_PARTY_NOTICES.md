@@ -27,6 +27,7 @@ has its own section, [LokalBot for Linux and Windows](#lokalbot-for-linux-and-wi
 | llama.cpp | MIT | https://github.com/ggml-org/llama.cpp |
 | sherpa-onnx | Apache-2.0 | https://github.com/k2-fsa/sherpa-onnx |
 | ONNX Runtime | MIT | https://github.com/microsoft/onnxruntime |
+| Sample meeting recording (bundled; a fictional script voiced with ElevenLabs Eleven v4 premade voices "Bella" and "Chris") | Generated audio used under the ElevenLabs Terms of Service; script GPL-3.0 as part of LokalBot | `LokalBot/Resources/SampleMeeting/README.md` |
 | Bun (optional Agent Mode runtime; it statically links JavaScriptCore, under LGPL-2, as its `LICENSE.md` describes) | MIT | https://github.com/oven-sh/bun |
 | pi agent packages (optional, installed on request) | MIT | https://github.com/earendil-works/pi |
 | LFM models (downloaded on request) | LFM Open License v1.0 | https://docs.liquid.ai/lfm/help/model-license |

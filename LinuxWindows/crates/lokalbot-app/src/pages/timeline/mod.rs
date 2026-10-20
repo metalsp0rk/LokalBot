@@ -208,7 +208,7 @@ impl TimelinePage {
                             .needs_attention(Some(day), usize::MAX)
                             .unwrap_or_default(),
                         meetings: library
-                            .list_meetings()
+                            .list_own_meetings()
                             .unwrap_or_default()
                             .into_iter()
                             .filter(|m| lokalbot_core::time::local_day(m.started_at) == day)

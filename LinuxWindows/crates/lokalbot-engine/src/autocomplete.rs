@@ -1313,7 +1313,7 @@ fn meeting_items(
     let mut eligible: Vec<_> = meetings
         .into_iter()
         .filter(|m| {
-            !m.is_merged_source() && m.ended_at.is_some() && now - m.started_at <= memory::max_age()
+            m.is_own_work() && m.ended_at.is_some() && now - m.started_at <= memory::max_age()
         })
         .collect();
     eligible.sort_by_key(|m| std::cmp::Reverse(m.started_at));
