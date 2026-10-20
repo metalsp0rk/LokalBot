@@ -6,6 +6,9 @@ macOS app's experience (the same Today, Meetings, Timeline, People, Projects, As
 library format, so a library recorded on one platform opens on the other. Recording, transcription,
 summaries, search and the read-only CLI/MCP server all run on your computer by default.
 
+It is an **alpha**: the Windows build isn't code-signed yet, some features depend on your Linux desktop,
+and a few macOS features haven't been ported (see below). Bug reports are welcome.
+
 <p>
   <img src="docs/screenshots/linux-desktop-meetings.png" width="49%" alt="LokalBot on Linux">
   <img src="docs/screenshots/windows-desktop-today.png" width="49%" alt="LokalBot on Windows">
@@ -34,7 +37,7 @@ More screenshots of both apps are in [docs/screenshots](docs/screenshots).
 | Agent Mode | ✓ | ✓ (Git Bash, or PowerShell without it) | Runs the pi coding agent with your Think model. Setup downloads Bun and pi (pinned and checksum-verified, about 65 MB on Linux and 70 MB on Windows). File changes and commands need your approval. |
 | Import recordings, merge meetings, meeting boundaries | ✓ | ✓ | Import an audio or video file from the Meetings header or by dropping it on the list: MP3, M4A/AAC, MP4/MOV, WAV, AIFF, CAF, FLAC, Ogg Vorbis and MKV (not Opus). Every audio track is mixed into the meeting's `system.wav`. Ctrl-click or Shift-click meetings to merge them into one timeline, with Undo; **Meeting boundaries…** keeps part of a recording and rebuilds its notes. A Mac reads the WAV tracks these write. |
 | Calendar | ✓ (private iCal/CalDAV links; Evolution Data Server, including GNOME Online Accounts) | ✓ (private iCal/CalDAV links) | Off until you turn it on in Settings → Meetings. Titles and stamps recordings like macOS, backs browser calls with the event's meeting link, splits back-to-back meetings, suggests attendee names for speakers, and lists today's meetings on Today with Join, Record and a pre-meeting brief from the local Think model. Links are kept in the system credential store. |
-| Spoken summaries, coding-agent sessions in day memory | — | — | macOS only for now. |
+| Spoken summaries, coding-agent sessions in day memory, selection actions, meeting note export and daily memory notes, About you | — | — | macOS only for now. |
 
 ## Think providers
 

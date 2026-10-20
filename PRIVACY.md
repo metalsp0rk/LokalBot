@@ -1,11 +1,15 @@
 # LokalBot Privacy Policy
 
-Effective: October 19, 2026
+Effective: October 20, 2026
 
-LokalBot is a local-first macOS application. It has no LokalBot account,
-analytics service, advertising SDK, or telemetry backend. The project does not
-receive your recordings, transcripts, summaries, screenshots, prompts, files,
-calendar events, or usage history.
+LokalBot is a local-first application for macOS, with Windows and Linux in
+alpha. It has no LokalBot account, analytics service, advertising SDK, or
+telemetry backend. The project does not receive your recordings, transcripts,
+summaries, screenshots, prompts, files, calendar events, or usage history.
+
+The sections below describe the Mac app. [LokalBot for Linux and
+Windows](#lokalbot-for-linux-and-windows) lists where the Windows and Linux app
+differs.
 
 ## Data stored on your Mac
 
@@ -893,9 +897,35 @@ platform differences:
   data. The update archive downloads only when you choose Install and
   Relaunch, and is checked against its pinned size, SHA-256 and the release
   signature before it is unpacked.
-- **Network access** is limited to model and runtime downloads you request,
-  Agent Mode setup, update checks, AI servers and subscription plans you
-  approve, and the calendar links you add.
+- **Dictation** is off until you turn it on. Its audio stays in memory and is
+  never written to disk. The text is pasted through the clipboard, and your
+  previous clipboard comes back about 300 ms later; when pasting isn't
+  possible, the text is left on the clipboard instead. Dictated text is not
+  kept, and there is no **Learn from my dictation**.
+- **Meeting detection** looks at which apps are using the microphone
+  (PulseAudio source outputs on Linux, WASAPI capture sessions on Windows) and
+  by default asks with a notification before recording. System audio comes
+  from the whole output (a PulseAudio or PipeWire monitor, or WASAPI loopback),
+  not from one app, so anything else playing during a recording is recorded
+  too.
+- **Permissions.** There are no macOS-style permission prompts. Windows uses
+  its own microphone privacy setting (Settings → Privacy & security →
+  Microphone, "Let desktop apps access your microphone"). On Linux, Wayland
+  desktops may show portal prompts for screenshots and global shortcuts, some
+  apps expose their text only once system accessibility is on, and GNOME needs
+  the Window Calls extension for app and window activity.
+- **External agents.** The meeting-library and screen-memory toggles in
+  Settings → Privacy & Data work as on macOS. The Windows and Linux CLI has no
+  settings-change access or `setup`, `config` and `secret` commands, and
+  personal context stays off because the app has no setting for it yet.
+- **Mac-only features.** About you, selection actions, meeting note export,
+  daily memory notes, spoken summaries and coding-agent sessions are not in the
+  Windows and Linux app yet, so none of their data is collected there.
+- **Network access** is limited to model and runtime downloads you request
+  (models from Hugging Face and GitHub, the llama.cpp runtime from GitHub, the
+  OCR model from the ocrs project's storage), Agent Mode setup, update checks,
+  AI servers and subscription plans you approve, and the calendar links you
+  add.
 
 ## Security and changes
 

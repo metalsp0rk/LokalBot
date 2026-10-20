@@ -1,6 +1,6 @@
 # LokalBot — technical deep dive
 
-Everything the [README](README.md) summarizes, in full detail: build workflows, subsystem internals, configuration, headless flags, testing, and the on-disk layout. Shared contributor instructions live in [AGENTS.md](AGENTS.md); the data and network contract lives in [PRIVACY.md](PRIVACY.md). For signing and publication, use [RELEASING.md](RELEASING.md).
+Everything the [README](README.md) summarizes, in full detail: build workflows, subsystem internals, configuration, headless flags, testing, and the on-disk layout. Shared contributor instructions live in [AGENTS.md](AGENTS.md); the data and network contract lives in [PRIVACY.md](PRIVACY.md). For signing and publication, use [RELEASING.md](RELEASING.md). This guide covers the Mac app; the Windows and Linux app (Rust + GPUI, in `LinuxWindows/`) has its own guide in [LinuxWindows/README.md](LinuxWindows/README.md).
 
 Jump to [build workflows](#build-workflows), [capture and processing](#recording--meeting-detection), [search and Ask](#search--player), [Today and Timeline](#day-tracking--today-timeline-and-ask), [Autocomplete and Dictation](#autocomplete-cotyping-engine), [Agent Mode](#agent-mode--an-embedded-coding-agent-on-your-selected-main-llm), [configuration](#configuration), [testing](#testing), or [storage](#on-disk-layout).
 

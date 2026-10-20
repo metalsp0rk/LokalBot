@@ -5,10 +5,11 @@ description: The user's local memory of their meetings, screen, coding-agent wor
 
 # LokalBot CLI Skill
 
-LokalBot is a private work-memory app for macOS. Its read-only CLI retrieves recorded meetings; separately authorized MCP tools retrieve screen-memory text and metadata. Use this skill for evidence from the user's recorded work, not for scheduling meetings or answering general questions about a topic.
+LokalBot is a private work-memory app for macOS, Linux and Windows. Its read-only CLI retrieves recorded meetings; separately authorized MCP tools retrieve screen-memory text and metadata. Use this skill for evidence from the user's recorded work, not for scheduling meetings or answering general questions about a topic.
 
 If `lokalbot-cli` isn't on PATH, use the embedded copy directly:
 `/Applications/LokalBot.app/Contents/Helpers/lokalbot-cli`.
+Windows and Linux installs put it at `%LOCALAPPDATA%\Programs\LokalBot\bin\lokalbot-cli.exe` (Windows) or `~/.local/bin/lokalbot-cli` (Linux).
 
 ## Start here
 
@@ -62,6 +63,8 @@ A meeting matches when it contains every word, in any order, ignoring case and a
 
 ## Answers and reply drafts
 
+These two commands are in the Mac app's CLI only. On Windows and Linux, use the `ask_library` MCP tool for answers, and draft replies yourself from `search` and `get` results.
+
 ```bash
 lokalbot-cli ask "What did we decide about the caching layer?"
 lokalbot-cli reply "Did you pick a caching layer yet?" --instruction "keep it short"
@@ -98,7 +101,7 @@ lokalbot-cli personal-context --task "Evaluate a job offer in Berlin"
 lokalbot-cli personal-context --task "Plan next quarter" --kind goal --kind principle --limit 5
 ```
 
-Items are the user's own statements (`authority: "stated"`), shared by them for agents. Use them only when they bear on the task, and say which ones shaped your answer. Items not returned are unknown, not false, so don't infer the user's values from their absence. They are not evidence about meetings or other people. A `[personal_context_disabled]` error means the user hasn't turned on "Allow external agents to read what I shared about myself" in Settings → Privacy. Explain that, and don't work around it.
+Items are the user's own statements (`authority: "stated"`), shared by them for agents. Use them only when they bear on the task, and say which ones shaped your answer. Items not returned are unknown, not false, so don't infer the user's values from their absence. They are not evidence about meetings or other people. A `[personal_context_disabled]` error means the user hasn't turned on "Allow external agents to read what I shared about myself" in Settings → Privacy. Explain that, and don't work around it. The Windows and Linux app has no such setting yet, so there personal context stays off.
 
 ## Path lookup
 
@@ -110,7 +113,7 @@ cd "$(lokalbot-cli path latest)"
 
 ## Settings and status
 
-Use these when the user asks how LokalBot is set up, why something is or isn't happening (recording, capture, models), or wants a setting changed.
+Use these when the user asks how LokalBot is set up, why something is or isn't happening (recording, capture, models), or wants a setting changed. They are in the Mac app's CLI only. On Windows and Linux, tell the user where the setting is in LokalBot's Settings and let them change it there.
 
 ```bash
 lokalbot-cli config search "dark mode"           # find a setting's key by plain words
@@ -144,7 +147,7 @@ Changing settings:
 
 ## Setting up LokalBot
 
-When the user wants LokalBot installed or set up, follow [AGENT_SETUP.md](https://github.com/stevyhacker/lokalbot/blob/master/AGENT_SETUP.md):
+When the user wants LokalBot installed or set up on a Mac, follow [AGENT_SETUP.md](https://github.com/stevyhacker/lokalbot/blob/master/AGENT_SETUP.md). On Windows and Linux there is no agent-driven setup yet; follow that guide's Windows and Linux section, where the user does the setup in the app.
 
 ```bash
 lokalbot-cli setup start --wait 300        # the user clicks Allow in LokalBot; the only way to get access
@@ -169,6 +172,8 @@ The same library is available over MCP for GUI clients and anything else that sp
 claude mcp add lokalbot -- /Applications/LokalBot.app/Contents/Helpers/lokalbot-cli mcp
 ```
 
+When `lokalbot-cli` is on PATH, `claude mcp add lokalbot -- lokalbot-cli mcp` works on every platform.
+
 `ask_library` is the synthesis tool: it sends the question to LokalBot's **local** model, which reads the library and returns only an answer with meeting citations — useful when the user wants a conclusion rather than quotes. It needs the LokalBot app running, and the first call can take up to a minute while the model loads. Prefer `search`/`get` when the user wants exact wording.
 
 Meeting tools require the user's consent toggle: LokalBot → Settings → Privacy → "Allow external agents to read your meeting library". If a tool returns `[access_disabled]`, explain the setting and let the user choose whether to enable it. Do not change consent markers or work around disabled access.
@@ -181,6 +186,6 @@ Screen-memory tools require the separate "Allow external agents to read screen m
 
 - Answer from returned evidence. Quote exact wording only from retrieved text; distinguish your synthesis from the recorded content. If there are no hits, say so.
 - Cite meetings by title and date, adding transcript timestamps for exact moments. Identify the captured time and app for screen-memory evidence when provided.
-- Never write into the meetings folder. Audio, transcripts, and summaries live under `~/Library/Application Support/me.dotenv.LokalBot/meetings/`.
+- Never write into the meetings folder. Audio, transcripts, and summaries live in the `meetings` folder of the library root that `lokalbot-cli path` prints (on a Mac, `~/Library/Application Support/me.dotenv.LokalBot/`).
 - Retrieve only the content needed. Summarize instead of pasting full transcripts unless explicitly asked.
 - Do not forward transcripts, summaries, or tool results to any additional service beyond the client the user deliberately connected.
