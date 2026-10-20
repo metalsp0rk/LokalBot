@@ -52,7 +52,21 @@ $listener.Start(); $port = $listener.LocalEndpoint.Port; $listener.Stop()
     --download-base "http://127.0.0.1:$port" --notes-url "http://127.0.0.1:$port/notes" `
     --output "$Work\serve\windows-x86_64.json"
 if ($LASTEXITCODE -ne 0) { throw "signing failed" }
-$http = Start-Process -FilePath python -ArgumentList "-m", "http.server", "$port", "--bind", "127.0.0.1", "--directory", "$Work\serve" -PassThru -WindowStyle Hidden
+$httpLog = Join-Path $Work "http"
+$http = Start-Process -FilePath python -ArgumentList "-m", "http.server", "$port", "--bind", "127.0.0.1", "--directory", "$Work\serve" `
+    -PassThru -NoNewWindow -RedirectStandardOutput "$httpLog.out" -RedirectStandardError "$httpLog.err"
+# LokalBot reads the feed as soon as it starts; Python can take a while to listen.
+$deadline = (Get-Date).AddSeconds(60)
+while ($true) {
+    try {
+        Invoke-WebRequest -UseBasicParsing -TimeoutSec 5 "http://127.0.0.1:$port/windows-x86_64.json" | Out-Null
+        break
+    } catch {
+        if ($http.HasExited) { throw "the feed server exited: $(Get-Content "$httpLog.err" -Raw)" }
+        if ((Get-Date) -gt $deadline) { throw "the feed server did not answer on port $port" }
+        Start-Sleep -Milliseconds 500
+    }
+}
 
 function WaitFor([string] $Pattern, [int] $Seconds) {
     $deadline = (Get-Date).AddSeconds($Seconds)

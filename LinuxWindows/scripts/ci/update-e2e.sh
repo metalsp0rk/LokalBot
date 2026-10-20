@@ -48,6 +48,19 @@ PORT="$(python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1", 0)); 
   --output "$WORK/serve/linux-x86_64.json"
 python3 -m http.server "$PORT" --bind 127.0.0.1 --directory "$WORK/serve" >"$WORK/http.log" 2>&1 &
 HTTP=$!
+# LokalBot reads the feed as soon as it starts; wait until the server answers.
+FEED="http://127.0.0.1:$PORT/linux-x86_64.json"
+for attempt in $(seq 120); do
+  if python3 -c 'import sys, urllib.request; urllib.request.urlopen(sys.argv[1], timeout=2)' "$FEED" 2>/dev/null; then
+    break
+  fi
+  if ! kill -0 "$HTTP" 2>/dev/null || [ "$attempt" = 120 ]; then
+    echo "The feed server did not answer at $FEED" >&2
+    cat "$WORK/http.log" >&2
+    exit 1
+  fi
+  sleep 0.5
+done
 XVFB=""
 cleanup() {
   pkill -f "$BIN/lokalbot" 2>/dev/null || true
