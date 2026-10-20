@@ -268,7 +268,12 @@ settings search use `AppLanguage.localized`. Keep user content verbatim.
 language's keys, printf arguments, and embedded line breaks aligned when changing
 interface copy. Run `uv run --no-project python -m unittest discover -s Scripts/tests -p test_localization.py`
 to check key parity, format arguments, and hidden direction marks without building
-the app, and run `xcodegen generate` after adding a language. `AppLanguageTests`
+the app, and run `xcodegen generate` after adding a language. The same test fails
+when a `Text`, `Button`, `Label`, `navigationTitle` or `StatTile` literal in
+`LokalBot/Views` has no `en.lproj` key, or is joined with `+` or `??` (SwiftUI
+shows such a String verbatim). It also checks `var title = "…"` defaults shown
+through `LocalizedStringKey(title)`. `Scripts/tests/untranslated_view_literals.json`
+lists the older untranslated literals; delete an entry when you translate it. `AppLanguageTests`
 covers preference migration, persistence, language resolution, bundled lookup,
 binary catalogs in the built app, and translated settings search.
 `AppLanguageRootTests` verifies live locale propagation and preserved content

@@ -27,7 +27,7 @@ struct NeedsAttentionSection: View {
         if !threads.isEmpty, style == .plain {
             plainBody
         } else if !threads.isEmpty {
-            WorkspaceSection(title: title, icon: "exclamationmark.circle") {
+            WorkspaceSection(title: title, icon: "exclamationmark.circle", localizesTitle: true) {
                 VStack(spacing: 0) {
                     ForEach(Array(threads.prefix(limit))) { thread in
                         ActionThreadRow(thread: thread)

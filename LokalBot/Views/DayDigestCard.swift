@@ -24,7 +24,7 @@ struct DayDigestCard: View {
             if model.digestUpdatedAt != nil || model.digestIsStale {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     if let updated = model.digestUpdatedAt {
-                        Text("Updated " + updated.formatted(date: .omitted, time: .shortened))
+                        Text("Updated \(updated.formatted(date: .omitted, time: .shortened))")
                     }
                     if model.digestIsStale {
                         Text("New activity available · Update digest to include it")
