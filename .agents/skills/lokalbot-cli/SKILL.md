@@ -101,7 +101,7 @@ lokalbot-cli personal-context --task "Evaluate a job offer in Berlin"
 lokalbot-cli personal-context --task "Plan next quarter" --kind goal --kind principle --limit 5
 ```
 
-Items are the user's own statements (`authority: "stated"`), shared by them for agents. Use them only when they bear on the task, and say which ones shaped your answer. Items not returned are unknown, not false, so don't infer the user's values from their absence. They are not evidence about meetings or other people. A `[personal_context_disabled]` error means the user hasn't turned on "Allow external agents to read what I shared about myself" in Settings → Privacy. Explain that, and don't work around it. The Windows and Linux app has no such setting yet, so there personal context stays off.
+Items are the user's own statements (`authority: "stated"`), shared by them for agents. Use them only when they bear on the task, and say which ones shaped your answer. Items not returned are unknown, not false, so don't infer the user's values from their absence. They are not evidence about meetings or other people. A `[personal_context_disabled]` error means the user hasn't turned on "Allow external agents to read what I shared about myself" in Settings → Privacy. Explain that, and don't work around it. The Windows and Linux app has no such setting or About you page yet, so there personal context is on only in a library that came from a Mac.
 
 ## Path lookup
 

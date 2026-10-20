@@ -5,10 +5,13 @@
 //! per platform ([`feed`]). A copy reads the latest release's feed, and when
 //! the user chooses to install, downloads the archive, checks its size,
 //! SHA-256 and the Ed25519 signature made with the macOS app's Sparkle key
-//! ([`signature`]), unpacks it, and swaps the files ([`install`]).
+//! ([`signature`]), unpacks it, and swaps the files ([`install`]). On
+//! Windows the installer's Installed apps entry then shows the new version
+//! ([`installed_apps`]).
 
 pub mod feed;
 pub mod install;
+pub mod installed_apps;
 pub mod signature;
 pub mod version;
 
