@@ -212,6 +212,12 @@ fn download_agent(options: &Options) -> ureq::Agent {
         .https_only(!options.allow_loopback_http)
         .http_status_as_error(false)
         .max_redirects(10)
+        // A new connection for every request. ureq would send the GET down
+        // the connection that answered the HEAD probe even when an HTTP/1.0
+        // server (`python -m http.server` for a dry-run update feed) closes
+        // it after one response, failing the download with "Peer
+        // disconnected".
+        .max_idle_connections(0)
         .user_agent(concat!("LokalBot/", env!("CARGO_PKG_VERSION")))
         .timeout_connect(Some(Duration::from_secs(30)))
         .timeout_recv_response(Some(Duration::from_secs(60)))
@@ -1091,6 +1097,66 @@ mod tests {
             .collect();
         assert_eq!(gets.len(), 1);
         assert_eq!(gets[0].header("range").as_deref(), Some("bytes=120-"));
+    }
+
+    /// An HTTP/1.0 server, like the `python -m http.server` that serves the
+    /// update checks' dry-run feed, answers one request per connection and
+    /// then closes it. A request sent down that connection again gets no
+    /// answer, so the GET must not reuse the connection of the HEAD probe.
+    #[test]
+    fn requests_do_not_reuse_a_connection_an_http_1_0_server_closes() {
+        use std::io::{BufRead as _, BufReader};
+        use std::net::TcpListener;
+
+        let bytes = payload(500);
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let port = listener.local_addr().unwrap().port();
+        let file = std::sync::Arc::new(bytes.clone());
+        std::thread::spawn(move || {
+            for stream in listener.incoming().flatten() {
+                let file = file.clone();
+                std::thread::spawn(move || {
+                    let mut reader = BufReader::new(stream.try_clone().unwrap());
+                    let mut request = String::new();
+                    loop {
+                        let mut line = String::new();
+                        if reader.read_line(&mut line).unwrap_or(0) == 0 {
+                            return;
+                        }
+                        if line == "\r\n" {
+                            break;
+                        }
+                        request.push_str(&line);
+                    }
+                    let mut out = stream;
+                    let _ = write!(
+                        out,
+                        "HTTP/1.0 200 OK\r\nContent-Length: {}\r\n\r\n",
+                        file.len()
+                    );
+                    if request.starts_with("GET ") {
+                        let _ = out.write_all(&file);
+                    }
+                    let _ = out.flush();
+                    // Close only once the client has sent more on this
+                    // connection (or after a while), so the outcome does not
+                    // depend on timing.
+                    let _ = reader
+                        .get_ref()
+                        .set_read_timeout(Some(Duration::from_secs(2)));
+                    let _ = reader.read(&mut [0u8; 1]);
+                });
+            }
+        });
+        let dir = tempfile::tempdir().unwrap();
+        let spec = DownloadSpec {
+            url: format!("http://127.0.0.1:{port}/update.zip"),
+            sha256: hex::encode(Sha256::digest(&bytes)),
+            size: bytes.len() as u64,
+            dest: dir.path().join("update.zip"),
+        };
+        download_with(&spec, &AtomicBool::new(false), &mut |_, _| {}, &options()).unwrap();
+        assert_eq!(fs::read(&spec.dest).unwrap(), bytes);
     }
 
     #[test]

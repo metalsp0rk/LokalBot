@@ -50,31 +50,47 @@ pub fn open(cx: &mut App) {
         return;
     }
     let bounds = Bounds::centered(None, size(px(WIDTH), px(HEIGHT)), cx);
-    let options = WindowOptions {
+    let options = |kind| WindowOptions {
         window_bounds: Some(WindowBounds::Windowed(bounds)),
         titlebar: None,
         focus: true,
         show: true,
-        // Windows takes a borderless, topmost tool window; X11 only gives
-        // keyboard focus to managed windows, so Linux uses a normal one.
-        kind: if cfg!(target_os = "windows") {
-            WindowKind::PopUp
-        } else {
-            WindowKind::Normal
-        },
+        kind,
         is_resizable: false,
         is_minimizable: false,
-        app_id: Some("com.lokalbot.LokalBot".into()),
+        app_id: Some(lokalbot_platform::APP_ID.into()),
         #[cfg(target_os = "linux")]
         window_decorations: Some(gpui_kit::WindowDecorations::Client),
         ..Default::default()
     };
-    match gpui_kit::open_window(options, cx, |window, cx| {
-        window.set_window_title(lokalbot_i18n::tr("Ask"));
-        let view = cx.new(|cx| QuickRecall::new(window, cx));
-        view.update(cx, |view, cx| view.focus_input(window, cx));
-        view
-    }) {
+    // Windows takes a borderless, topmost tool window; X11 only gives
+    // keyboard focus to managed windows, so Linux uses a normal one.
+    let window_kind = || {
+        if cfg!(target_os = "windows") {
+            WindowKind::PopUp
+        } else {
+            WindowKind::Normal
+        }
+    };
+    // On Wayland, a centered layer surface that takes the keyboard: a tiling
+    // compositor would otherwise split the screen with it.
+    #[cfg(target_os = "linux")]
+    let layer = super::layer_surface(
+        "lokalbot-quick-recall",
+        gpui_kit::layer_shell::Anchor::empty(),
+        None,
+        gpui_kit::layer_shell::KeyboardInteractivity::Exclusive,
+    );
+    #[cfg(not(target_os = "linux"))]
+    let layer: Option<WindowKind> = None;
+    let opened = match layer {
+        Some(kind) => gpui_kit::open_window(options(kind), cx, build).or_else(|err| {
+            log::debug!("Quick Recall: no layer shell, opening a window: {err:#}");
+            gpui_kit::open_window(options(window_kind()), cx, build)
+        }),
+        None => gpui_kit::open_window(options(window_kind()), cx, build),
+    };
+    match opened {
         Ok((handle, view)) => {
             let windows = super::secondary(cx);
             windows.quick_recall = Some(handle);
@@ -82,6 +98,13 @@ pub fn open(cx: &mut App) {
         }
         Err(err) => log::error!("could not open Quick Recall: {err:#}"),
     }
+}
+
+fn build(window: &mut Window, cx: &mut App) -> Entity<QuickRecall> {
+    window.set_window_title(lokalbot_i18n::tr("Ask"));
+    let view = cx.new(|cx| QuickRecall::new(window, cx));
+    view.update(cx, |view, cx| view.focus_input(window, cx));
+    view
 }
 
 /// One selectable row.

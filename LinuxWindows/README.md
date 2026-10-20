@@ -82,6 +82,27 @@ release has none yet, use a CI run's artifacts (`lokalbot-linux-x86_64`, `lokalb
   extract the portable `LokalBot-<version>-windows-x86_64.zip` anywhere and run `lokalbot.exe`. Neither is
   code-signed yet, so SmartScreen may ask you to confirm.
 
+### Omarchy and other Hyprland desktops
+
+[Omarchy](https://omarchy.org) already has everything LokalBot uses on Wayland: `grim` for screen context,
+`wtype` and `wl-clipboard` for dictation, PipeWire for meeting audio and the Hyprland desktop portal. After
+`./install.sh`, LokalBot is in the app launcher and its tray icon appears in Omarchy's bar. The dictation pill
+and Quick Recall float above your windows instead of being tiled.
+
+Hyprland has no settings screen for other apps' shortcuts, so bind LokalBot's commands in
+`~/.config/hypr/bindings.lua` (these keys are free in Omarchy's defaults):
+
+```lua
+-- Press to start dictating, press again to insert the text where you are typing.
+o.bind("SUPER + ALT + D", "LokalBot dictation", "~/.local/bin/lokalbot dictate")
+-- Search your memory and ask about it (Quick Recall).
+o.bind("SUPER + ALT + A", "Ask LokalBot", "~/.local/bin/lokalbot quick-recall")
+```
+
+On Hyprland without Omarchy, the same commands go in `hyprland.conf`, for example
+`bind = SUPER ALT, A, exec, ~/.local/bin/lokalbot quick-recall`. Autocomplete in other apps needs X11, so on
+Hyprland it works in the practice editor in Settings only.
+
 ### Updates
 
 With **Check for updates automatically** on (Settings → General → Updates; on for new installs), LokalBot

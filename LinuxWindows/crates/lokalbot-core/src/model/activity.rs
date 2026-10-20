@@ -61,9 +61,11 @@ pub struct ScreenMoment {
 pub struct WorkSession {
     /// `work-<first block id>` or `meeting-<UUID>`.
     pub id: String,
-    /// Up to two representative window titles joined by " · ", or
-    /// "AppA and AppB[ and more]".
+    /// Up to two representative window titles joined by " · ", or the
+    /// session's apps ("AppA, AppB +2") when no title covered enough of it.
     pub title: String,
+    /// True when `title` lists apps because no window title named the session.
+    pub title_names_apps: bool,
     pub start: DateTime<Utc>,
     pub end: DateTime<Utc>,
     /// Union of block intervals, in seconds.

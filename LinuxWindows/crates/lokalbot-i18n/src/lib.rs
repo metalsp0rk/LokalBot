@@ -301,9 +301,48 @@ pub fn count(n: usize, noun: &str) -> String {
         "conversation" => ("{count} conversation", "{count} conversations"),
         "person" => ("{count} person", "{count} people"),
         "message" => ("{count} message", "{count} messages"),
-        _ => return format!("{n} {noun}"),
+        "work session" => ("{count} work session", "{count} work sessions"),
+        "app" => ("{count} app", "{count} apps"),
+        _ => return format!("{} {noun}", number(n)),
     };
-    format(if n == 1 { one } else { many }, &[("count", n.to_string())])
+    format(if n == 1 { one } else { many }, &[("count", number(n))])
+}
+
+/// A count with the locale's digit grouping: "12,345", "12.345", "12 345".
+pub fn number(n: usize) -> String {
+    number_in(date_locale(), n)
+}
+
+pub fn number_in(locale: chrono::Locale, n: usize) -> String {
+    let digits = n.to_string();
+    let separator = pure_rust_locales::locale_match!(locale => LC_NUMERIC::THOUSANDS_SEP);
+    if separator.is_empty() {
+        return digits;
+    }
+    // POSIX grouping: group sizes from the right, the last one repeating,
+    // until a size of -1 (or none) leaves the rest whole.
+    let grouping = pure_rust_locales::locale_match!(locale => LC_NUMERIC::GROUPING);
+    let mut sizes = grouping.iter();
+    let mut size = 0;
+    let mut rest = digits.as_str();
+    let mut groups = Vec::new();
+    loop {
+        if let Some(next) = sizes.next() {
+            size = *next;
+        }
+        let Ok(width) = usize::try_from(size) else {
+            break;
+        };
+        if width == 0 || rest.len() <= width {
+            break;
+        }
+        let (head, tail) = rest.split_at(rest.len() - width);
+        groups.push(tail);
+        rest = head;
+    }
+    groups.push(rest);
+    groups.reverse();
+    groups.join(separator)
 }
 
 #[cfg(test)]
@@ -407,6 +446,17 @@ mod tests {
             ),
             format!("{user_text}: 2")
         );
+    }
+
+    #[test]
+    fn counts_use_the_locale_digit_grouping() {
+        let number = |code: &str, n| number_in(date_locale_for(code), n);
+        assert_eq!(number("en", 999), "999");
+        assert_eq!(number("en", 1_234_567), "1,234,567");
+        assert_eq!(number("de", 12_345), "12.345");
+        assert_eq!(number("fr", 12_345), "12\u{202f}345");
+        assert_eq!(number("bn", 1_234_567), "12,34,567");
+        assert_eq!(number("ar", 12_345), "12345");
     }
 
     #[test]
