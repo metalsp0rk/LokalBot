@@ -9,6 +9,7 @@
 
 pub mod feed;
 pub mod install;
+pub mod package;
 pub mod signature;
 pub mod version;
 

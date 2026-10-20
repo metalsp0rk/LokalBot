@@ -31,7 +31,7 @@ More screenshots of both apps are in [docs/screenshots](docs/screenshots).
 | Meeting detection | ✓ (PulseAudio source outputs) | ✓ (WASAPI capture sessions) | Asks with a notification by default. |
 | System tray, launch at login | ✓ (StatusNotifierItem; GNOME needs the AppIndicator extension) | ✓ | |
 | `lokalbot-cli` + MCP for coding agents | ✓ | ✓ | Read-only, off until you allow it in Settings → Privacy & Data. |
-| Signed automatic updates | ✓ (installed with `install.sh`, or run from the extracted folder) | ✓ (run from the extracted folder) | Checks GitHub daily; installs only when you choose Install and Relaunch. Copies under `/usr`, `/opt` or Program Files are pointed at the download instead. |
+| Signed automatic updates | ✓ (installed with `install.sh`, or run from the extracted folder) | ✓ (run from the extracted folder) | Checks GitHub daily; installs only when you choose Install and Relaunch. Package installs are told how to update with the package manager; other copies under `/usr`, `/opt` or Program Files are pointed at the download. |
 | Live transcript preview while recording | ✓ | ✓ | Opt-in from the live meeting view. Each track is transcribed in 4–12 s chunks cut at a pause, as Me and Remote speaker; the full transcript replaces it after the meeting. |
 | Autocomplete in other apps | X11 (GTK; Qt, Chromium/Electron and Firefox once system accessibility is on); Wayland: the practice editor in Settings only | ✓ (apps whose fields support UI Automation) | Off until you turn it on in Settings → Writing. LFM2.5 1.2B on this computer by default, about 250 ms to a suggestion on CPU. Tab accepts a word, Esc dismisses. Password fields, terminals and excluded apps are never read, and nothing is stored. |
 | Agent Mode | ✓ | ✓ (Git Bash, or PowerShell without it) | Runs the pi coding agent with your Think model. Setup downloads Bun and pi (pinned and checksum-verified, about 65 MB on Linux and 70 MB on Windows). File changes and commands need your approval. |
@@ -76,8 +76,8 @@ release has none yet, use a CI run's artifacts (`lokalbot-linux-x86_64`, `lokalb
   `LokalBot-<version>-linux-x86_64.rpm` (Fedora, openSUSE: `sudo dnf install ./LokalBot-…rpm`) and
   `LokalBot-<version>-linux-x86_64.pkg.tar.zst` (Arch: `sudo pacman -U ./LokalBot-…zst`). Installing the
   `.deb`, or the `.rpm` on Fedora, also adds the LokalBot repository at `pkg.lokalbot.com`, so
-  `sudo apt upgrade` or `sudo dnf upgrade` brings later versions. With the Arch package, LokalBot tells you about updates and
-  offers the download instead of replacing its files.
+  `sudo apt upgrade` or `sudo dnf upgrade` brings later versions. The Arch package comes from no repository,
+  so when a newer version is out LokalBot asks you to download the new package and install it the same way.
 - **Windows** 10/11 (x64): run `LokalBot-<version>-windows-x86_64-setup.exe`. It installs for your user into
   `%LOCALAPPDATA%\Programs\LokalBot` without administrator rights, adds a Start menu shortcut (which also
   lets notifications show LokalBot's name) and an Installed apps entry; uninstalling keeps your library. Or
@@ -118,9 +118,15 @@ Sparkle key) before unpacking anything. It then replaces `lokalbot` and `lokalbo
 (Linux: `~/.local/bin`, refreshing the applications-menu entry and icons that `install.sh` added; Windows:
 the extracted folder, and the copy `lokalbot-cli install-skill` made), stops the local model servers and Agent
 Mode, and starts the new version. On Windows a running `lokalbot-cli` (an agent's MCP server) keeps working;
-its old file is removed on a later start. Your library is never touched. When LokalBot cannot replace its own
-files (a package manager's copy, `/usr`, `/opt`, Program Files, a folder you cannot write), it offers the
-download from GitHub instead. Debug builds never update.
+its old file is removed on a later start. Your library is never touched.
+
+When LokalBot cannot replace its own files, it says how to update instead. It asks the package database
+which package installed it (`pacman -Qo`, `dpkg-query -S`, `rpm -qf`). A package from a repository, such as
+an AUR package, updates with your package manager (for example `yay -Syu`). The release's own Arch package
+has no repository, so Settings shows the command that installs the downloaded package
+(`sudo pacman -U ./LokalBot-<version>-linux-x86_64.pkg.tar.zst`) next to **Download**. Other copies
+(`/usr`, `/opt`, Program Files, a folder you cannot write) get the download from GitHub. Debug builds never
+update.
 
 The `.deb` and `.rpm` update with your package manager, from the LokalBot repository they add:
 `/etc/apt/sources.list.d/lokalbot.sources` with its key in `/usr/share/keyrings`, or

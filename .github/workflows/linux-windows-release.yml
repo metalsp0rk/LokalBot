@@ -32,6 +32,7 @@ on:
       - ".github/workflows/linux-windows-release.yml"
       - "LinuxWindows/scripts/package.sh"
       - "LinuxWindows/scripts/package-linux-distros.sh"
+      - "LinuxWindows/scripts/third-party-licenses.sh"
       - "LinuxWindows/scripts/package-windows-installer.ps1"
       - "LinuxWindows/scripts/ci/check-windows-installer.ps1"
       - "LinuxWindows/packaging/windows/**"
@@ -78,6 +79,11 @@ jobs:
           sudo apt-get install -y --no-install-recommends \
             libxkbcommon-x11-dev libwayland-dev libvulkan1 libfontconfig-dev \
             libasound2-dev libxcb1-dev libx11-xcb-dev libssl-dev pkg-config clang
+
+      # The archives and packages ship LICENSES/rust-crates.md; it must list
+      # the crates this Cargo.lock builds.
+      - name: Check the third-party license list is current
+        run: scripts/third-party-licenses.sh --check
 
       - name: Build and package
         run: scripts/package.sh

@@ -15,6 +15,7 @@ tooling lives in `Scripts/`:
 | `Scripts/bump-version.py` | set the version in every file one tag ships it from |
 | `LinuxWindows/scripts/release-feeds.sh` | sign the Linux/Windows archives and write their update feeds |
 | `LinuxWindows/scripts/linux-repos.sh` | add the `.deb` and `.rpm` to the signed apt and dnf repositories ([Linux package repositories](#linux-package-repositories)) |
+| `LinuxWindows/scripts/third-party-licenses.sh` | regenerate the Linux/Windows crate license list ([Third-party licenses](#third-party-licenses)) |
 
 ---
 
@@ -442,7 +443,7 @@ work), checks each feed against its archive, and attaches to the release:
 | `LokalBot-<version>-linux-x86_64.tar.gz` (+ `.sha256`) | Linux archive with `install.sh` |
 | `LokalBot-<version>-windows-x86_64.zip` (+ `.sha256`) | Windows archive |
 | `LokalBot-<version>-windows-x86_64-setup.exe` (+ `.sha256`) | per-user Windows installer of the same files (`scripts/package-windows-installer.ps1`, Inno Setup 6): `%LOCALAPPDATA%\Programs\LokalBot`, a Start menu shortcut with the notification app id, and an Installed apps entry, without administrator rights. The release installs and uninstalls it on the Windows runner. Updates still replace the files in place from the zip, so the Installed apps version can lag until the next installer run |
-| `LokalBot-<version>-linux-amd64.deb`, `LokalBot-<version>-linux-x86_64.rpm`, `LokalBot-<version>-linux-x86_64.pkg.tar.zst` (+ `.sha256`) | Debian/Ubuntu, Fedora/openSUSE and Arch packages of the same binaries (`scripts/package-linux-distros.sh`, nfpm). The release checks each one installs in a clean Ubuntu 24.04, Fedora 41 and Arch container. They install into `/usr/bin`, so LokalBot announces updates for them and offers the download instead of replacing its files |
+| `LokalBot-<version>-linux-amd64.deb`, `LokalBot-<version>-linux-x86_64.rpm`, `LokalBot-<version>-linux-x86_64.pkg.tar.zst` (+ `.sha256`) | Debian/Ubuntu, Fedora/openSUSE and Arch packages of the same binaries (`scripts/package-linux-distros.sh`, nfpm). The release checks each one installs in a clean Ubuntu 24.04, Fedora 41 and Arch container. They install into `/usr/bin` from no repository, so LokalBot announces updates for them and shows the command that installs the new package instead of replacing its files; it recognizes them by the package name `lokalbot` |
 | `linux-x86_64.json`, `windows-x86_64.json` | update feeds |
 
 A feed names the version, the minimum installed version that may install it
@@ -457,6 +458,48 @@ SHA-256 and the signature before unpacking, and refuses an archive whose
 
 If the macOS release succeeded but a Linux/Windows job failed, fix the cause
 and use **Re-run failed jobs**: the publish job uploads with `--clobber`.
+
+### Third-party licenses
+
+The archives, packages and installer ship `THIRD_PARTY_NOTICES.md` and the
+whole `LICENSES/` folder; `scripts/package.sh` copies both, and the Linux
+packages install them in `/usr/share/doc/lokalbot`. `LICENSES/rust-crates.md`
+lists every crate compiled into `lokalbot` and `lokalbot-cli` with the license
+it is used under and that license's text. cargo-about generates it from
+`LinuxWindows/Cargo.lock`, using `LinuxWindows/about.toml` (accepted licenses,
+targets, clarifications) and `LinuxWindows/about.hbs` (the template). After
+any change to `Cargo.lock`, regenerate it and commit the result:
+
+```sh
+LinuxWindows/scripts/third-party-licenses.sh
+```
+
+The script downloads the pinned cargo-about (on Linux x86_64 or Apple
+silicon) and checks its SHA-256. With `--check` it only compares. The
+**Third-party licenses** workflow runs that on pull requests that change the
+crates, and the Linux release job runs it before packaging, so a stale list
+fails both.
+
+- A crate whose license `about.toml` doesn't accept stops the script. Add the
+  license to `accepted` only if it is compatible with GPL-3.0.
+- A crate whose section shows the standard license text and its authors
+  ships no license file cargo-about can read. If it ships one under another
+  name, add a `clarify` entry with that file's SHA-256
+  (`cargo-about clarify <file> path <crate source folder>` prints it). When a
+  clarified file changes, the crate falls back to the standard text, and the
+  difference shows in the diff.
+
+The rest of the Linux and Windows section of `THIRD_PARTY_NOTICES.md` is kept
+by hand:
+
+- The native libraries come from the sherpa-onnx release that the
+  `sherpa-onnx` crate links. When it changes version, update their table from
+  sherpa-onnx's `cmake/` folder at the new tag. Replace
+  `LICENSES/onnxruntime-ThirdPartyNotices.txt` with the file of the ONNX
+  Runtime version it uses.
+- The model table follows `LinuxWindows/crates/lokalbot-ai/src/catalog.rs`,
+  `lokalbot-ai/src/ocr.rs` and `lokalbot-speech/src/models.rs`. Take each
+  license from the model's own page.
 
 ### Dry run
 
@@ -636,9 +679,10 @@ any Linux machine with Docker:
    `gh workflow run linux-repos.yml -f tag=v0.11.0`, then
    `curl -fsS https://pkg.lokalbot.com/apt/dists/stable/InRelease`. Its
    packages don't add the repositories, so nobody uses them yet.
-5. Commit `lokalbot-archive-keyring.asc`. The next release's `.deb` and
-   `.rpm` add the repositories, and every release after it reaches them with
-   `apt upgrade` and `dnf upgrade`.
+5. Commit `lokalbot-archive-keyring.asc`, with the README and website copy
+   that tells users about the repositories (#339). The next release's `.deb`
+   and `.rpm` add the repositories, and every release after it reaches them
+   with `apt upgrade` and `dnf upgrade`.
 
 ### Key expiry and rotation
 
