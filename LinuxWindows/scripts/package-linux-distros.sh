@@ -65,13 +65,18 @@ contents:
     dst: /usr/share/licenses/lokalbot/LICENSE
     packager: archlinux
     file_info: {mode: 0644}
-  - src: $STAGE/LICENSES/AGPL-3.0.txt
-    dst: /usr/share/doc/lokalbot/AGPL-3.0.txt
-    file_info: {mode: 0644}
   - src: $STAGE/THIRD_PARTY_NOTICES.md
     dst: /usr/share/doc/lokalbot/THIRD_PARTY_NOTICES.md
     file_info: {mode: 0644}
 EOF
+  # Every license text the notices name, at the paths they give.
+  for license in "$STAGE"/LICENSES/*; do
+    cat <<EOF
+  - src: $license
+    dst: /usr/share/doc/lokalbot/LICENSES/$(basename "$license")
+    file_info: {mode: 0644}
+EOF
+  done
   for size in 16 24 32 48 64 128 256 512; do
     cat <<EOF
   - src: $ROOT/packaging/icons/lokalbot-$size.png
