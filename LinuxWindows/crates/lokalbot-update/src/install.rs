@@ -54,7 +54,8 @@ impl SwapStyle {
 pub enum Placement {
     Replaceable,
     /// A package manager, a system folder (`/usr`, `/opt`, Program Files),
-    /// a sandbox or a source build owns the files: only offer the download.
+    /// a sandbox or a source build owns the files: say how to update
+    /// instead ([`crate::package`] tells package installs apart).
     Managed,
     /// The folder cannot be written by this user.
     NotWritable,
