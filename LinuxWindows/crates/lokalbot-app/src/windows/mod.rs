@@ -53,6 +53,32 @@ pub(crate) fn layer_surface(
     })
 }
 
+/// How long [`when_focused`] waits for one of LokalBot's windows to take the
+/// keyboard.
+#[cfg(target_os = "linux")]
+const FOCUS_WAIT: std::time::Duration = std::time::Duration::from_secs(3);
+
+/// Runs `open` once one of LokalBot's windows has the keyboard, so a window
+/// opened as `WindowKind::Floating` gets it as its parent: GPUI parents such
+/// a window to the focused one. A main window that has only just opened gets
+/// the keyboard a moment later. Runs at once when no window is open, and
+/// after [`FOCUS_WAIT`] without a parent.
+#[cfg(target_os = "linux")]
+pub(crate) fn when_focused(cx: &mut App, open: impl FnOnce(&mut App) + 'static) {
+    if cx.active_window().is_some() || cx.windows().is_empty() {
+        open(cx);
+        return;
+    }
+    cx.spawn(async move |cx| {
+        let started = std::time::Instant::now();
+        while started.elapsed() < FOCUS_WAIT && cx.update(|cx| cx.active_window().is_none()) {
+            smol::Timer::after(std::time::Duration::from_millis(50)).await;
+        }
+        cx.update(open);
+    })
+    .detach();
+}
+
 /// Brings a still-open window forward; `false` when it was closed.
 fn activate(handle: Option<AnyWindowHandle>, cx: &mut App) -> bool {
     handle.is_some_and(|handle| {

@@ -86,8 +86,8 @@ release has none yet, use a CI run's artifacts (`lokalbot-linux-x86_64`, `lokalb
 
 [Omarchy](https://omarchy.org) already has everything LokalBot uses on Wayland: `grim` for screen context,
 `wtype` and `wl-clipboard` for dictation, PipeWire for meeting audio and the Hyprland desktop portal. After
-`./install.sh`, LokalBot is in the app launcher and its tray icon appears in Omarchy's bar. The dictation pill
-and Quick Recall float above your windows instead of being tiled.
+`./install.sh`, LokalBot is in the app launcher and its tray icon appears in Omarchy's bar. The welcome window,
+the dictation pill and Quick Recall float above your windows instead of being tiled.
 
 Hyprland has no settings screen for other apps' shortcuts, so bind LokalBot's commands in
 `~/.config/hypr/bindings.lua` (these keys are free in Omarchy's defaults):
