@@ -15,6 +15,7 @@ struct LokalBotCLI: AsyncParsableCommand {
             settings access in Settings → Privacy; setup start asks the person
             for it.
             """,
+        version: "lokalbot-cli \(HelperVersion.current())",
         subcommands: [
             BriefCommand.self,
             ListCommand.self,
