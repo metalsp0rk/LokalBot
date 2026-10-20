@@ -86,23 +86,40 @@ release has none yet, use a CI run's artifacts (`lokalbot-linux-x86_64`, `lokalb
 ### Omarchy and other Hyprland desktops
 
 [Omarchy](https://omarchy.org) already has everything LokalBot uses on Wayland: `grim` for screen context,
-`wtype` and `wl-clipboard` for dictation, PipeWire for meeting audio and the Hyprland desktop portal. After
-`./install.sh`, LokalBot is in the app launcher and its tray icon appears in Omarchy's bar. The welcome window,
-the dictation pill and Quick Recall float above your windows instead of being tiled.
+`wtype` and `wl-clipboard` for dictation, PipeWire for meeting audio and the Hyprland desktop portal.
+
+On Omarchy and other Arch-based systems, install the release's Arch package. pacman manages it and installs
+its dependencies:
+
+```bash
+v=$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.com/stevyhacker/LokalBot/releases/latest); v=${v##*/v}
+curl -fLO "https://github.com/stevyhacker/LokalBot/releases/download/v$v/LokalBot-$v-linux-x86_64.pkg.tar.zst"
+sudo pacman -U "./LokalBot-$v-linux-x86_64.pkg.tar.zst"
+```
+
+The first line looks up the latest version. Download the file before `pacman -U`: given a URL, pacman also
+asks for a signature file, which releases don't have. When a newer version is out, LokalBot tells you; run the
+same commands again. An AUR package, `lokalbot-bin`, is on its way. Once it is published,
+`yay -S lokalbot-bin` replaces this package and `yay -Syu` keeps it up to date. You can also use `./install.sh`
+from the `.tar.gz` (see above), which installs into `~/.local/bin` and lets LokalBot update itself.
+
+Either way, LokalBot is in the app launcher and its tray icon appears in Omarchy's bar. The welcome window, the
+dictation pill and Quick Recall float above your windows instead of being tiled.
 
 Hyprland has no settings screen for other apps' shortcuts, so bind LokalBot's commands in
 `~/.config/hypr/bindings.lua` (these keys are free in Omarchy's defaults):
 
 ```lua
 -- Press to start dictating, press again to insert the text where you are typing.
-o.bind("SUPER + ALT + D", "LokalBot dictation", "~/.local/bin/lokalbot dictate")
+o.bind("SUPER + ALT + D", "LokalBot dictation", "lokalbot dictate")
 -- Search your memory and ask about it (Quick Recall).
-o.bind("SUPER + ALT + A", "Ask LokalBot", "~/.local/bin/lokalbot quick-recall")
+o.bind("SUPER + ALT + A", "Ask LokalBot", "lokalbot quick-recall")
 ```
 
-On Hyprland without Omarchy, the same commands go in `hyprland.conf`, for example
-`bind = SUPER ALT, A, exec, ~/.local/bin/lokalbot quick-recall`. Autocomplete in other apps needs X11, so on
-Hyprland it works in the practice editor in Settings only.
+After `./install.sh`, write `~/.local/bin/lokalbot` instead of `lokalbot`, because Hyprland may not have
+`~/.local/bin` on its PATH. On Hyprland without Omarchy, the same commands go in `hyprland.conf`, for example
+`bind = SUPER ALT, A, exec, lokalbot quick-recall`. Autocomplete in other apps needs X11, so on Hyprland it
+works in the practice editor in Settings only.
 
 ### Updates
 
