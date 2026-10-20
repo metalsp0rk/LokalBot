@@ -32,6 +32,9 @@ on:
       - ".github/workflows/linux-windows-release.yml"
       - "LinuxWindows/scripts/package.sh"
       - "LinuxWindows/scripts/package-linux-distros.sh"
+      - "LinuxWindows/scripts/package-windows-installer.ps1"
+      - "LinuxWindows/scripts/ci/check-windows-installer.ps1"
+      - "LinuxWindows/packaging/windows/**"
       - "LinuxWindows/scripts/release-feeds.sh"
       - "LinuxWindows/crates/lokalbot-update/**"
 
@@ -160,10 +163,23 @@ jobs:
       - name: Build and package
         run: scripts/package.sh
 
+      # Inno Setup 6 comes with GitHub's Windows images.
+      - name: Build the installer
+        shell: pwsh
+        run: ./scripts/package-windows-installer.ps1
+
+      # Installs for this user, checks the files, Start menu shortcut, app id
+      # and Installed apps entry, then uninstalls and checks the cleanup.
+      - name: Check the installer
+        shell: pwsh
+        run: ./scripts/ci/check-windows-installer.ps1 (Get-Item dist/LokalBot-*-windows-x86_64-setup.exe).FullName
+
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: release-windows-x86_64
-          path: LinuxWindows/dist/*.zip*
+          path: |
+            LinuxWindows/dist/*.zip*
+            LinuxWindows/dist/*-setup.exe*
           retention-days: 7
           if-no-files-found: error
 
@@ -216,5 +232,6 @@ jobs:
             LinuxWindows/dist/*.deb*
             LinuxWindows/dist/*.rpm*
             LinuxWindows/dist/*.pkg.tar.zst*
+            LinuxWindows/dist/*-setup.exe*
             LinuxWindows/dist/*.json
           retention-days: 7

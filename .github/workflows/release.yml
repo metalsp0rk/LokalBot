@@ -540,5 +540,5 @@ jobs:
           gh release upload "$GITHUB_REF_NAME" \
             --repo "$GITHUB_REPOSITORY" \
             --clobber \
-            dist/*.tar.gz dist/*.zip dist/*.deb dist/*.rpm dist/*.pkg.tar.zst dist/*.sha256 \
+            dist/*.tar.gz dist/*.zip dist/*-setup.exe dist/*.deb dist/*.rpm dist/*.pkg.tar.zst dist/*.sha256 \
             dist/linux-x86_64.json dist/windows-x86_64.json
