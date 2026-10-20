@@ -45,13 +45,13 @@
 
   <main class="legal-page">
     <header class="legal-page__head">
-      <p class="eyebrow">Effective October 18, 2026</p>
+      <p class="eyebrow">Effective October 20, 2026</p>
       <h1>Privacy Policy</h1>
-      <p>LokalBot is local-first. It has no LokalBot account, analytics service, advertising SDK, telemetry backend, or hosted AI service.</p>
+      <p>LokalBot is local-first. It has no LokalBot account, analytics service, advertising SDK, telemetry backend, or hosted AI service. This page describes the Mac app; <a href="#windows-and-linux">Windows and Linux</a> lists where the Windows and Linux app, an alpha, differs.</p>
     </header>
 
     <article class="legal-card">
-      <h2>What stays on your Mac</h2>
+      <h2>What stays on your computer</h2>
       <p>The project does not receive your recordings, transcripts, summaries, screenshots, prompts, files, calendar events, or usage history. LokalBot can store these in its Application Support directory:</p>
       <ul>
         <li>meeting microphone and system-audio tracks;</li>
@@ -74,8 +74,8 @@
       <ul>
         <li><strong>Models:</strong> model metadata and files from Hugging Face or a publisher's download host. Selected first-use models can download automatically. If you choose HF-Mirror (hf-mirror.com) or ModelScope (modelscope.cn) in Settings, model files come from there instead, and every file is checked against the size and SHA-256 LokalBot pins.</li>
         <li><strong>Updates:</strong> the public GitHub Releases appcast and a signed update when you check or enable automatic checks.</li>
-        <li><strong>Optional remote inference:</strong> an Ollama or OpenAI-compatible URL you configure. Loopback stays on your Mac. A non-loopback origin must be explicitly approved before it receives meeting, workday, About you, or agent context.</li>
-        <li><strong>Optional Agent Mode:</strong> setup downloads its pinned runtime. Commands you approve can access files or the network with your macOS user permissions.</li>
+        <li><strong>Optional remote inference:</strong> an Ollama or OpenAI-compatible URL you configure. Loopback stays on your computer. A non-loopback origin must be explicitly approved before it receives meeting, workday, About you, or agent context.</li>
+        <li><strong>Optional Agent Mode:</strong> setup downloads its pinned runtime. Commands you approve can access files or the network with your user account's permissions.</li>
       </ul>
       <p>Those services receive ordinary connection metadata such as IP address and request headers. LokalBot adds no advertising identifier and does not use those requests for tracking. A remote server's operator controls its own privacy terms.</p>
 
@@ -84,10 +84,25 @@
       <p>On a fresh install, LokalBot asks through a notification before it records a detected meeting. You can switch to automatic recording or turn auto-record off. You are responsible for informing participants and obtaining any consent required before recording other people.</p>
 
       <h2>External-agent access</h2>
-      <p>The bundled CLI and MCP interface are read-only and refuse library access until you enable Agent Access under Settings → Privacy. Screen memory and About you each need their own, separate permission there; turning on one never turns on another. With <strong>Allow external agents to read what I shared about myself</strong> on, agents can read only the About you items you mark Share with agents, at most 12 at a time, never the rest. The start-of-session briefing (<code>get_briefing</code>, <code>lokalbot-cli brief</code>) follows the same grants: with all of them off it only lists which are off, and each part, such as your open action items, current projects and goals, recent coding-agent sessions, or the overnight-review timeline, appears only under the permissions that cover its sources. An enabled external tool runs as your macOS user, and a connected AI client may send what it reads under its own privacy terms, so connect only tools you trust.</p>
+      <p>The bundled CLI and MCP interface are read-only and refuse library access until you enable Agent Access under Settings → Privacy. Screen memory and About you each need their own, separate permission there; turning on one never turns on another. With <strong>Allow external agents to read what I shared about myself</strong> on, agents can read only the About you items you mark Share with agents, at most 12 at a time, never the rest. The start-of-session briefing (<code>get_briefing</code>, <code>lokalbot-cli brief</code>) follows the same grants: with all of them off it only lists which are off, and each part, such as your open action items, current projects and goals, recent coding-agent sessions, or the overnight-review timeline, appears only under the permissions that cover its sources. An enabled external tool runs as your user account, and a connected AI client may send what it reads under its own privacy terms, so connect only tools you trust.</p>
+
+      <h2 id="windows-and-linux">Windows and Linux (alpha)</h2>
+      <p>The Windows and Linux app follows this policy, with these differences:</p>
+      <ul>
+        <li><strong>Storage:</strong> the library is in <code>%LOCALAPPDATA%\LokalBot</code> on Windows and <code>~/.local/share/LokalBot</code> on Linux. API keys, the ChatGPT sign-in, calendar links, and the screen-image key are kept in the system credential store (Windows Credential Manager, or the Secret Service on Linux).</li>
+        <li><strong>Not collected there yet:</strong> About you, coding-agent session records, spoken summaries, daily memory notes, and meeting note export are Mac only for now.</li>
+        <li><strong>System audio</strong> comes from the whole output (WASAPI loopback, or a PulseAudio or PipeWire monitor), so anything else playing during a recording is recorded too. Meeting detection looks at which apps use the microphone and asks with a notification.</li>
+        <li><strong>Screen context</strong> reads visible text through accessibility (UI Automation or AT-SPI) and otherwise uses on-device OCR, downloaded only when you ask for it. The same exclusions, redaction, encryption, and 14-day default retention apply.</li>
+        <li><strong>Dictation</strong> audio stays in memory and is never written to disk. The text is pasted through the clipboard, and your previous clipboard comes back afterwards. Dictated text is not kept.</li>
+        <li><strong>Calendar</strong> reads private iCal or CalDAV links you add, fetched from their own servers every five minutes while calendar use is on, and on Linux the calendars of Evolution Data Server. Events stay in memory.</li>
+        <li><strong>Permissions:</strong> there are no macOS-style prompts. Windows uses its own microphone privacy setting, and Wayland desktops may ask through portals for screenshots and shortcuts.</li>
+        <li><strong>Network:</strong> models from Hugging Face and GitHub, the llama.cpp runtime from GitHub, the OCR model from the ocrs project, Agent Mode's Bun (GitHub) and pi (npm), update checks against GitHub Releases, the servers and plans you approve, and your calendar links. Updates install only when you choose.</li>
+        <li><strong>External agents:</strong> the meeting-library and screen-memory switches in Settings → Privacy &amp; Data work as on a Mac. Agents can't change settings there, and personal context stays off.</li>
+      </ul>
+      <p>The full details are in <a href="https://github.com/stevyhacker/lokalbot/blob/master/PRIVACY.md#lokalbot-for-linux-and-windows">PRIVACY.md</a>.</p>
 
       <h2>Deletion, security, and changes</h2>
-      <p>You can delete meetings in the app or remove LokalBot's Application Support directory. No software can promise absolute security. Report vulnerabilities through the private process in the <a href="https://github.com/stevyhacker/lokalbot/blob/master/SECURITY.md">security policy</a>. Material policy changes will update this date and appear in release notes.</p>
+      <p>You can delete meetings in the app or remove LokalBot's library folder (its Application Support directory on a Mac). No software can promise absolute security. Report vulnerabilities through the private process in the <a href="https://github.com/stevyhacker/lokalbot/blob/master/SECURITY.md">security policy</a>. Material policy changes will update this date and appear in release notes.</p>
 
       <h2>Contact</h2>
       <p>Use the <a href="support">support page</a> for privacy questions. Never include recordings, transcripts, secrets, or other sensitive data in a public issue.</p>

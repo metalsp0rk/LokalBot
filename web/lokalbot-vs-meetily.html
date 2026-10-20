@@ -28,7 +28,7 @@
 
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="icons.css" />
-  <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Article","headline":"LokalBot vs Meetily","description":"Compare Meetily and LokalBot, two open-source meeting notetakers that run locally: what's free, speaker separation, meeting detection, scope, and platforms.","datePublished":"2026-10-01","dateModified":"2026-10-01","mainEntityOfPage":"https://www.lokalbot.com/lokalbot-vs-meetily","image":"https://www.lokalbot.com/assets/og-image.png","author":{"@type":"Organization","@id":"https://www.lokalbot.com/#organization","name":"LokalBot project","url":"https://www.lokalbot.com/"},"publisher":{"@type":"Organization","@id":"https://www.lokalbot.com/#organization","name":"LokalBot project","url":"https://www.lokalbot.com/"},"about":[{"@type":"SoftwareApplication","@id":"https://www.lokalbot.com/#software","name":"LokalBot","url":"https://www.lokalbot.com/","applicationCategory":"BusinessApplication","operatingSystem":"macOS 15+"},{"@type":"SoftwareApplication","name":"Meetily"}]},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://www.lokalbot.com/"},{"@type":"ListItem","position":2,"name":"Guides","item":"https://www.lokalbot.com/guides"},{"@type":"ListItem","position":3,"name":"LokalBot vs Meetily","item":"https://www.lokalbot.com/lokalbot-vs-meetily"}]},{"@type":"FAQPage","@id":"https://www.lokalbot.com/lokalbot-vs-meetily#faq","mainEntity":[{"@type":"Question","name":"Isn't Meetily also free and open source?","acceptedAnswer":{"@type":"Answer","text":"Its Community Edition is, under the MIT license, and it does the core job well: bot-free capture, on-device transcription, and local summaries. Speaker separation, automatic meeting detection, advanced exports, and MCP access are in Meetily Pro, a paid edition built on a separate codebase. LokalBot has one codebase, and everything in it is free."}},{"@type":"Question","name":"Do they use the same models?","acceptedAnswer":{"@type":"Answer","text":"Partly. Both can transcribe with Parakeet or Whisper, and both offer Qwen 3.5 for local summaries. LokalBot defaults to Qwen3-ASR for transcription and also offers Granite Speech; the benchmarks page compares several of these models on the same test set."}},{"@type":"Question","name":"Which one runs on Windows?","acceptedAnswer":{"@type":"Answer","text":"Meetily. LokalBot is a native Mac app for Apple Silicon and macOS 15 or later, built around macOS audio capture, Accessibility, and on-device models. If you work on Windows, Meetily is the better fit."}}]}]}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Article","headline":"LokalBot vs Meetily","description":"Compare Meetily and LokalBot, two open-source meeting notetakers that run locally: what's free, speaker separation, meeting detection, scope, and platforms.","datePublished":"2026-10-01","dateModified":"2026-10-20","mainEntityOfPage":"https://www.lokalbot.com/lokalbot-vs-meetily","image":"https://www.lokalbot.com/assets/og-image.png","author":{"@type":"Organization","@id":"https://www.lokalbot.com/#organization","name":"LokalBot project","url":"https://www.lokalbot.com/"},"publisher":{"@type":"Organization","@id":"https://www.lokalbot.com/#organization","name":"LokalBot project","url":"https://www.lokalbot.com/"},"about":[{"@type":"SoftwareApplication","@id":"https://www.lokalbot.com/#software","name":"LokalBot","url":"https://www.lokalbot.com/","applicationCategory":"BusinessApplication","operatingSystem":"macOS 15+, Windows 10+, Linux"},{"@type":"SoftwareApplication","name":"Meetily"}]},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://www.lokalbot.com/"},{"@type":"ListItem","position":2,"name":"Guides","item":"https://www.lokalbot.com/guides"},{"@type":"ListItem","position":3,"name":"LokalBot vs Meetily","item":"https://www.lokalbot.com/lokalbot-vs-meetily"}]},{"@type":"FAQPage","@id":"https://www.lokalbot.com/lokalbot-vs-meetily#faq","mainEntity":[{"@type":"Question","name":"Isn't Meetily also free and open source?","acceptedAnswer":{"@type":"Answer","text":"Its Community Edition is, under the MIT license, and it does the core job well: bot-free capture, on-device transcription, and local summaries. Speaker separation, automatic meeting detection, advanced exports, and MCP access are in Meetily Pro, a paid edition built on a separate codebase. LokalBot keeps everything in one open repository, and all of it is free."}},{"@type":"Question","name":"Do they use the same models?","acceptedAnswer":{"@type":"Answer","text":"Partly. Both can transcribe with Parakeet or Whisper, and both offer Qwen 3.5 for local summaries. LokalBot defaults to Qwen3-ASR for transcription and also offers Granite Speech on Mac; the benchmarks page compares several of these models on the same test set, measured on a Mac."}},{"@type":"Question","name":"Which one runs on Windows?","acceptedAnswer":{"@type":"Answer","text":"Both. The Meetily Community Edition runs on macOS and Windows. LokalBot runs on Apple Silicon Macs with macOS 15 or later, and its Windows 10/11 and Linux apps are in alpha, with a few Mac features still missing. The system requirements page covers each platform."}}]}]}</script>
   <script src="app.js" defer></script>
 </head>
 <body>
@@ -103,7 +103,7 @@
             </tr>
             <tr>
               <th scope="row">Transcription</th>
-              <td><i class="ph ph-check" aria-hidden="true"></i>On your Mac — Qwen3-ASR by default, with Parakeet, Granite Speech, and Whisper as alternatives</td>
+              <td><i class="ph ph-check" aria-hidden="true"></i>On your computer — Qwen3-ASR by default, with Parakeet and Whisper as alternatives, plus Granite Speech on Mac</td>
               <td><i class="ph ph-check" aria-hidden="true"></i>On your device — Whisper or Parakeet</td>
             </tr>
             <tr>
@@ -113,7 +113,7 @@
             </tr>
             <tr>
               <th scope="row">Speaker separation</th>
-              <td><i class="ph ph-check" aria-hidden="true"></i>On your Mac, on by default</td>
+              <td><i class="ph ph-check" aria-hidden="true"></i>On your computer, on by default</td>
               <td>Pro only</td>
             </tr>
             <tr>
@@ -138,7 +138,7 @@
             </tr>
             <tr>
               <th scope="row">System-wide dictation</th>
-              <td><i class="ph ph-check" aria-hidden="true"></i>Hold ⌥ Space in any app</td>
+              <td><i class="ph ph-check" aria-hidden="true"></i>Hold ⌥ Space (Alt+Space on Windows and Linux) in any app</td>
               <td><i class="ph ph-x" aria-hidden="true"></i>No</td>
             </tr>
             <tr>
@@ -148,12 +148,12 @@
             </tr>
             <tr>
               <th scope="row">Writing autocomplete</th>
-              <td><i class="ph ph-check" aria-hidden="true"></i>Cotyping, in almost any app</td>
+              <td><i class="ph ph-check" aria-hidden="true"></i>Cotyping, in almost any app (on Linux, X11 only)</td>
               <td><i class="ph ph-x" aria-hidden="true"></i>No</td>
             </tr>
             <tr>
               <th scope="row">License</th>
-              <td>GPLv3 — every feature in one open codebase</td>
+              <td>GPLv3 — every feature in one open repository</td>
               <td>Community: MIT · Pro: a separate commercial codebase</td>
             </tr>
             <tr>
@@ -163,7 +163,7 @@
             </tr>
             <tr>
               <th scope="row">Platforms</th>
-              <td>macOS 15+ on Apple Silicon</td>
+              <td>macOS 15+ on Apple Silicon; Windows 10/11 x64 and Linux x86_64 in alpha</td>
               <td>macOS on Apple Silicon and Windows; Linux builds from source</td>
             </tr>
           </tbody>
@@ -182,7 +182,6 @@
           <h3>Pick Meetily if&hellip;</h3>
           <p>A popular open-source notetaker with a big community.</p>
           <ul class="checklist">
-            <li><i class="ph ph-check" aria-hidden="true"></i> You need the same notetaker on Windows, or want to build it for Linux</li>
             <li><i class="ph ph-check" aria-hidden="true"></i> You want to transcribe audio files you already have</li>
             <li><i class="ph ph-check" aria-hidden="true"></i> You prefer the MIT license, or want a paid tier with vendor support</li>
             <li><i class="ph ph-check" aria-hidden="true"></i> Your team wants a self-hosted Enterprise deployment</li>
@@ -210,15 +209,15 @@
       <div class="faq__list reveal">
         <details class="qa">
           <summary>Isn't Meetily also free and open source?<i class="ph ph-plus" aria-hidden="true"></i></summary>
-          <p>Its Community Edition is, under the MIT license, and it does the core job well: bot-free capture, on-device transcription, and local summaries. Speaker separation, automatic meeting detection, advanced exports, and MCP access are in Meetily Pro, a paid edition built on a separate codebase. LokalBot has one codebase, and everything in it is free.</p>
+          <p>Its Community Edition is, under the MIT license, and it does the core job well: bot-free capture, on-device transcription, and local summaries. Speaker separation, automatic meeting detection, advanced exports, and MCP access are in Meetily Pro, a paid edition built on a separate codebase. LokalBot keeps everything in one open repository, and all of it is free.</p>
         </details>
         <details class="qa">
           <summary>Do they use the same models?<i class="ph ph-plus" aria-hidden="true"></i></summary>
-          <p>Partly. Both can transcribe with Parakeet or Whisper, and both offer Qwen 3.5 for local summaries. LokalBot defaults to Qwen3-ASR for transcription and also offers Granite Speech; the <a href="benchmarks">benchmarks page</a> compares several of these models on the same test set.</p>
+          <p>Partly. Both can transcribe with Parakeet or Whisper, and both offer Qwen 3.5 for local summaries. LokalBot defaults to Qwen3-ASR for transcription and also offers Granite Speech on Mac; the <a href="benchmarks">benchmarks page</a> compares several of these models on the same test set, measured on a Mac.</p>
         </details>
         <details class="qa">
           <summary>Which one runs on Windows?<i class="ph ph-plus" aria-hidden="true"></i></summary>
-          <p>Meetily. LokalBot is a native Mac app for Apple Silicon and macOS 15 or later, built around macOS audio capture, Accessibility, and on-device models. If you work on Windows, Meetily is the better fit.</p>
+          <p>Both. The Meetily Community Edition runs on macOS and Windows. LokalBot runs on Apple Silicon Macs with macOS 15 or later, and its Windows 10/11 and Linux apps are in alpha, with a few Mac features still missing. The <a href="system-requirements">system requirements</a> page covers each platform.</p>
         </details>
       </div>
     </section>
@@ -228,13 +227,14 @@
       <div class="download__panel reveal">
         <img class="download__icon" src="assets/lokalbot-icon.svg" alt="" width="80" height="80" />
         <p class="eyebrow">Download</p>
-        <h2 class="section__title">Every feature, free, on your Mac.</h2>
+        <h2 class="section__title">Nothing gated, all on your computer.</h2>
         <p class="section__lead">Free and open source. Models download on first use; built-in inference then works offline.</p>
-        <a class="btn btn--primary btn--lg" href="https://github.com/stevyhacker/lokalbot/releases" target="_blank" rel="noopener">
-          <i class="ph ph-download-simple" aria-hidden="true"></i>
+        <a class="btn btn--primary btn--lg" href="https://github.com/stevyhacker/lokalbot/releases/latest/download/LokalBot.dmg" data-download>
+          <i class="ph ph-apple-logo" aria-hidden="true"></i>
           Download for macOS
         </a>
-        <p class="download__sub">.dmg installer &middot; <code>brew install --cask stevyhacker/tap/lokalbot</code> &middot; <a href="https://github.com/stevyhacker/lokalbot/releases" target="_blank" rel="noopener">all releases and notes</a></p>
+        <p class="download__sub" data-download-req data-req-windows="Windows 10 or 11, x64 &middot; Alpha, not code-signed yet" data-req-linux="x86_64 with glibc 2.39+ &middot; Alpha">Apple Silicon &middot; macOS 15+ &middot; <code>brew install --cask stevyhacker/tap/lokalbot</code></p>
+        <p class="download__sub"><a href="https://github.com/stevyhacker/lokalbot/releases/latest/download/LokalBot.dmg" data-download-alt>macOS</a> &middot; <a href="https://github.com/stevyhacker/lokalbot/releases/latest" data-download-alt data-asset="windows">Windows</a> &middot; <a href="https://github.com/stevyhacker/lokalbot/releases/latest" data-download-alt data-asset="linux">Linux</a> (alpha) &middot; <a href="system-requirements">requirements</a> &middot; <a href="https://github.com/stevyhacker/lokalbot/releases" target="_blank" rel="noopener">all releases and notes</a></p>
       </div>
     </section>
 
@@ -264,7 +264,7 @@
         <span class="brand__name">LokalBot</span>
       </a>
       <p>Your personal context engine.</p>
-      <p class="footer__meta">Apple Silicon &middot; macOS 15.0+ &middot; Free &amp; open source</p>
+      <p class="footer__meta">macOS &middot; Windows and Linux (alpha) &middot; Free &amp; open source</p>
     </div>
     <nav class="footer__col" aria-label="Product">
       <h3>Product</h3>
