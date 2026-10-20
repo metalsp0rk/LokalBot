@@ -220,12 +220,12 @@ struct DayStatRow: View {
     var body: some View {
         HStack(spacing: 8) {
             StatTile(icon: "clock", value: CaptureStyle.hm(trackedSeconds), label: "tracked")
-            StatTile(icon: "square.grid.2x2", value: "\(appCount)",
+            StatTile(icon: "square.grid.2x2", value: appCount.formatted(),
                      label: appCount == 1 ? "app" : "apps")
-            StatTile(icon: "rectangle.and.text.magnifyingglass", value: "\(momentCount)",
-                     label: "moments")
+            StatTile(icon: "rectangle.and.text.magnifyingglass", value: momentCount.formatted(),
+                     label: momentCount == 1 ? "moment" : "moments")
             if meetingCount > 0 {
-                StatTile(icon: "waveform", value: "\(meetingCount)",
+                StatTile(icon: "waveform", value: meetingCount.formatted(),
                          label: meetingCount == 1 ? "meeting" : "meetings")
             }
             Spacer()
@@ -451,7 +451,7 @@ private struct TimelineWorkspaceHeader: View {
 
     private var digestControls: some View {
         HStack(spacing: 8) {
-            DayDigestControls(model: model, identifier: "timeline")
+            DayDigestControls(model: model, identifier: "timeline", regeneratesFromMenu: true)
         }
     }
 
@@ -479,15 +479,22 @@ private struct TimelineWorkspaceHeader: View {
             .accessibilityLabel("Choose day")
             .accessibilityValue(model.day.formatted(date: .complete, time: .omitted))
             .accessibilityIdentifier("timeline.dayPicker")
-            Button("Today") { changeDay(to: Date()) }
-                .disabled(Calendar.current.isDateInToday(model.day))
-                .accessibilityIdentifier("timeline.today")
             Button { changeDay(by: 1) } label: {
                 Image(systemName: "chevron.right")
             }
             .accessibilityLabel("Next day")
             .accessibilityIdentifier("timeline.nextDay")
             .disabled(Calendar.current.isDateInToday(model.day))
+            // On today the jump back has nowhere to go, so it reads as a label.
+            if Calendar.current.isDateInToday(model.day) {
+                Text("Today")
+                    .font(AppFont.scaled(.callout))
+                    .foregroundStyle(.secondary)
+                    .padding(.leading, 2)
+            } else {
+                Button("Today") { changeDay(to: Date()) }
+                    .accessibilityIdentifier("timeline.today")
+            }
         }
     }
 
@@ -534,8 +541,8 @@ private struct TimelineWorkspaceHeader: View {
 
 // MARK: - Day sessions
 
-/// The day's digest with its open actions. Narrow layouts also place Day
-/// Overview and the work sessions here; wide layouts keep them in the
+/// The day's digest with its open actions. Narrow layouts also place the
+/// day's totals and the work sessions here; wide layouts keep them in the
 /// trailing rail.
 struct CaptureDayView: View {
     @EnvironmentObject var app: AppState
@@ -546,49 +553,188 @@ struct CaptureDayView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: LBTokens.Metric.sectionSpacing) {
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("Day Digest").font(.scaled(.headline))
-                    DayDigestCard(model: model, identifier: "capture", showsControls: false)
-                }.workspacePanel()
+                TimelineDigestStatus(model: model, lifecycle: app.dayDigest)
 
                 NeedsAttentionSection(threads: app.outcomeIndex.openUserActionThreads.filter { thread in
                     thread.references.contains { Calendar.current.isDate($0.meetingStartedAt, inSameDayAs: model.day) }
-                }, limit: 3)
+                }, limit: 3, style: .plain)
+
+                if let digest = model.digest {
+                    DayDigestView(digest, mode: .timeline)
+                        .accessibilityElement(children: .contain)
+                        .accessibilityIdentifier("capture.dayDigest.text")
+                    if let updated = model.digestUpdatedAt, !model.digestIsStale {
+                        Text("Updated " + updated.formatted(date: .omitted, time: .shortened))
+                            .font(AppFont.scaled(.callout))
+                            .foregroundStyle(.tertiary)
+                    }
+                }
 
                 if includesSessions {
+                    Divider()
                     TimelineOverviewAndSessions(model: model, onOpenContext: onOpenContext)
                 }
             }
-            .padding(LBTokens.Metric.detailPadding)
+            .padding(.horizontal, 32)
+            .padding(.vertical, 24)
             .frame(maxWidth: .infinity, alignment: .topLeading)
         }
     }
 }
 
-/// Day Overview above the work sessions, so the day's totals lead the list.
+/// The digest's state above the day: an invitation before the first digest,
+/// progress while one is written, and an Update button once activity has
+/// arrived since the last one. A current digest needs no line at all.
+private struct TimelineDigestStatus: View {
+    @EnvironmentObject private var app: AppState
+    @ObservedObject var model: CaptureModel
+    @ObservedObject var lifecycle: DayDigestLifecycle
+
+    var body: some View {
+        let busy = model.generating || lifecycle.isGenerating(on: model.day)
+        Group {
+            if busy {
+                strip {
+                    ProgressView().controlSize(.small)
+                    Text(model.digest == nil ? "Writing this day's digest…" : "Updating the digest with new activity…")
+                }
+            } else if model.digest == nil {
+                Text("Your digest brings together this day's meetings and captured activity.")
+                    .workspaceTextRole(.supporting)
+            } else if model.digestIsStale {
+                strip {
+                    Image(systemName: "arrow.clockwise")
+                        .foregroundStyle(LBTokens.Palette.accentText)
+                        .accessibilityHidden(true)
+                    staleMessage
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityIdentifier("capture.dayDigest.stale")
+                    Spacer(minLength: 8)
+                    Button("Update Digest") { Task { await model.generateDigest(app: app) } }
+                        .buttonStyle(.borderedProminent)
+                        .tint(LBTokens.Palette.accentFill)
+                        .accessibilityIdentifier("timeline.dayDigest.update")
+                }
+            }
+            if let error = model.digestError {
+                Label(error, systemImage: "exclamationmark.triangle").workspaceTextRole(.warning)
+            }
+        }
+    }
+
+    private var staleMessage: Text {
+        if let updated = model.digestUpdatedAt {
+            return Text("New activity since this digest was written at \(updated.formatted(date: .omitted, time: .shortened)).")
+        }
+        return Text("New activity since this digest was written.")
+    }
+
+    private func strip<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+        HStack(spacing: 10) { content() }
+            .font(AppFont.scaled(.body))
+            .padding(.leading, 12)
+            .padding(.trailing, 8)
+            .padding(.vertical, 7)
+            .frame(maxWidth: .infinity, minHeight: 40, alignment: .leading)
+            .background(Brand.teal.opacity(0.08),
+                        in: RoundedRectangle(cornerRadius: Brand.Radius.panel))
+    }
+}
+
+/// The day's totals above the work sessions, so they lead the list.
 struct TimelineOverviewAndSessions: View {
     @ObservedObject var model: CaptureModel
     let onOpenContext: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: LBTokens.Metric.sectionSpacing) {
-            DayActivityOverview(model: model)
-                .accessibilityIdentifier("capture.dayOverview")
+            TimelineDayTotals(model: model)
             TimelineSessionsSection(model: model, onOpenContext: onOpenContext)
         }
     }
 }
 
-/// Work sessions and meetings in order, followed by Browse Raw Capture.
+/// Tracked time as the one large number, the day's counts beneath it, and the
+/// split by app. Nothing shows for a day without activity: the sessions list
+/// explains that.
+private struct TimelineDayTotals: View {
+    @EnvironmentObject private var app: AppState
+    @ObservedObject var model: CaptureModel
+
+    var body: some View {
+        let perApp = DayActivityOverview.perApp(model.blocks)
+        let meetingCount = model.meetings(in: app).count
+        if !perApp.isEmpty || meetingCount > 0 {
+            VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        Text(CaptureStyle.hm(perApp.reduce(0) { $0 + $1.seconds }))
+                            .font(AppFont.scaledSystem(size: 24, weight: .semibold).monospacedDigit())
+                        Text("tracked")
+                            .font(AppFont.scaled(.body))
+                            .foregroundStyle(.secondary)
+                    }
+                    Text(countsLine(appCount: perApp.count, meetingCount: meetingCount))
+                        .font(AppFont.scaled(.callout))
+                        .foregroundStyle(Color(nsColor: WorkspaceTextColor.supporting))
+                }
+                if !perApp.isEmpty {
+                    ProportionBar(segments: ProportionBarMath.segments(perApp: perApp).map {
+                        ($0, $0.label == "Other" ? Color.gray : CaptureStyle.color(for: $0.label))
+                    }, height: 8)
+                    legend(AppTimePresentation.rows(perApp: perApp))
+                }
+            }
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("capture.dayOverview")
+        }
+    }
+
+    private func countsLine(appCount: Int, meetingCount: Int) -> String {
+        var parts = [CountLabel.format(model.workSessions.count, "work session")]
+        if meetingCount > 0 { parts.append(CountLabel.format(meetingCount, "meeting")) }
+        parts.append(CountLabel.format(appCount, "app"))
+        return parts.joined(separator: " · ")
+    }
+
+    /// Two columns, each app's time flush right so the numbers line up.
+    private func legend(_ rows: [AppTimePresentation.Row]) -> some View {
+        let pairs = stride(from: 0, to: rows.count, by: 2).map {
+            Array(rows[$0..<min($0 + 2, rows.count)])
+        }
+        return Grid(alignment: .leading, horizontalSpacing: 20, verticalSpacing: 6) {
+            ForEach(pairs.indices, id: \.self) { index in
+                GridRow {
+                    ForEach(pairs[index], id: \.label) { row in
+                        HStack(spacing: 7) {
+                            StatusDot(color: row.isOther ? .gray : CaptureStyle.color(for: row.label), size: 7)
+                            Text(row.label).lineLimit(1)
+                            Spacer(minLength: 6)
+                            Text(CaptureStyle.hm(row.seconds))
+                                .monospacedDigit()
+                                .foregroundStyle(.secondary)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+            }
+        }
+        .font(AppFont.scaled(.callout))
+    }
+}
+
+/// Work sessions and meetings in order on one line, with long stretches of
+/// no activity marked, followed by Browse Raw Capture.
 struct TimelineSessionsSection: View {
     @EnvironmentObject var app: AppState
+    @Environment(\.appTextScale) private var textScale
     @ObservedObject var model: CaptureModel
     let onOpenContext: () -> Void
 
     var body: some View {
         let meetings = model.meetings(in: app)
         let sessions = model.workSessions
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 8) {
             if model.blocks.isEmpty && meetings.isEmpty && model.shots.isEmpty {
                 ContentUnavailableView(
                     "No activity recorded",
@@ -597,8 +743,15 @@ struct TimelineSessionsSection: View {
                         ? "Blocks appear as you use your Mac (sampled every 5 s, idle-aware)."
                         : "Day tracking is off — enable it in Settings."))
             } else {
-                Text("Work Sessions").font(.scaled(.headline))
-                    .accessibilityIdentifier("timeline.workSessions")
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text("Sessions")
+                        .font(.scaled(.headline))
+                        .accessibilityAddTraits(.isHeader)
+                        .accessibilityIdentifier("timeline.workSessions")
+                    Text(sessions.count + meetings.count, format: .number)
+                        .font(AppFont.scaled(.callout).monospacedDigit())
+                        .foregroundStyle(.secondary)
+                }
                 if meetings.contains(where: { $0.endedAt == nil }) {
                     TimelineView(.periodic(from: .now, by: 1)) { context in
                         sessionList(sessions: sessions, meetings: meetings, now: context.date)
@@ -616,40 +769,57 @@ struct TimelineSessionsSection: View {
         meetings: [Meeting],
         now: Date
     ) -> some View {
-        let items = TimelineDayItem.items(sessions: sessions, meetings: meetings, now: now)
+        let rows = TimelineRailRow.rows(
+            items: TimelineDayItem.items(sessions: sessions, meetings: meetings, now: now))
+        let metrics = TimelineRailMetrics(textScale: textScale)
         // In narrow layouts the sessions follow the digest and Needs
         // Attention. A lazy stack would leave those rows out of the
         // accessibility tree until scrolled; the bounded list stays eager.
-        return VStack(spacing: 8) {
-                if items.isEmpty {
-                    ContentUnavailableView(
-                        "No meaningful sessions",
-                        systemImage: "rectangle.stack.badge.minus",
-                        description: Text("Only system activity or raw context was captured. You can still inspect it below."))
-                        .padding(.vertical, 28)
-                } else {
-                    ForEach(items) { item in
-                        switch item {
-                        case .work(let session):
+        return VStack(alignment: .leading, spacing: 0) {
+            if rows.isEmpty {
+                ContentUnavailableView(
+                    "No meaningful sessions",
+                    systemImage: "rectangle.stack.badge.minus",
+                    description: Text("Only system activity or raw context was captured. You can still inspect it below."))
+                    .padding(.vertical, 28)
+            } else {
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(rows) { row in
+                        switch row {
+                        case .item(.work(let session)):
                             TimelineWorkSessionRow(
                                 session: session,
                                 sceneCount: model.frames(in: session).count,
+                                metrics: metrics,
                                 isSelected: model.selectedSessionID == session.id,
                                 onSelect: { selectSession(session) })
-                        case .meeting(let meeting, let end):
+                        case .item(.meeting(let meeting, let end)):
                             TimelineSessionMeetingRow(
                                 meeting: meeting,
                                 end: end,
+                                metrics: metrics,
                                 isSelected: app.selectedMeetingIDs == [meeting.id],
                                 onSelect: { selectMeeting(meeting.id) })
+                        case .away(let start, let end):
+                            TimelineAwayRow(start: start, end: end, metrics: metrics)
                         }
                     }
                 }
-
-                rawCaptureRow
-                    .padding(.top, 4)
+                // One line runs through the dots, so the list reads as a day.
+                .background(alignment: .topLeading) {
+                    Rectangle()
+                        .fill(Color.primary.opacity(0.10))
+                        .frame(width: 1.5)
+                        .padding(.vertical, 14)
+                        .offset(x: metrics.dotCenterX - 0.75)
+                        .accessibilityHidden(true)
+                }
             }
-            .padding(.bottom, 8)
+
+            rawCaptureRow
+                .padding(.top, 12)
+        }
+        .padding(.bottom, 8)
     }
 
     /// Opens raw activity and capture cleanup in the main column, where the
@@ -665,14 +835,14 @@ struct TimelineSessionsSection: View {
             model.showsRawCapture = willSelect
             if willSelect { onOpenContext() }
         } label: {
-            HStack(alignment: .center, spacing: TimelineRailStyle.spacing) {
+            HStack(alignment: .center, spacing: 10) {
                 Image(systemName: "waveform.path.ecg.rectangle")
                     .font(.system(size: 15))
                     .foregroundStyle(.secondary)
-                    .frame(width: TimelineRailStyle.iconSize)
+                    .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Browse Raw Capture")
-                        .font(TimelineRailStyle.title)
+                        .font(TimelineRailStyle.titleEmphasis)
                     Text("\(CountLabel.format(model.blocks.count, "activity entry", plural: "activity entries")) · \(CountLabel.format(model.rewindFrames.count, "screen moment"))")
                         .font(TimelineRailStyle.detail.monospacedDigit())
                         .foregroundStyle(.secondary)
@@ -682,15 +852,13 @@ struct TimelineSessionsSection: View {
                     .font(.scaled(.caption).weight(.semibold))
                     .foregroundStyle(.tertiary)
             }
-            .padding(TimelineRailStyle.padding)
+            .padding(.vertical, 10)
+            .padding(.horizontal, 8)
             .contentShape(Rectangle())
-            .background(
-                isSelected ? Brand.teal.opacity(0.11) : Color.primary.opacity(0.035),
-                in: RoundedRectangle(cornerRadius: Brand.Radius.panel))
-            .overlay {
-                RoundedRectangle(cornerRadius: Brand.Radius.panel)
-                    .strokeBorder(isSelected ? Brand.teal.opacity(0.8) : Color.primary.opacity(0.10),
-                                  lineWidth: 1)
+            .background(isSelected ? Brand.teal.opacity(0.11) : .clear,
+                        in: RoundedRectangle(cornerRadius: Brand.Radius.row))
+            .overlay(alignment: .top) {
+                if !isSelected { Divider() }
             }
         }
         .buttonStyle(.plain)
@@ -766,160 +934,196 @@ struct TimelineRawCaptureView: View {
 }
 
 /// The work-session rail is a scannable index beside the digest, so its rows
-/// use list-sized medium titles and a small tile instead of page-body weight.
+/// use list-sized titles on a single line.
 private enum TimelineRailStyle {
-    static var title: AppFont { AppFont.scaledSystem(size: 13, weight: .medium) }
+    static var title: AppFont { AppFont.scaledSystem(size: 13) }
+    static var titleEmphasis: AppFont { AppFont.scaledSystem(size: 13, weight: .medium) }
     static var detail: AppFont { AppFont.scaledSystem(size: 12) }
     static var detailEmphasis: AppFont { AppFont.scaledSystem(size: 12, weight: .semibold) }
-    static let iconSize: CGFloat = 24
-    static let timeWidth: CGFloat = 60
-    static let padding: CGFloat = 10
-    static let spacing: CGFloat = 10
+    static let rowPadding: CGFloat = 7
+
+    static func rowBackground(selected: Bool, hovering: Bool) -> some View {
+        RoundedRectangle(cornerRadius: Brand.Radius.row)
+            .fill(selected ? Brand.teal.opacity(0.11)
+                  : hovering ? Color.primary.opacity(0.04) : .clear)
+            .overlay {
+                if selected {
+                    RoundedRectangle(cornerRadius: Brand.Radius.row)
+                        .strokeBorder(Brand.teal.opacity(0.8), lineWidth: 1)
+                }
+            }
+    }
+}
+
+/// Column widths of a rail row. The time column follows the text size and
+/// the clock: "18:45" needs less room than "10:40 AM".
+private struct TimelineRailMetrics {
+    let timeWidth: CGFloat
+    let dotColumn: CGFloat = 12
+    let spacing: CGFloat = 8
+
+    init(textScale: CGFloat) {
+        timeWidth = ((Self.usesDayPeriod ? 58 : 38) * max(1, textScale)).rounded()
+    }
+
+    var dotCenterX: CGFloat { timeWidth + spacing + dotColumn / 2 }
+
+    private static let usesDayPeriod: Bool =
+        DateFormatter.dateFormat(fromTemplate: "j", options: 0, locale: .current)?.contains("a") ?? false
+}
+
+private struct TimelineRailTime: View {
+    let date: Date
+    let metrics: TimelineRailMetrics
+    var emphasis: Color?
+
+    var body: some View {
+        Text(date.formatted(date: .omitted, time: .shortened))
+            .font((emphasis == nil ? TimelineRailStyle.detail : TimelineRailStyle.detailEmphasis).monospacedDigit())
+            .foregroundStyle(emphasis.map(AnyShapeStyle.init) ?? AnyShapeStyle(.secondary))
+            .lineLimit(1)
+            .frame(width: metrics.timeWidth, alignment: .trailing)
+    }
+}
+
+private struct TimelineRailDot: View {
+    let color: Color
+    let metrics: TimelineRailMetrics
+
+    var body: some View {
+        Circle()
+            .fill(color)
+            .frame(width: 9, height: 9)
+            .padding(2)
+            .background(Circle().fill(Color(nsColor: .windowBackgroundColor)))
+            .frame(width: metrics.dotColumn)
+            .accessibilityHidden(true)
+    }
 }
 
 private struct TimelineWorkSessionRow: View {
     let session: TimelineWorkSession
     let sceneCount: Int
+    let metrics: TimelineRailMetrics
     let isSelected: Bool
     let onSelect: () -> Void
+    @State private var hovering = false
 
     var body: some View {
         Button(action: onSelect) {
-            HStack(alignment: .center, spacing: TimelineRailStyle.spacing) {
-                timeRange(start: session.start, end: session.end)
-                IconTile(systemImage: "briefcase", tint: CaptureStyle.color(for: session.primaryApp),
-                         size: TimelineRailStyle.iconSize)
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(session.title)
-                        .font(TimelineRailStyle.title)
-                        .foregroundStyle(.primary)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                        .help(session.title)
-                    HStack(spacing: 6) {
-                        Text(appSummary)
-                            .font(TimelineRailStyle.detail)
-                            .foregroundStyle(Color(nsColor: WorkspaceTextColor.supporting))
-                            .lineLimit(1)
-                        Text(CaptureStyle.hm(session.activeDuration))
-                            .font(TimelineRailStyle.detailEmphasis.monospacedDigit())
-                            .fixedSize()
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                Image(systemName: "chevron.right")
-                    .font(.scaled(.caption).weight(.semibold))
-                    .foregroundStyle(.tertiary)
+            HStack(spacing: metrics.spacing) {
+                TimelineRailTime(date: session.start, metrics: metrics)
+                TimelineRailDot(color: CaptureStyle.color(for: session.primaryApp), metrics: metrics)
+                // A title that only lists apps stays quieter than one that
+                // names what was open.
+                Text(session.title)
+                    .font(session.titleNamesApps ? TimelineRailStyle.title : TimelineRailStyle.titleEmphasis)
+                    .foregroundStyle(session.titleNamesApps
+                        ? AnyShapeStyle(Color(nsColor: WorkspaceTextColor.supporting))
+                        : AnyShapeStyle(.primary))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                Text(CaptureStyle.hm(session.activeDuration))
+                    .font(TimelineRailStyle.detailEmphasis.monospacedDigit())
+                    .foregroundStyle(.secondary)
+                    .fixedSize()
             }
-            .padding(TimelineRailStyle.padding)
+            .padding(.vertical, TimelineRailStyle.rowPadding)
+            .padding(.trailing, 8)
             .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(Rectangle())
-            .background(
-                isSelected ? Brand.teal.opacity(0.11) : Color.primary.opacity(0.035),
-                in: RoundedRectangle(cornerRadius: Brand.Radius.panel))
-            .overlay {
-                RoundedRectangle(cornerRadius: Brand.Radius.panel)
-                    .strokeBorder(isSelected ? Brand.teal.opacity(0.8)
-                                             : Color.primary.opacity(0.10),
-                                  lineWidth: 1)
-            }
+            .background(TimelineRailStyle.rowBackground(selected: isSelected, hovering: hovering))
         }
         .buttonStyle(.plain)
+        .onHover { hovering = $0 }
+        .help(helpText)
         .accessibilityLabel("Work session, \(session.title)")
         .accessibilityValue("\(session.start.formatted(date: .omitted, time: .shortened)) to \(session.end.formatted(date: .omitted, time: .shortened)), \(CaptureStyle.hm(session.activeDuration)), \(session.appCount) apps, \(sceneCount) context scenes\(isSelected ? ", selected" : "")")
         .accessibilityHint("Show this work session in the context panel")
         .accessibilityIdentifier("timeline.session.\(session.id)")
     }
 
-    private var appSummary: String {
-        let visible = session.apps.prefix(3).joined(separator: " · ")
-        let remaining = session.apps.count - min(3, session.apps.count)
-        return remaining > 0 ? "\(visible) · +\(remaining)" : visible
-    }
-
-    private var secondaryContext: String? {
-        let remaining = max(0, session.notableTitles.count - 2)
-        guard !session.notableTitles.isEmpty else {
-            return session.contextSwitchCount > 0
-                ? "\(session.contextSwitchCount) context switch\(session.contextSwitchCount == 1 ? "" : "es")"
-                : nil
-        }
-        return remaining > 0 ? "Captured titles · \(remaining) more" : "Captured window titles"
-    }
-
-    private func timeRange(start: Date, end: Date) -> some View {
-        VStack(alignment: .trailing, spacing: 2) {
-            Text(start.formatted(date: .omitted, time: .shortened))
-                .foregroundStyle(.primary)
-            Text(end.formatted(date: .omitted, time: .shortened))
-                .foregroundStyle(Color(nsColor: WorkspaceTextColor.supporting))
-        }
-        .font(TimelineRailStyle.detail.monospacedDigit())
-        .lineLimit(1)
-        .frame(width: TimelineRailStyle.timeWidth, alignment: .trailing)
+    private var helpText: String {
+        let range = "\(session.start.formatted(date: .omitted, time: .shortened))–\(session.end.formatted(date: .omitted, time: .shortened))"
+        return "\(session.title)\n\(range) · \(session.apps.joined(separator: ", "))"
     }
 }
 
 private struct TimelineSessionMeetingRow: View {
     let meeting: Meeting
     let end: Date
+    let metrics: TimelineRailMetrics
     let isSelected: Bool
     let onSelect: () -> Void
 
+    private var isLive: Bool { meeting.endedAt == nil }
+
     var body: some View {
         Button(action: onSelect) {
-            HStack(alignment: .center, spacing: TimelineRailStyle.spacing) {
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text(meeting.startedAt.formatted(date: .omitted, time: .shortened))
-                        .foregroundStyle(.primary)
-                    Text(end.formatted(date: .omitted, time: .shortened))
-                        .foregroundStyle(Color(nsColor: WorkspaceTextColor.supporting))
-                }
-                .font(TimelineRailStyle.detail.monospacedDigit())
-                .lineLimit(1)
-                .frame(width: TimelineRailStyle.timeWidth, alignment: .trailing)
-                IconTile(systemImage: "waveform", tint: Brand.teal, size: TimelineRailStyle.iconSize)
-                // Same anatomy as work sessions: one-line title, kind and
-                // duration beneath, chevron centered on the trailing edge.
-                VStack(alignment: .leading, spacing: 3) {
+            HStack(spacing: metrics.spacing) {
+                TimelineRailTime(date: meeting.startedAt, metrics: metrics,
+                                 emphasis: isLive ? Brand.recording : LBTokens.Palette.accentText)
+                TimelineRailDot(color: isLive ? Brand.recording : Brand.teal, metrics: metrics)
+                // The one tinted row: meetings are first-class events in the day.
+                HStack(spacing: 7) {
+                    Image(systemName: "waveform")
+                        .font(TimelineRailStyle.detail)
+                        .foregroundStyle(LBTokens.Palette.accentText)
+                        .accessibilityHidden(true)
                     Text(meeting.displayTitle)
-                        .font(TimelineRailStyle.title)
+                        .font(TimelineRailStyle.titleEmphasis)
                         .foregroundStyle(.primary)
                         .lineLimit(1)
                         .truncationMode(.tail)
                         .help(meeting.displayTitle)
-                    HStack(spacing: 6) {
-                        Text(meeting.endedAt == nil ? "Meeting · Recording" : "Meeting")
-                            .font(TimelineRailStyle.detail)
-                            .foregroundStyle(meeting.endedAt == nil ? Brand.recording : Color(nsColor: WorkspaceTextColor.supporting))
-                        Text(CaptureStyle.hm(end.timeIntervalSince(meeting.startedAt)))
-                            .font(TimelineRailStyle.detailEmphasis.monospacedDigit())
-                            .fixedSize()
-                    }
+                    Text(isLive ? "Recording" : "Meeting")
+                        .font(TimelineRailStyle.detail)
+                        .foregroundStyle(isLive ? Brand.recording : LBTokens.Palette.accentText)
+                        .fixedSize()
+                    Spacer(minLength: 4)
+                    Text(CaptureStyle.hm(end.timeIntervalSince(meeting.startedAt)))
+                        .font(TimelineRailStyle.detailEmphasis.monospacedDigit())
+                        .foregroundStyle(LBTokens.Palette.accentText)
+                        .fixedSize()
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                Image(systemName: "chevron.right")
-                    .font(.scaled(.caption).weight(.semibold))
-                    .foregroundStyle(.tertiary)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 6)
+                .background(Brand.teal.opacity(isSelected ? 0.16 : 0.07),
+                            in: RoundedRectangle(cornerRadius: Brand.Radius.row))
+                .overlay {
+                    RoundedRectangle(cornerRadius: Brand.Radius.row)
+                        .strokeBorder(Brand.teal.opacity(isSelected ? 0.85 : 0.22), lineWidth: 1)
+                }
             }
-            .padding(TimelineRailStyle.padding)
+            .padding(.vertical, 3)
             .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(Rectangle())
-            .background(
-                isSelected ? Brand.teal.opacity(0.13) : Brand.teal.opacity(0.045),
-                in: RoundedRectangle(cornerRadius: Brand.Radius.panel))
-            .overlay {
-                RoundedRectangle(cornerRadius: Brand.Radius.panel)
-                    .strokeBorder(isSelected ? Brand.teal.opacity(0.85)
-                                             : Brand.teal.opacity(0.20),
-                                  lineWidth: 1)
-            }
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Meeting, \(meeting.displayTitle)")
         .accessibilityValue("\(meeting.startedAt.formatted(date: .omitted, time: .shortened)), \(CaptureStyle.hm(end.timeIntervalSince(meeting.startedAt)))\(isSelected ? ", selected" : "")")
         .accessibilityHint("Show this meeting in the context panel")
         .accessibilityIdentifier("capture.meeting.\(meeting.id.uuidString)")
+    }
+}
+
+/// A stretch with nothing recorded between two rows.
+private struct TimelineAwayRow: View {
+    let start: Date
+    let end: Date
+    let metrics: TimelineRailMetrics
+
+    var body: some View {
+        HStack(spacing: metrics.spacing) {
+            Color.clear.frame(width: metrics.timeWidth + metrics.spacing + metrics.dotColumn, height: 1)
+            Text("Away \(CaptureStyle.hm(end.timeIntervalSince(start)))")
+                .font(TimelineRailStyle.detail)
+                .foregroundStyle(.tertiary)
+        }
+        .padding(.vertical, 4)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("No activity from \(start.formatted(date: .omitted, time: .shortened)) to \(end.formatted(date: .omitted, time: .shortened))")
     }
 }
 

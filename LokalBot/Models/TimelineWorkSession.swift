@@ -11,6 +11,9 @@ struct TimelineWorkSession: Identifiable, Equatable, Sendable {
     let activeDuration: TimeInterval
     let primaryApp: String
     let title: String
+    /// True when no window title covered enough of the session to name it,
+    /// so the title lists the session's apps instead.
+    let titleNamesApps: Bool
     let apps: [String]
     let contextSwitchCount: Int
     let titleEvidence: [TitleEvidence]
@@ -114,8 +117,11 @@ struct TimelineWorkSession: Identifiable, Equatable, Sendable {
         let evidence = rankedTitleEvidence(in: sourceBlocks)
         // A fleeting page should remain inspectable without naming the whole session.
         let representativeTitles = evidence.filter { $0.duration >= activeDuration * 0.2 }.map(\.title)
+        // Apps glanced at for seconds (a password prompt, a notification)
+        // stay in `apps` but don't inflate the title's count.
+        let usedApps = apps.filter { (appDurations[$0] ?? 0) >= 60 }
         let title = representativeTitles.isEmpty
-            ? apps.prefix(2).joined(separator: " and ") + (apps.count > 2 ? " and more" : "")
+            ? appSummary(usedApps.isEmpty ? apps : usedApps)
             : representativeTitles.prefix(2).joined(separator: " · ")
 
         return TimelineWorkSession(
@@ -126,9 +132,17 @@ struct TimelineWorkSession: Identifiable, Equatable, Sendable {
             activeDuration: activeDuration,
             primaryApp: primaryApp,
             title: title,
+            titleNamesApps: representativeTitles.isEmpty,
             apps: apps,
             contextSwitchCount: contextSwitches(in: blocks),
             titleEvidence: evidence)
+    }
+
+    /// "Claude", "Claude, Safari" or "Claude, Safari +2": the two busiest
+    /// apps, then how many more.
+    static func appSummary(_ apps: [String]) -> String {
+        let named = apps.prefix(2).joined(separator: ", ")
+        return apps.count > 2 ? "\(named) +\(apps.count - 2)" : named
     }
 
     static func mergedDuration(_ blocks: [ActivityBlock]) -> TimeInterval {
@@ -262,6 +276,13 @@ enum TimelineDayItem: Identifiable {
         }
     }
 
+    var end: Date {
+        switch self {
+        case .work(let session): session.end
+        case .meeting(_, let end): end
+        }
+    }
+
     static func items(
         sessions: [TimelineWorkSession],
         meetings: [Meeting],
@@ -272,5 +293,38 @@ enum TimelineDayItem: Identifiable {
         }
         return (sessions.map(TimelineDayItem.work) + meetingItems)
             .sorted { $0.start < $1.start }
+    }
+}
+
+/// A row of the Timeline session rail: a session or meeting, or a long
+/// stretch with no recorded activity between them.
+enum TimelineRailRow: Identifiable {
+    case item(TimelineDayItem)
+    case away(start: Date, end: Date)
+
+    var id: String {
+        switch self {
+        case .item(let item): item.id
+        case .away(let start, _): "away-\(Int(start.timeIntervalSince1970))"
+        }
+    }
+
+    /// Inserts an away row wherever nothing was recorded for at least
+    /// `minimumGap`. Items overlap (a meeting runs over its sessions), so a
+    /// gap starts at the latest end seen so far.
+    static func rows(
+        items: [TimelineDayItem],
+        minimumGap: TimeInterval = 30 * 60
+    ) -> [TimelineRailRow] {
+        var rows: [TimelineRailRow] = []
+        var latestEnd: Date?
+        for item in items {
+            if let latestEnd, item.start.timeIntervalSince(latestEnd) >= minimumGap {
+                rows.append(.away(start: latestEnd, end: item.start))
+            }
+            rows.append(.item(item))
+            latestEnd = max(latestEnd ?? item.end, item.end)
+        }
+        return rows
     }
 }

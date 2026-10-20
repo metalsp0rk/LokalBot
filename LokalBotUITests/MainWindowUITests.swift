@@ -383,27 +383,33 @@ final class MainWindowUITests: XCTestCase {
             identified("capture.dayOverview").frame.minY,
             identified("timeline.workSessions").frame.minY,
             "Day overview belongs above the work sessions")
-        XCTAssertTrue(identified("timeline.dayDigest.generate").waitForExistence(timeout: 5),
-                      "day-digest action should remain directly visible")
-        XCTAssertTrue(identified("timeline.dayDigest.actions").exists,
-                      "Timeline should expose copy and Markdown export actions")
+        // A current digest keeps Regenerate in the digest menu; the visible
+        // button appears only before the first digest and while writing.
+        let digestActions = identified("timeline.dayDigest.actions")
+        XCTAssertTrue(digestActions.waitForExistence(timeout: 5),
+                      "Timeline should expose regenerate, copy and Markdown export actions")
+        digestActions.click()
+        XCTAssertTrue(app.menuItems["Regenerate Digest"].waitForExistence(timeout: 3),
+                      "Regenerate should stay one click away in the digest menu")
+        XCTAssertTrue(app.menuItems["Copy Digest"].exists)
+        app.typeKey(.escape, modifierFlags: [])
         XCTAssertFalse(identified("timeline.activityEvidence").exists,
                        "the chronological track should not be hidden behind Activity evidence")
         XCTAssertTrue(textWithContent("Needs Attention").firstMatch.exists,
                       "Timeline should expose the same actionable commitments as Today")
         XCTAssertFalse(textWithContent("Decisions").firstMatch.exists,
                        "empty decisions section should not consume Timeline space")
-        XCTAssertTrue(textWithContent("Day Overview").firstMatch.waitForExistence(timeout: 6),
-                      "day overview missing — seeded activity did not load")
+        XCTAssertTrue(textWithContent("tracked").firstMatch.waitForExistence(timeout: 6),
+                      "day totals missing — seeded activity did not load")
         XCTAssertTrue(digestTasksVisible(),
                       "digest task hierarchy is missing")
         XCTAssertTrue(textWithContent("Updated the Timeline UI").firstMatch.exists,
                       "human-facing focus summary is missing")
         XCTAssertFalse(textWithContent("User updated the Timeline UI").firstMatch.exists,
                        "model bookkeeping subject leaked into the focus summary")
-        // Day Overview opens the sessions rail. Its heading can be visible
-        // while the lazy app legend below it is not built yet, so scroll the
-        // rail until the legend itself is on screen.
+        // The day's totals open the sessions rail. They can be visible while
+        // the app legend below them is not on screen yet, so scroll the rail
+        // until the legend itself is.
         let appLegendEntry = textWithContent("Xcode").firstMatch
         scrollTimelineDay(to: appLegendEntry)
         XCTAssertTrue(appLegendEntry.waitForExistence(timeout: 4),
@@ -1255,8 +1261,8 @@ final class MainWindowUITests: XCTestCase {
         XCTAssertFalse(identified("ask.retrieval").exists)
     }
 
-    /// Narrow layouts place Day Overview, work sessions and raw capture after
-    /// the digest and Needs Attention, so they can start below the fold.
+    /// Narrow layouts place the day's totals, work sessions and raw capture
+    /// after the digest and Needs Attention, so they can start below the fold.
     private func scrollTimelineDay(to element: XCUIElement) {
         let rail = app.scrollViews["timeline.sessionRail"]
         UITestHarness.scrollTo(element, in: app, within: rail.exists ? rail : nil)
