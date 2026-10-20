@@ -9,6 +9,10 @@
 # The two archives may be the same file: the installed copy then pretends to
 # be 0.0.1 (LOKALBOT_UPDATE_CURRENT_VERSION), which the relaunched copy does
 # not inherit. Needs Python and a desktop session.
+#
+# On a computer where the installer never registered LokalBot, the folder
+# also gets the installer's Installed apps entry at an older version, which
+# must name the new version afterwards: winget reads it.
 param(
     [Parameter(Mandatory)] [string] $Archive,
     [Parameter(Mandatory)] [string] $Update,
@@ -79,6 +83,21 @@ function WaitFor([string] $Pattern, [int] $Seconds) {
     }
 }
 
+# lokalbot.iss's AppId. A real installation's entry is left alone.
+$entryKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\{CFF062EB-30DC-4ED9-8586-AB0B54B52A85}_is1"
+$ownEntry = -not (Test-Path $entryKey)
+if ($ownEntry) {
+    New-Item -Path $entryKey -Force | Out-Null
+    foreach ($value in @{ DisplayName = "LokalBot"; InstallLocation = "$app\"; "Inno Setup: App Path" = $app; DisplayVersion = "0.0.1" }.GetEnumerator()) {
+        New-ItemProperty -Path $entryKey -Name $value.Key -Value $value.Value | Out-Null
+    }
+    foreach ($name in "MajorVersion", "VersionMajor", "MinorVersion", "VersionMinor") {
+        New-ItemProperty -Path $entryKey -Name $name -PropertyType DWord -Value 0 | Out-Null
+    }
+} else {
+    Write-Host "LokalBot's installer registered a copy on this computer; not checking Installed apps."
+}
+
 $env:LOKALBOT_STORAGE_ROOT = $library
 try {
     # A library for the MCP server, then the server itself, which keeps
@@ -121,6 +140,20 @@ try {
             throw "$file was not replaced"
         }
     }
+    if ($ownEntry) {
+        $entry = Get-ItemProperty $entryKey
+        $parts = $newVersion.Split(".")
+        if ($entry.DisplayVersion -ne $newVersion) {
+            throw "Installed apps still lists $($entry.DisplayVersion), not $newVersion"
+        }
+        foreach ($name in "MajorVersion", "VersionMajor") {
+            if ($entry.$name -ne [int]$parts[0]) { throw "$name is $($entry.$name), not $($parts[0])" }
+        }
+        foreach ($name in "MinorVersion", "VersionMinor") {
+            if ($entry.$name -ne [int]$parts[1]) { throw "$name is $($entry.$name), not $($parts[1])" }
+        }
+        Write-Host "Installed apps lists LokalBot $newVersion."
+    }
     # The running MCP server keeps the old CLI as lokalbot-cli.exe.old; the
     # old app's file is gone once that copy has exited.
     if ($mcp.HasExited) { throw "the MCP server stopped during the update" }
@@ -148,4 +181,5 @@ try {
         Where-Object { $_.ExecutablePath -like "$Work*" } |
         ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
     Stop-Process -Id $http.Id -Force -ErrorAction SilentlyContinue
+    if ($ownEntry) { Remove-Item -Path $entryKey -Recurse -Force -ErrorAction SilentlyContinue }
 }
