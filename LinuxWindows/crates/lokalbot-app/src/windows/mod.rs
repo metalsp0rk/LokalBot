@@ -22,6 +22,37 @@ fn secondary(cx: &mut App) -> &mut SecondaryWindows {
     cx.default_global::<SecondaryWindows>()
 }
 
+/// A Wayland layer surface for a window that floats above the others.
+/// Wayland compositors place ordinary windows themselves, and tiling ones
+/// (Hyprland, Sway, Omarchy) would put a popup in the layout. `None` outside
+/// Wayland. GNOME has no layer shell, so opening one fails there and the
+/// caller falls back to an ordinary window.
+#[cfg(target_os = "linux")]
+pub(crate) fn layer_surface(
+    namespace: &str,
+    anchor: gpui_kit::layer_shell::Anchor,
+    margin: Option<(
+        gpui_kit::Pixels,
+        gpui_kit::Pixels,
+        gpui_kit::Pixels,
+        gpui_kit::Pixels,
+    )>,
+    keyboard: gpui_kit::layer_shell::KeyboardInteractivity,
+) -> Option<gpui_kit::WindowKind> {
+    use gpui_kit::layer_shell::{Layer, LayerShellOptions};
+    lokalbot_platform::session::is_wayland().then(|| {
+        gpui_kit::WindowKind::LayerShell(LayerShellOptions {
+            namespace: namespace.into(),
+            layer: Layer::Overlay,
+            anchor,
+            exclusive_zone: None,
+            exclusive_edge: None,
+            margin,
+            keyboard_interactivity: keyboard,
+        })
+    })
+}
+
 /// Brings a still-open window forward; `false` when it was closed.
 fn activate(handle: Option<AnyWindowHandle>, cx: &mut App) -> bool {
     handle.is_some_and(|handle| {
