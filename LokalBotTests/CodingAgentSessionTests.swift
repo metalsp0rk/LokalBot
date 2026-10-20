@@ -234,6 +234,63 @@ final class CodingAgentSessionTests: XCTestCase {
             .contains("Requests: continued work from an earlier request") == true)
     }
 
+    func testWorkTitleNamesTheWorkWhenTheTitleIsARequestOrPlaceholder() {
+        XCTAssertEqual(workBurst(title: "Fix digest freshness", prompts: ["Fix the stale digest badge"]).workTitle,
+                       "Fix digest freshness", "a transcript title names the work")
+        let asked = "can you add short video demo recording of the new app platforms in the PR?"
+        XCTAssertEqual(
+            workBurst(title: asked, prompts: [asked], actions: [
+                .commit(message: "Temporary: record a Windows demo"),
+                .commit(message: "Demo recordings of the Linux and Windows apps."),
+            ]).workTitle,
+            "Demo recordings of the Linux and Windows apps")
+        XCTAssertEqual(
+            workBurst(title: "Untitled session", prompts: [], actions: [
+                .commit(message: "feat(onchain): map chain ids"),
+                .openedPullRequest(title: "feat(onchain): add spoke deploy scripts"),
+            ]).workTitle,
+            "Add spoke deploy scripts", "an opened pull request names the deliverable")
+        XCTAssertEqual(
+            workBurst(title: "Untitled session", prompts: [], actions: [.pushed], pullRequests: [279]).workTitle,
+            "Work on PR #279")
+        let benchmark = "let's commit the benchmark to the repository."
+        XCTAssertEqual(workBurst(title: benchmark, prompts: [benchmark], actions: [.pushed]).workTitle,
+                       "Commit the benchmark to the repository")
+        XCTAssertEqual(workBurst(title: "Review all open PRs", prompts: ["Review all open PRs"]).workTitle,
+                       "Review all open PRs", "a short instruction is a work title")
+        let wake = #"<wake reason="mention" current-time="2026-10-19T09:39:51Z"> <project…"#
+        XCTAssertEqual(workBurst(title: wake, prompts: [], actions: [.ranTests]).workTitle, "Claude Code session")
+        let question = "is it necessary to use this local aligner if i'm using a cloud transcription model?"
+        XCTAssertEqual(workBurst(title: question, prompts: [question], actions: [.ranTests]).workTitle,
+                       "Claude Code session", "a question names no work")
+    }
+
+    func testWorkProjectIsTheRepositoryForScratchCheckoutAndSiblingFolders() {
+        XCTAssertEqual(workBurst(project: "scratch-2026-10-19-6f7eb7", pullRequests: [293]).workProject, "LokalBot")
+        XCTAssertNil(workBurst(project: "scratch-2026-10-19-6f7eb7").workProject)
+        XCTAssertEqual(workBurst(project: "GitHub", pullRequests: [290]).workProject, "LokalBot")
+        XCTAssertNil(workBurst(project: "Unknown project").workProject)
+        XCTAssertEqual(workBurst(project: "LokalBot-linux-windows", pullRequests: [290]).workProject, "LokalBot")
+        XCTAssertEqual(workBurst(project: "LokalBot-linux-windows").workProject, "LokalBot-linux-windows")
+        XCTAssertEqual(workBurst(project: "Mojo", pullRequests: [290]).workProject, "Mojo",
+                       "a named project keeps its name")
+        var twoRepositories = workBurst(project: "GitHub")
+        twoRepositories.pullRequests = [
+            "https://github.com/stevyhacker/LokalBot/pull/1", "https://github.com/stevyhacker/bizstats/pull/2",
+        ]
+        XCTAssertNil(twoRepositories.workProject, "pull requests in two repositories name no single project")
+    }
+
+    func testEvidenceTextNamesTheRepositoryAndLeavesOutARequestTitle() {
+        let asked = "can you add short video demo recording of the new app platforms in the PR?"
+        let text = workBurst(title: asked, project: "GitHub", prompts: [asked], pullRequests: [290])
+            .evidenceText(calendar: calendar)
+
+        XCTAssertFalse(text.contains("Session:"), text)
+        XCTAssertTrue(text.contains("Project: LokalBot (branch master)"), text)
+        XCTAssertTrue(text.contains("- \(asked)"), "the request is still a request: \(text)")
+    }
+
     func testEvidenceTextLeadsWithWorkAndLabelsTheReportAsAClaim() throws {
         let burst = CodingAgentBurst(
             agent: .claudeCode, sessionID: "1ac1dcdf-d832", title: "README improvements",
@@ -393,6 +450,22 @@ final class CodingAgentSessionTests: XCTestCase {
     }
 
     // MARK: - Fixtures
+
+    private func workBurst(
+        title: String = "Fix digest freshness",
+        project: String = "LokalBot",
+        prompts: [String] = ["Fix the stale digest badge"],
+        actions: [CodingAgentAction] = [.pushed],
+        pullRequests: [Int] = []
+    ) -> CodingAgentBurst {
+        CodingAgentBurst(
+            agent: .claudeCode, sessionID: "W1", title: title, project: project, branch: "master",
+            start: day, end: day.addingTimeInterval(600), activeDuration: 600,
+            prompts: prompts, promptCount: prompts.count, finalReply: nil,
+            changedFiles: [], changedFileCount: 0, actions: actions,
+            pullRequests: pullRequests.map { "https://github.com/stevyhacker/LokalBot/pull/\($0)" },
+            toolCallCount: 1)
+    }
 
     private var dayInterval: DateInterval {
         DateInterval(start: calendar.startOfDay(for: day), duration: 86_400)
