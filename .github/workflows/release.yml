@@ -20,6 +20,11 @@
 #                          and passed to generate_appcast.py --ed-key-file
 #                          (and to LinuxWindows/scripts/release-feeds.sh).
 #                          The private key must NEVER be committed to the repo.
+#
+# Optional:
+#   AUR_SSH_PRIVATE_KEY    SSH key of the AUR account that maintains
+#                          lokalbot-bin (aur.yml). Without it the AUR package
+#                          is checked but not pushed.
 
 name: Release
 
@@ -542,3 +547,19 @@ jobs:
             --clobber \
             dist/*.tar.gz dist/*.zip dist/*-setup.exe dist/*.deb dist/*.rpm dist/*.pkg.tar.zst dist/*.sha256 \
             dist/linux-x86_64.json dist/windows-x86_64.json
+
+  # Points the lokalbot-bin AUR package at this release once its Linux archive
+  # is attached, checks it in a clean Arch container and pushes it with the
+  # AUR_SSH_PRIVATE_KEY secret (skipped without it). Pre-releases stay off the
+  # AUR. GitHub-hosted, like every job that sees a secret.
+  aur:
+    name: AUR package
+    if: github.event_name == 'push' && !contains(github.ref_name, '-')
+    needs: linux-windows-publish
+    uses: ./.github/workflows/aur.yml
+    with:
+      tag: ${{ github.ref_name }}
+    secrets:
+      AUR_SSH_PRIVATE_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+    permissions:
+      contents: read
