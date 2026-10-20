@@ -442,7 +442,7 @@ work), checks each feed against its archive, and attaches to the release:
 | --- | --- |
 | `LokalBot-<version>-linux-x86_64.tar.gz` (+ `.sha256`) | Linux archive with `install.sh` |
 | `LokalBot-<version>-windows-x86_64.zip` (+ `.sha256`) | Windows archive |
-| `LokalBot-<version>-windows-x86_64-setup.exe` (+ `.sha256`) | per-user Windows installer of the same files (`scripts/package-windows-installer.ps1`, Inno Setup 6): `%LOCALAPPDATA%\Programs\LokalBot`, a Start menu shortcut with the notification app id, and an Installed apps entry, without administrator rights. The release installs and uninstalls it on the Windows runner. Updates still replace the files in place from the zip, so the Installed apps version can lag until the next installer run |
+| `LokalBot-<version>-windows-x86_64-setup.exe` (+ `.sha256`) | per-user Windows installer of the same files (`scripts/package-windows-installer.ps1`, Inno Setup 6): `%LOCALAPPDATA%\Programs\LokalBot`, a Start menu shortcut with the notification app id, and an Installed apps entry, without administrator rights. The release installs and uninstalls it on the Windows runner. Updates replace the files in place from the zip and then write the new version into that Installed apps entry, which winget reads (`lokalbot_update::installed_apps`) |
 | `LokalBot-<version>-linux-amd64.deb`, `LokalBot-<version>-linux-x86_64.rpm`, `LokalBot-<version>-linux-x86_64.pkg.tar.zst` (+ `.sha256`) | Debian/Ubuntu, Fedora/openSUSE and Arch packages of the same binaries (`scripts/package-linux-distros.sh`, nfpm). The release checks each one installs in a clean Ubuntu 24.04, Fedora 41 and Arch container. They install into `/usr/bin`, so LokalBot announces updates for them instead of replacing its files; it recognizes them by the package name `lokalbot`. A `.deb` or `.rpm` that added the LokalBot repository ([Linux package repositories](#linux-package-repositories)) is told to run `sudo apt upgrade` or `sudo dnf upgrade`; the others get the command that installs the new package |
 | `linux-x86_64.json`, `windows-x86_64.json` | update feeds |
 
@@ -545,6 +545,21 @@ stops after the checks; pre-release tags skip it. To publish again from
 master: `gh workflow run aur.yml -f tag=vX.Y.Z`. Setup, manual updates and the
 expected namcap warnings are in
 [the AUR package README](LinuxWindows/packaging/aur/README.md).
+
+### winget
+
+For a stable tag, the `winget` job (`.github/workflows/winget.yml`, on a
+GitHub-hosted runner) runs after the installer is attached. With the
+`WINGET_TOKEN` secret (a classic token with `public_repo`, owned by the account
+whose fork of `microsoft/winget-pkgs` it pushes to), `wingetcreate update`
+opens the pull request that adds `stevyhacker.LokalBot` `<version>` to
+winget-pkgs, pointing at `LokalBot-<version>-windows-x86_64-setup.exe`.
+Without the secret, before winget-pkgs has the package, or when it already has
+the version, the job says so and succeeds. winget-pkgs' bots validate the pull
+request and a moderator merges it, usually within a day or two. To resubmit
+by hand: `gh workflow run winget.yml -f tag=v<version>`. The first version
+and the token are set up once; see
+[LinuxWindows/packaging/winget/README.md](LinuxWindows/packaging/winget/README.md).
 
 ## Homebrew synchronization after a stable release
 
