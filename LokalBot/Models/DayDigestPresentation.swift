@@ -26,20 +26,12 @@ struct DayDigestPresentation: Equatable {
 
     /// Tasks ordered for scanning: open work first, finished work last.
     struct TaskGroup: Equatable, Identifiable {
+        /// The view names each kind through the interface catalog.
         enum Kind: CaseIterable {
             case blocked
             case inProgress
             case other
             case completed
-
-            var title: String {
-                switch self {
-                case .blocked: "Blocked"
-                case .inProgress: "In progress"
-                case .other: "Other work"
-                case .completed: "Done"
-                }
-            }
         }
 
         let kind: Kind

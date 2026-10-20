@@ -25,6 +25,7 @@ pub const MAXIMUM_MEETING_COUNT: usize = 1000;
 #[derive(Parser, Debug)]
 #[command(
     name = "lokalbot-cli",
+    version,
     about = "Read-only access to your local LokalBot meeting library.",
     long_about = "Read-only access to your local LokalBot meeting library.\n\nIntended for coding agents (Claude Code, Codex CLI, Cursor, Gemini) and humans alike. `install-skill` links the CLI into your PATH. Output defaults to JSON; pass --table for plain text."
 )]
@@ -116,7 +117,8 @@ pub enum Command {
         #[arg(long)]
         table: bool,
     },
-    /// Show what the user shared about themselves that is relevant to a task.
+    /// Show what the user shared about themselves that is relevant to a task
+    /// (written in the Mac app; read from a library that came from a Mac).
     #[command(name = "personal-context")]
     PersonalContext {
         /// What you are helping with, in a sentence.
@@ -471,5 +473,31 @@ pub fn run(cli: Cli) -> Result<String, CliError> {
             installer.install(copy)?;
             Ok(installer.installed_message())
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use clap::error::ErrorKind;
+
+    #[test]
+    fn version_flags_print_the_version_and_a_command_stays_required() {
+        for flag in ["--version", "-V"] {
+            let err = Cli::try_parse_from(["lokalbot-cli", flag]).unwrap_err();
+            assert_eq!(err.kind(), ErrorKind::DisplayVersion);
+            assert_eq!(err.exit_code(), 0);
+            assert_eq!(err.to_string(), format!("lokalbot-cli {SERVER_VERSION}\n"));
+        }
+        let err = Cli::try_parse_from(["lokalbot-cli"]).unwrap_err();
+        assert_eq!(
+            err.kind(),
+            ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand
+        );
+        assert_eq!(err.exit_code(), 2);
+        let err = Cli::try_parse_from(["lokalbot-cli", "--lokalbot-storage-root", "/tmp/library"])
+            .unwrap_err();
+        assert_eq!(err.kind(), ErrorKind::MissingSubcommand);
+        assert!(Cli::try_parse_from(["lokalbot-cli", "list", "--version"]).is_err());
     }
 }

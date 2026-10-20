@@ -12,7 +12,9 @@
 //! own files (`/opt`, Program Files, a source build), the update is offered
 //! as a download from GitHub instead. A copy a package manager installed is
 //! told to update through it: the AUR's `lokalbot-bin` with `yay -Syu`, the
-//! release's own .deb, .rpm and Arch packages by installing the new package.
+//! release's .deb and .rpm with `apt upgrade` and `dnf upgrade` once they
+//! added LokalBot's repository, and otherwise (the Arch package, or a .deb
+//! or .rpm from before the repository) by installing the new package.
 
 use std::ffi::OsString;
 use std::sync::Arc;
@@ -142,6 +144,8 @@ pub fn start(data: &Entity<AppData>, cx: &mut App) {
     if let Some(installation) = &installation {
         let targets = installation.targets();
         cx.background_spawn(async move {
+            // The copy that installed this update may predate this call.
+            record_installed_version(&targets.dir, &Version::current());
             // The copy this one replaced may still be closing.
             for delay in [0, 10, 60] {
                 smol::Timer::after(Duration::from_secs(delay)).await;
@@ -404,6 +408,9 @@ impl Updates {
                             log::error!("updates: install failed: {err}");
                             err.to_string()
                         });
+                    if installed.is_ok() {
+                        record_installed_version(&targets.dir, &job_release.version);
+                    }
                     updater.clear_work_dir();
                     installed
                 });
@@ -520,6 +527,17 @@ pub fn open_release_page(cx: &mut App) {
     });
     if let Some(url) = url {
         cx.open_url(&url);
+    }
+}
+
+/// Shows `version` in the installer's Installed apps entry (Windows), which an
+/// update LokalBot installs itself would otherwise leave at the installer's
+/// version. Failures only log: the update itself is in place.
+fn record_installed_version(dir: &std::path::Path, version: &Version) {
+    match lokalbot_update::installed_apps::record_version(dir, version) {
+        Ok(true) => log::info!("updates: Installed apps now shows LokalBot {version}"),
+        Ok(false) => {}
+        Err(err) => log::warn!("updates: could not update the Installed apps entry: {err}"),
     }
 }
 
@@ -661,6 +679,7 @@ mod tests {
         Package {
             manager,
             name: name.into(),
+            repository: false,
         }
     }
 
@@ -687,6 +706,28 @@ mod tests {
         assert_eq!(
             offered(Some(&debian), true).1,
             "Update LokalBot with your package manager, for example sudo apt upgrade."
+        );
+    }
+
+    #[test]
+    fn release_packages_with_the_repository_are_told_to_upgrade() {
+        let with_repository = |manager| Package {
+            repository: true,
+            ..package(manager, "lokalbot")
+        };
+        assert_eq!(
+            offered(Some(&with_repository(Manager::Dpkg)), true),
+            (
+                Route::PackageManager,
+                "Update LokalBot with your package manager, for example sudo apt upgrade.".into()
+            )
+        );
+        assert_eq!(
+            offered(Some(&with_repository(Manager::Rpm)), false),
+            (
+                Route::PackageManager,
+                "Update LokalBot with your package manager, for example sudo dnf upgrade.".into()
+            )
         );
     }
 

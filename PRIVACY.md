@@ -926,7 +926,8 @@ platform differences:
 - **External agents.** The meeting-library and screen-memory toggles in
   Settings → Privacy & Data work as on macOS. The Windows and Linux CLI has no
   settings-change access or `setup`, `config` and `secret` commands, and
-  personal context stays off because the app has no setting for it yet.
+  personal context is read only from a library that came from a Mac, because
+  the app has no About you page or setting for it yet.
 - **Mac-only features.** About you, selection actions, meeting note export,
   daily memory notes, spoken summaries and coding-agent sessions are not in the
   Windows and Linux app yet, so none of their data is collected there.

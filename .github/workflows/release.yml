@@ -20,6 +20,14 @@
 #                          and passed to generate_appcast.py --ed-key-file
 #                          (and to LinuxWindows/scripts/release-feeds.sh).
 #                          The private key must NEVER be committed to the repo.
+#
+# Optional:
+#   AUR_SSH_PRIVATE_KEY    SSH key of the AUR account that maintains
+#                          lokalbot-bin (aur.yml). Without it the AUR package
+#                          is checked but not pushed.
+#   WINGET_TOKEN           classic token (public_repo) of the account whose
+#                          microsoft/winget-pkgs fork wingetcreate pushes to
+#                          (winget.yml). Without it nothing goes to winget.
 
 name: Release
 
@@ -492,6 +500,25 @@ jobs:
     permissions:
       contents: read
 
+  # Adds a stable release's .deb and .rpm to the apt and dnf repositories at
+  # pkg.lokalbot.com once they are attached (linux-repos.yml, which lists its
+  # LINUX_REPO_* secrets and skips without them). GitHub-hosted, like every
+  # job that sees a secret.
+  linux-repos:
+    name: apt and dnf repositories
+    if: github.event_name == 'push' && !contains(github.ref_name, '-')
+    needs: linux-windows-publish
+    uses: ./.github/workflows/linux-repos.yml
+    with:
+      tag: ${{ github.ref_name }}
+    secrets:
+      LINUX_REPO_GPG_PRIVATE_KEY: ${{ secrets.LINUX_REPO_GPG_PRIVATE_KEY }}
+      LINUX_REPO_R2_ACCOUNT_ID: ${{ secrets.LINUX_REPO_R2_ACCOUNT_ID }}
+      LINUX_REPO_R2_ACCESS_KEY_ID: ${{ secrets.LINUX_REPO_R2_ACCESS_KEY_ID }}
+      LINUX_REPO_R2_SECRET_ACCESS_KEY: ${{ secrets.LINUX_REPO_R2_SECRET_ACCESS_KEY }}
+    permissions:
+      contents: read
+
   # Runs only after the macOS job published the release (so its release gates
   # passed), signs the Linux and Windows update feeds with the Sparkle key the
   # DMG uses, checks them against SUPublicEDKey, and attaches archives and
@@ -542,3 +569,35 @@ jobs:
             --clobber \
             dist/*.tar.gz dist/*.zip dist/*-setup.exe dist/*.deb dist/*.rpm dist/*.pkg.tar.zst dist/*.sha256 \
             dist/linux-x86_64.json dist/windows-x86_64.json
+
+  # Points the lokalbot-bin AUR package at this release once its Linux archive
+  # is attached, checks it in a clean Arch container and pushes it with the
+  # AUR_SSH_PRIVATE_KEY secret (skipped without it). Pre-releases stay off the
+  # AUR. GitHub-hosted, like every job that sees a secret.
+  aur:
+    name: AUR package
+    if: github.event_name == 'push' && !contains(github.ref_name, '-')
+    needs: linux-windows-publish
+    uses: ./.github/workflows/aur.yml
+    with:
+      tag: ${{ github.ref_name }}
+    secrets:
+      AUR_SSH_PRIVATE_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+    permissions:
+      contents: read
+
+  # Opens the winget-pkgs pull request for this version once the Windows
+  # installer is attached, with the WINGET_TOKEN secret (skipped without it).
+  # Pre-releases stay off winget. GitHub-hosted, like every job that sees a
+  # secret.
+  winget:
+    name: winget package
+    if: github.event_name == 'push' && !contains(github.ref_name, '-')
+    needs: linux-windows-publish
+    uses: ./.github/workflows/winget.yml
+    with:
+      tag: ${{ github.ref_name }}
+    secrets:
+      WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
+    permissions:
+      contents: read

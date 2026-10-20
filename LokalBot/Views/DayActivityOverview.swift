@@ -3,7 +3,7 @@ import SwiftUI
 struct DayActivityOverview: View {
     @EnvironmentObject private var app: AppState
     @ObservedObject var model: CaptureModel
-    var title = "Day Overview"
+    let title: String
     var showsLegend = true
 
     private var perApp: [(label: String, seconds: TimeInterval)] { Self.perApp(model.blocks) }

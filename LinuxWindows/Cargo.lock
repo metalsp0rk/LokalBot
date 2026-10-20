@@ -4601,6 +4601,7 @@ dependencies = [
  "thiserror 2.0.21",
  "ureq 3.4.2",
  "uuid",
+ "windows-sys 0.61.2",
  "zip 9.0.5",
 ]
 

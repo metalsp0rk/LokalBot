@@ -14,6 +14,7 @@ tooling lives in `Scripts/`:
 | `Scripts/clean_local.sh` | wipe local build/derived/DMG artifacts |
 | `Scripts/bump-version.py` | set the version in every file one tag ships it from |
 | `LinuxWindows/scripts/release-feeds.sh` | sign the Linux/Windows archives and write their update feeds |
+| `LinuxWindows/scripts/linux-repos.sh` | add the `.deb` and `.rpm` to the signed apt and dnf repositories ([Linux package repositories](#linux-package-repositories)) |
 | `LinuxWindows/scripts/third-party-licenses.sh` | regenerate the Linux/Windows crate license list ([Third-party licenses](#third-party-licenses)) |
 
 ---
@@ -441,8 +442,8 @@ work), checks each feed against its archive, and attaches to the release:
 | --- | --- |
 | `LokalBot-<version>-linux-x86_64.tar.gz` (+ `.sha256`) | Linux archive with `install.sh` |
 | `LokalBot-<version>-windows-x86_64.zip` (+ `.sha256`) | Windows archive |
-| `LokalBot-<version>-windows-x86_64-setup.exe` (+ `.sha256`) | per-user Windows installer of the same files (`scripts/package-windows-installer.ps1`, Inno Setup 6): `%LOCALAPPDATA%\Programs\LokalBot`, a Start menu shortcut with the notification app id, and an Installed apps entry, without administrator rights. The release installs and uninstalls it on the Windows runner. Updates still replace the files in place from the zip, so the Installed apps version can lag until the next installer run |
-| `LokalBot-<version>-linux-amd64.deb`, `LokalBot-<version>-linux-x86_64.rpm`, `LokalBot-<version>-linux-x86_64.pkg.tar.zst` (+ `.sha256`) | Debian/Ubuntu, Fedora/openSUSE and Arch packages of the same binaries (`scripts/package-linux-distros.sh`, nfpm). The release checks each one installs in a clean Ubuntu 24.04, Fedora 41 and Arch container. They install into `/usr/bin` from no repository, so LokalBot announces updates for them and shows the command that installs the new package instead of replacing its files; it recognizes them by the package name `lokalbot` |
+| `LokalBot-<version>-windows-x86_64-setup.exe` (+ `.sha256`) | per-user Windows installer of the same files (`scripts/package-windows-installer.ps1`, Inno Setup 6): `%LOCALAPPDATA%\Programs\LokalBot`, a Start menu shortcut with the notification app id, and an Installed apps entry, without administrator rights. The release installs and uninstalls it on the Windows runner. Updates replace the files in place from the zip and then write the new version into that Installed apps entry, which winget reads (`lokalbot_update::installed_apps`) |
+| `LokalBot-<version>-linux-amd64.deb`, `LokalBot-<version>-linux-x86_64.rpm`, `LokalBot-<version>-linux-x86_64.pkg.tar.zst` (+ `.sha256`) | Debian/Ubuntu, Fedora/openSUSE and Arch packages of the same binaries (`scripts/package-linux-distros.sh`, nfpm). The release checks each one installs in a clean Ubuntu 24.04, Fedora 41 and Arch container. They install into `/usr/bin`, so LokalBot announces updates for them instead of replacing its files; it recognizes them by the package name `lokalbot`. A `.deb` or `.rpm` that added the LokalBot repository ([Linux package repositories](#linux-package-repositories)) is told to run `sudo apt upgrade` or `sudo dnf upgrade`; the others get the command that installs the new package |
 | `linux-x86_64.json`, `windows-x86_64.json` | update feeds |
 
 A feed names the version, the minimum installed version that may install it
@@ -533,6 +534,33 @@ Like Sparkle, installed copies follow the feeds of the Latest release. To stop
 an update, re-upload the previous release's `linux-x86_64.json` and
 `windows-x86_64.json` to the Latest release (or mark an older release Latest).
 
+### AUR package
+
+After the publish job, the `aur` job (`.github/workflows/aur.yml`) points the
+`lokalbot-bin` AUR package (`LinuxWindows/packaging/aur`) at the stable tag's
+Linux archive and its `.sha256`, builds and installs it in a clean Arch
+container with namcap, and pushes `PKGBUILD` and `.SRCINFO` to
+aur.archlinux.org with the `AUR_SSH_PRIVATE_KEY` secret. Without the secret it
+stops after the checks; pre-release tags skip it. To publish again from
+master: `gh workflow run aur.yml -f tag=vX.Y.Z`. Setup, manual updates and the
+expected namcap warnings are in
+[the AUR package README](LinuxWindows/packaging/aur/README.md).
+
+### winget
+
+For a stable tag, the `winget` job (`.github/workflows/winget.yml`, on a
+GitHub-hosted runner) runs after the installer is attached. With the
+`WINGET_TOKEN` secret (a classic token with `public_repo`, owned by the account
+whose fork of `microsoft/winget-pkgs` it pushes to), `wingetcreate update`
+opens the pull request that adds `stevyhacker.LokalBot` `<version>` to
+winget-pkgs, pointing at `LokalBot-<version>-windows-x86_64-setup.exe`.
+Without the secret, before winget-pkgs has the package, or when it already has
+the version, the job says so and succeeds. winget-pkgs' bots validate the pull
+request and a moderator merges it, usually within a day or two. To resubmit
+by hand: `gh workflow run winget.yml -f tag=v<version>`. The first version
+and the token are set up once; see
+[LinuxWindows/packaging/winget/README.md](LinuxWindows/packaging/winget/README.md).
+
 ## Homebrew synchronization after a stable release
 
 The public `stevyhacker/homebrew-tap` owns an hourly `Sync LokalBot release`
@@ -570,6 +598,9 @@ Required repo secrets:
   and passed to `generate_appcast.py --ed-key-file`, and to
   `LinuxWindows/scripts/release-feeds.sh` for the Linux and Windows feeds)
 
+Optional: `AUR_SSH_PRIVATE_KEY`, the AUR account's SSH key that lets the
+release push the `lokalbot-bin` AUR package ([AUR package](#aur-package)).
+
 Set the certificate and credential secrets without pasting them into source or
 shell history. `gh secret set NAME` prompts for the value securely:
 
@@ -589,6 +620,156 @@ account's normal password.
 
 CI passes `--repo "$GITHUB_REPOSITORY"`, so the `OWNER/REPO` placeholder is
 resolved automatically there.
+
+## Linux package repositories
+
+The release's `.deb` and `.rpm` add LokalBot's own apt and dnf repositories,
+the way Chrome's and VS Code's packages do, so installing the downloaded file
+once means `sudo apt upgrade` or `sudo dnf upgrade` brings every later stable
+version. The `.deb` installs `/etc/apt/sources.list.d/lokalbot.sources` and
+`/usr/share/keyrings/lokalbot-archive-keyring.gpg`; the `.rpm` installs
+`/etc/yum.repos.d/lokalbot.repo` (`gpgcheck=1`, `repo_gpgcheck=1`) and
+`/etc/pki/rpm-gpg/RPM-GPG-KEY-lokalbot`. The repository files are config
+files, so a user's edits (`Enabled: no`, `enabled=0`) survive upgrades.
+`scripts/package-linux-distros.sh` adds these files only once
+`LinuxWindows/packaging/linux/lokalbot-archive-keyring.asc` exists. The Arch
+package has no repository.
+
+| URL | What it is |
+| --- | --- |
+| `https://pkg.lokalbot.com/apt` | apt repository: suite `stable`, component `main`, `amd64`; signed `InRelease` and `Release.gpg`, indexes also by hash |
+| `https://pkg.lokalbot.com/rpm` | dnf repository: signed RPMs, `repodata/repomd.xml.asc` |
+| `https://pkg.lokalbot.com/lokalbot.gpg`, `lokalbot.asc` | the public key, unarmored and armored |
+
+`release.yml`'s `linux-repos` job calls `.github/workflows/linux-repos.yml`
+for stable tags after the packages are attached; pre-release tags never reach
+the repositories. On a GitHub-hosted runner (never a self-hosted one: this key
+decides what every subscribed computer installs as root) it downloads the
+release's `.deb` and `.rpm` and checks their `.sha256`, copies the published
+packages from the R2 bucket `lokalbot-packages`, and runs
+`LinuxWindows/scripts/linux-repos.sh`. That adds the release unless its
+version is already published (a published version's bytes never change),
+keeps the newest 3 versions, signs new RPMs with `rpmsign`, rebuilds and signs
+the indexes, and checks every signature against the public key. The job then
+uploads packages and hash-named indexes first, then the signed indexes (sent
+with `Cache-Control: no-cache`), deletes the pruned packages, and compares
+what `pkg.lokalbot.com` serves with what it uploaded. The workflow owns the
+bucket: anything else in it is deleted, except older hash-named indexes, kept
+so a client holding the previous index still finds its files. Without the
+secrets the job skips with a notice; once the key is committed, a missing
+secret fails it, because that release's packages point at the repositories.
+
+To add a release that is already out (or to retry), run
+`gh workflow run linux-repos.yml -f tag=vX.Y.Z`. Pull requests that change the
+repositories or the packages run `scripts/ci/check-linux-repos.sh`: it
+packages the latest release's binaries as four versions with a throwaway key,
+serves the repositories as `pkg.lokalbot.com` on a private Docker network, and
+checks that clean Ubuntu 24.04, Debian 13 and Fedora containers install the
+first from the downloaded file, upgrade with `apt upgrade` and `dnf upgrade`,
+keep an edited repository file, and refuse a tampered `InRelease`, `Release`
+or `repomd.xml`, a swapped `.deb` or `.rpm`, and an unsigned `.rpm`. Run it on
+any Linux machine with Docker:
+`NFPM=/path/to/nfpm LinuxWindows/scripts/ci/check-linux-repos.sh LokalBot-X.Y.Z-linux-x86_64`.
+
+### One-time setup
+
+1. Generate the key on a trusted computer: RSA 4096 (every apt and rpm
+   version verifies it; Ed25519 needs a recent rpm), signing only, expiring in
+   3 years. CI has no passphrase prompt, so the key has none; the backup is
+   what protects it.
+
+   ```sh
+   export GNUPGHOME=$(mktemp -d)
+   gpg --batch --passphrase '' --quick-generate-key \
+     'LokalBot package signing <stevyhacker@users.noreply.github.com>' rsa4096 sign 3y
+   FPR=$(gpg --with-colons --list-secret-keys | awk -F: '$1 == "fpr" {print $10; exit}')
+   gpg --armor --export-options export-minimal --export "$FPR" \
+     > LinuxWindows/packaging/linux/lokalbot-archive-keyring.asc
+   gpg --armor --export-secret-keys "$FPR" | gh secret set LINUX_REPO_GPG_PRIVATE_KEY --repo stevyhacker/lokalbot
+   ```
+
+   Keep `gpg --armor --export-secret-keys "$FPR"` and the revocation
+   certificate `$GNUPGHOME/openpgp-revocs.d/$FPR.rev` in your password manager,
+   not on disk, then `rm -rf "$GNUPGHOME"`. Don't commit the public key yet.
+2. In Cloudflare: create the R2 bucket `lokalbot-packages`; under its
+   Settings → Custom Domains, connect `pkg.lokalbot.com` (this adds the DNS
+   record and serves the bucket publicly there; leave the `r2.dev` URL off);
+   then create an R2 API token with **Object Read & Write** on that bucket
+   only. Each object carries its own `Cache-Control`, so no cache rule is
+   needed.
+3. Add the token and account ID:
+
+   ```sh
+   gh secret set LINUX_REPO_R2_ACCOUNT_ID --repo stevyhacker/lokalbot
+   gh secret set LINUX_REPO_R2_ACCESS_KEY_ID --repo stevyhacker/lokalbot
+   gh secret set LINUX_REPO_R2_SECRET_ACCESS_KEY --repo stevyhacker/lokalbot
+   ```
+
+4. Publish the current release and check it is served:
+   `gh workflow run linux-repos.yml -f tag=v0.11.0`, then
+   `curl -fsS https://pkg.lokalbot.com/apt/dists/stable/InRelease`. Its
+   packages don't add the repositories, so nobody uses them yet.
+5. Commit `lokalbot-archive-keyring.asc`, with the README and website copy
+   that tells users about the repositories (#339). The next release's `.deb`
+   and `.rpm` add the repositories, and every release after it reaches them
+   with `apt upgrade` and `dnf upgrade`.
+
+### Key expiry and rotation
+
+The job warns when the key expires within 180 days. After it expires, apt and
+dnf refuse the repositories until the computer has the extended key, and the
+only way to deliver it is a package update signed before the expiry. So extend
+the key well ahead, with the backup imported into a temporary `GNUPGHOME`:
+
+```sh
+gpg --quick-set-expire "$FPR" 3y
+gpg --armor --export-options export-minimal --export "$FPR" > LinuxWindows/packaging/linux/lokalbot-archive-keyring.asc
+gpg --armor --export-secret-keys "$FPR" | gh secret set LINUX_REPO_GPG_PRIVATE_KEY --repo stevyhacker/lokalbot
+```
+
+Commit the key, store the new backup and ship a release; the published
+`lokalbot.gpg` updates with it. apt reads the keyring file, so the installed
+release is enough. dnf keeps the key it imported in the rpm database
+(`gpg-pubkey`); `sudo rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-lokalbot`
+updates its expiry there (checked with rpm 6.0 on Fedora 44), which the
+release notes should mention. A computer that missed
+every update until the old expiry gets the key back with
+`curl -fsSL https://pkg.lokalbot.com/lokalbot.gpg | sudo tee /usr/share/keyrings/lokalbot-archive-keyring.gpg > /dev/null`
+(apt) or by installing the latest `.rpm` from the release page (dnf).
+
+To move to a new key, generate it, commit both keys in one armored file
+(`gpg --armor --export-options export-minimal --export OLD NEW`) and ship a
+release, still signed with the old key. Once most installs have that release,
+switch `LINUX_REPO_GPG_PRIVATE_KEY` to the new key; the next release's indexes
+are signed with it. Drop the old key from the file a few releases later.
+
+### If the key leaks
+
+The key alone can't reach users: an attacker also needs to serve files as
+`pkg.lokalbot.com`. Still, act at once:
+
+1. Delete `LINUX_REPO_GPG_PRIVATE_KEY`, and revoke and replace the R2 token in
+   Cloudflare.
+2. Generate a new key. Import the old key's revocation certificate
+   (`gpg --import OLD.rev`) and commit the new key and the revoked old key in
+   one armored file.
+3. Ship a release whose repositories are still signed with the old key (set
+   it as the secret for this one run): installs trust only that key until
+   they have the new keyring. Then set the new key as the secret and run
+   `gh workflow run linux-repos.yml -f tag=<that release>`, which signs the
+   same repositories again with it.
+4. In the release notes, tell users who hadn't updated yet to install the
+   latest package from the release page, and dnf users to remove the old key
+   with `sudo rpm -e gpg-pubkey-<old key ID>` (dnf keeps keys it imported).
+
+### Taking a version back
+
+apt and dnf never downgrade, so the fix for a bad release is a newer one. To
+stop more computers from upgrading in the meantime, delete the version's
+`apt/pool/main/l/lokalbot/lokalbot_X.Y.Z-1_amd64.deb` and
+`rpm/lokalbot-X.Y.Z-1.x86_64.rpm` from the bucket in the Cloudflare dashboard,
+then run `gh workflow run linux-repos.yml -f tag=vPREVIOUS` with the previous
+good tag: it rebuilds the indexes from what is left.
 
 ---
 

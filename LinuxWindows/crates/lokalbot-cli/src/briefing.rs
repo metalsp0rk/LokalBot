@@ -3,7 +3,10 @@
 //! data; with nothing granted it only lists the permissions.
 //!
 //! The overnight-review timeline (`dreams/`) is not produced on Linux and
-//! Windows yet, so that section is omitted.
+//! Windows yet, so that section is omitted. Neither are About you items,
+//! projects and goals, or coding-agent sessions: only a library that came
+//! from a Mac carries them, so the text says that instead of pointing at
+//! settings this app lacks.
 
 use std::collections::{BTreeSet, HashMap};
 
@@ -19,7 +22,7 @@ use crate::session::{Session, day_key};
 
 pub const TOOL_NAME: &str = "get_briefing";
 pub const MAXIMUM_CHARACTERS: usize = 12_000;
-pub const DESCRIPTION: &str = "Call this first in every session. Returns what LokalBot knows that this session may use: which sources are available, what the user shared about themselves, their open action items, current projects and goals, recent coding-agent work, and a timeline of recent days, weeks, and months. Check it, and search LokalBot, before asking the user about past work or decisions.";
+pub const DESCRIPTION: &str = "Call this first in every session. Returns what LokalBot knows that this session may use: which sources are available and the user's open action items. A library that came from a Mac also carries what the user shared about themselves, current projects and goals, and recent coding-agent work. Check it, and search LokalBot, before asking the user about past work or decisions.";
 
 fn clean(text: &str, limit: usize) -> String {
     let flat = text.split_whitespace().collect::<Vec<_>>().join(" ");
@@ -82,7 +85,7 @@ pub fn render(session: &Session, meeting_access: bool, now: DateTime<Utc>) -> St
             ));
         }
     } else {
-        lines.push("- Meetings: off. The user can turn on Settings → Privacy → \"Allow external agents to read your meeting library\".".into());
+        lines.push("- Meetings: off. The user can turn on Settings → Privacy & Data → \"Allow external agents to read your meeting library\".".into());
     }
     match scope {
         Some(scope) => {
@@ -95,7 +98,7 @@ pub fn render(session: &Session, meeting_access: bool, now: DateTime<Utc>) -> St
                 "- Screen memory: on, {window}. Tools: search_screen, get_timeline, get_recent_activity, get_app_usage, get_screenshot_detail."
             ));
         }
-        None => lines.push("- Screen memory: off. The user can turn on Settings → Privacy → \"Allow external agents to read screen memory\".".into()),
+        None => lines.push("- Screen memory: off. The user can turn on Settings → Privacy & Data → \"Allow external agents to read screen memory\".".into()),
     }
     if personal_on {
         match &projection {
@@ -104,11 +107,13 @@ pub fn render(session: &Session, meeting_access: bool, now: DateTime<Utc>) -> St
                 p.claims.len(),
                 if p.claims.len() == 1 { "item" } else { "items" }
             )),
-            None => lines
-                .push("- About you: on, but LokalBot hasn't written the shared items yet.".into()),
+            None => lines.push(
+                "- About you: on, but this library holds no shared items. Only the Mac app writes them."
+                    .into(),
+            ),
         }
     } else {
-        lines.push("- About you: off. The user can turn on Settings → Privacy → \"Allow external agents to read what I shared about myself\".".into());
+        lines.push("- About you: off. The Windows and Linux app has no About you page; shared items come only from a library that came from a Mac.".into());
     }
     sections.push(lines.join("\n"));
 
@@ -272,7 +277,7 @@ fn work_memory(
         return None;
     }
     let mut lines =
-        vec!["## Current projects and goals (from LokalBot's overnight reviews)".to_string()];
+        vec!["## Current projects and goals (from the Mac app's overnight reviews)".to_string()];
     for project in projects.into_iter().take(8) {
         lines.push(format!(
             "- {}: {} (last active {})",
