@@ -112,6 +112,9 @@ checks at any time. Like the macOS app, it never installs on its own: when a new
 and the tray menu offer **Install and Relaunch**, and a notification says so once. `lokalbot install-update`
 does the same from a terminal.
 
+`lokalbot --version` and `lokalbot-cli --version` print the installed version. On Windows the app has no
+console window, so use `lokalbot-cli --version` or pipe the app's output: `lokalbot.exe --version | Write-Output`.
+
 Installing downloads the archive and checks its size, SHA-256 and Ed25519 signature (the macOS app's
 Sparkle key) before unpacking anything. It then replaces `lokalbot` and `lokalbot-cli` where they are
 (Linux: `~/.local/bin`, refreshing the applications-menu entry and icons that `install.sh` added; Windows:
