@@ -320,7 +320,7 @@ GUIDES = [
         <h2>Windows (alpha)</h2>
         <ul>
           <li><strong>Operating system:</strong> Windows 10 or 11 on an x64 PC.</li>
-          <li><strong>Install:</strong> download <a href="https://github.com/stevyhacker/lokalbot/releases/latest/download/LokalBot-windows-x86_64.zip">LokalBot-windows-x86_64.zip</a>, extract it, and run <code>lokalbot.exe</code>. The exe isn't code-signed yet, so SmartScreen asks first: choose <strong>More info → Run anyway</strong>.</li>
+          <li><strong>Install:</strong> download <a href="https://github.com/stevyhacker/lokalbot/releases/latest" data-asset="windows">the Windows zip</a> from the latest release, extract it, and run <code>lokalbot.exe</code>. The exe isn't code-signed yet, so SmartScreen asks first: choose <strong>More info → Run anyway</strong>.</li>
           <li><strong>System audio:</strong> WASAPI loopback records everything the computer plays, not just the meeting app.</li>
           <li><strong>Disk:</strong> about 4 GB for the default transcription, summary, and search models, plus your recordings.</li>
           <li><strong>GPU:</strong> optional. The built-in llama.cpp runs on a Vulkan GPU or on the CPU.</li>
@@ -332,7 +332,7 @@ GUIDES = [
           <li><strong>System:</strong> x86_64 with glibc 2.39 or later, such as Ubuntu 24.04, Debian 13, or Fedora 40 or newer.</li>
           <li><strong>Graphics:</strong> a Vulkan or OpenGL driver. Mesa is fine.</li>
           <li><strong>Audio:</strong> PulseAudio or PipeWire. LokalBot records the output monitor, so it captures everything the computer plays, not just the meeting app.</li>
-          <li><strong>Install:</strong> download <a href="https://github.com/stevyhacker/lokalbot/releases/latest/download/LokalBot-linux-x86_64.tar.gz">LokalBot-linux-x86_64.tar.gz</a>, extract it, and run <code>./install.sh</code>. It installs LokalBot to <code>~/.local/bin</code> and adds it to your applications menu.</li>
+          <li><strong>Install:</strong> download <a href="https://github.com/stevyhacker/lokalbot/releases/latest" data-asset="linux">the Linux archive</a> from the latest release, extract it, and run <code>./install.sh</code>. It installs LokalBot to <code>~/.local/bin</code> and adds it to your applications menu.</li>
           <li><strong>Disk:</strong> about 4 GB for the default models, plus your recordings. The built-in llama.cpp runs on a Vulkan GPU or on the CPU.</li>
           <li><strong>GNOME:</strong> the tray icon needs the AppIndicator extension, and day memory needs the Window Calls extension.</li>
           <li><strong>Library:</strong> <code>~/.local/share/LokalBot</code>.</li>

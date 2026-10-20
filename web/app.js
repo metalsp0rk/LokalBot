@@ -96,7 +96,14 @@
   var dmgLinks = $$('a[href$="LokalBot.dmg"]:not([data-download-alt])');
 
   /* ---------- Windows and Linux desktops: offer their own download ---------- */
-  var RELEASE = "https://github.com/stevyhacker/lokalbot/releases/latest/download/";
+  /* Their archives carry the version in the name (LokalBot-0.10.11-windows-x86_64.zip),
+     so a link points at the latest release and a click looks up the current file. */
+  var RELEASE_PAGE = "https://github.com/stevyhacker/lokalbot/releases/latest";
+  var RELEASE_API = "https://api.github.com/repos/stevyhacker/lokalbot/releases/latest";
+  var ASSETS = {
+    windows: { pattern: /^LokalBot-[0-9.]+-windows-x86_64\.zip$/, name: "Windows", icon: "ph-windows-logo" },
+    linux: { pattern: /^LokalBot-[0-9.]+-linux-x86_64\.tar\.gz$/, name: "Linux", icon: "ph-linux-logo" }
+  };
   var desktop = (function () {
     if (handheld) return "";
     var platform = (navigator.userAgentData && navigator.userAgentData.platform) || "";
@@ -105,14 +112,11 @@
     if (/Linux/i.test(platform) || /Linux|X11/.test(ua)) return "linux";
     return "";
   })();
-  var DOWNLOADS = {
-    windows: { file: "LokalBot-windows-x86_64.zip", name: "Windows", icon: "ph-windows-logo" },
-    linux: { file: "LokalBot-linux-x86_64.tar.gz", name: "Linux", icon: "ph-linux-logo" }
-  };
   if (desktop) {
-    var target = DOWNLOADS[desktop];
+    var target = ASSETS[desktop];
     $$("a[data-download]").forEach(function (link) {
-      link.setAttribute("href", RELEASE + target.file);
+      link.setAttribute("href", RELEASE_PAGE);
+      link.setAttribute("data-asset", desktop);
       relabel(link, labelNode(link).nodeValue.replace(/(macOS|Mac)\s*$/, target.name), target.icon);
     });
     $$("[data-download-req]").forEach(function (el) {
@@ -120,6 +124,30 @@
       if (text) el.textContent = text;
     });
   }
+  var latestRelease = null;
+  var assetUrl = function (os) {
+    if (!latestRelease) {
+      latestRelease = fetch(RELEASE_API, { headers: { Accept: "application/vnd.github+json" } })
+        .then(function (response) { return response.ok ? response.json() : null; })
+        .catch(function () { return null; });
+    }
+    return latestRelease.then(function (release) {
+      var assets = (release && release.assets) || [];
+      for (var i = 0; i < assets.length; i++) {
+        if (ASSETS[os].pattern.test(assets[i].name)) return assets[i].browser_download_url;
+      }
+      return RELEASE_PAGE;
+    });
+  };
+  $$("a[data-asset]").forEach(function (link) {
+    link.addEventListener("click", function (e) {
+      var os = link.getAttribute("data-asset");
+      if (!ASSETS[os] || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      e.preventDefault();
+      var timeout = new Promise(function (resolve) { setTimeout(function () { resolve(RELEASE_PAGE); }, 4000); });
+      Promise.race([assetUrl(os), timeout]).then(function (url) { window.location.href = url; });
+    });
+  });
 
   if (handheld && dmgLinks.length) {
     var SITE_URL = "https://www.lokalbot.com/";
