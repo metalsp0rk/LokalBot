@@ -24,10 +24,19 @@ enum SampleMeeting {
         id: "orders-api/en", language: "en",
         title: "Sample: Orders API delivery window", fileName: "orders-api.en.m4a")
 
-    static let recordings = [english]
+    static let recordings = [
+        english,
+        Recording(id: "orders-api/de", language: "de",
+                  title: "Beispiel: delivery window in der Orders API", fileName: "orders-api.de.m4a"),
+        Recording(id: "orders-api/zh", language: "zh",
+                  title: "示例：Orders API 的 delivery window", fileName: "orders-api.zh.m4a"),
+        Recording(id: "orders-api/sr-Latn", language: "sr-Latn",
+                  title: "Primer: delivery window u Orders API-ju", fileName: "orders-api.sr-Latn.m4a"),
+    ]
 
-    /// The question the sample suggests for Ask. Its answer is in the passage
-    /// where the decision changes (`SampleMeeting/expected.en.json`).
+    /// The question the sample suggests for Ask, shown in the interface
+    /// language. Its answer is in the passage where the decision changes
+    /// (`SampleMeeting/expected.<language>.json`).
     static let question = "Is the delivery window field required in the Orders API response?"
 
     /// The sample spoken in `language` (an interface language such as "de" or

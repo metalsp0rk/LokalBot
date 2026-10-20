@@ -232,6 +232,23 @@ mod tests {
     }
 
     #[test]
+    fn every_sample_recording_imports_in_its_own_language() {
+        for sample in crate::sample::SAMPLES {
+            let dir = tempfile::tempdir().unwrap();
+            let library = Library::open(LibraryPaths::new(dir.path().join("library"))).unwrap();
+            let meeting = import_sample(&library, sample, Utc::now()).unwrap();
+            assert_eq!(meeting.title, sample.title);
+            assert_eq!(meeting.sample_id.as_deref(), Some(sample.id));
+            let duration = meeting.recorded_duration.unwrap();
+            assert!(
+                (180.0..300.0).contains(&duration),
+                "{} runs {duration} s",
+                sample.id
+            );
+        }
+    }
+
+    #[test]
     fn the_sample_imports_once_and_stays_out_of_personal_memory() {
         let dir = tempfile::tempdir().unwrap();
         let library = Library::open(LibraryPaths::new(dir.path().join("library"))).unwrap();
