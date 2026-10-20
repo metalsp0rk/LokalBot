@@ -492,6 +492,25 @@ jobs:
     permissions:
       contents: read
 
+  # Adds a stable release's .deb and .rpm to the apt and dnf repositories at
+  # pkg.lokalbot.com once they are attached (linux-repos.yml, which lists its
+  # LINUX_REPO_* secrets and skips without them). GitHub-hosted, like every
+  # job that sees a secret.
+  linux-repos:
+    name: apt and dnf repositories
+    if: github.event_name == 'push' && !contains(github.ref_name, '-')
+    needs: linux-windows-publish
+    uses: ./.github/workflows/linux-repos.yml
+    with:
+      tag: ${{ github.ref_name }}
+    secrets:
+      LINUX_REPO_GPG_PRIVATE_KEY: ${{ secrets.LINUX_REPO_GPG_PRIVATE_KEY }}
+      LINUX_REPO_R2_ACCOUNT_ID: ${{ secrets.LINUX_REPO_R2_ACCOUNT_ID }}
+      LINUX_REPO_R2_ACCESS_KEY_ID: ${{ secrets.LINUX_REPO_R2_ACCESS_KEY_ID }}
+      LINUX_REPO_R2_SECRET_ACCESS_KEY: ${{ secrets.LINUX_REPO_R2_SECRET_ACCESS_KEY }}
+    permissions:
+      contents: read
+
   # Runs only after the macOS job published the release (so its release gates
   # passed), signs the Linux and Windows update feeds with the Sparkle key the
   # DMG uses, checks them against SUPublicEDKey, and attaches archives and

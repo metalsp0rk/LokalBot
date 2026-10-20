@@ -12,7 +12,9 @@
 //! own files (`/opt`, Program Files, a source build), the update is offered
 //! as a download from GitHub instead. A copy a package manager installed is
 //! told to update through it: the AUR's `lokalbot-bin` with `yay -Syu`, the
-//! release's own .deb, .rpm and Arch packages by installing the new package.
+//! release's .deb and .rpm with `apt upgrade` and `dnf upgrade` once they
+//! added LokalBot's repository, and otherwise (the Arch package, or a .deb
+//! or .rpm from before the repository) by installing the new package.
 
 use std::ffi::OsString;
 use std::sync::Arc;
@@ -661,6 +663,7 @@ mod tests {
         Package {
             manager,
             name: name.into(),
+            repository: false,
         }
     }
 
@@ -687,6 +690,28 @@ mod tests {
         assert_eq!(
             offered(Some(&debian), true).1,
             "Update LokalBot with your package manager, for example sudo apt upgrade."
+        );
+    }
+
+    #[test]
+    fn release_packages_with_the_repository_are_told_to_upgrade() {
+        let with_repository = |manager| Package {
+            repository: true,
+            ..package(manager, "lokalbot")
+        };
+        assert_eq!(
+            offered(Some(&with_repository(Manager::Dpkg)), true),
+            (
+                Route::PackageManager,
+                "Update LokalBot with your package manager, for example sudo apt upgrade.".into()
+            )
+        );
+        assert_eq!(
+            offered(Some(&with_repository(Manager::Rpm)), false),
+            (
+                Route::PackageManager,
+                "Update LokalBot with your package manager, for example sudo dnf upgrade.".into()
+            )
         );
     }
 
