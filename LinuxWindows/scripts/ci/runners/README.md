@@ -41,7 +41,7 @@ The machines are set up so a bad job can do little:
 |---|---|---|
 | Account | `ghrunner`: no sudo, no docker, private home | NETWORK SERVICE; `C:\gh` limited to SYSTEM, Administrators and that account |
 | Tailscale network | Blocked by `IPAddressDeny` on the systemd unit | Blocked by an outbound firewall rule for the runner service (unrestricted service SID) |
-| Sharing the host | `CPUWeight=50`, `MemoryMax=32G`, private `/tmp`, its own X display (`:240`) | Steps run at below-normal priority |
+| Sharing the host | `CPUWeight=50`, `MemoryMax=32G`, private `/tmp`, its own X display (`:240`) | Steps run at below-normal priority, on the CPU's performance cores |
 | State between jobs | Warm target in `~ghrunner/target`; XDG folders per job | Warm target in `C:\gh\t`; workspace synced per job (`sync-sources.ps1`) |
 | Secrets | None: these jobs use no repository secrets | None; release builds and signing stay on GitHub's runners |
 
