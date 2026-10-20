@@ -320,7 +320,7 @@ GUIDES = [
         <h2>Windows (alpha)</h2>
         <ul>
           <li><strong>Operating system:</strong> Windows 10 or 11 on an x64 PC.</li>
-          <li><strong>Install:</strong> download <a href="https://github.com/stevyhacker/lokalbot/releases/latest" data-asset="windows">the Windows zip</a> from the latest release, extract it, and run <code>lokalbot.exe</code>. The exe isn't code-signed yet, so SmartScreen asks first: choose <strong>More info → Run anyway</strong>.</li>
+          <li><strong>Install:</strong> download <a href="https://github.com/stevyhacker/lokalbot/releases/latest" data-asset="windows">the Windows installer</a> from the latest release and run it. It installs LokalBot for your user into <code>%LOCALAPPDATA%\\Programs\\LokalBot</code>, with a Start menu shortcut and no administrator rights. It isn't code-signed yet, so SmartScreen asks first: choose <strong>More info → Run anyway</strong>. The release also has a portable zip.</li>
           <li><strong>System audio:</strong> WASAPI loopback records everything the computer plays, not just the meeting app.</li>
           <li><strong>Disk:</strong> about 4 GB for the default transcription, summary, and search models, plus your recordings.</li>
           <li><strong>GPU:</strong> optional. The built-in llama.cpp runs on a Vulkan GPU or on the CPU.</li>
@@ -495,7 +495,7 @@ GUIDES = [
           <li><strong>Storage.</strong> Recordings, transcripts, and the search index are ordinary files and SQLite under the user's account, so disk encryption (FileVault, BitLocker, or LUKS) and your device policies protect them at rest. Day tracking saves app names and window titles by default; screen text and encrypted screenshots are separate opt-ins that expire after 14 days by default.</li>
           <li><strong>Consent behavior.</strong> On a fresh install, LokalBot asks through a notification before it records a detected meeting. Automatic recording is a setting the user has to turn on.</li>
           <li><strong>Ways data can leave.</strong> Markdown exports, and on a Mac the Obsidian and Logseq note exports, are plain files in a folder the user picks. Agent access through the CLI and MCP server, and the optional Agent Mode, are off by default; once enabled, an agent's own provider receives what the agent reads.</li>
-          <li><strong>Code and builds.</strong> The source is public under GPLv3. Mac releases are signed with a Developer ID and notarized by Apple, and install from the DMG or Homebrew. The Windows build (alpha) isn't code-signed yet, so SmartScreen warns before it runs. The Linux build (alpha) is an archive with an install script. On every platform, updates are signed and install only when the user chooses Install and Relaunch. Any version can be built from source.</li>
+          <li><strong>Code and builds.</strong> The source is public under GPLv3. Mac releases are signed with a Developer ID and notarized by Apple, and install from the DMG or Homebrew. The Windows build (alpha) is a per-user installer or a portable zip, neither code-signed yet, so SmartScreen warns before it runs. The Linux build (alpha) comes as .deb, .rpm and Arch packages or an archive with an install script. On every platform, updates are signed and install only when the user chooses Install and Relaunch. Any version can be built from source.</li>
         </ol>
 
         <h2>What it doesn't have</h2>

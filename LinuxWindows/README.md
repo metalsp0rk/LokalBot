@@ -76,8 +76,11 @@ release has none yet, use a CI run's artifacts (`lokalbot-linux-x86_64`, `lokalb
   `LokalBot-<version>-linux-x86_64.rpm` (Fedora, openSUSE: `sudo dnf install ./LokalBot-…rpm`) and
   `LokalBot-<version>-linux-x86_64.pkg.tar.zst` (Arch: `sudo pacman -U ./LokalBot-…zst`). A package
   install tells you about updates and offers the download instead of replacing its files.
-- **Windows** 10/11 (x64): extract `LokalBot-<version>-windows-x86_64.zip` anywhere and run `lokalbot.exe`.
-  The executable is not code-signed yet, so SmartScreen may ask you to confirm.
+- **Windows** 10/11 (x64): run `LokalBot-<version>-windows-x86_64-setup.exe`. It installs for your user into
+  `%LOCALAPPDATA%\Programs\LokalBot` without administrator rights, adds a Start menu shortcut (which also
+  lets notifications show LokalBot's name) and an Installed apps entry; uninstalling keeps your library. Or
+  extract the portable `LokalBot-<version>-windows-x86_64.zip` anywhere and run `lokalbot.exe`. Neither is
+  code-signed yet, so SmartScreen may ask you to confirm.
 
 ### Updates
 

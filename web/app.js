@@ -96,12 +96,12 @@
   var dmgLinks = $$('a[href$="LokalBot.dmg"]:not([data-download-alt])');
 
   /* ---------- Windows and Linux desktops: offer their own download ---------- */
-  /* Their archives carry the version in the name (LokalBot-0.10.11-windows-x86_64.zip),
+  /* Their files carry the version in the name (LokalBot-0.11.0-windows-x86_64-setup.exe),
      so a link points at the latest release and a click looks up the current file. */
   var RELEASE_PAGE = "https://github.com/stevyhacker/lokalbot/releases/latest";
   var RELEASE_API = "https://api.github.com/repos/stevyhacker/lokalbot/releases/latest";
   var ASSETS = {
-    windows: { pattern: /^LokalBot-[0-9.]+-windows-x86_64\.zip$/, name: "Windows", icon: "ph-windows-logo" },
+    windows: { pattern: /^LokalBot-[0-9.]+-windows-x86_64-setup\.exe$/, name: "Windows", icon: "ph-windows-logo" },
     linux: { pattern: /^LokalBot-[0-9.]+-linux-x86_64\.tar\.gz$/, name: "Linux", icon: "ph-linux-logo" }
   };
   var desktop = (function () {

@@ -97,8 +97,8 @@ The Windows and Linux CLI has the read-only commands and the MCP server, but not
 
 1. **Install.** From the [latest release](https://github.com/stevyhacker/lokalbot/releases/latest),
    take `LokalBot-<version>-linux-x86_64.tar.gz`, extract it, and run `./install.sh`
-   (Linux; the `.deb`, `.rpm` and Arch packages need the person's `sudo`), or take `LokalBot-<version>-windows-x86_64.zip`, extract it, and have the
-   person open `lokalbot.exe` (Windows). The Windows build isn't code-signed yet, so
+   (Linux; the `.deb`, `.rpm` and Arch packages need the person's `sudo`), or have the person run `LokalBot-<version>-windows-x86_64-setup.exe`, which installs for
+   their user without administrator rights (Windows; a portable zip is there too). The Windows build isn't code-signed yet, so
    SmartScreen asks first; the person confirms it. Never unblock the file or turn
    SmartScreen off for them.
 2. **Onboarding.** The person chooses what LokalBot remembers and which models to
