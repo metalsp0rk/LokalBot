@@ -144,6 +144,8 @@ pub fn start(data: &Entity<AppData>, cx: &mut App) {
     if let Some(installation) = &installation {
         let targets = installation.targets();
         cx.background_spawn(async move {
+            // The copy that installed this update may predate this call.
+            record_installed_version(&targets.dir, &Version::current());
             // The copy this one replaced may still be closing.
             for delay in [0, 10, 60] {
                 smol::Timer::after(Duration::from_secs(delay)).await;
@@ -406,6 +408,9 @@ impl Updates {
                             log::error!("updates: install failed: {err}");
                             err.to_string()
                         });
+                    if installed.is_ok() {
+                        record_installed_version(&targets.dir, &job_release.version);
+                    }
                     updater.clear_work_dir();
                     installed
                 });
@@ -522,6 +527,17 @@ pub fn open_release_page(cx: &mut App) {
     });
     if let Some(url) = url {
         cx.open_url(&url);
+    }
+}
+
+/// Shows `version` in the installer's Installed apps entry (Windows), which an
+/// update LokalBot installs itself would otherwise leave at the installer's
+/// version. Failures only log: the update itself is in place.
+fn record_installed_version(dir: &std::path::Path, version: &Version) {
+    match lokalbot_update::installed_apps::record_version(dir, version) {
+        Ok(true) => log::info!("updates: Installed apps now shows LokalBot {version}"),
+        Ok(false) => {}
+        Err(err) => log::warn!("updates: could not update the Installed apps entry: {err}"),
     }
 }
 

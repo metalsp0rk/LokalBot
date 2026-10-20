@@ -117,7 +117,8 @@ pub enum Command {
         #[arg(long)]
         table: bool,
     },
-    /// Show what the user shared about themselves that is relevant to a task.
+    /// Show what the user shared about themselves that is relevant to a task
+    /// (written in the Mac app; read from a library that came from a Mac).
     #[command(name = "personal-context")]
     PersonalContext {
         /// What you are helping with, in a sentence.

@@ -14,8 +14,11 @@ pub const DEFAULT_ITEMS: usize = 8;
 pub const MAXIMUM_ITEMS: usize = 12;
 pub const MAXIMUM_TASK_CHARACTERS: usize = 500;
 
-pub const DISABLED_MESSAGE: &str = "Personal context access is off. The user can turn it on in LokalBot → Settings → Privacy → \"Allow external agents to read what I shared about myself\", then choose items to share in Settings → Day Memory → About you.";
-pub const UNAVAILABLE_MESSAGE: &str = "Personal context access is on, but LokalBot hasn't written the shared items yet. Open LokalBot once so it can prepare them.";
+// The Windows and Linux app has no About you page or personal-context
+// setting: the marker and the shared items arrive only with a library that
+// came from a Mac.
+pub const DISABLED_MESSAGE: &str = "Personal context access is off. The Windows and Linux app has no About you page: the user writes and shares these items in the Mac app, so here they can be read only from a library that came from a Mac.";
+pub const UNAVAILABLE_MESSAGE: &str = "Personal context access is on, but this library holds no shared items. Only the Mac app writes them; opening LokalBot on the Mac this library came from prepares them.";
 pub const NOTE: &str = "The user chose to share these with agents. \"stated\" items are the user's own words; \"learned\" items were picked up from what the user said in meetings and may be out of date. Use them only when they bear on the task. Items not listed are unknown, not false. Never cite them as meeting or screen evidence.";
 
 #[derive(Clone, Debug, PartialEq, Deserialize)]

@@ -204,6 +204,81 @@ fn mcp_round_trip() {
     assert!(String::from_utf8_lossy(&output.stderr).contains("lokalbot-cli mcp: serving on stdio"));
 }
 
+/// The source of this app's Settings pages.
+fn settings_source() -> String {
+    let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../lokalbot-app/src/pages/settings");
+    let mut source = String::new();
+    for entry in std::fs::read_dir(dir).unwrap().flatten() {
+        source.push_str(&std::fs::read_to_string(entry.path()).unwrap());
+    }
+    source
+}
+
+/// Agents relay these hints to the user, so every `Settings → <page> →
+/// "<toggle>"` must exist in this app. The Mac's About you page and its
+/// sharing toggle do not.
+#[test]
+fn agent_text_names_only_settings_this_app_has() {
+    let (_dir, root) = seeded();
+    let mut texts = vec![
+        stdout(&cli(&root, &["brief"])),
+        String::from_utf8_lossy(&cli(&root, &["personal-context", "--task", "Plan a trip"]).stderr)
+            .into_owned(),
+        stdout(&cli(&root, &["--help"])),
+        stdout(&cli(&root, &["personal-context", "--help"])),
+        lokalbot_cli::mcp::INSTRUCTIONS.to_string(),
+        lokalbot_cli::personal::UNAVAILABLE_MESSAGE.to_string(),
+        access::MEETINGS_DISABLED_MESSAGE.to_string(),
+        access::SCREEN_DISABLED_MESSAGE.to_string(),
+    ];
+    texts.extend(
+        lokalbot_cli::mcp::tools()
+            .iter()
+            .map(|tool| tool["description"].as_str().unwrap().to_string()),
+    );
+    // A library from a Mac that shares About you but has no items written.
+    let control = LibraryPaths::new(&root).control_dir();
+    std::fs::create_dir_all(&control).unwrap();
+    std::fs::write(control.join(access::PERSONAL_MARKER), b"").unwrap();
+    texts.push(stdout(&cli(&root, &["brief"])));
+
+    let settings = settings_source();
+    for text in &texts {
+        for mac_only in [
+            "what I shared about myself",
+            "→ About you",
+            "Open LokalBot once",
+            "timeline of recent days",
+            "lokalbot-cli setup",
+            "lokalbot-cli config",
+            "lokalbot-cli doctor",
+        ] {
+            assert!(!text.contains(mac_only), "{mac_only:?} in {text}");
+        }
+        for (at, marker) in text.match_indices("Settings → ") {
+            let rest = &text[at + marker.len()..];
+            let end = rest
+                .find(" → ")
+                .unwrap_or_else(|| rest.find(['.', '\n']).unwrap_or(rest.len()));
+            let page = &rest[..end];
+            assert!(
+                settings.contains(&format!("=> \"{page}\"")),
+                "no Settings page {page:?}, named in {text}"
+            );
+            let toggle = rest[end..]
+                .strip_prefix(" → \"")
+                .and_then(|label| label.split_once('"'))
+                .map(|(label, _)| label);
+            if let Some(toggle) = toggle {
+                assert!(
+                    settings.contains(&format!("tr(\"{toggle}\")")),
+                    "no setting {toggle:?}, named in {text}"
+                );
+            }
+        }
+    }
+}
+
 #[test]
 fn version_exits_without_touching_the_library() {
     let dir = tempfile::tempdir().unwrap();
