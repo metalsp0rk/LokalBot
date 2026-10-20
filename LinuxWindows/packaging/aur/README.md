@@ -64,7 +64,9 @@ from master with `gh workflow run aur.yml -f tag=v<same version>`.
 
 These need the maintainer's own accounts, so CI cannot do them:
 
-1. Create an AUR account at <https://aur.archlinux.org/register>.
+1. Create an AUR account at <https://aur.archlinux.org/register>. New
+   registrations were closed in October 2026 after a wave of malicious
+   uploads; check the page by hand rather than scripting retries.
 2. Make a key for the AUR without a passphrase (CI cannot type one) and add
    its public half under **My Account → SSH Public Key**:
 
@@ -95,5 +97,6 @@ These need the maintainer's own accounts, so CI cannot do them:
    ```
 
 5. Check <https://aur.archlinux.org/packages/lokalbot-bin> and
-   `yay -S lokalbot-bin` on an Arch machine, then add the AUR to the install
-   instructions in `LinuxWindows/README.md` and on the website.
+   `yay -S lokalbot-bin` on an Arch machine. Then make `yay -S lokalbot-bin`
+   the first install option in the Omarchy section of `LinuxWindows/README.md`
+   (it now says the AUR package is on its way) and on the website.
