@@ -24,8 +24,9 @@ use gpui_kit::component::menu::{DropdownMenu as _, PopupMenuItem};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
     AnyElement, App, AppContext as _, Bounds, ClipboardItem, Context, Entity, FocusHandle,
-    IntoElement, ListAlignment, ListState, ParentElement as _, Pixels, Render, SharedString,
-    Styled as _, Subscription, Task, Window, anchored, canvas, deferred, div, point, px,
+    IntoElement, ListAlignment, ListOffset, ListState, ParentElement as _, Pixels, Render,
+    SharedString, Styled as _, Subscription, Task, Window, anchored, canvas, deferred, div, point,
+    px,
 };
 use lokalbot_core::{ActionStatus, Meeting};
 use uuid::Uuid;
@@ -303,6 +304,10 @@ impl MeetingsPage {
                 self.selected = Some(focus.meeting_id);
                 self.doc_loading = true;
                 self.load_doc(window, cx);
+            } else {
+                // The meeting is already open (a citation from Ask about the
+                // meeting shown before): no load follows to reveal the moment.
+                self.reveal_focus();
             }
             if focus.tab == MeetingTab::Transcript && focus.at.is_some() {
                 self.find.open = false;
@@ -496,7 +501,18 @@ impl MeetingsPage {
         }
         let Some(doc) = self.doc.as_ref() else { return };
         if let Some(row) = self.focus_at.and_then(|at| doc.row_at(at)) {
-            self.transcript_state.scroll_to_reveal_item(row + 1);
+            // Item 0 is the header, so row r is item r + 1. Rows the list has
+            // not drawn yet (the transcript tab was not open) have no height,
+            // and revealing them would not move: put the row before it at
+            // the top instead.
+            if self.transcript_state.bounds_for_item(row + 1).is_some() {
+                self.transcript_state.scroll_to_reveal_item(row + 1);
+            } else {
+                self.transcript_state.scroll_to(ListOffset {
+                    item_ix: row,
+                    offset_in_item: px(0.),
+                });
+            }
             self.pending_reveal = false;
         }
     }
