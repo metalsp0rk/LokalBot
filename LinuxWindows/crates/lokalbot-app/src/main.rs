@@ -13,6 +13,7 @@ mod desktop;
 mod hud;
 mod i18n;
 mod pages;
+mod sample;
 mod shell;
 mod state;
 mod theme;

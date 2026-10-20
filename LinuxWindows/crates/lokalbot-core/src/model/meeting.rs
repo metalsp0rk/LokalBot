@@ -88,6 +88,11 @@ pub struct Meeting {
     pub content_range_source: Option<ContentRangeSource>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub capture_intent: Option<CaptureIntent>,
+    /// Set on the bundled sample meeting ("orders-api/en"): a made-up call
+    /// with synthetic voices. Ask, search and agents still see it; personal
+    /// memory (digests, the day, people, projects, actions) leaves it out.
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "sampleID")]
+    pub sample_id: Option<String>,
     /// Keys this build doesn't know, written by macOS or a newer release. Kept
     /// as they are so saving `meta.json` here never drops them.
     #[serde(flatten)]
@@ -191,6 +196,7 @@ impl Meeting {
             content_range: None,
             content_range_source: None,
             capture_intent: None,
+            sample_id: None,
             extra: Default::default(),
         }
     }
@@ -201,6 +207,17 @@ impl Meeting {
 
     pub fn is_merged_source(&self) -> bool {
         self.merged_into_meeting_id.is_some()
+    }
+
+    pub fn is_sample(&self) -> bool {
+        self.sample_id.is_some()
+    }
+
+    /// Whether this meeting is the user's own work: what digests, the day,
+    /// people, projects, action lists and briefings are built from. Merged
+    /// sources live on in their merged meeting, and the sample is made up.
+    pub fn is_own_work(&self) -> bool {
+        !self.is_merged_source() && !self.is_sample()
     }
 
     pub fn is_imported(&self) -> bool {

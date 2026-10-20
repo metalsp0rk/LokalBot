@@ -26,6 +26,7 @@ the vendor fetch scripts, and `AgentRuntimeManifest`.
 | llama.cpp | MIT | https://github.com/ggml-org/llama.cpp |
 | sherpa-onnx | Apache-2.0 | https://github.com/k2-fsa/sherpa-onnx |
 | ONNX Runtime | MIT | https://github.com/microsoft/onnxruntime |
+| Sample meeting recording (bundled; a fictional script voiced with ElevenLabs Eleven v4 premade voices "Bella" and "Chris") | Generated audio used under the ElevenLabs Terms of Service; script GPL-3.0 as part of LokalBot | `LokalBot/Resources/SampleMeeting/README.md` |
 | Symphonia (audio decoding in the Linux and Windows app: AAC, FLAC, and imported MP3, WAV, AIFF, CAF, Ogg Vorbis, MKV and ALAC files) | MPL-2.0 | https://github.com/pdeljanov/Symphonia |
 | extended (AIFF sample-rate decoding in the Linux and Windows app) | MIT | https://github.com/depp/extended-rs |
 | Bun (optional Agent Mode runtime) | MIT | https://github.com/oven-sh/bun |

@@ -1,6 +1,7 @@
 //! The meeting list column: header with Record, search, and day groups.
 
 use crate::i18n::h_flex;
+use gpui_kit::component::button::Button;
 use gpui_kit::component::input::Input;
 use gpui_kit::component::menu::{ContextMenuExt as _, PopupMenuItem};
 use gpui_kit::component::scroll::ScrollableElement as _;
@@ -342,10 +343,28 @@ impl MeetingsPage {
                     lokalbot_i18n::tr("Try different words, a meeting title, or app."),
                 )
             };
+            let offer_sample = library_empty && self.query.is_empty();
+            let sample_data = data_entity.clone();
             v_flex()
                 .flex_1()
                 .justify_center()
-                .child(ui::empty_state(Ico::AudioLines, title, message, cx).w_full())
+                .child(
+                    ui::empty_state(Ico::AudioLines, title, message, cx)
+                        .w_full()
+                        .when(offer_sample, |this| {
+                            this.child(
+                                div().pt(px(8.)).child(
+                                    Button::new("meetings-try-sample")
+                                        .outline()
+                                        .small()
+                                        .label(lokalbot_i18n::tr("Try a sample meeting"))
+                                        .on_click(move |_, _, cx| {
+                                            sample_data.update(cx, |data, cx| data.try_sample(cx))
+                                        }),
+                                ),
+                            )
+                        }),
+                )
                 .into_any_element()
         } else {
             div()

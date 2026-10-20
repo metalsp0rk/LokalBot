@@ -82,13 +82,18 @@ enum Briefing {
                                      projection: PersonalContextProjection?) -> String {
         var lines = ["## What you can ask LokalBot"]
         if context.meetingAccess {
-            if let newest = meetings.max(by: { $0.startedAt < $1.startedAt }) {
-                lines.append("- Meetings: on. \(meetings.count) recorded, newest \"\(clean(newest.title, 80))\" "
+            let own = meetings.filter(\.isOwnWork)
+            if let newest = own.max(by: { $0.startedAt < $1.startedAt }) {
+                lines.append("- Meetings: on. \(own.count) recorded, newest \"\(clean(newest.title, 80))\" "
                     + "(\(DreamRollupFormat.dayKey(newest.startedAt, calendar: context.calendar))). Tools: "
                     + "search_meetings, get_meeting, list_meetings, get_action_items, list_people, get_person, "
                     + "and ask_library while the app runs.")
             } else {
                 lines.append("- Meetings: on, none recorded yet.")
+            }
+            if let sample = meetings.first(where: \.isSample) {
+                lines.append("- The library also holds LokalBot's sample meeting, \"\(clean(sample.title, 80))\": "
+                    + "a made-up call with synthetic voices, not the user's work. Its results carry \"sample\": true.")
             }
         } else {
             lines.append("- Meetings: off. The user can turn on Settings → Privacy → \"Allow external agents to "

@@ -135,7 +135,7 @@ jobs:
 
       - name: Archive the Rust workspace
         working-directory: .
-        run: git archive --format=tar.gz -o "$RUNNER_TEMP/lokalbot-src.tar.gz" HEAD LinuxWindows .agents LICENSE LICENSES THIRD_PARTY_NOTICES.md
+        run: git archive --format=tar.gz -o "$RUNNER_TEMP/lokalbot-src.tar.gz" HEAD LinuxWindows .agents LokalBot/Resources/SampleMeeting LICENSE LICENSES THIRD_PARTY_NOTICES.md
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:

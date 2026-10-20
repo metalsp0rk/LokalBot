@@ -139,7 +139,8 @@ pub fn action_entries(
         .iter()
         .filter(|m| match filter.meeting_id {
             Some(id) => m.id == id,
-            None => m.started_at >= cutoff,
+            // The sample meeting's actions are made up: only listed when asked for by id.
+            None => m.is_own_work() && m.started_at >= cutoff,
         })
         .flat_map(|m| session.library.meeting_actions(m).unwrap_or_default())
         .collect();

@@ -156,6 +156,9 @@ struct ListEntry {
     has_system_track: bool,
     has_summary: bool,
     has_transcript: bool,
+    /// Only on LokalBot's sample meeting: made up, with synthetic voices.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    sample: Option<bool>,
 }
 
 pub fn list_json(session: &Session, meetings: &[Meeting]) -> String {
@@ -171,6 +174,7 @@ pub fn list_json(session: &Session, meetings: &[Meeting]) -> String {
             has_system_track: m.has_system_track,
             has_summary: session.summary(m).is_some(),
             has_transcript: session.transcript_markdown(m).is_some(),
+            sample: m.is_sample().then_some(true),
         })
         .collect();
     json::pretty(&entries, true)
@@ -231,6 +235,8 @@ struct GetEntry {
     #[serde(skip_serializing_if = "Option::is_none")]
     transcript: Option<String>,
     folder: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    sample: Option<bool>,
 }
 
 pub fn get_json(session: &Session, meeting: &Meeting, options: &GetOptions) -> String {
@@ -251,6 +257,7 @@ pub fn get_json(session: &Session, meeting: &Meeting, options: &GetOptions) -> S
             .then(|| session.transcript_markdown(meeting))
             .flatten(),
         folder: session.folder(meeting).to_string_lossy().into_owned(),
+        sample: meeting.is_sample().then_some(true),
     };
     json::pretty(&entry, true)
 }
@@ -262,6 +269,10 @@ pub fn get_markdown(session: &Session, meeting: &Meeting, options: &GetOptions) 
         lines.push(format!("**Date:** {}  ", long_date(meeting.started_at)));
         lines.push(format!("**Duration:** {}  ", duration_label(meeting)));
         lines.push(format!("**App:** {}", meeting.app_name));
+        if meeting.is_sample() {
+            lines.push(String::new());
+            lines.push("**Sample:** LokalBot's sample meeting. The people and the company are made up, and the voices are synthetic.".into());
+        }
         lines.push(String::new());
     }
     if options.include_summary
@@ -348,6 +359,8 @@ pub struct SearchHit {
     pub snippet: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub timestamp: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sample: Option<bool>,
 }
 
 pub fn search_json(hits: &[SearchHit]) -> String {

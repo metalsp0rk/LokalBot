@@ -541,6 +541,11 @@ private struct MeetingWorkspaceDetail: View {
     }
 
     @ViewBuilder private var meetingStatusContent: some View {
+        if meeting.isSample {
+            SampleMeetingBanner(meeting: meeting,
+                                hasTranscript: transcript?.segments.isEmpty == false,
+                                hasNotes: summary?.isEmpty == false)
+        }
         if captureNeedsAttention {
             Label("Audio capture was interrupted or saving reported an error. Review the saved recording for missing audio.",
                   systemImage: "exclamationmark.triangle.fill")

@@ -824,11 +824,7 @@ pub struct PeopleInput<'a> {
 /// Builds every person profile (`PeopleDirectory.build`), most recently met first.
 pub fn build_people(input: &PeopleInput) -> Vec<PersonProfile> {
     let mut people = Registry::default();
-    let meetings: Vec<&Meeting> = input
-        .meetings
-        .iter()
-        .filter(|m| !m.is_merged_source())
-        .collect();
+    let meetings: Vec<&Meeting> = input.meetings.iter().filter(|m| m.is_own_work()).collect();
     let is_self = SelfMatcher::new(input.self_names);
     let empty = AppliedNames::default();
     let mut participants: HashMap<Uuid, BTreeSet<String>> = HashMap::new();
