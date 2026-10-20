@@ -2,13 +2,15 @@
 """Build and check the bundled sample meeting (LokalBot/Resources/SampleMeeting).
 
     sample_meeting.py build [--lang en] [--cache DIR]
-        Voice every turn of script.<lang>.json with ElevenLabs (ELEVENLABS_API_KEY,
-        or ~/.config/elevenlabs/env), join the turns into one mono recording,
-        and write <audio>.m4a plus the reference transcript (reference.<lang>.json
-        and reference.<lang>.md) with each turn's measured start and end.
-        Only the script text leaves the computer, and only here: the apps never
-        call a voice service. Synthesized turns are cached by text, voice, model
-        and seed, so editing one line re-voices only that line.
+        Voice every turn of script.<lang>.json with the script's voice service,
+        ElevenLabs (ELEVENLABS_API_KEY, or ~/.config/elevenlabs/env) or Gemini
+        (GEMINI_API_KEY), join the turns into one mono recording, and write
+        <audio>.m4a plus the reference transcript (reference.<lang>.json and
+        reference.<lang>.md) with each turn's measured start and end. Only the
+        script text leaves the computer, and only here: the apps never call a
+        voice service. Synthesized turns are cached by text, voice and model
+        settings, so editing one line re-voices only that line (and, with
+        ElevenLabs, its neighbours, which it hears as context).
 
     sample_meeting.py check [--lang en] <transcript.json | meeting folder> [--summary FILE]
         Score a LokalBot transcript of the sample against the reference: word
@@ -18,7 +20,7 @@
 
 Needs ffmpeg and ffprobe on PATH for build; check uses only the standard library.
 """
-import argparse, hashlib, json, os, re, struct, subprocess, sys, tempfile, unicodedata, urllib.request, wave
+import argparse, base64, hashlib, json, os, re, struct, subprocess, sys, tempfile, time, unicodedata, urllib.error, urllib.request, wave
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SAMPLE_DIR = os.path.join(ROOT, "LokalBot", "Resources", "SampleMeeting")
@@ -40,41 +42,80 @@ def stamp(seconds):
 
 # ---------------------------------------------------------------- build
 
-def api_key():
-    key = os.environ.get("ELEVENLABS_API_KEY")
+VOICE_SERVICES = {
+    "elevenlabs": ("ELEVENLABS_API_KEY", "~/.config/elevenlabs/env"),
+    "gemini": ("GEMINI_API_KEY", None),
+}
+
+
+def api_key(provider):
+    name, path = VOICE_SERVICES[provider]
+    key = os.environ.get(name)
     if key:
         return key
-    path = os.path.expanduser("~/.config/elevenlabs/env")
-    if os.path.exists(path):
-        for line in open(path, encoding="utf-8"):
-            name, _, value = line.strip().partition("=")
-            if name.removeprefix("export ").strip() == "ELEVENLABS_API_KEY":
+    if path and os.path.exists(os.path.expanduser(path)):
+        for line in open(os.path.expanduser(path), encoding="utf-8"):
+            key_name, _, value = line.strip().partition("=")
+            if key_name.removeprefix("export ").strip() == name:
                 return value.strip().strip("'\"")
-    sys.exit("Set ELEVENLABS_API_KEY to voice the script.")
+    sys.exit(f"Set {name} to voice the script.")
+
+
+def speech(text, voice, tts, previous, following):
+    """One turn's audio file bytes from the script's voice service."""
+    if tts["provider"] == "gemini":
+        # Gemini voices each turn alone, with no seed; `style` sets the delivery
+        # without being spoken.
+        content = {"type": "text", "text": text,
+                   "annotations": [{"type": "speech_metadata", "style": tts["style"]}]}
+        body = {"model": tts["model"], "input": [{"type": "user_input", "content": [content]}],
+                "response_format": {"type": "audio"},
+                "generation_config": {"speech_config": [{"voice": voice}]}}
+        request = urllib.request.Request(
+            "https://generativelanguage.googleapis.com/v1beta/interactions", data=json.dumps(body).encode(),
+            headers={"x-goog-api-key": api_key("gemini"), "Content-Type": "application/json"})
+        with urllib.request.urlopen(request, timeout=180) as response:
+            steps = json.load(response).get("steps", [])
+        audio = [c["data"] for step in steps for c in step.get("content") or [] if c.get("type") == "audio"]
+        if not audio:
+            raise RuntimeError(f"Gemini returned no audio for: {text[:60]}")
+        return base64.b64decode(audio[0])  # WAV, 24 kHz mono
+    body = {"text": text, "model_id": tts["model"], "seed": tts["seed"]}
+    if previous:
+        body["previous_text"] = previous
+    if following:
+        body["next_text"] = following
+    request = urllib.request.Request(
+        f"https://api.elevenlabs.io/v1/text-to-speech/{voice}?output_format=mp3_44100_128",
+        data=json.dumps(body).encode(),
+        headers={"xi-api-key": api_key("elevenlabs"), "Content-Type": "application/json"})
+    with urllib.request.urlopen(request, timeout=180) as response:
+        return response.read()  # MP3
 
 
 def synthesize(text, voice, tts, previous, following, cache):
     """One turn as 24 kHz mono 16-bit PCM, edges trimmed. Cached by content."""
-    ident = json.dumps([text, voice, tts["model"], tts["seed"], previous, following], ensure_ascii=False)
-    digest = hashlib.sha256(ident.encode()).hexdigest()[:20]
+    if tts["provider"] == "elevenlabs":
+        ident = [text, voice, tts["model"], tts["seed"], previous, following]
+    else:
+        ident = [text, voice, tts]
+    digest = hashlib.sha256(json.dumps(ident, ensure_ascii=False, sort_keys=True).encode()).hexdigest()[:20]
     wav_path = os.path.join(cache, f"{digest}.wav")
     if not os.path.exists(wav_path):
-        body = {"text": text, "model_id": tts["model"], "seed": tts["seed"]}
-        if previous:
-            body["previous_text"] = previous
-        if following:
-            body["next_text"] = following
-        request = urllib.request.Request(
-            f"https://api.elevenlabs.io/v1/text-to-speech/{voice}?output_format=mp3_44100_128",
-            data=json.dumps(body).encode(),
-            headers={"xi-api-key": api_key(), "Content-Type": "application/json"})
-        mp3_path = os.path.join(cache, f"{digest}.mp3")
-        with urllib.request.urlopen(request, timeout=180) as response:
-            with open(mp3_path, "wb") as f:
-                f.write(response.read())
+        for attempt in range(6):
+            try:
+                audio = speech(text, voice, tts, previous, following)
+                break
+            except urllib.error.HTTPError as error:  # rate limits and overload pass; anything else stops the build
+                if error.code not in (429, 500, 502, 503) or attempt == 5:
+                    raise
+                time.sleep(20 * (attempt + 1))
+        source = os.path.join(cache, f"{digest}.source")
+        with open(source, "wb") as f:
+            f.write(audio)
         trim = ("silenceremove=start_periods=1:start_threshold=-50dB,areverse,"
                 "silenceremove=start_periods=1:start_threshold=-50dB,areverse")
-        subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", mp3_path, "-af", trim,
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", source, "-af", trim,
                         "-ar", str(RATE), "-ac", "1", "-c:a", "pcm_s16le", wav_path + ".tmp.wav"], check=True)
         os.replace(wav_path + ".tmp.wav", wav_path)
     with wave.open(wav_path) as reader:
@@ -196,22 +237,157 @@ def spell_numbers(text):
     return re.sub(r"\d+", lambda m: words_for(int(m.group(0))), text)
 
 
-FILLERS = {"um", "uh", "hm", "hmm", "mm", "ah", "er"}
+# German: digits become words, "einhundert" and "hundert" agree, and an
+# ordinal's case ending ("18." / "achtzehnte" / "achtzehnten") doesn't count.
+DE_ONES = ("null eins zwei drei vier fünf sechs sieben acht neun zehn elf zwölf dreizehn vierzehn "
+           "fünfzehn sechzehn siebzehn achtzehn neunzehn").split()
+DE_TENS = "_ _ zwanzig dreißig vierzig fünfzig sechzig siebzig achtzig neunzig".split()
+DE_MONTHS = "januar februar märz april mai juni juli august september oktober november dezember".split()
+
+
+def de_words(n, joined=False):
+    """German number words; `joined` is the form inside a compound ("ein")."""
+    if n < 20:
+        return "ein" if joined and n == 1 else DE_ONES[n]
+    if n < 100:
+        ones = n % 10
+        return (de_words(ones, True) + "und" if ones else "") + DE_TENS[n // 10]
+    if n < 1_000_000:
+        size, name = (1000, "tausend") if n >= 1000 else (100, "hundert")
+        head, rest = divmod(n, size)
+        return ("" if head == 1 else de_words(head, True)) + name + (de_words(rest) if rest else "")
+    head, rest = divmod(n, 1_000_000)
+    return ("eine million" if head == 1 else de_words(head) + " millionen") + (" " + de_words(rest) if rest else "")
+
+
+def de_ordinal(n):
+    stem = {1: "erst", 3: "dritt", 7: "siebt", 8: "acht"}.get(n) or de_words(n) + ("t" if n < 20 else "st")
+    return stem + "en"
+
+
+DE_ORDINAL = re.compile(r"^(" + "|".join(de_ordinal(n)[:-2].replace("ß", "ss") for n in range(1, 32)) + r")(e|en|er|es|em)$")
+
+
+def spell_numbers_de(text):
+    text = re.sub(r"(?<=\d)\.(?=\d{3}\b)", "", text)
+    months = "|".join(DE_MONTHS)
+    text = re.sub(rf"\b(\d{{1,2}})\.(?=\s*(?:{months})\b)", lambda m: de_ordinal(int(m.group(1))), text)
+    text = re.sub(r"\b(am|zum|vom|bis|den|dem|der|des) ([1-9]|[12]\d|3[01])\.(?!\d)",
+                  lambda m: m.group(1) + " " + de_ordinal(int(m.group(2))), text)
+    text = re.sub(r"(\d+)([.,])(\d+)", lambda m: de_words(int(m.group(1))) + (" punkt " if m.group(2) == "." else " komma ")
+                  + " ".join(DE_ONES[int(d)] for d in m.group(3)), text)
+    text = re.sub(r"(?<=[^\W\d_])(?=\d)|(?<=\d)(?=[^\W\d_])", " ", text)
+    return re.sub(r"\d+", lambda m: de_words(int(m.group(0))), text)
+
+
+# Serbian: Cyrillic output reads as Latin, digits become words, "dve" and
+# "dva" agree, and an ordinal's case ending doesn't count.
+SR_CYRILLIC = dict(zip("абвгдђежзијклљмнњопрстћуфхцчџш",
+                       "a b v g d đ e ž z i j k l lj m n nj o p r s t ć u f h c č dž š".split()))
+SR_ONES = ("nula jedan dva tri četiri pet šest sedam osam devet deset jedanaest dvanaest trinaest četrnaest "
+           "petnaest šesnaest sedamnaest osamnaest devetnaest").split()
+SR_TENS = "_ _ dvadeset trideset četrdeset pedeset šezdeset sedamdeset osamdeset devedeset".split()
+SR_HUNDREDS = "_ sto dvesta trista četiristo petsto šeststo sedamsto osamsto devetsto".split()
+SR_MONTHS = "januar februar mart april maj jun jul avgust septembar oktobar novembar decembar".split()
+
+
+def sr_words(n):
+    if n < 20:
+        return SR_ONES[n]
+    if n < 100:
+        return SR_TENS[n // 10] + ("" if n % 10 == 0 else " " + SR_ONES[n % 10])
+    if n < 1000:
+        return SR_HUNDREDS[n // 100] + ("" if n % 100 == 0 else " " + sr_words(n % 100))
+    for size, one, few, many in ((1_000_000, "milion", "miliona", "miliona"), (1000, "hiljadu", "hiljade", "hiljada")):
+        if n >= size:
+            head, rest = divmod(n, size)
+            name = one if head == 1 else few if head % 10 in (2, 3, 4) and head % 100 not in (12, 13, 14) else many
+            words = name if head == 1 and size == 1000 else (sr_words(head) + " " if head > 1 else "") + name
+            return words + ("" if rest == 0 else " " + sr_words(rest))
+
+
+def sr_ordinal(n):
+    stems = {1: "prv", 2: "drug", 3: "treć", 4: "četvrt", 7: "sedm", 8: "osm"}
+    if n > 20 and n % 10:
+        return SR_TENS[n // 10] + " " + sr_ordinal(n % 10)
+    return stems.get(n, sr_words(n)) + "i"
+
+
+SR_ORDINAL = re.compile(r"^(" + "|".join(sr_ordinal(n)[:-1] for n in range(1, 21)) + r"|trideset)(i|a|o|e|u|og|oga|om|ome|oj|ih|im)$")
+
+
+def spell_numbers_sr(text):
+    text = re.sub(r"(?<=\d)\.(?=\d{3}\b)", "", text)
+    months = "|".join(m[:-2] if m.endswith("ar") else m for m in SR_MONTHS)
+    text = re.sub(rf"\b(\d{{1,2}})\.(?=\s*(?:{months}))", lambda m: sr_ordinal(int(m.group(1))), text)
+    text = re.sub(r"\b(do|od|za|na|pre|posle|oko) ([1-9]|[12]\d|3[01])\.(?!\d)",
+                  lambda m: m.group(1) + " " + sr_ordinal(int(m.group(2))), text)
+    text = re.sub(r"(\d+)([.,])(\d+)", lambda m: sr_words(int(m.group(1))) + (" tačka " if m.group(2) == "." else " zarez ")
+                  + " ".join(SR_ONES[int(d)] for d in m.group(3)), text)
+    text = re.sub(r"(?<=[^\W\d_])(?=\d)|(?<=\d)(?=[^\W\d_])", " ", text)
+    return re.sub(r"\d+", lambda m: sr_words(int(m.group(0))), text)
+
+
+def sr_latin(text):
+    return "".join(SR_CYRILLIC.get(c, c) for c in text)
+
+
+# Chinese: digits read as Chinese numerals, and 两 counts as 二.
+ZH_DIGITS = "零一二三四五六七八九"
+
+
+def zh_numeral(n):
+    if n < 10:
+        return ZH_DIGITS[n]
+    if n >= 10_000:
+        head, rest = divmod(n, 10_000)
+        return zh_numeral(head) + "万" + ("" if rest == 0 else ("零" if rest < 1000 else "") + zh_numeral(rest))
+    out, zero = "", False
+    for size, unit in ((1000, "千"), (100, "百"), (10, "十"), (1, "")):
+        digit = n // size % 10
+        if digit:
+            out += ("零" if zero and out else "") + ("" if digit == 1 and unit == "十" and not out else ZH_DIGITS[digit]) + unit
+            zero = False
+        elif out:
+            zero = True
+    return out
+
+
+def spell_numbers_zh(text):
+    text = re.sub(r"(?<=\d),(?=\d{3})", "", text)
+    text = re.sub(r"(\d+)\.(\d+)", lambda m: zh_numeral(int(m.group(1))) + "点" + "".join(ZH_DIGITS[int(d)] for d in m.group(2)), text)
+    return re.sub(r"\d+", lambda m: zh_numeral(int(m.group(0))), text).replace("两", "二")
+
+
+FILLERS = {"um", "uh", "hm", "hmm", "mm", "ah", "er", "äh", "ähm", "öh", "嗯", "呃"}
 
 
 def normalize(text, lang):
+    base = lang.split("-")[0]
     text = unicodedata.normalize("NFKC", text).lower()
-    if lang == "en":
+    if base == "en":
         text = spell_numbers(text.replace("-", " "))
         text = re.sub(r"\ba hundred\b", "one hundred", text)
         text = re.sub(r"\bokay\b", "ok", text)
+    elif base == "de":
+        text = spell_numbers_de(text.replace("-", " ")).replace("ß", "ss")
+        text = re.sub(r"\b(?:okay|ok)\b", "ok", text)
+    elif base == "sr":
+        text = spell_numbers_sr(sr_latin(text).replace("-", " "))
+        text = re.sub(r"\b(?:okej|okay|ok)\b", "ok", text)
+    elif base == "zh":
+        text = spell_numbers_zh(text)
     text = re.sub(r"[^\w\s']|_", " ", text).replace("'", "")
     tokens = [t for t in text.split() if t not in FILLERS]
-    if lang == "en":  # "a hundred and eighty" and "180" should agree
+    if base == "en":  # "a hundred and eighty" and "180" should agree
         tokens = [t for i, t in enumerate(tokens)
                   if not (t == "and" and 0 < i < len(tokens) - 1 and tokens[i - 1] == "hundred")]
-    if lang in ("zh", "ja"):
-        return [c for c in "".join(tokens)]
+    elif base == "de":
+        tokens = [DE_ORDINAL.sub(r"\1en", re.sub(r"^ein(hundert|tausend)", r"\1", t)) for t in tokens]
+    elif base == "sr":
+        tokens = [SR_ORDINAL.sub(r"\1i", "dva" if t == "dve" else t) for t in tokens]
+    if base in ("zh", "ja"):
+        return [c for c in "".join(tokens) if c not in FILLERS]
     return tokens
 
 
@@ -262,8 +438,10 @@ def check(args):
     print(f"{unit}: {errors / len(ref_tokens):.1%} ({errors} edits over {len(ref_tokens)} reference "
           f"{'characters' if unit == 'CER' else 'words'})")
 
-    flat = " " + " ".join(normalize(hyp_text, "raw")) + " "
     raw = unicodedata.normalize("NFKC", hyp_text).lower()
+    if args.lang.split("-")[0] == "sr":
+        raw = sr_latin(raw)
+    flat = " " + " ".join(normalize(raw, "raw")) + " "
     found = 0
     print("\nNames, numbers and dates:")
     for entity in expected["entities"]:

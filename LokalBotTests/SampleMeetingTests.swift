@@ -14,8 +14,26 @@ final class SampleMeetingTests: XCTestCase {
 
     func testRecordingFollowsTheInterfaceLanguageThenEnglish() {
         XCTAssertEqual(SampleMeeting.recording(for: "en"), SampleMeeting.english)
-        XCTAssertEqual(SampleMeeting.recording(for: "de"), SampleMeeting.english)
-        XCTAssertEqual(SampleMeeting.recording(for: "sr-Latn"), SampleMeeting.english)
+        XCTAssertEqual(SampleMeeting.recording(for: "de").id, "orders-api/de")
+        XCTAssertEqual(SampleMeeting.recording(for: "de-CH").id, "orders-api/de")
+        XCTAssertEqual(SampleMeeting.recording(for: "zh-Hans").id, "orders-api/zh")
+        // Traditional Chinese gets the Mandarin recording too, titled in Simplified Chinese.
+        XCTAssertEqual(SampleMeeting.recording(for: "zh-Hant").id, "orders-api/zh")
+        XCTAssertEqual(SampleMeeting.recording(for: "sr-Latn").id, "orders-api/sr-Latn")
+        XCTAssertEqual(SampleMeeting.recording(for: "fr"), SampleMeeting.english)
+        XCTAssertEqual(SampleMeeting.recording(for: "ja"), SampleMeeting.english)
+    }
+
+    func testEveryRecordingIsBundledAndImportsWithItsTitle() async throws {
+        for recording in SampleMeeting.recordings {
+            let storage = StorageManager(rootURL: try temporaryDirectory("SampleLibrary"))
+            let url = try XCTUnwrap(SampleMeeting.audioURL(for: recording), "\(recording.fileName) is bundled")
+            let meeting = try await MeetingImportService.importRecording(from: url, storage: storage, sample: recording)
+            XCTAssertEqual(meeting.title, recording.title)
+            XCTAssertEqual(meeting.sampleID, recording.id)
+            let duration = try XCTUnwrap(meeting.recordedDuration)
+            XCTAssertTrue((180...300).contains(duration), "\(recording.id) runs \(duration) s")
+        }
     }
 
     func testBundledSampleImportsAsTheMarkedSampleDatedNow() async throws {
