@@ -159,7 +159,19 @@ fn section_named(name: &str) -> Option<Section> {
     })
 }
 
+/// `lokalbot --version` (or `-V`) wherever it appears. `main` checks it before
+/// anything else, so it never opens the library or wakes a running LokalBot.
+fn wants_version(args: &[String]) -> bool {
+    args.iter()
+        .skip(1)
+        .any(|arg| arg == "--version" || arg == "-V")
+}
+
 fn main() {
+    if wants_version(&std::env::args().collect::<Vec<_>>()) {
+        println!("LokalBot {}", env!("CARGO_PKG_VERSION"));
+        return;
+    }
     let options = parse_options();
     let paths = LibraryPaths::resolve(options.storage_root.as_deref());
     if std::env::args().any(|arg| arg == "--seed-demo") {
@@ -444,4 +456,29 @@ fn apply_launch_at_login(data: &Entity<AppData>, cx: &mut App) {
         }
     })
     .detach();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::wants_version;
+
+    fn args(list: &[&str]) -> Vec<String> {
+        list.iter().map(|arg| arg.to_string()).collect()
+    }
+
+    #[test]
+    fn version_flag_counts_anywhere_after_the_program() {
+        assert!(wants_version(&args(&["lokalbot", "--version"])));
+        assert!(wants_version(&args(&["lokalbot", "-V"])));
+        assert!(wants_version(&args(&[
+            "lokalbot",
+            "--lokalbot-storage-root",
+            "/tmp/library",
+            "show",
+            "--version",
+        ])));
+        assert!(!wants_version(&args(&["lokalbot"])));
+        assert!(!wants_version(&args(&["lokalbot", "show", "--autostart"])));
+        assert!(!wants_version(&args(&["lokalbot", "--versions", "-v"])));
+    }
 }

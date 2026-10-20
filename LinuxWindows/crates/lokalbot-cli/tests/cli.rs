@@ -205,6 +205,21 @@ fn mcp_round_trip() {
 }
 
 #[test]
+fn version_exits_without_touching_the_library() {
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().join("library");
+    for flag in ["--version", "-V"] {
+        let output = cli(&root, &[flag]);
+        assert_eq!(output.status.code(), Some(0));
+        assert_eq!(
+            stdout(&output),
+            format!("lokalbot-cli {}\n", env!("CARGO_PKG_VERSION"))
+        );
+    }
+    assert!(!root.exists());
+}
+
+#[test]
 fn reads_the_macos_fixture() {
     let fixture = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("../../../LokalBotTests/Fixtures/upgrade/0.10.9/library");
