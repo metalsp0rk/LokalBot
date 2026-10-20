@@ -7,15 +7,21 @@
 # each with a .sha256 file. Run scripts/package.sh first.
 #
 # NFPM: the nfpm binary to use (default: nfpm on PATH).
+# PACKAGE_VERSION, STAGE, LINUX_REPO_PUBLIC_KEY: another version, staged
+# folder or repository key, for scripts/ci/check-linux-repos.sh.
 #
 # The packages install lokalbot and lokalbot-cli into /usr/bin, the desktop
 # entry and icons into /usr/share. LokalBot does not replace files it cannot
 # write, so a package install is told about updates and offered the download.
+# Once the repository key is in packaging/linux, the .deb and .rpm also add
+# the apt and dnf repositories at pkg.lokalbot.com (scripts/linux-repos.sh)
+# with that key, so later versions come with `apt upgrade` and `dnf upgrade`.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-VERSION=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)
+VERSION=${PACKAGE_VERSION:-$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)}
 ROOT="$(pwd)"
-STAGE="$ROOT/dist/LokalBot-$VERSION-linux-x86_64"
+STAGE="${STAGE:-$ROOT/dist/LokalBot-$VERSION-linux-x86_64}"
+REPO_KEY="${LINUX_REPO_PUBLIC_KEY:-$ROOT/packaging/linux/lokalbot-archive-keyring.asc}"
 NFPM="${NFPM:-nfpm}"
 APP_ID=com.lokalbot.LokalBot
 if [ ! -x "$STAGE/lokalbot" ] || [ ! -x "$STAGE/lokalbot-cli" ]; then
@@ -24,6 +30,11 @@ if [ ! -x "$STAGE/lokalbot" ] || [ ! -x "$STAGE/lokalbot-cli" ]; then
 fi
 
 CONFIG="$ROOT/dist/nfpm.yaml"
+KEYRING="$ROOT/dist/lokalbot-archive-keyring.gpg"
+mkdir -p "$ROOT/dist"
+if [ -f "$REPO_KEY" ]; then
+  gpg --dearmor < "$REPO_KEY" > "$KEYRING"
+fi
 {
   cat <<EOF
 name: lokalbot
@@ -79,6 +90,29 @@ EOF
     file_info: {mode: 0644}
 EOF
   done
+  # The repository files are config files: an edited copy survives upgrades.
+  if [ -f "$REPO_KEY" ]; then
+    cat <<EOF
+  - src: $ROOT/packaging/linux/lokalbot.sources
+    dst: /etc/apt/sources.list.d/lokalbot.sources
+    type: config
+    packager: deb
+    file_info: {mode: 0644}
+  - src: $KEYRING
+    dst: /usr/share/keyrings/lokalbot-archive-keyring.gpg
+    packager: deb
+    file_info: {mode: 0644}
+  - src: $ROOT/packaging/linux/lokalbot.repo
+    dst: /etc/yum.repos.d/lokalbot.repo
+    type: config|noreplace
+    packager: rpm
+    file_info: {mode: 0644}
+  - src: $REPO_KEY
+    dst: /etc/pki/rpm-gpg/RPM-GPG-KEY-lokalbot
+    packager: rpm
+    file_info: {mode: 0644}
+EOF
+  fi
   # The binaries need glibc 2.39 (built on Ubuntu 24.04). The app links ALSA,
   # xcb and xkbcommon and loads Vulkan and the Wayland client at run time.
   # System audio uses PulseAudio or PipeWire's PulseAudio server; the
@@ -150,4 +184,4 @@ for spec in "deb linux-amd64.deb" "rpm linux-x86_64.rpm" "archlinux linux-x86_64
   sha256sum "$OUT" > "$OUT.sha256"
   echo "dist/$OUT"
 done
-rm -f "$CONFIG"
+rm -f "$CONFIG" "$KEYRING"

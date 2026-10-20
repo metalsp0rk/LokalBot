@@ -74,8 +74,10 @@ release has none yet, use a CI run's artifacts (`lokalbot-linux-x86_64`, `lokalb
   The same release has packages that install into `/usr/bin` with their dependencies:
   `LokalBot-<version>-linux-amd64.deb` (Debian, Ubuntu: `sudo apt install ./LokalBot-…deb`),
   `LokalBot-<version>-linux-x86_64.rpm` (Fedora, openSUSE: `sudo dnf install ./LokalBot-…rpm`) and
-  `LokalBot-<version>-linux-x86_64.pkg.tar.zst` (Arch: `sudo pacman -U ./LokalBot-…zst`). A package
-  install tells you about updates and offers the download instead of replacing its files.
+  `LokalBot-<version>-linux-x86_64.pkg.tar.zst` (Arch: `sudo pacman -U ./LokalBot-…zst`). Installing the
+  `.deb`, or the `.rpm` on Fedora, also adds the LokalBot repository at `pkg.lokalbot.com`, so
+  `sudo apt upgrade` or `sudo dnf upgrade` brings later versions. With the Arch package, LokalBot tells you about updates and
+  offers the download instead of replacing its files.
 - **Windows** 10/11 (x64): run `LokalBot-<version>-windows-x86_64-setup.exe`. It installs for your user into
   `%LOCALAPPDATA%\Programs\LokalBot` without administrator rights, adds a Start menu shortcut (which also
   lets notifications show LokalBot's name) and an Installed apps entry; uninstalling keeps your library. Or
@@ -119,6 +121,14 @@ Mode, and starts the new version. On Windows a running `lokalbot-cli` (an agent'
 its old file is removed on a later start. Your library is never touched. When LokalBot cannot replace its own
 files (a package manager's copy, `/usr`, `/opt`, Program Files, a folder you cannot write), it offers the
 download from GitHub instead. Debug builds never update.
+
+The `.deb` and `.rpm` update with your package manager, from the LokalBot repository they add:
+`/etc/apt/sources.list.d/lokalbot.sources` with its key in `/usr/share/keyrings`, or
+`/etc/yum.repos.d/lokalbot.repo` with its key in `/etc/pki/rpm-gpg`. apt and dnf check the repository's
+signature and each package's. Your edits to those files survive upgrades; add `Enabled: no` or set
+`enabled=0` to stop updates from it. The repository has the newest three stable versions, never pre-releases.
+openSUSE's zypper doesn't read `/etc/yum.repos.d`, so there the `.rpm` is told about updates like the Arch
+package.
 
 On first launch LokalBot asks what to remember and downloads the models you choose: about 4 GB for the
 default transcription, Think and search models.
