@@ -1,7 +1,8 @@
 //! The floating dictation status: a pill at the bottom of the screen while
 //! listening, transcribing or composing, then a short notice
 //! (`DictationOverlayView.swift`). It never takes focus, so text still lands
-//! in the app the user is typing in.
+//! in the app the user is typing in. On Wayland it is a layer surface, which
+//! tiling compositors leave out of their layout.
 
 use std::time::Duration;
 
@@ -9,7 +10,7 @@ use crate::i18n::h_flex;
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
     AnyWindowHandle, App, AppContext as _, Bounds, Context, Entity, FontWeight,
-    InteractiveElement as _, IntoElement, ParentElement as _, Render, SharedString,
+    InteractiveElement as _, IntoElement, ParentElement as _, Pixels, Render, SharedString,
     StatefulInteractiveElement as _, Styled as _, Subscription, Window, WindowBackgroundAppearance,
     WindowBounds, WindowKind, WindowOptions, div, point, px, size,
 };
@@ -21,6 +22,8 @@ use crate::ui::{self, Ico};
 const PILL: (f32, f32) = (196., 40.);
 const STATUS: (f32, f32) = (320., 40.);
 const NOTICE: (f32, f32) = (400., 40.);
+/// Space between the pill and the bottom of the screen.
+const BOTTOM_MARGIN: f32 = 64.;
 
 /// Opens, resizes or closes the overlay to match `AppData.dictation`.
 pub fn sync(cx: &mut App) {
@@ -50,31 +53,53 @@ struct HudWindow(AnyWindowHandle);
 impl gpui_kit::Global for HudWindow {}
 
 fn open(state: &DictationHud, cx: &mut App) -> Option<AnyWindowHandle> {
-    let display = cx.primary_display()?;
-    let visible = display.bounds();
     let (width, height) = dimensions(state);
+    let size = size(px(width), px(height));
+    // On Wayland the pill is a layer surface on the bottom edge: a tiling
+    // compositor would otherwise tile it and give it the keyboard, and the
+    // dictated text would land in the pill.
+    #[cfg(target_os = "linux")]
+    if let Some(kind) = crate::windows::layer_surface(
+        "lokalbot-dictation",
+        gpui_kit::layer_shell::Anchor::BOTTOM,
+        Some((px(0.), px(0.), px(BOTTOM_MARGIN), px(0.))),
+        gpui_kit::layer_shell::KeyboardInteractivity::None,
+    ) {
+        let bounds = Bounds {
+            origin: point(px(0.), px(0.)),
+            size,
+        };
+        match cx.open_window(options(bounds, kind), |_, cx| cx.new(Hud::new)) {
+            Ok(handle) => return Some(handle.into()),
+            Err(err) => log::debug!("dictation pill: no layer shell, opening a window: {err:#}"),
+        }
+    }
+    let visible = cx.primary_display()?.bounds();
     let origin = point(
-        visible.origin.x + (visible.size.width - px(width)) / 2.,
-        visible.origin.y + visible.size.height - px(height) - px(64.),
+        visible.origin.x + (visible.size.width - size.width) / 2.,
+        visible.origin.y + visible.size.height - size.height - px(BOTTOM_MARGIN),
     );
-    let options = WindowOptions {
-        window_bounds: Some(WindowBounds::Windowed(Bounds {
-            origin,
-            size: size(px(width), px(height)),
-        })),
+    cx.open_window(
+        options(Bounds { origin, size }, WindowKind::PopUp),
+        |_, cx| cx.new(Hud::new),
+    )
+    .ok()
+    .map(Into::into)
+}
+
+fn options(bounds: Bounds<Pixels>, kind: WindowKind) -> WindowOptions {
+    WindowOptions {
+        window_bounds: Some(WindowBounds::Windowed(bounds)),
         titlebar: None,
-        kind: WindowKind::PopUp,
+        kind,
         focus: false,
         show: true,
         is_movable: false,
         is_resizable: false,
         window_background: WindowBackgroundAppearance::Transparent,
-        app_id: Some("com.lokalbot.LokalBot".into()),
+        app_id: Some(lokalbot_platform::APP_ID.into()),
         ..Default::default()
-    };
-    cx.open_window(options, |_, cx| cx.new(Hud::new))
-        .ok()
-        .map(Into::into)
+    }
 }
 
 fn dimensions(state: &DictationHud) -> (f32, f32) {
