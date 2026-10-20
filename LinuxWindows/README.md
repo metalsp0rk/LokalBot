@@ -71,6 +71,11 @@ release has none yet, use a CI run's artifacts (`lokalbot-linux-x86_64`, `lokalb
 - **Linux** (x86_64): extract `LokalBot-<version>-linux-x86_64.tar.gz` and run `./install.sh`. It installs
   `lokalbot` and `lokalbot-cli` into `~/.local/bin` and adds LokalBot to your applications menu.
   Runtime needs: a Vulkan or OpenGL driver (Mesa is fine), PulseAudio or PipeWire for system audio.
+  The same release has packages that install into `/usr/bin` with their dependencies:
+  `LokalBot-<version>-linux-amd64.deb` (Debian, Ubuntu: `sudo apt install ./LokalBot-…deb`),
+  `LokalBot-<version>-linux-x86_64.rpm` (Fedora, openSUSE: `sudo dnf install ./LokalBot-…rpm`) and
+  `LokalBot-<version>-linux-x86_64.pkg.tar.zst` (Arch: `sudo pacman -U ./LokalBot-…zst`). A package
+  install tells you about updates and offers the download instead of replacing its files.
 - **Windows** 10/11 (x64): extract `LokalBot-<version>-windows-x86_64.zip` anywhere and run `lokalbot.exe`.
   The executable is not code-signed yet, so SmartScreen may ask you to confirm.
 
