@@ -267,3 +267,24 @@ This runs about 3 minutes at a natural pace. The final script adds a few
 lines of realistic back-and-forth, such as the response size and a contract
 test detail, to reach about 3½–4 minutes without adding facts that compete
 with the checklist.
+
+## Outcome (2026-10-20)
+
+Built in [PR 333](https://github.com/stevyhacker/LokalBot/pull/333) for Mac,
+Windows and Linux. On the Ubuntu box, a release build was run end to end under
+Xvfb from an empty library with the default models (Qwen3-ASR 0.6B, Qwen3.5 4B):
+
+- The model stage listed 3.7 GB, and nothing downloaded until asked.
+- The sample was added as soon as the downloads finished.
+- `Scripts/sample_meeting.py check` scored 3.0% WER and found all 14 names,
+  numbers and dates. 93% of speech time landed on the right voice, although
+  speaker separation reported 3 speakers for 2 voices.
+- The notes stated the changed decision rather than the reversed one, and kept
+  the backfill question open.
+- Ask answered the suggested question correctly and cited 02:05 and 02:12,
+  both inside the changed-decision passage. Opening the citation needed a fix
+  in the same PR, so the transcript now scrolls to rows it hasn't drawn yet.
+- Remove sample deleted it in one step.
+
+The Mac app compiles and its unit tests run in CI. It hasn't been run as an
+app on a Mac yet.
