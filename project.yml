@@ -25,10 +25,10 @@ settings:
 packages:
   FluidAudio:
     url: https://github.com/FluidInference/FluidAudio
-    exactVersion: 0.17.5   # Nemotron output-backing fixes and transcript-safe logging controls
+    exactVersion: 0.17.7   # Kokoro pronunciation fix; retains Nemotron backing/logging controls
   WhisperKit:
     url: https://github.com/argmaxinc/WhisperKit
-    exactVersion: 1.1.0
+    exactVersion: 1.1.1   # crash and model-download cancellation fixes
   Qwen3Speech:
     url: https://github.com/stevyhacker/speech-swift
     revision: 33f42bc0d48efa5baf39f2531f52c333d92e519a  # v0.0.28 + MLX-LM pin; upstream soniqo/speech-swift#501
