@@ -194,6 +194,7 @@ fn tray_state(data: &AppData, update: Option<TrayUpdate>) -> TrayMenuState {
         screen_capture: data.settings.tracking_enabled
             && data.settings.screen_context_capture_mode
                 != lokalbot_core::ScreenContextMode::ActivityOnly,
+        recent_dictation: !data.recent_dictations.is_empty(),
         update,
     }
 }
@@ -224,6 +225,7 @@ fn refresh_tray(data: &Entity<AppData>, cx: &mut App) {
             || l.subtitle != state.subtitle
             || l.day_memory_paused != state.day_memory_paused
             || l.screen_capture != state.screen_capture
+            || l.recent_dictation != state.recent_dictation
             || l.update != state.update
     });
     if menu_changed {
@@ -284,6 +286,9 @@ fn handle(data: &Entity<AppData>, event: DesktopEvent, cx: &mut App) {
                 cx,
             ),
             item_ids::STOP_RECORDING => crate::bridge::send(Command::StopRecording, cx),
+            item_ids::COPY_LAST_DICTATION => {
+                crate::bridge::send(Command::Dictation(DictationCommand::CopyRecent(None)), cx)
+            }
             item_ids::ASK => crate::windows::quick_recall::open(cx),
             item_ids::OPEN => show_main_window(cx),
             item_ids::SETTINGS => {

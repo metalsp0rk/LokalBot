@@ -591,6 +591,7 @@
   "Sarah": "莎拉",
   "Save Moment": "节省时间",
   "Saved": "已保存",
+  "Saved encrypted on this computer for 7 days, so you can copy a dictation again after the clipboard changes or the computer restarts. Text dictated into a password manager is never kept.": "在这台电脑上加密保存 7 天，剪贴板被替换或电脑重启后你仍可再次复制听写内容。听写到密码管理器中的文字绝不保留。",
   "Saved on this PC": "已保存在此电脑上",
   "Saved sessions…": "已保存会话",
   "Saved the API key in the system credential store.": "已将 API 密钥保存在系统凭证存储中。",

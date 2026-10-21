@@ -1,6 +1,7 @@
-//! API keys, private calendar links and the screen image key live in the
-//! system credential store (Windows Credential Manager, the Secret Service on
-//! Linux), never in `settings.json` or the library.
+//! API keys, private calendar links and the keys that seal screen images and
+//! recent dictations live in the system credential store (Windows Credential
+//! Manager, the Secret Service on Linux), never in `settings.json` or the
+//! library.
 
 use anyhow::{Context as _, Result};
 
@@ -70,6 +71,7 @@ pub fn install_plan_store() {
 }
 
 const SCREENSHOT_KEY: &str = "screenshot-key";
+const RECENT_DICTATIONS_KEY: &str = "recent-dictations-key";
 
 /// The per-install key that seals screen images (`ScreenshotService.encryptionKey`,
 /// Keychain account `screenshot-key`). It is created on first use when
@@ -77,39 +79,59 @@ const SCREENSHOT_KEY: &str = "screenshot-key";
 /// life of the process so captures do not ask the store each time. A store
 /// that cannot be reached never leads to a new key: images are then not kept.
 pub fn screen_image_key(create: bool) -> Result<[u8; lokalbot_core::screen::IMAGE_KEY_BYTES]> {
-    static CACHE: parking_lot::Mutex<Option<[u8; lokalbot_core::screen::IMAGE_KEY_BYTES]>> =
-        parking_lot::Mutex::new(None);
+    sealing_key(SCREENSHOT_KEY, "screen image key", create)
+}
+
+/// The per-install key that seals recent dictations, kept like the screen
+/// image key. Without a reachable store they stay in memory only.
+pub fn recent_dictations_key(
+    create: bool,
+) -> Result<[u8; lokalbot_core::dictation_history::KEY_BYTES]> {
+    sealing_key(RECENT_DICTATIONS_KEY, "recent dictations key", create)
+}
+
+const KEY_BYTES: usize = 32;
+const _: () = assert!(
+    KEY_BYTES == lokalbot_core::screen::IMAGE_KEY_BYTES
+        && KEY_BYTES == lokalbot_core::dictation_history::KEY_BYTES
+);
+
+fn sealing_key(account: &'static str, what: &str, create: bool) -> Result<[u8; KEY_BYTES]> {
+    static CACHE: parking_lot::Mutex<Vec<(&'static str, [u8; KEY_BYTES])>> =
+        parking_lot::Mutex::new(Vec::new());
     let mut cache = CACHE.lock();
-    if let Some(key) = *cache {
-        return Ok(key);
+    if let Some((_, key)) = cache.iter().find(|(cached, _)| *cached == account) {
+        return Ok(*key);
     }
-    let entry = entry(SCREENSHOT_KEY)?;
+    let entry = entry(account)?;
     let key = match entry.get_password() {
-        Ok(stored) => decode_key(&stored).context("the stored screen image key is not readable")?,
+        Ok(stored) => {
+            decode_key(&stored).with_context(|| format!("the stored {what} is not readable"))?
+        }
         Err(keyring::Error::NoEntry) if create => {
             let key = lokalbot_core::screen::new_image_key();
             entry
                 .set_password(&hex::encode(key))
-                .context("saving the screen image key")?;
+                .with_context(|| format!("saving the {what}"))?;
             // Read it back: a store that silently drops secrets must not
-            // leave images that nothing can open.
+            // leave files that nothing can open.
             let stored = entry
                 .get_password()
-                .context("reading the screen image key back")?;
+                .with_context(|| format!("reading the {what} back"))?;
             anyhow::ensure!(
                 decode_key(&stored) == Some(key),
-                "the credential store did not keep the screen image key"
+                "the credential store did not keep the {what}"
             );
             key
         }
-        Err(keyring::Error::NoEntry) => anyhow::bail!("no screen image key has been created"),
-        Err(err) => return Err(err).context("reading the screen image key"),
+        Err(keyring::Error::NoEntry) => anyhow::bail!("no {what} has been created"),
+        Err(err) => return Err(err).with_context(|| format!("reading the {what}")),
     };
-    *cache = Some(key);
+    cache.push((account, key));
     Ok(key)
 }
 
-fn decode_key(stored: &str) -> Option<[u8; lokalbot_core::screen::IMAGE_KEY_BYTES]> {
+fn decode_key(stored: &str) -> Option<[u8; KEY_BYTES]> {
     hex::decode(stored.trim()).ok()?.try_into().ok()
 }
 

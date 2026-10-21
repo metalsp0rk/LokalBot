@@ -591,6 +591,7 @@
   "Sarah": "سارة",
   "Save Moment": "لحظة الحفظ",
   "Saved": "تم الحفظ",
+  "Saved encrypted on this computer for 7 days, so you can copy a dictation again after the clipboard changes or the computer restarts. Text dictated into a password manager is never kept.": "يُحفظ مشفّرًا على هذا الكمبيوتر لمدة 7 أيام، لتتمكن من نسخ الإملاء مجددًا بعد تغيّر الحافظة أو إعادة تشغيل الكمبيوتر. لا يُحفظ أبدًا النص المُملى في مدير كلمات مرور.",
   "Saved on this PC": "تم الحفظ على هذا الكمبيوتر",
   "Saved sessions…": "الجلسات المحفوظة",
   "Saved the API key in the system credential store.": "تم حفظ مفتاح API في مخزن بيانات اعتماد النظام.",

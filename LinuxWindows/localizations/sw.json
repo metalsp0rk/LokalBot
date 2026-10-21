@@ -591,6 +591,7 @@
   "Sarah": "Sarah",
   "Save Moment": "Okoa Muda",
   "Saved": "Imehifadhiwa",
+  "Saved encrypted on this computer for 7 days, so you can copy a dictation again after the clipboard changes or the computer restarts. Text dictated into a password manager is never kept.": "Huhifadhiwa kwa usimbaji fiche kwenye kompyuta hii kwa siku 7, ili uweze kunakili imla tena baada ya ubao wa kunakili kubadilika au kompyuta kuwashwa upya. Maandishi yaliyoimbwa kwenye kidhibiti cha manenosiri hayahifadhiwi kamwe.",
   "Saved on this PC": "Imehifadhiwa kwenye Kompyuta hii",
   "Saved sessions…": "Vipindi Vilivyohifadhiwa",
   "Saved the API key in the system credential store.": "Imehifadhi ufunguo wa API kwenye hifadhi ya kitambulisho cha mfumo.",
