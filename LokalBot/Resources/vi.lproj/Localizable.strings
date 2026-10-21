@@ -1425,3 +1425,6 @@
 "Mentioned in %lld meetings" = "Được nhắc trong %lld cuộc họp";
 "Reopen action thread" = "Mở lại luồng hành động";
 "Mark action thread done" = "Đánh dấu luồng hành động là xong";
+"Names you save also teach LokalBot this voice, so it can name the person in later meetings. Voices stay encrypted on this Mac." = "Tên bạn lưu cũng giúp LokalBot học giọng nói này để nhận ra người đó trong các cuộc họp sau. Giọng nói được mã hóa và lưu trên máy Mac này.";
+"Apply Names" = "Áp dụng tên";
+"Recognized voices: %@" = "Giọng nói đã nhận ra: %@";

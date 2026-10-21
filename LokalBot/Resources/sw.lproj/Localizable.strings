@@ -1425,3 +1425,6 @@
 "Mentioned in %lld meetings" = "Imetajwa katika mikutano %lld";
 "Reopen action thread" = "Fungua tena mfululizo wa hatua";
 "Mark action thread done" = "Weka alama kuwa mfululizo wa hatua umekamilika";
+"Names you save also teach LokalBot this voice, so it can name the person in later meetings. Voices stay encrypted on this Mac." = "Majina unayohifadhi pia humfundisha LokalBot sauti hii, ili aweze kumtaja mtu huyo katika mikutano ijayo. Sauti hubaki zimesimbwa kwa njia fiche kwenye Mac hii.";
+"Apply Names" = "Tumia majina";
+"Recognized voices: %@" = "Sauti zilizotambuliwa: %@";
