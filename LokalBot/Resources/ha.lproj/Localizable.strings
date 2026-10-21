@@ -1433,3 +1433,6 @@
 "Mentioned in %lld meetings" = "An ambata a taruka %lld";
 "Reopen action thread" = "Sake buɗe tattaunawar mataki";
 "Mark action thread done" = "Sa alamar an gama tattaunawar mataki";
+"Names you save also teach LokalBot this voice, so it can name the person in later meetings. Voices stay encrypted on this Mac." = "Sunayen da ka adana suna kuma koya wa LokalBot wannan murya, don ya iya sanin mutumin a tarukan gaba. Muryoyi suna zama a ɓoye cikin wannan Mac.";
+"Apply Names" = "Yi amfani da sunaye";
+"Recognized voices: %@" = "Muryoyin da aka gane: %@";

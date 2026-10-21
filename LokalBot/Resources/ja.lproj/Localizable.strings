@@ -1433,3 +1433,6 @@
 "Mentioned in %lld meetings" = "%lld 件の会議で言及";
 "Reopen action thread" = "アクションスレッドを再開";
 "Mark action thread done" = "アクションスレッドを完了にする";
+"Names you save also teach LokalBot this voice, so it can name the person in later meetings. Voices stay encrypted on this Mac." = "保存した名前で LokalBot はこの声も覚え、以降のミーティングでその人の名前を表示できます。声はこの Mac に暗号化して保存されます。";
+"Apply Names" = "名前を適用";
+"Recognized voices: %@" = "認識された声: %@";
