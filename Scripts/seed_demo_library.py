@@ -11,7 +11,7 @@ Also seeds:
                          them to .enc) — the latest one shows an answered
                          question with [meeting:ID@M:SS] citation markers
   - activity_blocks      several weekdays of day-timeline data
-  - memory/personal-model.json  plaintext About you items covering every origin
+  - memory/personal-model.json  plaintext Personal Context items covering every origin
                          (the app re-encrypts the file on its next save;
                          upgrade fixtures seal it with their test chat key)
 
@@ -398,7 +398,7 @@ def seed_chats(root, now):
 
 
 def seed_about_you(root, now):
-    """Plaintext About you items, one per origin the app can store: stated in
+    """Plaintext Personal Context items, one per origin the app can store: stated in
     Settings, said in Ask, learned from a meeting line, a typed-request
     suggestion, a dictation suggestion, and a work-memory suggestion, plus a
     tombstone and a work

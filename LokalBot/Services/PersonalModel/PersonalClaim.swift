@@ -13,7 +13,7 @@ struct PersonalClaim: Codable, Identifiable, Equatable, Sendable, PersonalContex
     enum Origin: Codable, Equatable, Sendable {
         /// "Remember …" typed in Ask or Quick Recall.
         case said(conversationID: UUID, messageID: UUID)
-        /// Added in Settings → Day Memory → About you.
+        /// Added in Settings → Personal Context.
         case added
         /// Picked up overnight from the person's own line in this meeting.
         case learned(meetingID: UUID, dayKey: String)
@@ -232,20 +232,33 @@ struct PersonalModel: Codable, Equatable, Sendable {
         var firstDayKey: String
     }
 
+    /// A day the overnight learning pass has read, and a hash of the lines it
+    /// read. The review rebuilds days whenever their sources change; the pass
+    /// runs again only when the person's own lines did.
+    struct LearnedDay: Codable, Equatable, Sendable {
+        var dayKey: String
+        var fingerprint: String
+        var learnedAt: Date
+    }
+
+    static let learnedDayLifetime: TimeInterval = 60 * 24 * 60 * 60
+
     var version = PersonalModel.currentVersion
     var claims: [PersonalClaim] = []
     var tombstones: [Tombstone] = []
     var workSightings: [WorkSighting] = []
+    var learnedDays: [LearnedDay] = []
 
     init(version: Int = PersonalModel.currentVersion, claims: [PersonalClaim] = [],
-         tombstones: [Tombstone] = [], workSightings: [WorkSighting] = []) {
+         tombstones: [Tombstone] = [], workSightings: [WorkSighting] = [], learnedDays: [LearnedDay] = []) {
         self.version = version
         self.claims = claims
         self.tombstones = tombstones
         self.workSightings = workSightings
+        self.learnedDays = learnedDays
     }
 
-    private enum CodingKeys: String, CodingKey { case version, claims, tombstones, workSightings }
+    private enum CodingKeys: String, CodingKey { case version, claims, tombstones, workSightings, learnedDays }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -253,6 +266,25 @@ struct PersonalModel: Codable, Equatable, Sendable {
         claims = try c.decodeIfPresent([PersonalClaim].self, forKey: .claims) ?? []
         tombstones = try c.decodeIfPresent([Tombstone].self, forKey: .tombstones) ?? []
         workSightings = try c.decodeIfPresent([WorkSighting].self, forKey: .workSightings) ?? []
+        learnedDays = try c.decodeIfPresent([LearnedDay].self, forKey: .learnedDays) ?? []
+    }
+
+    func hasLearned(dayKey: String, fingerprint: String) -> Bool {
+        learnedDays.contains { $0.dayKey == dayKey && $0.fingerprint == fingerprint }
+    }
+
+    mutating func recordLearned(dayKey: String, fingerprint: String, at date: Date) {
+        learnedDays.removeAll { $0.dayKey == dayKey }
+        learnedDays.append(LearnedDay(dayKey: dayKey, fingerprint: fingerprint, learnedAt: date))
+    }
+
+    /// The source of a learned claim changed but still has the line it
+    /// quotes: tie the claim to the current evidence revision instead of
+    /// retracting it.
+    mutating func refreshEvidence(ids: Set<UUID>, revision: UInt64) {
+        for index in claims.indices where ids.contains(claims[index].id) {
+            claims[index].evidence?.revision = revision
+        }
     }
 
     static func tombstoneKey(_ text: String) -> String {
@@ -474,6 +506,7 @@ struct PersonalModel: Codable, Equatable, Sendable {
     mutating func prune(now: Date) {
         claims.removeAll { $0.status == .proposed && now.timeIntervalSince($0.createdAt) > Self.proposalLifetime }
         tombstones.removeAll { now.timeIntervalSince($0.createdAt) > Self.tombstoneLifetime }
+        learnedDays.removeAll { now.timeIntervalSince($0.learnedAt) > Self.learnedDayLifetime }
     }
 
     mutating func markUsed(ids: Set<UUID>, at date: Date) {

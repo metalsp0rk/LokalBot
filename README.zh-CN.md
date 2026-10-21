@@ -209,7 +209,7 @@ LokalBot 支持 macOS 15 或更新版本的 Apple Silicon Mac；Windows 和 Linu
 <details>
 <summary><strong>能在 Windows 或 Linux 上使用吗？</strong></summary>
 
-可以，目前是 alpha 版。Windows 和 Linux 版是用 Rust 编写的原生应用，页面相同，纪要和搜索使用相同的模型，资料库格式也相同，所以资料库可以在不同电脑之间迁移。选择文字操作、纪要导出、About you、语音朗读摘要，以及工作记录中的编程智能体会话，目前只有 Mac 版支持；在 Wayland 上，部分功能取决于你的桌面环境。详见[各平台功能对照（英文）](LinuxWindows/README.md#what-works-where)。
+可以，目前是 alpha 版。Windows 和 Linux 版是用 Rust 编写的原生应用，页面相同，纪要和搜索使用相同的模型，资料库格式也相同，所以资料库可以在不同电脑之间迁移。选择文字操作、纪要导出、个人上下文（Personal Context）、语音朗读摘要，以及工作记录中的编程智能体会话，目前只有 Mac 版支持；在 Wayland 上，部分功能取决于你的桌面环境。详见[各平台功能对照（英文）](LinuxWindows/README.md#what-works-where)。
 
 </details>
 

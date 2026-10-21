@@ -29,6 +29,7 @@
 "Activity results" = "Aktivitätsergebnisse";
 "Activity titles to clear" = "Zu löschende Aktivitätstitel";
 "Activity, captured context, daily briefs, routines, and exports." = "Aktivität, erfasster Kontext, Tagesübersichten, Routinen und Exporte.";
+"What you told LokalBot, what it learns about you, and what agents can read." = "Was du LokalBot erzählt hast, was es über dich lernt und was Agenten lesen dürfen.";
 "Actual size" = "Originalgröße";
 "Add" = "Hinzufügen";
 "Add Exclusion" = "Ausnahme hinzufügen";
@@ -1215,7 +1216,7 @@
 "Your subscription" = "Dein Abo";
 "Server" = "Server";
 "In use" = "In Verwendung";
-"About you" = "Über dich";
+"Personal Context" = "Persönlicher Kontext";
 "Remember what I tell Ask" = "Merken, was ich Fragen mitteile";
 "Remembered" = "Gemerkt";
 "Not remembered" = "Nicht gemerkt";

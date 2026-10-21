@@ -54,12 +54,13 @@ final class AppState: ObservableObject {
     /// Which tab the Settings surface shows (spec §2.5 — Settings absorbs
     /// Models as a tab strip). Session-sticky like TypeTab.
     enum SettingsTab: String, CaseIterable {
-        case general, recording, dayMemory, writing, dictation, models, privacy, advanced
+        case general, recording, dayMemory, personalContext, writing, dictation, models, privacy, advanced
 
         var displayName: String {
             switch self {
             case .recording: "Meetings"
             case .dayMemory: "Day Memory"
+            case .personalContext: "Personal Context"
             case .privacy: "Privacy & Data"
             default: rawValue.capitalized
             }
@@ -70,6 +71,7 @@ final class AppState: ObservableObject {
             case .general: "gearshape"
             case .recording: "person.2"
             case .dayMemory: "calendar.day.timeline.left"
+            case .personalContext: "person.crop.circle"
             case .writing: "pencil"
             case .dictation: "mic"
             case .models: "shippingbox"
@@ -85,6 +87,8 @@ final class AppState: ObservableObject {
             case "general": self = .general
             case "recording", "meetings": self = .recording
             case "daymemory", "day memory": self = .dayMemory
+            case "personalcontext", "personal context", "personal-context", "aboutyou", "about you":
+                self = .personalContext
             case "writing", "write": self = .writing
             case "dictation": self = .dictation
             case "models": self = .models
@@ -590,7 +594,7 @@ final class AppState: ObservableObject {
     /// access: enabling one capability never grants the other.
     private(set) lazy var screenMemoryAccess = ScreenMemoryAccessManager(
         gate: ScreenMemoryAccessGate(root: storage.rootURL))
-    /// A third independent grant: agents read only the About you items the
+    /// A third independent grant: agents read only the Personal Context items the
     /// person marked as shared, from a copy kept in step with every edit.
     private(set) lazy var personalContextAccess = PersonalContextAccessManager(
         gate: PersonalContextAccessGate(root: storage.rootURL),
@@ -967,7 +971,7 @@ final class AppState: ObservableObject {
         deferHistoryLoading: true)
 
     /// What the person told LokalBot about themselves: Ask and Quick Recall
-    /// read and add to it, Settings → Day Memory → About you edits it.
+    /// read and add to it, Settings → Personal Context edits it.
     /// Dictated words waiting for the overnight learning pass, while Learn
     /// from my dictation is on.
     private(set) lazy var dictationLearningLog = DictationLearningLog(root: storage.rootURL)
@@ -975,7 +979,9 @@ final class AppState: ObservableObject {
     private(set) lazy var personalModel: PersonalModelController = {
         let controller = PersonalModelController(
             store: PersonalModelStore(root: storage.rootURL),
-            evidenceCheck: { [weak self] in self?.dreamStore.evidenceCheck() })
+            evidenceCheck: { [weak self] in self?.dreamStore.evidenceCheck() },
+            sourceStillQuotes: { [weak self] claim in self?.learnedClaimSourceStillQuotes(claim) ?? false },
+            currentRevision: { [weak self] in try? self?.dreamStore.evidenceRevision() })
         controller.onChange = { [weak self] claims in
             self?.personalContextAccess.refresh(claims)
         }
@@ -2685,6 +2691,17 @@ final class AppState: ObservableObject {
             bursts: bursts, conversations: chat.conversations, dictations: dictated,
             day: target.day, calendar: target.calendar)
         do {
+            let lines = try PersonalLearning.utterances(
+                day: target.day, storageRoot: storage.rootURL, typed: typed, calendar: target.calendar)
+            let fingerprint = PersonalLearning.fingerprint(lines)
+            let counts = PersonalLearning.lineCounts(lines)
+            // The review rebuilds a day whenever one of its sources changes.
+            // Reading the same lines again would only reword the same items.
+            if lines.isEmpty || (dictated.isEmpty
+                && personalModel.hasLearned(dayKey: target.dayKey, fingerprint: fingerprint)) {
+                lokalbotLog("personal learning: day=\(target.dayKey) \(counts) unchanged or empty, not read again")
+                return
+            }
             let revision = try dreamStore.evidenceRevision()
             let engine = try await thinkExecution.makeTextEngine(
                 engineSettings, priority: .background, purpose: "personal learning")
@@ -2696,15 +2713,13 @@ final class AppState: ObservableObject {
                 ? { [weak self] texts in await self?.embeddingIndex.similarityVectors(texts) }
                 : nil
             let candidates = try await PersonalLearning.run(
-                day: target.day, storageRoot: storage.rootURL, known: known, revision: revision,
-                engine: engine, embed: embed, typed: typed, calendar: target.calendar)
+                lines: lines, known: known, revision: revision, engine: engine, embed: embed)
             // Read once, then gone: the day's dictation is never kept past its pass.
             if !dictated.isEmpty {
                 try? dictationLearningLog.removeEntries(through: target.day, calendar: target.calendar)
             }
-            guard !candidates.isEmpty else { return }
-            let outcome = personalModel.learn(candidates)
-            lokalbotLog("personal learning: day=\(target.dayKey) saved=\(outcome.saved.count) "
+            let outcome = personalModel.learn(candidates, dayKey: target.dayKey, fingerprint: fingerprint)
+            lokalbotLog("personal learning: day=\(target.dayKey) \(counts) saved=\(outcome.saved.count) "
                 + "suggested=\(outcome.proposed.count) skipped=\(outcome.skipped)")
         } catch is CancellationError {
             return
@@ -2713,14 +2728,43 @@ final class AppState: ObservableObject {
         }
     }
 
+    /// For a learned claim whose source changed: does the source still have
+    /// the line the claim quotes, as the person's own words? Reads only that
+    /// one meeting's transcript, that day's agent requests, or work memory.
+    private func learnedClaimSourceStillQuotes(_ claim: PersonalClaim) -> Bool {
+        switch claim.origin {
+        case .learned(let meetingID, _):
+            guard let meeting = meetings.first(where: { $0.id == meetingID }) else { return false }
+            let url = storage.rootURL.appendingPathComponent(meeting.relativePath, isDirectory: true)
+                .appendingPathComponent("transcript.json")
+            guard let data = try? Data(contentsOf: url),
+                  let transcript = try? JSONDecoder().decode(Transcript.self, from: data) else { return false }
+            return PersonalLearning.quoteStillSaid(claim.quote, in: PersonalLearning.ownTurns(in: transcript.segments))
+        case .typed(.codingAgent, let dayKey):
+            guard settings.codingAgentEvidenceEnabled, let day = DreamDay.date(fromKey: dayKey) else { return false }
+            let requests = activityStore.codingAgentBursts(on: day).filter { !$0.isScheduledRun }.flatMap(\.prompts)
+            return PersonalLearning.quoteStillSaid(claim.quote, in: requests)
+        case .workMemory:
+            guard let memory = (try? dreamStore.loadMemory()) ?? nil else { return false }
+            let key = PersonalModel.duplicateKey(claim.text)
+            let texts = memory.workGoals.map(\.text) + memory.activeProjects.map { "I work on \($0.name)." }
+            return texts.contains { PersonalModel.duplicateKey($0) == key }
+        default:
+            return false
+        }
+    }
+
     /// After the overnight review: refresh the one-line week and month
     /// summaries the agent briefing shows below recent days. Stale lines are
     /// always removed; new ones cost a model call, so they are written only
-    /// while agents may read screen memory, which the briefing's timeline
-    /// needs. Best effort.
+    /// while agents may read all retained screen history, which the
+    /// briefing's older timeline needs, and at most once a night. Best effort.
     private func rollUpReviews(target: DreamScheduler.Target) async {
         let engineSettings = settings
-        let limit = screenMemoryAccess.isEnabled ? DreamRollupService.maximumPerNight : 0
+        // The briefing shows week and month lines only to agents allowed all
+        // retained screen history; for a shorter window they would never show.
+        let showable = screenMemoryAccess.isEnabled && screenMemoryAccess.profile.scope == .retainedHistory
+        let limit = showable ? DreamRollupService.maximumPerNight : 0
         do {
             let outcome = try await DreamRollupService.run(
                 root: storage.rootURL, now: Date(), calendar: target.calendar, limit: limit
@@ -2762,7 +2806,7 @@ final class AppState: ObservableObject {
         }
     }
 
-    /// About you → Forget everything also drops dictation not yet read.
+    /// Personal Context → Forget everything also drops dictation not yet read.
     func forgetDictationForLearning() {
         do {
             try dictationLearningLog.deleteAll()

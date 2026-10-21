@@ -3,7 +3,7 @@
 //! data; with nothing granted it only lists the permissions.
 //!
 //! The overnight-review timeline (`dreams/`) is not produced on Linux and
-//! Windows yet, so that section is omitted. Neither are About you items,
+//! Windows yet, so that section is omitted. Neither are Personal Context items,
 //! projects and goals, or coding-agent sessions: only a library that came
 //! from a Mac carries them, so the text says that instead of pointing at
 //! settings this app lacks.
@@ -103,17 +103,17 @@ pub fn render(session: &Session, meeting_access: bool, now: DateTime<Utc>) -> St
     if personal_on {
         match &projection {
             Some(p) => lines.push(format!(
-                "- About you: on, {} shared {}. Tool: get_personal_context.",
+                "- Personal Context: on, {} shared {}. Tool: get_personal_context.",
                 p.claims.len(),
                 if p.claims.len() == 1 { "item" } else { "items" }
             )),
             None => lines.push(
-                "- About you: on, but this library holds no shared items. Only the Mac app writes them."
+                "- Personal Context: on, but this library holds no shared items. Only the Mac app writes them."
                     .into(),
             ),
         }
     } else {
-        lines.push("- About you: off. The Windows and Linux app has no About you page; shared items come only from a library that came from a Mac.".into());
+        lines.push("- Personal Context: off. The Windows and Linux app has no Personal Context page; shared items come only from a library that came from a Mac.".into());
     }
     sections.push(lines.join("\n"));
 

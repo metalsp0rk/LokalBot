@@ -46,7 +46,7 @@ final class BriefingTests: XCTestCase {
         let text = render()
         XCTAssertTrue(text.contains("Meetings: off"), text)
         XCTAssertTrue(text.contains("Screen memory: off"), text)
-        XCTAssertTrue(text.contains("About you: off"), text)
+        XCTAssertTrue(text.contains("Personal Context: off"), text)
         for hidden in ["Cache planning", "caching memo", "Meeting project", "Screen project", "Digest goal",
                        "Unattributed project", "Merged the MCP stdio fix", "agent briefing", "Shipped phase two",
                        "staff engineer", "recorded"] {
@@ -315,7 +315,12 @@ final class DreamRollupServiceTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(
             atPath: DreamRollupFormat.rollupURL(root: root, key: "2026-W41").path))
 
-        let rebuilt = try await DreamRollupService.run(root: root, now: now, calendar: calendar) { engine }
+        // The same night writes nothing more; the next night rebuilds it.
+        let sameNight = try await DreamRollupService.run(root: root, now: now.addingTimeInterval(3_600),
+                                                         calendar: calendar) { engine }
+        XCTAssertTrue(sameNight.written.isEmpty)
+        let nextNight = now.addingTimeInterval(DreamRollupService.minimumGenerationInterval)
+        let rebuilt = try await DreamRollupService.run(root: root, now: nextNight, calendar: calendar) { engine }
         XCTAssertEqual(rebuilt.written.map(\.key), ["2026-W41"])
     }
 

@@ -731,7 +731,7 @@ private struct RememberReceiptCard: View {
     }
 
     private func openAboutYou() {
-        app.openSettings(tab: .dayMemory)
+        app.openSettings(tab: .personalContext)
         app.focusedSettingID = "settings.askMemoryEnabled"
     }
 }
@@ -762,7 +762,7 @@ private struct PersonalContextDisclosure: View {
                     }
                 }
                 Button("Manage what LokalBot remembers…") {
-                    app.openSettings(tab: .dayMemory)
+                    app.openSettings(tab: .personalContext)
                     app.focusedSettingID = "settings.askMemoryEnabled"
                 }
                 .buttonStyle(.borderless)

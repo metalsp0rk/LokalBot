@@ -29,6 +29,7 @@
 "Activity results" = "سرگرمی کے نتائج";
 "Activity titles to clear" = "صاف کیے جانے والے سرگرمی کے عنوانات";
 "Activity, captured context, daily briefs, routines, and exports." = "سرگرمی، کیپچر کیا گیا سیاق، روزانہ خلاصے، معمول کے کام اور برآمدات۔";
+"What you told LokalBot, what it learns about you, and what agents can read." = "آپ نے LokalBot کو کیا بتایا، یہ آپ کے بارے میں کیا سیکھتا ہے، اور ایجنٹ کیا پڑھ سکتے ہیں۔";
 "Actual size" = "اصل سائز";
 "Add" = "شامل کریں";
 "Add Exclusion" = "استثنا شامل کریں";
@@ -1215,7 +1216,7 @@
 "Your subscription" = "آپ کی رکنیت";
 "Server" = "سرور";
 "In use" = "زیر استعمال";
-"About you" = "آپ کے بارے میں";
+"Personal Context" = "ذاتی سیاق";
 "Remember what I tell Ask" = "جو میں «پوچھیں» کو بتاؤں اسے یاد رکھیں";
 "Remembered" = "یاد رکھ لیا گیا";
 "Not remembered" = "یاد نہیں رکھا گیا";

@@ -114,13 +114,13 @@ enum Briefing {
         }
         if context.personalGate.isEnabled {
             if let projection {
-                lines.append("- About you: on, \(projection.claims.count) shared "
+                lines.append("- Personal Context: on, \(projection.claims.count) shared "
                     + "\(projection.claims.count == 1 ? "item" : "items"). Tool: get_personal_context.")
             } else {
-                lines.append("- About you: on, but LokalBot hasn't written the shared items yet.")
+                lines.append("- Personal Context: on, but LokalBot hasn't written the shared items yet.")
             }
         } else {
-            lines.append("- About you: off. The user can turn on Settings → Privacy → \"Allow external agents to "
+            lines.append("- Personal Context: off. The user can turn on Settings → Privacy → \"Allow external agents to "
                 + "read what I shared about myself\".")
         }
         return lines.joined(separator: "\n")

@@ -1,9 +1,9 @@
 import SwiftUI
 
-/// Settings → Day Memory → About you: what the person told LokalBot about
+/// Settings → Personal Context: what the person told LokalBot about
 /// themselves, what it learned from their meetings, and learned preferences
 /// waiting for review. Every row can be edited or forgotten here.
-struct AboutYouSettings: View {
+struct PersonalContextSettings: View {
     @EnvironmentObject private var app: AppState
     @ObservedObject var personalModel: PersonalModelController
     @ObservedObject var access: PersonalContextAccessManager
@@ -80,7 +80,7 @@ struct AboutYouSettings: View {
             HStack(spacing: 8) {
                 Button("Add…") { editing = .add }
                     .disabled(personalModel.loadError != nil)
-                    .accessibilityIdentifier("settings.aboutYou.add")
+                    .accessibilityIdentifier("settings.personalContext.add")
                 if !claims.isEmpty {
                     Button("Forget everything…", role: .destructive) { confirmingForgetAll = true }
                 }
@@ -181,7 +181,7 @@ struct AboutYouSettings: View {
             Button("Edit…") { editing = .edit(claim) }
             Button("Forget", role: .destructive) { report(personalModel.forget([claim.id])) }
         }
-        .accessibilityIdentifier("settings.aboutYou.claim")
+        .accessibilityIdentifier("settings.personalContext.claim")
     }
 
     @ViewBuilder private var agentAccessLine: some View {
@@ -218,10 +218,10 @@ struct AboutYouSettings: View {
                 if let quote = claim.quote { quoteLine(quote, for: claim) }
                 HStack(spacing: 10) {
                     Button("Keep") { report(personalModel.confirm(claim.id)) }
-                        .accessibilityIdentifier("settings.aboutYou.suggestion.keep")
+                        .accessibilityIdentifier("settings.personalContext.suggestion.keep")
                     Button("Edit…") { editing = .edit(claim) }
                     Button("Dismiss") { report(personalModel.dismiss(claim.id)) }
-                        .accessibilityIdentifier("settings.aboutYou.suggestion.dismiss")
+                        .accessibilityIdentifier("settings.personalContext.suggestion.dismiss")
                     if case .learned(let meetingID, _) = claim.origin {
                         Button("Open Meeting") { app.openMeeting(meetingID) }
                     }
@@ -230,7 +230,7 @@ struct AboutYouSettings: View {
                 .font(AppFont.scaled(.callout))
             }
         }
-        .accessibilityIdentifier("settings.aboutYou.suggestion")
+        .accessibilityIdentifier("settings.personalContext.suggestion")
     }
 
     /// Dictated words are gone once read, so nothing can retract the item.
@@ -329,14 +329,14 @@ struct AboutYouSettings: View {
 /// sheet open; nil closes it.
 struct PersonalClaimEditor: View {
     @Environment(\.dismiss) private var dismiss
-    let target: AboutYouSettings.EditorTarget
+    let target: PersonalContextSettings.EditorTarget
     let onSave: (String, PersonalClaim.Kind, PersonalClaim.Sharing) -> String?
     @State private var text: String
     @State private var kind: PersonalClaim.Kind
     @State private var sharesWithAgents: Bool
     @State private var error: String?
 
-    init(target: AboutYouSettings.EditorTarget,
+    init(target: PersonalContextSettings.EditorTarget,
          onSave: @escaping (String, PersonalClaim.Kind, PersonalClaim.Sharing) -> String?) {
         self.target = target
         self.onSave = onSave
@@ -359,7 +359,7 @@ struct PersonalClaimEditor: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text(isAdding ? "Add to About you" : "Edit")
+            Text(isAdding ? "Add to Personal Context" : "Edit")
                 .font(.scaled(.title3).weight(.semibold))
             Picker("Kind", selection: $kind) {
                 ForEach(PersonalClaim.Kind.allCases, id: \.self) { kind in
@@ -367,14 +367,14 @@ struct PersonalClaimEditor: View {
                 }
             }
             .pickerStyle(.segmented)
-            .accessibilityIdentifier("settings.aboutYou.kind")
+            .accessibilityIdentifier("settings.personalContext.kind")
             TextField(Self.placeholder(for: kind), text: $text, axis: .vertical)
                 .lineLimit(3...6)
                 .textFieldStyle(.roundedBorder)
-                .accessibilityIdentifier("settings.aboutYou.text")
+                .accessibilityIdentifier("settings.personalContext.text")
             Toggle("Share with agents", isOn: $sharesWithAgents)
                 .help("MCP clients and the CLI can read this item while personal context access is on in Settings → Privacy.")
-                .accessibilityIdentifier("settings.aboutYou.share")
+                .accessibilityIdentifier("settings.personalContext.share")
             HStack {
                 Text("\(text.count)/\(PersonalModel.maxCharacters)")
                     .font(.scaled(.caption).monospacedDigit())

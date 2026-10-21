@@ -29,6 +29,7 @@
 "Activity results" = "Sakamakon ayyuka";
 "Activity titles to clear" = "Taken ayyukan da za a share";
 "Activity, captured context, daily briefs, routines, and exports." = "Ayyuka, mahallin da aka ɗauka, taƙaitawar yau da kullum, ayyuka na yau da kullum, da fitarwa.";
+"What you told LokalBot, what it learns about you, and what agents can read." = "Abin da ka gaya wa LokalBot, abin da yake koya game da kai, da abin da wakilai za su iya karantawa.";
 "Actual size" = "Girman asali";
 "Add" = "Ƙara";
 "Add Exclusion" = "Ƙara abin da za a keɓance";
@@ -1215,7 +1216,7 @@
 "Your subscription" = "Rajistarka";
 "Server" = "Sabar";
 "In use" = "Ana amfani da shi";
-"About you" = "Game da kai";
+"Personal Context" = "Mahallin kai";
 "Remember what I tell Ask" = "Tuna abin da na gaya wa Tambaya";
 "Remembered" = "An tuna";
 "Not remembered" = "Ba a tuna ba";

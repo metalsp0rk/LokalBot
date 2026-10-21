@@ -29,6 +29,7 @@
 "Activity results" = "Hasil aktivitas";
 "Activity titles to clear" = "Judul aktivitas yang akan dihapus";
 "Activity, captured context, daily briefs, routines, and exports." = "Aktivitas, konteks yang ditangkap, ringkasan harian, rutinitas, dan ekspor.";
+"What you told LokalBot, what it learns about you, and what agents can read." = "Apa yang Anda beri tahu LokalBot, apa yang dipelajarinya tentang Anda, dan apa yang dapat dibaca agen.";
 "Actual size" = "Ukuran sebenarnya";
 "Add" = "Tambah";
 "Add Exclusion" = "Tambah Pengecualian";
@@ -1215,7 +1216,7 @@
 "Your subscription" = "Langganan Anda";
 "Server" = "Server";
 "In use" = "Sedang digunakan";
-"About you" = "Tentang Anda";
+"Personal Context" = "Konteks pribadi";
 "Remember what I tell Ask" = "Ingat hal yang saya sampaikan ke Tanya";
 "Remembered" = "Diingat";
 "Not remembered" = "Tidak diingat";

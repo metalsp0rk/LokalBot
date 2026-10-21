@@ -29,6 +29,7 @@
 "Activity results" = "Результаты активности";
 "Activity titles to clear" = "Заголовки активности для удаления";
 "Activity, captured context, daily briefs, routines, and exports." = "Активность, захваченный контекст, ежедневные сводки, процедуры и экспорт.";
+"What you told LokalBot, what it learns about you, and what agents can read." = "Что вы рассказали LokalBot, что он узнаёт о вас и что могут читать агенты.";
 "Actual size" = "Фактический размер";
 "Add" = "Добавить";
 "Add Exclusion" = "Добавить исключение";
@@ -1215,7 +1216,7 @@
 "Your subscription" = "Ваша подписка";
 "Server" = "Сервер";
 "In use" = "Используется";
-"About you" = "О вас";
+"Personal Context" = "Личный контекст";
 "Remember what I tell Ask" = "Запоминать то, что я сообщаю в Спросить";
 "Remembered" = "Запомнено";
 "Not remembered" = "Не запомнено";

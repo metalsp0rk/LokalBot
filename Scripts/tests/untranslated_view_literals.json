@@ -1,8 +1,8 @@
 {
   "missing": {
-    "AboutYouSettings.swift": [
+    "PersonalContextSettings.swift": [
       "1 suggestion to review",
-      "Add to About you",
+      "Add to Personal Context",
       "Add…",
       "Always Use",
       "Deletes every fact, preference, goal, and principle saved here. Your Ask history is kept.",

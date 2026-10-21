@@ -29,6 +29,7 @@
 "Activity results" = "活動結果";
 "Activity titles to clear" = "將清除的活動標題";
 "Activity, captured context, daily briefs, routines, and exports." = "活動、擷取的上下文、每日簡報、例行任務和輸出內容。";
+"What you told LokalBot, what it learns about you, and what agents can read." = "你告訴 LokalBot 的內容、它了解到的關於你的資訊，以及智慧體可以讀取的內容。";
 "Actual size" = "實際大小";
 "Add" = "新增";
 "Add Exclusion" = "新增排除規則";
@@ -1215,7 +1216,7 @@
 "Your subscription" = "你的訂閱";
 "Server" = "伺服器";
 "In use" = "使用中";
-"About you" = "關於你";
+"Personal Context" = "個人上下文";
 "Remember what I tell Ask" = "記住我告訴問答的內容";
 "Remembered" = "已記住";
 "Not remembered" = "未記住";

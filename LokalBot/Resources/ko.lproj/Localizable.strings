@@ -29,6 +29,7 @@
 "Activity results" = "활동 결과";
 "Activity titles to clear" = "지울 활동 제목";
 "Activity, captured context, daily briefs, routines, and exports." = "활동, 캡처한 맥락, 일일 브리핑, 루틴 및 내보내기.";
+"What you told LokalBot, what it learns about you, and what agents can read." = "LokalBot에 알려 준 것, LokalBot이 나에 대해 배우는 것, 에이전트가 읽을 수 있는 것.";
 "Actual size" = "실제 크기";
 "Add" = "추가";
 "Add Exclusion" = "제외 항목 추가";
@@ -1215,7 +1216,7 @@
 "Your subscription" = "내 구독";
 "Server" = "서버";
 "In use" = "사용 중";
-"About you" = "나에 대해";
+"Personal Context" = "개인 맥락";
 "Remember what I tell Ask" = "내가 질문 기능에 말한 내용 기억";
 "Remembered" = "기억됨";
 "Not remembered" = "기억되지 않음";

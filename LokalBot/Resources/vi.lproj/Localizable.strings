@@ -29,6 +29,7 @@
 "Activity results" = "Kết quả hoạt động";
 "Activity titles to clear" = "Tiêu đề hoạt động cần xóa";
 "Activity, captured context, daily briefs, routines, and exports." = "Hoạt động, ngữ cảnh đã ghi lại, bản tóm tắt hằng ngày, tác vụ định kỳ và bản xuất.";
+"What you told LokalBot, what it learns about you, and what agents can read." = "Những gì bạn đã cho LokalBot biết, những gì nó học được về bạn và những gì tác nhân có thể đọc.";
 "Actual size" = "Kích thước thực";
 "Add" = "Thêm";
 "Add Exclusion" = "Thêm mục loại trừ";
@@ -1215,7 +1216,7 @@
 "Your subscription" = "Gói đăng ký của bạn";
 "Server" = "Máy chủ";
 "In use" = "Đang dùng";
-"About you" = "Về bạn";
+"Personal Context" = "Ngữ cảnh cá nhân";
 "Remember what I tell Ask" = "Ghi nhớ những gì tôi nói với Hỏi";
 "Remembered" = "Đã ghi nhớ";
 "Not remembered" = "Không được ghi nhớ";

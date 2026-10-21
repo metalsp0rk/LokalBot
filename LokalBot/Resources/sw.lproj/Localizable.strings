@@ -29,6 +29,7 @@
 "Activity results" = "Matokeo ya shughuli";
 "Activity titles to clear" = "Vichwa vya shughuli vya kufuta";
 "Activity, captured context, daily briefs, routines, and exports." = "Shughuli, muktadha ulionaswa, muhtasari wa kila siku, ratiba na uhamishaji.";
+"What you told LokalBot, what it learns about you, and what agents can read." = "Ulichoiambia LokalBot, inachojifunza kukuhusu, na kile ambacho mawakala wanaweza kusoma.";
 "Actual size" = "Ukubwa halisi";
 "Add" = "Ongeza";
 "Add Exclusion" = "Ongeza Kisichojumuishwa";
@@ -1215,7 +1216,7 @@
 "Your subscription" = "Usajili wako";
 "Server" = "Seva";
 "In use" = "Inatumika";
-"About you" = "Kuhusu wewe";
+"Personal Context" = "Muktadha binafsi";
 "Remember what I tell Ask" = "Kumbuka ninachoiambia Uliza";
 "Remembered" = "Imekumbukwa";
 "Not remembered" = "Haikukumbukwa";

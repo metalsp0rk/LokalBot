@@ -29,6 +29,7 @@
 "Activity results" = "نتائج النشاط";
 "Activity titles to clear" = "عناوين الأنشطة المطلوب مسحها";
 "Activity, captured context, daily briefs, routines, and exports." = "النشاط والسياق اللي اتلقط والملخصات اليومية والمهام الدورية والتصدير.";
+"What you told LokalBot, what it learns about you, and what agents can read." = "اللي قلته لـ LokalBot، واللي بيتعلمه عنك، واللي الوكلاء يقدروا يقروه.";
 "Actual size" = "الحجم الفعلي";
 "Add" = "ضيف";
 "Add Exclusion" = "ضيف استثناء";
@@ -1215,7 +1216,7 @@
 "Your subscription" = "اشتراكك";
 "Server" = "الخادم";
 "In use" = "قيد الاستخدام";
-"About you" = "معلومات عنك";
+"Personal Context" = "السياق الشخصي";
 "Remember what I tell Ask" = "افتكر اللي بقوله لـ «اسأل»";
 "Remembered" = "اتفتكر";
 "Not remembered" = "ما اتفتكرش";

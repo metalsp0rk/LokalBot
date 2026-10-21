@@ -29,6 +29,7 @@
 "Activity results" = "Results for activity";
 "Activity titles to clear" = "Activity titles wey you wan clear";
 "Activity, captured context, daily briefs, routines, and exports." = "Activity, context wey we capture, daily briefs, routines, and exports.";
+"What you told LokalBot, what it learns about you, and what agents can read." = "Wetin you tell LokalBot, wetin e dey learn about you, and wetin agents fit read.";
 "Actual size" = "Real size";
 "Add" = "Add";
 "Add Exclusion" = "Add Wetin to Exclude";
@@ -1215,7 +1216,7 @@
 "Your subscription" = "Your subscription";
 "Server" = "Server";
 "In use" = "E dey use am";
-"About you" = "About you";
+"Personal Context" = "Personal Context";
 "Remember what I tell Ask" = "Remember wetin I tell Ask";
 "Remembered" = "E don remember";
 "Not remembered" = "E no remember";

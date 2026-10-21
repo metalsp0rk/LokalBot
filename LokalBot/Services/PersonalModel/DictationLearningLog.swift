@@ -2,7 +2,7 @@ import CryptoKit
 import Foundation
 
 /// What the person dictated into other apps, kept only for the overnight
-/// learning pass (About you → Learn from my dictation, off by default).
+/// learning pass (Personal Context → Learn from my dictation, off by default).
 /// Raw spoken words only, never Compose's drafts, with card numbers and IBANs
 /// redacted. Sealed with the `chat-key` like the personal model, 0600. Each
 /// entry goes once the pass has read its day, and never lasts more than two
