@@ -131,6 +131,59 @@ final class CodingAgentSessionTests: XCTestCase {
         XCTAssertEqual(CodingAgentBurstBuilder.bursts(from: compacted), CodingAgentBurstBuilder.bursts(from: transcript))
     }
 
+    /// A saved burst must not change when the session goes on past midnight.
+    func testCompactingKeepsADaysLastEventWhateverFollowsMidnight() throws {
+        let request = try utc("2026-09-29T23:57:00Z")
+        let events = [
+            CodingAgentEvent(at: request, kind: .prompt("Ship it")),
+            CodingAgentEvent(at: request.addingTimeInterval(120), kind: .activity),
+            CodingAgentEvent(at: request.addingTimeInterval(240), kind: .reply("Shipped.")),
+        ]
+        func firstDay(_ events: [CodingAgentEvent]) -> [CodingAgentBurst] {
+            CodingAgentBurstBuilder.bursts(from: CodingAgentTranscript(
+                agent: .codex, sessionID: "T",
+                events: events.filter { calendar.isDate($0.at, inSameDayAs: request) }))
+        }
+
+        let compacted = CodingAgentBurstBuilder.compactingActivity(events, calendar: calendar)
+
+        XCTAssertEqual(firstDay(compacted), firstDay(events))
+        XCTAssertEqual(firstDay(compacted).first?.end, request.addingTimeInterval(120))
+    }
+
+    /// 2026-10-20 and 21: a session's folder and branch were read across the
+    /// whole scan window, so a session that moved on relabeled the work it
+    /// had saved on earlier days, and each relabel rebuilt those days' digests.
+    func testClaudeBurstsAreLabeledByTheirOwnRecordsWhateverTheScanWindow() throws {
+        let app = "/Users/me/Code/LokalBot", mojo = "/Users/me/Code/Mojo"
+        try write([
+            claudeUser(uuid: "u1", at: "2026-09-29T09:00:00Z", text: "Fix the stale digest badge"),
+            claudeAssistantText(uuid: "a1", at: "2026-09-29T09:05:00Z", text: "Fixed the badge."),
+            claudeUser(uuid: "u2", at: "2026-09-29T15:00:00Z", text: "Draft the release notes",
+                       cwd: app, branch: "claude/release-notes"),
+            claudeAssistantText(uuid: "a2", at: "2026-09-29T15:05:00Z", text: "Drafted them.",
+                                cwd: app, branch: "claude/release-notes"),
+            claudeUser(uuid: "u3", at: "2026-09-30T10:00:00Z", text: "Apply the Mojo branding",
+                       cwd: mojo, branch: "mojo-branding"),
+            #"{"parentUuid":"u3","isSidechain":false,"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"t1","name":"Edit","input":{"file_path":"/Users/me/Code/Mojo/Sources/Theme.swift","old_string":"a","new_string":"b"}}]},"#
+                + claudeTrailer(uuid: "a3", at: "2026-09-30T10:05:00Z", cwd: mojo, branch: "mojo-branding"),
+        ], to: root.appendingPathComponent("claude/-Users-me-Code-LokalBot/S1.jsonl"),
+           created: "2026-09-29T08:00:00Z", modified: "2026-09-30T10:05:00Z")
+        let scanner = CodingAgentSessionScanner(
+            readers: [ClaudeCodeSessionReader(root: root.appendingPathComponent("claude"))])
+        let first = try utc("2026-09-29T00:00:00Z"), second = try utc("2026-09-30T00:00:00Z")
+
+        let window = scanner.scan(from: first, through: second, calendar: calendar).bursts
+
+        XCTAssertEqual(window.map(\.branch), ["claude/fix-badge", "claude/release-notes", "mojo-branding"])
+        XCTAssertEqual(window.map(\.project), ["LokalBot", "LokalBot", "Mojo"])
+        XCTAssertEqual(window.last?.changedFiles, ["Sources/Theme.swift"])
+        XCTAssertEqual(scanner.scan(from: first, through: first, calendar: calendar).bursts, Array(window.prefix(2)),
+                       "later work never relabels an earlier day")
+        XCTAssertEqual(scanner.scan(from: second, through: second, calendar: calendar).bursts, [window[2]],
+                       "a window that starts later labels the same work the same way")
+    }
+
     func testSessionThatReadTheLokalBotLibraryWithholdsReplies() throws {
         try writeClaudeSession("S2", lines: [
             claudeUser(uuid: "u1", at: "2026-09-29T10:00:00Z", text: "What did I promise Ana?"),
@@ -533,20 +586,29 @@ final class CodingAgentSessionTests: XCTestCase {
 
     /// A user record in Claude Code's key order, which the tool-result
     /// fast path depends on.
-    private func claudeUser(uuid: String, at timestamp: String, text: String) -> String {
+    private func claudeUser(
+        uuid: String, at timestamp: String, text: String,
+        cwd: String = "/Users/me/Code/LokalBot", branch: String = "claude/fix-badge"
+    ) -> String {
         let prefix = #"{"parentUuid":null,"isSidechain":false,"type":"user","message":{"role":"user","content":"#
-        return prefix + json(text) + "}," + claudeTrailer(uuid: uuid, at: timestamp)
+        return prefix + json(text) + "}," + claudeTrailer(uuid: uuid, at: timestamp, cwd: cwd, branch: branch)
     }
 
-    private func claudeAssistantText(uuid: String, at timestamp: String, text: String) -> String {
+    private func claudeAssistantText(
+        uuid: String, at timestamp: String, text: String,
+        cwd: String = "/Users/me/Code/LokalBot", branch: String = "claude/fix-badge"
+    ) -> String {
         let prefix = #"{"parentUuid":null,"isSidechain":false,"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"#
-        return prefix + json(text) + "}]}," + claudeTrailer(uuid: uuid, at: timestamp)
+        return prefix + json(text) + "}]}," + claudeTrailer(uuid: uuid, at: timestamp, cwd: cwd, branch: branch)
     }
 
-    private func claudeTrailer(uuid: String, at timestamp: String) -> String {
+    private func claudeTrailer(
+        uuid: String, at timestamp: String,
+        cwd: String = "/Users/me/Code/LokalBot", branch: String = "claude/fix-badge"
+    ) -> String {
         let millis = timestamp.replacingOccurrences(of: "Z", with: ".000Z")
         return #""uuid":"# + json(uuid) + #","timestamp":"# + json(millis)
-            + #","cwd":"/Users/me/Code/LokalBot","gitBranch":"claude/fix-badge","sessionId":"S"}"#
+            + #","cwd":"# + json(cwd) + #","gitBranch":"# + json(branch) + #","sessionId":"S"}"#
     }
 
     /// `value` as a quoted JSON string.

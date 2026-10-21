@@ -61,6 +61,11 @@ struct CodingAgentEvent: Equatable, Sendable {
     /// The source record's hashed id, for dropping copies a fork or resumed
     /// session carries. Hashes are per process and never persisted.
     var recordKey: Int?
+    /// The folder and branch the source record names, for readers whose
+    /// records carry them. A burst is labeled from its own records, so a
+    /// session that moves on never relabels work that already settled.
+    var workingDirectory: String?
+    var branch: String?
 
     var isAnnotation: Bool {
         if case .pullRequest = kind { return true }
@@ -73,6 +78,7 @@ struct CodingAgentTranscript: Equatable, Sendable {
     var agent: CodingAgentKind
     var sessionID: String
     var title: String?
+    /// Session-wide labels, for bursts whose events carry none.
     var workingDirectory: String?
     var branch: String?
     /// The session read LokalBot's own library through its CLI or MCP.
@@ -124,6 +130,19 @@ struct CodingAgentBurst: Equatable, Codable, Sendable {
     /// The burst committed, opened or merged a pull request, released,
     /// pushed, ran tests, or linked a pull request.
     var recordedOutcome: Bool { !actions.isEmpty || !pullRequests.isEmpty }
+
+    /// The same requests, reply, actions, pull requests, and tool calls in
+    /// the same session. A settled burst's work never changes, but how it is
+    /// presented can: a session is renamed, and bursts saved by earlier
+    /// readers carry the session's folder and branch, file names relative to
+    /// another folder, and edges moved by activity on the other side of
+    /// midnight.
+    func hasSameWork(as other: CodingAgentBurst) -> Bool {
+        agent == other.agent && sessionID == other.sessionID
+            && prompts == other.prompts && promptCount == other.promptCount
+            && finalReply == other.finalReply && actions == other.actions
+            && pullRequests == other.pullRequests && toolCallCount == other.toolCallCount
+    }
 
     /// Every field the digest can read, in a fixed order, for evidence
     /// signatures that change exactly when the burst's content does.
@@ -343,18 +362,15 @@ enum CodingAgentBurstBuilder {
         let title = transcript.title.flatMap(Self.nonEmpty)
             ?? firstPrompt(in: ordered).map(requestTitle)
             ?? untitled
-        let project = projectName(for: transcript.workingDirectory)
         return groups.compactMap { group in
-            burst(
-                group, transcript: transcript, title: title, project: project)
+            burst(group, transcript: transcript, title: title)
         }
     }
 
     private static func burst(
         _ events: [CodingAgentEvent],
         transcript: CodingAgentTranscript,
-        title: String,
-        project: String
+        title: String
     ) -> CodingAgentBurst? {
         var prompts: [String] = [], promptCount = 0
         var reply: String?
@@ -390,12 +406,18 @@ enum CodingAgentBurstBuilder {
         let active = zip(times, times.dropFirst()).reduce(0) { total, pair in
             total + min(pair.1.timeIntervalSince(pair.0), activeGapCap)
         }
+        // A scan reads a window of days, and a long session changes branch
+        // and folder within it. Labels from the session as a whole would
+        // relabel this burst on every such change and as the window slides.
+        let workingDirectory = events.lazy.compactMap(\.workingDirectory).first
+            ?? transcript.workingDirectory
+        let branch = events.reversed().lazy.compactMap(\.branch).first ?? transcript.branch
         return CodingAgentBurst(
             agent: transcript.agent,
             sessionID: transcript.sessionID,
             title: title,
-            project: project,
-            branch: transcript.branch,
+            project: projectName(for: workingDirectory),
+            branch: branch,
             start: start,
             end: end,
             activeDuration: active,
@@ -441,7 +463,13 @@ enum CodingAgentBurstBuilder {
     /// are within `activeGapCap` of each other: the gaps it splits count in
     /// full either way. Busy sessions log thousands of tool results, so this
     /// keeps cached transcripts small without changing any burst.
-    static func compactingActivity(_ events: [CodingAgentEvent]) -> [CodingAgentEvent] {
+    ///
+    /// Bursts are cut at midnight, so a ping is kept when its neighbors fall
+    /// on different days: otherwise the next day's first event, or the
+    /// scan window's start, would move the edge of a burst already saved.
+    static func compactingActivity(
+        _ events: [CodingAgentEvent], calendar: Calendar = .current
+    ) -> [CodingAgentEvent] {
         let annotations = events.filter(\.isAnnotation)
         let ordered = events.enumerated()
             .filter { !$0.element.isAnnotation }
@@ -454,7 +482,8 @@ enum CodingAgentBurstBuilder {
         for index in 1..<(ordered.count - 1) {
             let event = ordered[index]
             if case .activity = event.kind, let previous = kept.last,
-               ordered[index + 1].at.timeIntervalSince(previous.at) <= activeGapCap {
+               ordered[index + 1].at.timeIntervalSince(previous.at) <= activeGapCap,
+               calendar.isDate(previous.at, inSameDayAs: ordered[index + 1].at) {
                 continue
             }
             kept.append(event)
