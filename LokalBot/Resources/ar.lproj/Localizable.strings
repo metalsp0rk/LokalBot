@@ -193,9 +193,12 @@
 "Clear search" = "مسح البحث";
 "Clear search filters" = "مسح عوامل تصفية البحث";
 "Clear selection" = "مسح التحديد";
+"Copied" = "تم النسخ";
+"Copy last dictation" = "نسخ آخر إملاء";
 "Dictation already uses this shortcut. Choose another." = "يستخدم الإملاء هذا الاختصار بالفعل. اختر غيره.";
 "Don't Allow" = "عدم السماح";
 "Hold the modifiers and press a key, like ⌃⇧ Space." = "اضغط باستمرار على مفاتيح التعديل ثم اضغط مفتاحًا، مثل ⌃⇧ Space.";
+"Last dictation" = "آخر إملاء";
 "macOS already uses this shortcut. Choose another." = "يستخدم macOS هذا الاختصار بالفعل. اختر غيره.";
 "Model folder selection cleared" = "تم مسح تحديد مجلد النموذج";
 "Clear settings search" = "مسح البحث في الإعدادات";
@@ -436,6 +439,11 @@
 "Import an audio or video recording" = "استيراد تسجيل صوت أو فيديو";
 "Import Recording" = "استيراد تسجيل";
 "Import Recording…" = "استيراد تسجيل…";
+"Not inserted" = "لم يُدرج";
+"Pasted" = "تم اللصق";
+"Recent dictations" = "الإملاءات الأخيرة";
+"Saved encrypted on this Mac for 7 days, so you can copy a dictation again after the clipboard changes or the Mac restarts. Text meant for a password field is never kept." = "يُحفظ مشفّرًا على هذا الـMac لمدة 7 أيام، لتتمكن من نسخ الإملاء مجددًا بعد تغيّر الحافظة أو إعادة تشغيل الـMac. لا يُحفظ أبدًا النص المخصص لحقل كلمة مرور.";
+"Shown in LokalBot" = "معروض في LokalBot";
 "Try a sample meeting" = "جرّب اجتماعًا تجريبيًا";
 "Open the sample meeting" = "افتح الاجتماع التجريبي";
 "Sample meeting" = "اجتماع تجريبي";
