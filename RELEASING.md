@@ -414,9 +414,9 @@ on GitHub and won't become "Latest"; tag without a suffix for a stable release.
 - Agent runtime: no separate pi GitHub asset is published. The app downloads
   checksum-pinned Bun, then installs pi from the public npm registry using
   `LokalBot/Resources/pi/runtime/package.json` + `bun.lock`. When bumping pi,
-  first verify the chosen release is at least seven days old, pin the matching
-  `pi-agent-core`, `pi-ai`, and `pi-tui` overrides, regenerate the lockfile with
-  the Bun version in `AgentRuntimeManifest`, and verify a clean
+  pin the matching `pi-agent-core`, `pi-ai`, and `pi-tui` overrides,
+  regenerate the lockfile with the Bun version in `AgentRuntimeManifest`, and
+  verify a clean
   `bun install --production --frozen-lockfile --ignore-scripts` before release.
 
 ---
