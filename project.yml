@@ -25,7 +25,7 @@ settings:
 packages:
   FluidAudio:
     url: https://github.com/FluidInference/FluidAudio
-    exactVersion: 0.17.7   # Kokoro pronunciation fix; retains Nemotron backing/logging controls
+    exactVersion: 0.17.7   # current patch; upstream TTS changes are not used by LokalBot
   WhisperKit:
     url: https://github.com/argmaxinc/WhisperKit
     exactVersion: 1.1.1   # crash and model-download cancellation fixes
