@@ -64,6 +64,14 @@ other participants, so they are never enrolled in or matched against voice
 profiles. Screen memory from the file's time span is not attached to it,
 because the recording was not made on this Mac.
 
+**Sample meeting.** LokalBot includes a short made-up recording with synthetic
+voices. **Try a sample meeting** imports that bundled file the same way, so it
+needs no network access beyond the models you choose to download first. The
+meeting is marked as a sample. Ask, search, and external agents can read it,
+but day memory, digests, people, projects, action lists, About you, transcription
+vocabulary, and note exports leave it out. **Remove sample** deletes it in one
+step, and nothing records that you tried it.
+
 **Read coding agent sessions** is on by default and can be turned off in
 Settings → Day Memory. While it is on, LokalBot reads Claude Code session files
 under `~/.claude/projects`, Codex session files under `~/.codex/sessions` and
@@ -822,7 +830,8 @@ platform differences:
   Manager).
 - **Imported recordings** are read without being changed or moved, as on
   macOS, but their audio is kept as a 16 kHz WAV copy rather than AAC. Merged
-  meetings also keep WAV tracks. A Mac reads these tracks too.
+  meetings also keep WAV tracks. A Mac reads these tracks too. The bundled
+  sample meeting is imported and kept out of personal memory as on macOS.
 - **Screen context** is off until you turn it on.
   - Visible text is read through accessibility first (AT-SPI on Linux, UI
     Automation on Windows). Otherwise on-device OCR is used; its model
@@ -917,7 +926,8 @@ platform differences:
 - **External agents.** The meeting-library and screen-memory toggles in
   Settings → Privacy & Data work as on macOS. The Windows and Linux CLI has no
   settings-change access or `setup`, `config` and `secret` commands, and
-  personal context stays off because the app has no setting for it yet.
+  personal context is read only from a library that came from a Mac, because
+  the app has no About you page or setting for it yet.
 - **Mac-only features.** About you, selection actions, meeting note export,
   daily memory notes, spoken summaries and coding-agent sessions are not in the
   Windows and Linux app yet, so none of their data is collected there.

@@ -312,7 +312,7 @@ pub fn compile(
     now: DateTime<Utc>,
     include_agenda: bool,
 ) -> UpcomingEvidence {
-    let meetings = library.list_meetings().unwrap_or_else(|err| {
+    let meetings = library.list_own_meetings().unwrap_or_else(|err| {
         log::warn!("preparation: meetings could not be listed: {err:#}");
         Vec::new()
     });

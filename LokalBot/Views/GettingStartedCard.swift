@@ -58,7 +58,17 @@ struct GettingStartedCard: View {
                     stepRow(done: modelDownloaded ? true : nil) {
                         modelStep
                     }
-                    stepRow(done: app.isRecording || !app.meetings.isEmpty) {
+                    stepRow(done: app.sampleMeeting != nil ? true : nil) {
+                        HStack(spacing: 8) {
+                            Button(app.sampleMeeting != nil ? "Open the sample meeting" : "Try a sample meeting") {
+                                app.trySampleMeeting()
+                            }
+                            .buttonStyle(.bordered).controlSize(.small)
+                            .accessibilityIdentifier("welcome.trySample")
+                            Text("— a made-up call, to try Ask before you record.")
+                        }
+                    }
+                    stepRow(done: app.isRecording || app.meetings.contains(where: \.isOwnWork)) {
                         HStack(spacing: 8) {
                             Button("Import a recording") { RecordingImportPanel.choose(into: app) }
                                 .buttonStyle(.bordered).controlSize(.small)

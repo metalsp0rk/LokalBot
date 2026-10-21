@@ -277,6 +277,19 @@ impl Library {
         Ok(updated)
     }
 
+    /// The user's own meetings, newest first: every visible meeting except the
+    /// sample. Digests, the day, people, projects and action lists use these.
+    pub fn list_own_meetings(&self) -> Result<Vec<Meeting>> {
+        let mut meetings = self.list_meetings()?;
+        meetings.retain(Meeting::is_own_work);
+        Ok(meetings)
+    }
+
+    /// The sample meeting, when the library has one.
+    pub fn sample_meeting(&self) -> Result<Option<Meeting>> {
+        Ok(self.list_meetings()?.into_iter().find(Meeting::is_sample))
+    }
+
     pub fn meeting(&self, id: Uuid) -> Result<Option<Meeting>> {
         Ok(self.list_all_meetings()?.into_iter().find(|m| m.id == id))
     }

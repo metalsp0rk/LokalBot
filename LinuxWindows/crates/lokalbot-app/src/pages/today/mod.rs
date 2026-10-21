@@ -532,13 +532,15 @@ impl TodayPage {
 
     fn render_getting_started(&self, cx: &mut Context<Self>) -> Option<AnyElement> {
         let data = self.data.read(cx);
-        if data.settings.getting_started_dismissed || data.meetings.len() >= 3 {
+        let own_meetings = data.meetings.iter().filter(|m| m.is_own_work()).count();
+        if data.settings.getting_started_dismissed || own_meetings >= 3 {
             return None;
         }
         let lb = cx.lb().clone();
         let tracking = data.settings.tracking_enabled;
         let transcription_ready = data.models.transcription_ready;
-        let has_meeting = !data.meetings.is_empty();
+        let has_meeting = own_meetings > 0;
+        let has_sample = data.sample_meeting().is_some();
         let pillar = |icon: Ico, title: &'static str, text: &'static str| {
             v_flex()
                 .flex_1()
@@ -583,6 +585,7 @@ impl TodayPage {
                 )
         };
         let models = self.data.clone();
+        let sample = self.data.clone();
         let tracking_data = self.data.clone();
         let dictation = self.data.clone();
         let dismiss = self.data.clone();
@@ -677,6 +680,19 @@ impl TodayPage {
                                     }),
                                 )
                             },
+                        ))
+                        .child(step(
+                            has_sample,
+                            link_step(
+                                "gs-sample",
+                                if has_sample {
+                                    lokalbot_i18n::tr("Open the sample meeting")
+                                } else {
+                                    lokalbot_i18n::tr("Try a sample meeting")
+                                },
+                                lokalbot_i18n::tr("— a made-up call, to try Ask before you record."),
+                                Box::new(move |cx| sample.update(cx, |data, cx| data.try_sample(cx))),
+                            ),
                         ))
                         .child(step(has_meeting, div().child(crate::ui::text::paragraph(lokalbot_i18n::tr("Record a meeting — it appears in the list automatically."))).into_any_element()))
                         .child(step(

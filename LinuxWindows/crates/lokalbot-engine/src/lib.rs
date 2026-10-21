@@ -18,6 +18,7 @@ mod models;
 mod pipeline;
 mod recording;
 mod retention;
+pub mod sample;
 mod screen;
 pub mod secrets;
 mod speech;

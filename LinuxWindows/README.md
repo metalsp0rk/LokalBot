@@ -31,7 +31,7 @@ More screenshots of both apps are in [docs/screenshots](docs/screenshots).
 | Meeting detection | ✓ (PulseAudio source outputs) | ✓ (WASAPI capture sessions) | Asks with a notification by default. |
 | System tray, launch at login | ✓ (StatusNotifierItem; GNOME needs the AppIndicator extension) | ✓ | |
 | `lokalbot-cli` + MCP for coding agents | ✓ | ✓ | Read-only, off until you allow it in Settings → Privacy & Data. |
-| Signed automatic updates | ✓ (installed with `install.sh`, or run from the extracted folder) | ✓ (run from the extracted folder) | Checks GitHub daily; installs only when you choose Install and Relaunch. Package installs are told how to update with the package manager; other copies under `/usr`, `/opt` or Program Files are pointed at the download. |
+| Signed automatic updates | ✓ (installed with `install.sh`, or run from the extracted folder) | ✓ (installed with the installer, or run from the extracted folder) | Checks GitHub daily; installs only when you choose Install and Relaunch. Package installs are told how to update with the package manager; other copies under `/usr`, `/opt` or Program Files are pointed at the download. On Windows, Installed apps (and winget) then shows the new version. |
 | Live transcript preview while recording | ✓ | ✓ | Opt-in from the live meeting view. Each track is transcribed in 4–12 s chunks cut at a pause, as Me and Remote speaker; the full transcript replaces it after the meeting. |
 | Autocomplete in other apps | X11 (GTK; Qt, Chromium/Electron and Firefox once system accessibility is on); Wayland: the practice editor in Settings only | ✓ (apps whose fields support UI Automation) | Off until you turn it on in Settings → Writing. LFM2.5 1.2B on this computer by default, about 250 ms to a suggestion on CPU. Tab accepts a word, Esc dismisses. Password fields, terminals and excluded apps are never read, and nothing is stored. |
 | Agent Mode | ✓ | ✓ (Git Bash, or PowerShell without it) | Runs the pi coding agent with your Think model. Setup downloads Bun and pi (pinned and checksum-verified, about 65 MB on Linux and 70 MB on Windows). File changes and commands need your approval. |
@@ -87,23 +87,40 @@ release has none yet, use a CI run's artifacts (`lokalbot-linux-x86_64`, `lokalb
 ### Omarchy and other Hyprland desktops
 
 [Omarchy](https://omarchy.org) already has everything LokalBot uses on Wayland: `grim` for screen context,
-`wtype` and `wl-clipboard` for dictation, PipeWire for meeting audio and the Hyprland desktop portal. After
-`./install.sh`, LokalBot is in the app launcher and its tray icon appears in Omarchy's bar. The dictation pill
-and Quick Recall float above your windows instead of being tiled.
+`wtype` and `wl-clipboard` for dictation, PipeWire for meeting audio and the Hyprland desktop portal.
+
+On Omarchy and other Arch-based systems, install the release's Arch package. pacman manages it and installs
+its dependencies:
+
+```bash
+v=$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.com/stevyhacker/LokalBot/releases/latest); v=${v##*/v}
+curl -fLO "https://github.com/stevyhacker/LokalBot/releases/download/v$v/LokalBot-$v-linux-x86_64.pkg.tar.zst"
+sudo pacman -U "./LokalBot-$v-linux-x86_64.pkg.tar.zst"
+```
+
+The first line looks up the latest version. Download the file before `pacman -U`: given a URL, pacman also
+asks for a signature file, which releases don't have. When a newer version is out, LokalBot tells you; run the
+same commands again. An AUR package, `lokalbot-bin`, is on its way. Once it is published,
+`yay -S lokalbot-bin` replaces this package and `yay -Syu` keeps it up to date. You can also use `./install.sh`
+from the `.tar.gz` (see above), which installs into `~/.local/bin` and lets LokalBot update itself.
+
+Either way, LokalBot is in the app launcher and its tray icon appears in Omarchy's bar. The welcome window, the
+dictation pill and Quick Recall float above your windows instead of being tiled.
 
 Hyprland has no settings screen for other apps' shortcuts, so bind LokalBot's commands in
 `~/.config/hypr/bindings.lua` (these keys are free in Omarchy's defaults):
 
 ```lua
 -- Press to start dictating, press again to insert the text where you are typing.
-o.bind("SUPER + ALT + D", "LokalBot dictation", "~/.local/bin/lokalbot dictate")
+o.bind("SUPER + ALT + D", "LokalBot dictation", "lokalbot dictate")
 -- Search your memory and ask about it (Quick Recall).
-o.bind("SUPER + ALT + A", "Ask LokalBot", "~/.local/bin/lokalbot quick-recall")
+o.bind("SUPER + ALT + A", "Ask LokalBot", "lokalbot quick-recall")
 ```
 
-On Hyprland without Omarchy, the same commands go in `hyprland.conf`, for example
-`bind = SUPER ALT, A, exec, ~/.local/bin/lokalbot quick-recall`. Autocomplete in other apps needs X11, so on
-Hyprland it works in the practice editor in Settings only.
+After `./install.sh`, write `~/.local/bin/lokalbot` instead of `lokalbot`, because Hyprland may not have
+`~/.local/bin` on its PATH. On Hyprland without Omarchy, the same commands go in `hyprland.conf`, for example
+`bind = SUPER ALT, A, exec, lokalbot quick-recall`. Autocomplete in other apps needs X11, so on Hyprland it
+works in the practice editor in Settings only.
 
 ### Updates
 
@@ -112,6 +129,9 @@ reads the latest release's update feed from GitHub when it starts and once a day
 checks at any time. Like the macOS app, it never installs on its own: when a newer version is out, Settings
 and the tray menu offer **Install and Relaunch**, and a notification says so once. `lokalbot install-update`
 does the same from a terminal.
+
+`lokalbot --version` and `lokalbot-cli --version` print the installed version. On Windows the app has no
+console window, so use `lokalbot-cli --version` or pipe the app's output: `lokalbot.exe --version | Write-Output`.
 
 Installing downloads the archive and checks its size, SHA-256 and Ed25519 signature (the macOS app's
 Sparkle key) before unpacking anything. It then replaces `lokalbot` and `lokalbot-cli` where they are

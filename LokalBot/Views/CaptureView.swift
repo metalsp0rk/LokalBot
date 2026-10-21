@@ -508,7 +508,7 @@ private struct TimelineWorkspaceHeader: View {
         .accessibilityIdentifier("timeline.context.toggle")
     }
 
-    private var contextLabel: String {
+    private var contextLabel: LocalizedStringKey {
         if model.selectedSnapshotID != nil { return "Moment" }
         if !app.selectedMeetingIDs.isEmpty { return "Meeting" }
         if model.selectedSessionID != nil { return "Session" }
@@ -564,7 +564,7 @@ struct CaptureDayView: View {
                         .accessibilityElement(children: .contain)
                         .accessibilityIdentifier("capture.dayDigest.text")
                     if let updated = model.digestUpdatedAt, !model.digestIsStale {
-                        Text("Updated " + updated.formatted(date: .omitted, time: .shortened))
+                        Text("Updated \(updated.formatted(date: .omitted, time: .shortened))")
                             .font(AppFont.scaled(.callout))
                             .foregroundStyle(.tertiary)
                     }
@@ -674,7 +674,7 @@ private struct TimelineDayTotals: View {
                             .font(AppFont.scaled(.body))
                             .foregroundStyle(.secondary)
                     }
-                    Text(countsLine(appCount: perApp.count, meetingCount: meetingCount))
+                    countsLine(appCount: perApp.count, meetingCount: meetingCount)
                         .font(AppFont.scaled(.callout))
                         .foregroundStyle(Color(nsColor: WorkspaceTextColor.supporting))
                 }
@@ -690,11 +690,15 @@ private struct TimelineDayTotals: View {
         }
     }
 
-    private func countsLine(appCount: Int, meetingCount: Int) -> String {
-        var parts = [CountLabel.format(model.workSessions.count, "work session")]
-        if meetingCount > 0 { parts.append(CountLabel.format(meetingCount, "meeting")) }
-        parts.append(CountLabel.format(appCount, "app"))
-        return parts.joined(separator: " · ")
+    /// Each count is its own catalog entry, so every language words it.
+    private func countsLine(appCount: Int, meetingCount: Int) -> Text {
+        let sessionCount = model.workSessions.count
+        var parts = [Text(sessionCount == 1 ? "\(sessionCount) work session" : "\(sessionCount) work sessions")]
+        if meetingCount > 0 {
+            parts.append(Text(meetingCount == 1 ? "\(meetingCount) meeting" : "\(meetingCount) meetings"))
+        }
+        parts.append(Text(appCount == 1 ? "\(appCount) app" : "\(appCount) apps"))
+        return parts.dropFirst().reduce(parts[0]) { $0 + Text(verbatim: " · ") + $1 }
     }
 
     /// Two columns, each app's time flush right so the numbers line up.
@@ -843,7 +847,7 @@ struct TimelineSessionsSection: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Browse Raw Capture")
                         .font(TimelineRailStyle.titleEmphasis)
-                    Text("\(CountLabel.format(model.blocks.count, "activity entry", plural: "activity entries")) · \(CountLabel.format(model.rewindFrames.count, "screen moment"))")
+                    rawCaptureCounts
                         .font(TimelineRailStyle.detail.monospacedDigit())
                         .foregroundStyle(.secondary)
                 }
@@ -865,6 +869,14 @@ struct TimelineSessionsSection: View {
         .accessibilityLabel("Browse raw capture")
         .accessibilityValue(isSelected ? "Open" : "")
         .accessibilityIdentifier("timeline.rawCapture")
+    }
+
+    private var rawCaptureCounts: Text {
+        let entries = model.blocks.count
+        let moments = model.rewindFrames.count
+        return Text(entries == 1 ? "\(entries) activity entry" : "\(entries) activity entries")
+            + Text(verbatim: " · ")
+            + Text(moments == 1 ? "\(moments) screen moment" : "\(moments) screen moments")
     }
 
     private func selectSession(_ session: TimelineWorkSession) {

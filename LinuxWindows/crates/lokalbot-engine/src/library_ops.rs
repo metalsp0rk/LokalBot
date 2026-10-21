@@ -51,6 +51,43 @@ pub fn import_recording(
     source: &Path,
     now: DateTime<Utc>,
 ) -> Result<Meeting, ImportFailure> {
+    import_file(library, source, now, None)
+}
+
+/// Adds LokalBot's sample meeting through the same import, or returns the
+/// one the library already has. It is dated now, titled in its own language
+/// and marked with its id, so personal memory leaves it out.
+pub fn import_sample(
+    library: &Library,
+    sample: &crate::sample::Sample,
+    now: DateTime<Utc>,
+) -> Result<Meeting, ImportFailure> {
+    let cannot = |e: &dyn std::fmt::Display| ImportFailure::CannotCreateMeeting(e.to_string());
+    if let Some(existing) = library
+        .sample_meeting()
+        .map_err(|e| cannot(&format!("{e:#}")))?
+    {
+        return Ok(existing);
+    }
+    let staging = library
+        .paths()
+        .root()
+        .join(format!(".sample-{}", uuid::Uuid::new_v4()));
+    let source = staging.join(sample.file_name);
+    let result = fs::create_dir_all(&staging)
+        .and_then(|()| fs::write(&source, sample.audio))
+        .map_err(|e| cannot(&e))
+        .and_then(|()| import_file(library, &source, now, Some(sample)));
+    let _ = fs::remove_dir_all(&staging);
+    result
+}
+
+fn import_file(
+    library: &Library,
+    source: &Path,
+    now: DateTime<Utc>,
+    sample: Option<&crate::sample::Sample>,
+) -> Result<Meeting, ImportFailure> {
     let cannot = |e: &dyn std::fmt::Display| ImportFailure::CannotCreateMeeting(e.to_string());
     let name = source
         .file_name()
@@ -70,15 +107,22 @@ pub fn import_recording(
         })?;
         let file = fs::metadata(source).ok();
         let date = |time: Option<std::time::SystemTime>| time.map(DateTime::<Utc>::from);
-        let started_at = lokalbot_core::import::recording_start(
-            date(audio.recorded_at),
-            date(file.as_ref().and_then(|m| m.created().ok())),
-            date(file.as_ref().and_then(|m| m.modified().ok())),
-            audio.duration,
-            now,
-        );
+        let started_at = match sample {
+            // The sample was "recorded" just now, whatever its file says.
+            Some(_) => now - Duration::milliseconds((audio.duration * 1000.0).round() as i64),
+            None => lokalbot_core::import::recording_start(
+                date(audio.recorded_at),
+                date(file.as_ref().and_then(|m| m.created().ok())),
+                date(file.as_ref().and_then(|m| m.modified().ok())),
+                audio.duration,
+                now,
+            ),
+        };
         let started_at = DateTime::from_timestamp(started_at.timestamp(), 0).unwrap_or(started_at);
-        let title = lokalbot_core::import::title(source);
+        let title = match sample {
+            Some(sample) => sample.title.to_string(),
+            None => lokalbot_core::import::title(source),
+        };
         let relative = library
             .reserve_meeting_folder(&title, started_at)
             .map_err(|e| cannot(&format!("{e:#}")))?;
@@ -93,6 +137,7 @@ pub fn import_recording(
         meeting.recorded_duration = Some(audio.duration);
         meeting.has_system_track = true;
         meeting.imported_file_names = Some(vec![name.clone()]);
+        meeting.sample_id = sample.map(|s| s.id.to_string());
         let folder = library.meeting_dir(&meeting);
         let moved = fs::rename(
             &converted,
@@ -184,6 +229,92 @@ mod tests {
         bytes.extend_from_slice(&(data.len() as u32).to_le_bytes());
         bytes.extend_from_slice(&data);
         fs::write(path, bytes).unwrap();
+    }
+
+    #[test]
+    fn every_sample_recording_imports_in_its_own_language() {
+        for sample in crate::sample::SAMPLES {
+            let dir = tempfile::tempdir().unwrap();
+            let library = Library::open(LibraryPaths::new(dir.path().join("library"))).unwrap();
+            let meeting = import_sample(&library, sample, Utc::now()).unwrap();
+            assert_eq!(meeting.title, sample.title);
+            assert_eq!(meeting.sample_id.as_deref(), Some(sample.id));
+            let duration = meeting.recorded_duration.unwrap();
+            assert!(
+                (180.0..300.0).contains(&duration),
+                "{} runs {duration} s",
+                sample.id
+            );
+        }
+    }
+
+    #[test]
+    fn the_sample_imports_once_and_stays_out_of_personal_memory() {
+        let dir = tempfile::tempdir().unwrap();
+        let library = Library::open(LibraryPaths::new(dir.path().join("library"))).unwrap();
+        let source = dir.path().join("Design review.wav");
+        write_tone(&source, 2.0, 16_000, 1);
+        let own = import_recording(&library, &source, Utc::now()).unwrap();
+        let now = Utc::now();
+
+        let sample = import_sample(&library, &crate::sample::ENGLISH, now).unwrap();
+        assert_eq!(sample.title, "Sample: Orders API delivery window");
+        assert_eq!(sample.sample_id.as_deref(), Some("orders-api/en"));
+        assert!(sample.is_sample() && !sample.is_own_work() && sample.is_imported());
+        let duration = sample.recorded_duration.unwrap();
+        assert!(
+            (200.0..240.0).contains(&duration),
+            "the sample runs {duration} s"
+        );
+        assert!(
+            (sample.ended_at.unwrap() - now).num_seconds().abs() <= 1,
+            "dated now"
+        );
+        assert!(library.audio(&sample).system.is_some());
+        let on_disk: serde_json::Value = serde_json::from_slice(
+            &fs::read(library.meeting_dir(&sample).join("meta.json")).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(on_disk["sampleID"], "orders-api/en");
+
+        // A second request opens the same sample instead of adding another.
+        let again = import_sample(&library, &crate::sample::ENGLISH, Utc::now()).unwrap();
+        assert_eq!(again.id, sample.id);
+        assert_eq!(library.list_meetings().unwrap().len(), 2);
+        assert_eq!(
+            library
+                .list_own_meetings()
+                .unwrap()
+                .iter()
+                .map(|m| m.id)
+                .collect::<Vec<_>>(),
+            vec![own.id]
+        );
+        assert_eq!(
+            library.sample_meeting().unwrap().map(|m| m.id),
+            Some(sample.id)
+        );
+        let day = lokalbot_core::time::local_day(sample.started_at);
+        assert_eq!(
+            library.day_activity(day).unwrap().meeting_count,
+            1,
+            "only the own meeting"
+        );
+        assert!(!lokalbot_core::merge::can_merge(
+            &[own.clone(), sample.clone()],
+            |_| false
+        ));
+        assert!(fs::read_dir(library.paths().root()).unwrap().all(|e| {
+            !e.unwrap()
+                .file_name()
+                .to_string_lossy()
+                .starts_with(".sample-")
+        }));
+
+        // Removing it is one call.
+        library.delete_meeting(&sample).unwrap();
+        assert!(library.sample_meeting().unwrap().is_none());
+        assert_eq!(library.list_meetings().unwrap().len(), 1);
     }
 
     #[test]

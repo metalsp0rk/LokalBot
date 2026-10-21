@@ -980,7 +980,9 @@ final class ProcessingPipeline: ObservableObject {
     /// saved with the meeting so its per-track checkpoints stay valid.
     nonisolated static func transcriptionPrompt(for meeting: Meeting, folder: URL, root: URL,
                                                 config: AppSettings, reuseSaved: Bool) -> String {
-        guard config.autoTranscriptionVocabulary,
+        // The sample transcribes the same way in every library, so names from
+        // the user's own meetings never steer it.
+        guard config.autoTranscriptionVocabulary, !meeting.isSample,
               config.transcriptionModel.acceptsVocabularyPrompt else {
             return config.transcriptionPrompt
         }

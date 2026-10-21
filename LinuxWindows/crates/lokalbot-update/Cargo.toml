@@ -36,6 +36,10 @@ ureq = { workspace = true, optional = true }
 log = { workspace = true, optional = true }
 uuid = { workspace = true, optional = true }
 
+[target.'cfg(windows)'.dependencies]
+# The installer's Installed apps entry (`installed_apps`).
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_System_Registry"] }
+
 [dev-dependencies]
 tempfile.workspace = true
 tar = "0.4"

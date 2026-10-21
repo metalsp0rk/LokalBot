@@ -65,6 +65,7 @@ targetTemplates:
           - Resources/pi
           - Resources/ModelChecks
           - Resources/ModelAssets
+          - Resources/SampleMeeting
       - path: Vendor/llama-cpp
         type: folder
         buildPhase: resources
@@ -78,6 +79,11 @@ targetTemplates:
         type: folder
         buildPhase: resources
       - path: LokalBot/Resources/ModelAssets
+        type: folder
+        buildPhase: resources
+      # The sample meeting's recording, script and reference transcript
+      # (SampleMeeting.swift); the Windows and Linux app embeds the same files.
+      - path: LokalBot/Resources/SampleMeeting
         type: folder
         buildPhase: resources
       # Bundle SKILL.md inside the app at Contents/Resources/lokalbot-cli/
@@ -161,8 +167,8 @@ targetTemplates:
         CFBundleDisplayName: LokalBot
         CFBundleDevelopmentRegion: en
         CFBundleIconFile: AppIcon
-        CFBundleShortVersionString: "0.11.0"
-        CFBundleVersion: "55"
+        CFBundleShortVersionString: "0.11.1"
+        CFBundleVersion: "56"
         NSMicrophoneUsageDescription: >-
           LokalBot records your side of meetings from the microphone.
           Audio stays on this Mac unless you approve a transcription server;

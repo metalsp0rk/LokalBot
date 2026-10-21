@@ -37,7 +37,8 @@ enum SessionFormatter {
                 app_source: meeting.appName,
                 has_system_track: meeting.hasSystemTrack,
                 has_summary: SessionLookup.summaryMarkdown(for: meeting) != nil,
-                has_transcript: SessionLookup.transcriptMarkdown(for: meeting) != nil)
+                has_transcript: SessionLookup.transcriptMarkdown(for: meeting) != nil,
+                sample: meeting.isSample ? true : nil)
         }
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
@@ -72,7 +73,8 @@ enum SessionFormatter {
             has_system_track: meeting.hasSystemTrack,
             summary: options.includeSummary ? SessionLookup.summaryMarkdown(for: meeting) : nil,
             transcript: options.includeTranscript ? SessionLookup.transcriptMarkdown(for: meeting) : nil,
-            folder: SessionLookup.folderURL(for: meeting).path(percentEncoded: false))
+            folder: SessionLookup.folderURL(for: meeting).path(percentEncoded: false),
+            sample: meeting.isSample ? true : nil)
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         return (try? String(data: encoder.encode(entry), encoding: .utf8)) ?? "{}"
@@ -85,6 +87,11 @@ enum SessionFormatter {
             lines.append("**Date:** \(Self.longDate.string(from: meeting.startedAt))  ")
             lines.append("**Duration:** \(meeting.durationLabel)  ")
             lines.append("**App:** \(meeting.appName)")
+            if meeting.isSample {
+                lines.append("")
+                lines.append("**Sample:** LokalBot's sample meeting. The people and the company are made up, "
+                    + "and the voices are synthetic.")
+            }
             lines.append("")
         }
         if options.includeSummary, let summary = SessionLookup.summaryMarkdown(for: meeting) {
@@ -149,6 +156,8 @@ enum SessionFormatter {
         var match_kind: String          // "title" | "summary" | "transcript"
         var snippet: String
         var timestamp: String?          // "00:14:32" for transcript hits
+        /// Only on LokalBot's sample meeting: made up, with synthetic voices.
+        var sample: Bool?
     }
 
     static func searchJSON(_ hits: [SearchHit]) -> String {
@@ -182,6 +191,7 @@ enum SessionFormatter {
         var has_system_track: Bool
         var has_summary: Bool
         var has_transcript: Bool
+        var sample: Bool?
     }
 
     private struct GetEntry: Encodable {
@@ -195,6 +205,7 @@ enum SessionFormatter {
         var summary: String?
         var transcript: String?
         var folder: String
+        var sample: Bool?
     }
 
     static let iso8601: ISO8601DateFormatter = {

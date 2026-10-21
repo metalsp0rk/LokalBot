@@ -105,7 +105,8 @@ struct DayDigestView: View {
                         Label("Other activity", systemImage: "ellipsis.circle")
                             .font(.scaled(.subheadline).weight(.medium))
                         Spacer()
-                        Text("\(presentation.otherActivityBlocks.count) item\(presentation.otherActivityBlocks.count == 1 ? "" : "s")")
+                        let count = presentation.otherActivityBlocks.count
+                        Text(count == 1 ? "\(count) item" : "\(count) items")
                             .font(.scaled(.caption).monospacedDigit())
                             .foregroundStyle(.secondary)
                     }
@@ -143,7 +144,8 @@ struct DayDigestView: View {
                         Label("Full activity log", systemImage: "clock.arrow.circlepath")
                             .font(.scaled(.subheadline).weight(.semibold))
                         Spacer()
-                        Text("\(presentation.activityCount) events")
+                        let count = presentation.activityCount
+                        Text(count == 1 ? "\(count) event" : "\(count) events")
                             .font(.scaled(.caption).monospacedDigit())
                             .foregroundStyle(.secondary)
                     }
@@ -193,7 +195,7 @@ struct DayDigestView: View {
             ForEach(groups) { group in
                 VStack(alignment: .leading, spacing: 2) {
                     if groups.count > 1 {
-                        Text("\(group.kind.title) · \(group.blocks.count)")
+                        (Text(listTitle(of: group.kind)) + Text(verbatim: " · ") + Text(group.blocks.count, format: .number))
                             .font(.scaled(.subheadline).weight(.semibold))
                             .foregroundStyle(.secondary)
                             .accessibilityAddTraits(.isHeader)
@@ -240,6 +242,15 @@ struct DayDigestView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func listTitle(of kind: DayDigestPresentation.TaskGroup.Kind) -> LocalizedStringKey {
+        switch kind {
+        case .blocked: "Blocked"
+        case .inProgress: "In progress"
+        case .other: "Other work"
+        case .completed: "Done"
+        }
     }
 
     private func timelineTitle(of kind: DayDigestPresentation.TaskGroup.Kind) -> LocalizedStringKey {
@@ -322,7 +333,7 @@ struct DayDigestView: View {
     }
 
     private func digestSection<Content: View>(
-        _ title: String,
+        _ title: LocalizedStringKey,
         icon: String,
         @ViewBuilder content: () -> Content
     ) -> some View {
@@ -531,7 +542,7 @@ private struct DayDigestTaskRow: View {
         }
     }
 
-    private func statusSymbol(_ name: String, _ color: Color, label: String) -> some View {
+    private func statusSymbol(_ name: String, _ color: Color, label: LocalizedStringKey) -> some View {
         Image(systemName: name)
             .font(DayDigestTaskType.taskTitle)
             .foregroundStyle(color)
@@ -887,7 +898,8 @@ private struct DayDigestActivityHourView: View {
                 Text(group.label)
                     .font(.scaled(.callout).weight(.medium).monospacedDigit())
                 Spacer()
-                Text("\(group.entries.count) event\(group.entries.count == 1 ? "" : "s")")
+                let count = group.entries.count
+                Text(count == 1 ? "\(count) event" : "\(count) events")
                     .font(.scaled(.caption).monospacedDigit())
                     .foregroundStyle(.secondary)
             }

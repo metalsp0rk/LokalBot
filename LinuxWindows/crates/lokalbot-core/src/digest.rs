@@ -798,7 +798,7 @@ impl Library {
             Ok(db.query_row(&sql, rusqlite::params![start_epoch, end_epoch], |row| row.get(0))?)
         })?;
         let mut latest = from_db.map(crate::time::from_epoch);
-        for meeting in self.list_meetings()? {
+        for meeting in self.list_own_meetings()? {
             if crate::time::local_day(meeting.started_at) != day || meeting.ended_at.is_none() {
                 continue;
             }

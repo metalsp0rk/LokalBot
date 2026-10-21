@@ -196,7 +196,7 @@ pub fn tools() -> Vec<Value> {
         ),
         tool(
             personal::NAME,
-            "Get what the user shared about themselves (facts, preferences, goals, principles) that is relevant to a task, most relevant first. Only items the user marked as shared are returned. Requires the separate personal-context permission.",
+            "Get what the user shared about themselves (facts, preferences, goals, principles) that is relevant to a task, most relevant first. Only items the user marked as shared are returned. The user writes and shares them, under a separate permission, in the Mac app; the Windows and Linux app has neither, so there they come only from a library that came from a Mac.",
             json!({"type": "object", "properties": {
                 "task": {"type": "string", "description": "What you are helping with, in a sentence (for example \"Evaluate a job offer\")."},
                 "kinds": {"type": "array", "items": {"type": "string", "enum": ["fact", "preference", "goal", "principle"]}, "description": "Optional: only these kinds."},

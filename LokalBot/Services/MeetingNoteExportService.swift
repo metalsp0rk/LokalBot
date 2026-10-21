@@ -63,7 +63,8 @@ struct MeetingNoteExportService {
     func export(_ configuration: MeetingNoteExportConfiguration,
                 previous: [UUID: String] = [:]) throws -> MeetingNoteExportReport {
         let fileManager = FileManager.default
-        let meetings = try SessionLookup.loadAllMeetings(root: root)
+        // The sample meeting is made up, so it never lands in the user's notes.
+        let meetings = try SessionLookup.loadAllMeetings(root: root).filter { !$0.isSample }
         try Task.checkCancellation()
         try fileManager.createDirectory(
             at: configuration.destinationDirectory, withIntermediateDirectories: true)

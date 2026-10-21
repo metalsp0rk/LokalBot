@@ -43,8 +43,11 @@ enum MeetingImportService {
         return type?.conforms(to: .audiovisualContent) == true
     }
 
+    /// `sample` marks the import as LokalBot's sample meeting: it is titled in
+    /// its own language, dated now, and carries its id.
     static func importRecording(from url: URL, storage: StorageManager,
-                                now: Date = Date()) async throws -> Meeting {
+                                now: Date = Date(),
+                                sample: SampleMeeting.Recording? = nil) async throws -> Meeting {
         let name = url.lastPathComponent
         let asset = AVURLAsset(url: url)
         let audioTracks: [AVAssetTrack]
@@ -81,13 +84,14 @@ enum MeetingImportService {
         } else {
             metadataDate = nil
         }
-        let startedAt = recordingStart(
+        // The sample was "recorded" just now, whatever its bundled file says.
+        let startedAt = sample != nil ? now.addingTimeInterval(-duration) : recordingStart(
             metadataDate: metadataDate, fileCreated: values?.creationDate,
             fileModified: values?.contentModificationDate, duration: duration, now: now)
 
         // The meeting appears in the library only once its metadata is
         // written, which is last, so a library scan never sees it half-made.
-        let meetingTitle = Self.title(for: url)
+        let meetingTitle = sample?.title ?? Self.title(for: url)
         let relativePath: String
         do {
             relativePath = try storage.reserveMeetingFolder(title: meetingTitle, startedAt: startedAt)
@@ -100,6 +104,7 @@ enum MeetingImportService {
         meeting.recordedDuration = duration
         meeting.hasSystemTrack = true
         meeting.importedFileNames = [name]
+        meeting.sampleID = sample?.id
         let folder = meeting.folderURL(in: storage)
         do {
             try FileManager.default.moveItem(
