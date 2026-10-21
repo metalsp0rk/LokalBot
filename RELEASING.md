@@ -242,9 +242,10 @@ with clean build inputs, matching toolchain and digest verification; missing or
 stale products fail instead of rebuilding silently. Use **Re-run all jobs** when
 retrying a shared-products workflow: a failed-jobs-only retry cannot consume
 artifacts from the preceding attempt. UI Tests runs on pull requests that are
-ready for review, weekly on `master`, and for each release candidate when
-`Scripts/prepare-release.sh` dispatches it with the candidate's SHA; it no longer
-runs on every `master` push. Build, Lint and XcodeGen still do. Build skips its
+ready for review, weekly on `master`, and for a release candidate that its
+merged pull request's run doesn't cover, when `Scripts/prepare-release.sh`
+dispatches it with the candidate's SHA; it no longer runs on every `master`
+push. Build, Lint and XcodeGen still do. Build skips its
 macOS jobs on pull requests that change only docs, the website, assets, video
 or distribution notes (`Scripts/ci/build-relevance.py`).
 
@@ -256,12 +257,16 @@ After pushing the complete candidate commit to `master`, run:
 Scripts/prepare-release.sh 0.8.1
 ```
 
-This explicitly dispatches the Release workflow in preparation mode and the full
-UI Tests suite for the candidate's exact SHA. Preparation validates candidate
-metadata and signs/exports the app while the normal push CI runs. It creates no
-tag, sends nothing to notarization and publishes no release. Wait for
-preparation, that UI Tests run and the Build, Lint and XcodeGen push runs on the
-exact commit before creating the release tag.
+This explicitly dispatches the Release workflow in preparation mode.
+Preparation validates candidate metadata and signs/exports the app while the
+normal push CI runs. It creates no tag, sends nothing to notarization and
+publishes no release. When the candidate is the merge of a pull request whose
+full UI run tested the candidate's exact tree (`release-candidate.py
+ui-covered`), that run is the UI gate; otherwise the script also dispatches the
+full UI Tests suite for the candidate's exact SHA. Wait for preparation, any
+UI Tests run it dispatched and the Build, Lint and XcodeGen push runs on the
+exact commit before creating the release tag. Merge the release pull request
+only once it contains the current `master`, so that its run covers the merge.
 
 Build and unit execution are separate jobs in `build.yml`, sharing one compile.
 The UI aggregate checks smoke, Reduce Motion, both functional shards, all three
@@ -272,8 +277,14 @@ On a tag push, Release requires the candidate to remain the current `master` tip
 and verifies successful **push** runs for Build (both jobs), Lint and XcodeGen,
 and a successful UI Tests run on that exact SHA, either a push run or the
 exact-SHA dispatch from `prepare-release.sh`; only a full run reports
-`XCUITest (macOS)`. If a UI Tests job fails to get a runner, use **Re-run all
-jobs** on that dispatch. It retrieves prepared apps only from successful `release.yml` manual
+`XCUITest (macOS)`. When no UI Tests run exists on that SHA, the merged pull
+request's newest run counts instead, if the candidate merges a pull request
+from this repository into `master`, the pull request's head already contained
+the previous `master` tip and has the candidate's exact tree, and that run
+built and passed the full suite (`UI build (macOS)` and `XCUITest (macOS)`).
+GitHub tested that head merged into an older `master`, which is the head's own
+tree. An exact-SHA run, when there is one, always decides. If a UI Tests job
+fails to get a runner, use **Re-run all jobs** on that dispatch. It retrieves prepared apps only from successful `release.yml` manual
 runs on that exact trusted master SHA and verifies source/tree, version/build,
 Xcode, architecture, lockfile, run identity and archive digest before reuse.
 A missing/expired preparation uses the existing cold archive flow; a mismatched

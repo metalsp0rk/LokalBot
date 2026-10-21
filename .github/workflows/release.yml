@@ -51,6 +51,7 @@ concurrency:
 permissions:
   contents: write # create the Release and upload DMG + appcast
   actions: read # verify validation provenance and retrieve trusted preparation
+  pull-requests: read # find the merged pull request whose UI run covers the candidate
 
 defaults:
   run:
@@ -81,7 +82,7 @@ jobs:
           CANDIDATE_VERSION: ${{ inputs.version }}
         run: python3 Scripts/ci/release-candidate.py prepare
 
-      - name: Require all five exact-commit release gates
+      - name: Require all five release gates
         if: github.event_name == 'push'
         env:
           GH_TOKEN: ${{ github.token }}
