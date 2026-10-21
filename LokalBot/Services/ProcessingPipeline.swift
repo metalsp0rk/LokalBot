@@ -689,10 +689,13 @@ final class ProcessingPipeline: ObservableObject {
                 if let speakerIdentity,
                    let audioURL = MeetingAudioFiles.transcribableURL(for: .system, in: folder)
                     ?? MeetingAudioFiles.transcribableURL(for: .mic, in: folder) {
-                    // Remote participants' voices are never remembered.
-                    let safeSamples = AttributedTrackTranscriber.samples(batch.samples, transcript: transcript, source: .microphone)
+                    // Microphone and call voices are both remembered; the
+                    // sample meeting's synthetic voices never are.
+                    let samples = meeting.isSample ? [] : [SpeakerAttribution.Source.microphone, .system].flatMap {
+                        AttributedTrackTranscriber.samples(batch.samples, transcript: transcript, source: $0)
+                    }
                     transcript = await speakerIdentity.process(transcript: transcript, meeting: meeting,
-                        turns: batch.turns, samples: safeSamples, audioURL: audioURL)
+                        turns: batch.turns, samples: samples, audioURL: audioURL)
                 } else {
                     transcript = SpeakerAutoNamer.applyingAliases(to: transcript,
                         participants: meeting.resolvedCalendarParticipantIdentities)
@@ -1042,7 +1045,7 @@ final class ProcessingPipeline: ObservableObject {
                 let audio = prepared.0 ?? url
                 let diarization = config.multiSpeakerDiarization
                     ? try await diarizer.diarizeDetailed(url: audio, model: config.diarizationModel,
-                        includeVoiceSamples: config.rememberSpeakersOnMac)
+                        includeVoiceSamples: !meeting.isSample)
                     : SpeakerDiarizationResult(segments: [], samples: [])
                 try await yieldToCapture(meetingID: meeting.id)
                 var result: Transcript?
@@ -1166,7 +1169,7 @@ final class ProcessingPipeline: ObservableObject {
     /// `NeuralDiarizationEngine` instance is retained by this pipeline, so the
     /// downloaded/prepared models are reused instead of rebuilt per job.
     func prepareDiarizationModels(config: AppSettings, engine: TranscriptionEngine) async throws {
-        try await diarizer.prepareModels(model: config.diarizationModel, includeVoiceSamples: config.rememberSpeakersOnMac)
+        try await diarizer.prepareModels(model: config.diarizationModel, includeVoiceSamples: true)
         guard config.transcriptionModel.engine.speakerAttribution == .alignedWords,
               !engine.providesWordTimings else { return }
         // Fetch the word aligner with the speaker models. A failure is not
@@ -1195,6 +1198,26 @@ final class ProcessingPipeline: ObservableObject {
             try transcript.markdown.data(using: .utf8)?.write(
                 to: folder.appendingPathComponent("transcript.md"), options: .atomic)
         }
+    }
+
+    /// Call-track voice samples for an already transcribed meeting, labeled by
+    /// its saved transcript. Waits while LokalBot records or processes, and
+    /// never downloads the voice model for this background work.
+    func savedCallVoiceSamples(for meeting: Meeting, transcript: Transcript) async throws -> [SpeakerVoiceSample] {
+        guard let url = MeetingAudioFiles.transcribableURL(for: .system, in: meeting.folderURL(in: storage)) else { return [] }
+        // Unavailable is not "no voices": the meeting is revisited later.
+        guard settings().multiSpeakerDiarization, NeuralDiarizationEngine.voiceModelInstalled else {
+            throw VoiceModelUnavailable()
+        }
+        while captureActive || isDraining || !queue.isEmpty {
+            try await Task.sleep(for: .seconds(10))
+        }
+        let result = try await diarizer.diarizeDetailed(url: url, model: .community1, includeVoiceSamples: true)
+        return AttributedTrackTranscriber.samples(result.samples, transcript: transcript, source: .system)
+    }
+
+    struct VoiceModelUnavailable: LocalizedError {
+        var errorDescription: String? { "the voice model is not installed or speaker separation is off" }
     }
 
     func loadTranscript(from folder: URL) throws -> Transcript {

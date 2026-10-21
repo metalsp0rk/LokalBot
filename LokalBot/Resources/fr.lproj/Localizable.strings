@@ -193,9 +193,12 @@
 "Clear search" = "Effacer la recherche";
 "Clear search filters" = "Effacer les filtres de recherche";
 "Clear selection" = "Effacer la sélection";
+"Copied" = "Copié";
+"Copy last dictation" = "Copier la dernière dictée";
 "Dictation already uses this shortcut. Choose another." = "La dictée utilise déjà ce raccourci. Choisissez-en un autre.";
 "Don't Allow" = "Ne pas autoriser";
 "Hold the modifiers and press a key, like ⌃⇧ Space." = "Maintenez les touches de modification et appuyez sur une touche, par exemple ⌃⇧ Espace.";
+"Last dictation" = "Dernière dictée";
 "macOS already uses this shortcut. Choose another." = "macOS utilise déjà ce raccourci. Choisissez-en un autre.";
 "Model folder selection cleared" = "Sélection du dossier de modèles effacée";
 "Clear settings search" = "Effacer la recherche dans les réglages";
@@ -436,6 +439,11 @@
 "Import an audio or video recording" = "Importer un enregistrement audio ou vidéo";
 "Import Recording" = "Importer un enregistrement";
 "Import Recording…" = "Importer un enregistrement…";
+"Not inserted" = "Non inséré";
+"Pasted" = "Collé";
+"Recent dictations" = "Dictées récentes";
+"Saved encrypted on this Mac for 7 days, so you can copy a dictation again after the clipboard changes or the Mac restarts. Text meant for a password field is never kept." = "Enregistré de façon chiffrée sur ce Mac pendant 7 jours, pour que vous puissiez copier à nouveau une dictée après un changement du presse-papiers ou un redémarrage du Mac. Le texte destiné à un champ de mot de passe n’est jamais conservé.";
+"Shown in LokalBot" = "Affiché dans LokalBot";
 "Try a sample meeting" = "Essayer une réunion d’exemple";
 "Open the sample meeting" = "Ouvrir la réunion d’exemple";
 "Sample meeting" = "Réunion d’exemple";
@@ -1426,3 +1434,6 @@
 "Mentioned in %lld meetings" = "Mentionné dans %lld réunions";
 "Reopen action thread" = "Rouvrir le fil d’action";
 "Mark action thread done" = "Marquer le fil d’action comme terminé";
+"Names you save also teach LokalBot this voice, so it can name the person in later meetings. Voices stay encrypted on this Mac." = "Les noms que vous enregistrez apprennent aussi cette voix à LokalBot, pour qu’il puisse nommer la personne lors des prochaines réunions. Les voix restent chiffrées sur ce Mac.";
+"Apply Names" = "Appliquer les noms";
+"Recognized voices: %@" = "Voix reconnues : %@";

@@ -27,8 +27,8 @@ LokalBot can store the following under its Application Support directory:
 - downloaded transcription, embedding, speech, and language models;
 - permission-gated app/window activity history;
 - permission-gated visible screen text and encrypted screenshots;
-- separately opted-in, encrypted meeting-speaker evidence and confirmed local
-  voice profiles;
+- encrypted meeting-speaker evidence and voice profiles of the people you
+  name;
 - saved screen moments, optional unencrypted daily-memory and meeting note
   exports, and optional routine drafts at folders you choose;
 - records of local coding-agent sessions (Claude Code and Codex), a setup
@@ -46,9 +46,10 @@ captured text, screenshot titles, URLs, and document names follow the same
 retention unless you explicitly choose to keep screen text and metadata forever.
 Activity titles expire on the configured schedule even with that exception;
 app names and duration totals remain. Saved moments remain until you unsave or delete them. Dictation scratch
-audio is deleted after transcription by default. Dictated text is not kept,
-except briefly for learning while **Learn from my dictation** is on (see About
-you below). You can delete an individual
+audio is deleted after transcription by default. Dictated text is kept only as
+the last 10 results for 7 days, encrypted, so you can copy one again (see
+**Recent dictations** below), and briefly for learning while **Learn from my
+dictation** is on (see About you below). You can delete an individual
 meeting in the app or remove the entire LokalBot Application Support directory.
 
 **Read coding agent sessions** is on by default. On a new install, setup shows
@@ -60,8 +61,8 @@ choose **Import Recording…**, LokalBot reads the file without changing or
 moving it and saves an AAC copy of its audio as the meeting's system track.
 The meeting is dated from the file and processed like a recorded meeting with
 your current Transcribe and Think choices. Its voices are treated like a call's
-other participants, so they are never enrolled in or matched against voice
-profiles. Screen memory from the file's time span is not attached to it,
+other participants: naming one remembers that voice, and remembered voices can
+name its speakers. Screen memory from the file's time span is not attached to it,
 because the recording was not made on this Mac.
 
 **Sample meeting.** LokalBot includes a short made-up recording with synthetic
@@ -228,25 +229,36 @@ Earlier versions offered an off-by-default **Meeting speaker identification**
 setting that did; it has been removed. Files it left behind are deleted
 automatically, while names you already applied to transcripts remain.
 
-Compact speaker evidence, such as microphone voice samples and unaccepted name
-suggestions, is AES-GCM encrypted with a per-install Keychain key. It expires
+Compact speaker evidence, such as voice samples from the microphone and the
+call audio and unaccepted name suggestions, is AES-GCM encrypted with a per-install Keychain key. It expires
 under the screen retention period, even when capture is disabled. Applied
 names, user corrections, suppression choices, and the audio-turn anchors needed
 to remember those choices remain with the meeting. Deleting meeting speaker
 evidence keeps those choices.
 
-**Remember speakers on this Mac** is a separate, off-by-default setting.
-When you explicitly confirm who spoke into this Mac's microphone, enough clear
-speech can enroll a local voice profile. Remote participants' voices are never
-enrolled or matched; profiles earlier versions created from them remain until
-forgotten. The profile stores bounded speaker vectors with their source
-recording and confirmation, not extra audio clips. Automatic guesses never
-train profiles. You can choose **This meeting only**, select an existing person
-explicitly, or create a distinct person with the same name. Profiles remain
-until forgotten or their source contributions are removed. Deleting a meeting
-revokes its contributions. Disabling remembering stops profile use for new work
-without erasing existing transcript names; Settings offers Rename, Forget, and
-Clear all controls. Cleanup failures are reported instead of claiming deletion.
+LokalBot always remembers the speakers you name. When you name a speaker,
+whether they spoke into this Mac's microphone or on a call, enough clear speech
+enrolls an encrypted local voice profile for that person, and saving the same
+name again adds to the same profile when the voice agrees. Remembering includes
+the other participants of your calls, who are not asked. A call voice is
+recognized from its average over many speaking turns; when it closely matches
+one remembered person and no other, LokalBot names the speaker automatically,
+and you can undo or correct the name in the transcript. Microphone voices are
+only suggested. Names you gave before this, including names saved in
+transcripts, are learned once in the background by analyzing those meetings'
+call audio on this Mac. Meetings from the last two weeks then show the voices
+they recognize, and **Apply Names** names them as if you had; a saved
+transcript is never renamed in the background, and a name you gave is never
+replaced. The sample meeting's synthetic voices
+are never remembered or matched.
+
+The profile stores bounded speaker vectors with their source recording and
+confirmation, not audio clips; a call voice keeps one average vector per
+meeting. Automatic names never train profiles. Profiles remain until forgotten
+or their source contributions are removed. Correcting a name revokes the
+previous contribution, and deleting a meeting revokes its contributions.
+Settings offers Rename, Forget, and Clear all controls. Cleanup failures are
+reported instead of claiming deletion.
 
 Speaker evidence, suggestions, vectors, and profile identity links do not enter
 search indexes, normal exports, CLI/MCP results, or inference prompts. An applied
@@ -272,8 +284,8 @@ The app may make these outbound connections:
   pinned CoreML model on first use. With Qwen3-ASR, or a transcription server
   that does not return word times, speaker separation also downloads a pinned
   Qwen3 forced aligner (about 1 GB) that times each word; alignment and speaker
-  processing remain on this Mac. Remembering voices remains
-  a separate opt-in and also uses the local Pyannote models.
+  processing remain on this Mac. Remembering voices also uses the local
+  Pyannote models, which download on first use like the speaker models.
 - **Updates:** the public GitHub Releases appcast and a signed update. Automatic
   checks are enabled for new installs and can be disabled in Settings; you can
   also run a manual check.
@@ -785,6 +797,18 @@ the exclusions described under About you. Apps on the shared exclusion list are 
 field that cannot be read is left unchecked. When the text is missing, the
 dictation overlay offers to copy it. The chosen dictation microphone is stored as
 a device identifier in Settings.
+
+**Recent dictations** keeps the last 10 dictation results (the delivered text,
+or the spoken words when Compose fails), with the time and the app each was
+dictated into, so one can be copied again after the clipboard changes or the
+Mac restarts: from the menu bar, **Recent dictations** on the Dictation page,
+or the **Copy last dictation** command. They are saved in the library folder as
+`recent-dictations.json.enc`, AES-GCM encrypted with the same per-install key
+as saved Ask conversations, readable only by your account (0600), and flushed
+to the drive after each dictation so a crash or power cut doesn't lose them.
+A result older than 7 days is dropped when LokalBot starts or saves the next
+dictation, and any beyond the newest 10 right away; **Clear** deletes the file. They are never logged or sent anywhere. Text meant
+for a password field is never kept.
 
 Selection actions are off by default (Settings → General → Shortcut). When
 enabled, pressing their shortcut reads the text selected in the frontmost app

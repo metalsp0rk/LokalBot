@@ -193,9 +193,12 @@
 "Clear search" = "Borrar búsqueda";
 "Clear search filters" = "Borrar filtros de búsqueda";
 "Clear selection" = "Borrar selección";
+"Copied" = "Copiado";
+"Copy last dictation" = "Copiar el último dictado";
 "Dictation already uses this shortcut. Choose another." = "Dictado ya usa este atajo. Elige otro.";
 "Don't Allow" = "No permitir";
 "Hold the modifiers and press a key, like ⌃⇧ Space." = "Mantén pulsados los modificadores y pulsa una tecla, como ⌃⇧ Espacio.";
+"Last dictation" = "Último dictado";
 "macOS already uses this shortcut. Choose another." = "macOS ya usa este atajo. Elige otro.";
 "Model folder selection cleared" = "Selección de carpeta del modelo borrada";
 "Clear settings search" = "Borrar búsqueda de ajustes";
@@ -436,6 +439,11 @@
 "Import an audio or video recording" = "Importar una grabación de audio o vídeo";
 "Import Recording" = "Importar grabación";
 "Import Recording…" = "Importar grabación…";
+"Not inserted" = "No insertado";
+"Pasted" = "Pegado";
+"Recent dictations" = "Dictados recientes";
+"Saved encrypted on this Mac for 7 days, so you can copy a dictation again after the clipboard changes or the Mac restarts. Text meant for a password field is never kept." = "Se guarda cifrado en este Mac durante 7 días, para que puedas volver a copiar un dictado después de que cambie el portapapeles o se reinicie el Mac. El texto destinado a un campo de contraseña nunca se guarda.";
+"Shown in LokalBot" = "Mostrado en LokalBot";
 "Try a sample meeting" = "Probar una reunión de ejemplo";
 "Open the sample meeting" = "Abrir la reunión de ejemplo";
 "Sample meeting" = "Reunión de ejemplo";
@@ -1426,3 +1434,6 @@
 "Mentioned in %lld meetings" = "Mencionado en %lld reuniones";
 "Reopen action thread" = "Reabrir hilo de acción";
 "Mark action thread done" = "Marcar hilo de acción como hecho";
+"Names you save also teach LokalBot this voice, so it can name the person in later meetings. Voices stay encrypted on this Mac." = "Los nombres que guardas también enseñan esta voz a LokalBot, para que pueda nombrar a la persona en reuniones posteriores. Las voces se guardan cifradas en este Mac.";
+"Apply Names" = "Aplicar nombres";
+"Recognized voices: %@" = "Voces reconocidas: %@";

@@ -441,8 +441,11 @@ enum AttributedTrackTranscriber {
     static func samples(_ samples: [SpeakerVoiceSample], transcript: Transcript,
                         source: SpeakerAttribution.Source) -> [SpeakerVoiceSample] {
         samples.compactMap { sample in
+            // Call speech pauses between sentences; the voice model weighs only
+            // the speaker's own frames, so a pause is not another person.
             guard sample.source == nil || sample.source == source,
-                  let label = supportedSpeaker(in: sample.range, transcript: transcript, source: source) else { return nil }
+                  let label = supportedSpeaker(in: sample.range, transcript: transcript, source: source,
+                                               coverage: source == .system ? 0.6 : 0.95) else { return nil }
             var result = sample
             result.speaker = label
             result.source = source
@@ -451,7 +454,7 @@ enum AttributedTrackTranscriber {
     }
 
     private static func supportedSpeaker(in range: SpeakerTurnAnchor, transcript: Transcript,
-                                         source: SpeakerAttribution.Source) -> String? {
+                                         source: SpeakerAttribution.Source, coverage: Double = 0.95) -> String? {
         guard range.isValid else { return nil }
         let overlaps = transcript.segments.filter {
             $0.resolvedAttribution.source == source && $0.start < range.end && $0.end > range.start
@@ -460,7 +463,7 @@ enum AttributedTrackTranscriber {
         guard labels.count == 1, let label = labels.first,
               overlaps.allSatisfy({ $0.resolvedAttribution.method == .diarization }),
               VisualSpeakerMatcher.union(overlaps.map { .init(start: $0.start, end: $0.end) })
-                .reduce(0, { $0 + $1.overlap(range) }) >= range.duration * 0.95 else { return nil }
+                .reduce(0, { $0 + $1.overlap(range) }) >= range.duration * coverage else { return nil }
         return label
     }
 }

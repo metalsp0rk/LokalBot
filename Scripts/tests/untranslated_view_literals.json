@@ -96,7 +96,6 @@
       "\\(…) saved moments excluded · \\(…) saved moments included"
     ],
     "ChatView.swift": [
-      "Copied",
       "Forgotten since this answer",
       "LokalBot used only the sources enabled for this question. Citation numbers remain stable even when a local source is later removed.",
       "Manage what LokalBot remembers…",
@@ -180,7 +179,6 @@
       "Delete \\(…) meetings",
       "Listen, choose a name, then save. These sources suggest names; attendance does not identify a voice.",
       "Loading recording…",
-      "Names are saved with this meeting. Only confirmed microphone voices can be remembered on this Mac.",
       "No clear voice excerpt available. Check the transcript before confirming this speaker.",
       "No recording available",
       "Remove this merged meeting and restore \\(…) original meetings? Their source folders will stay intact.",
@@ -357,7 +355,6 @@
     ],
     "SpeakerIdentityViews.swift": [
       "No remembered voices yet. Confirm a speaker after a recording with enough clear speech.",
-      "Select an existing person explicitly to add voice samples to their profile. Similar names are never merged automatically.",
       "Speaker separation changed. Play the saved speech before choosing a previous name for this speaker.",
       "This audio mixes voices, so it can't be confirmed as one person. You can still name it.",
       "Voice profiles stay on this Mac. Forgetting a person removes their samples and identity links. Existing transcript names remain.",

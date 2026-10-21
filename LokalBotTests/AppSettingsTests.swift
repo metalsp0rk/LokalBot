@@ -11,7 +11,6 @@ final class AppSettingsTests: XCTestCase {
         let settings = AppSettings.load(from: defaults)
         XCTAssertEqual(settings.diarizationModel, .nemotron3)
         XCTAssertTrue(settings.multiSpeakerDiarization)
-        XCTAssertFalse(settings.rememberSpeakersOnMac)
         settings.save(to: defaults)
         XCTAssertEqual(AppSettings.load(from: defaults).diarizationModel, .nemotron3)
     }
@@ -20,7 +19,6 @@ final class AppSettingsTests: XCTestCase {
         for json in ["{}", #"{"diarizationModel":"future-model"}"#, #"{"diarizationModel":null}"#] {
             let settings = try JSONDecoder().decode(AppSettings.self, from: Data(json.utf8))
             XCTAssertEqual(settings.diarizationModel, .community1)
-            XCTAssertFalse(settings.rememberSpeakersOnMac)
             let reloaded = try JSONDecoder().decode(AppSettings.self, from: JSONEncoder().encode(settings))
             XCTAssertEqual(reloaded.diarizationModel, .community1)
         }
@@ -39,7 +37,6 @@ final class AppSettingsTests: XCTestCase {
             let loaded = AppSettings.load(from: defaults)
             XCTAssertEqual(loaded.diarizationModel, model)
             XCTAssertFalse(loaded.multiSpeakerDiarization)
-            XCTAssertFalse(loaded.rememberSpeakersOnMac)
         }
         XCTAssertNotEqual(DiarizationModel.community1.checkpointIdentity, DiarizationModel.nemotron3.checkpointIdentity)
     }
@@ -241,14 +238,15 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertTrue(settings.corruptedSettingsKeys.isEmpty)
     }
 
-    func testRetiredMeetSpeakerNamingKeyDecodesSilentlyAndIsDropped() throws {
-        let data = #"{"identifySpeakersFromVisuals":true,"rememberSpeakersOnMac":true}"#.data(using: .utf8)!
+    func testRetiredSpeakerSettingKeysDecodeSilentlyAndAreDropped() throws {
+        // Meet naming was removed; remembering speakers is always on.
+        let data = #"{"identifySpeakersFromVisuals":true,"rememberSpeakersOnMac":false}"#.data(using: .utf8)!
         let settings = try JSONDecoder().decode(AppSettings.self, from: data)
 
-        XCTAssertTrue(settings.rememberSpeakersOnMac)
         XCTAssertTrue(settings.corruptedSettingsKeys.isEmpty)
         let saved = String(decoding: try JSONEncoder().encode(settings), as: UTF8.self)
         XCTAssertFalse(saved.contains("identifySpeakersFromVisuals"))
+        XCTAssertFalse(saved.contains("rememberSpeakersOnMac"))
     }
 
     func testCorruptFieldFallsBackToDefaultAndIsReported() throws {

@@ -555,8 +555,6 @@ struct AppSettings: Codable, Equatable {
     var multiSpeakerDiarization: Bool = true
     /// Fresh installs use Nemotron. Decoding preserves the backend of older installs.
     var diarizationModel: DiarizationModel = .nemotron3
-    /// User-confirmed voices only. No automatic enrollment from inferred names.
-    var rememberSpeakersOnMac: Bool = false
     /// Microphone speech is the user's unless corrected. Turn off when several
     /// people share this Mac's microphone.
     var microphoneIsUser: Bool = true
@@ -958,7 +956,6 @@ struct AppSettings: Codable, Equatable {
         case agentReasoningLevel
         case noteTemplate
         case summaryLanguage
-        case rememberSpeakersOnMac
         case microphoneIsUser
         case multiSpeakerDiarization
         case diarizationModel
@@ -1169,7 +1166,6 @@ struct AppSettings: Codable, Equatable {
         try c.encode(summaryLanguage, forKey: .summaryLanguage)
         try c.encode(multiSpeakerDiarization, forKey: .multiSpeakerDiarization)
         try c.encode(diarizationModel, forKey: .diarizationModel)
-        try c.encode(rememberSpeakersOnMac, forKey: .rememberSpeakersOnMac)
         try c.encode(microphoneIsUser, forKey: .microphoneIsUser)
         try c.encode(cotypingEnabled, forKey: .cotypingEnabled)
         try c.encode(cotypingUserName, forKey: .cotypingUserName)
@@ -1379,7 +1375,6 @@ struct AppSettings: Codable, Equatable {
         // Community-1. Preserve that backend; only a fresh settings store gets
         // the new Nemotron default. Valid explicit choices always round-trip.
         diarizationModel = decode(.diarizationModel, .community1)
-        rememberSpeakersOnMac = decode(.rememberSpeakersOnMac, defaults.rememberSpeakersOnMac)
         microphoneIsUser = decode(.microphoneIsUser, defaults.microphoneIsUser)
         cotypingEnabled = decode(.cotypingEnabled, defaults.cotypingEnabled)
         cotypingUserName = decode(.cotypingUserName, defaults.cotypingUserName)

@@ -193,9 +193,12 @@
 "Clear search" = "शोध पुसा";
 "Clear search filters" = "शोध फिल्टर काढा";
 "Clear selection" = "निवड काढा";
+"Copied" = "कॉपी केले";
+"Copy last dictation" = "शेवटचे श्रुतलेखन कॉपी करा";
 "Dictation already uses this shortcut. Choose another." = "श्रुतलेखन हा शॉर्टकट आधीच वापरते. दुसरा निवडा.";
 "Don't Allow" = "परवानगी देऊ नका";
 "Hold the modifiers and press a key, like ⌃⇧ Space." = "मॉडिफायर धरून एखादी की दाबा, जसे ⌃⇧ Space.";
+"Last dictation" = "शेवटचे श्रुतलेखन";
 "macOS already uses this shortcut. Choose another." = "macOS हा शॉर्टकट आधीच वापरते. दुसरा निवडा.";
 "Model folder selection cleared" = "मॉडेल फोल्डरची निवड काढली";
 "Clear settings search" = "सेटिंग्ज शोध पुसा";
@@ -436,6 +439,11 @@
 "Import an audio or video recording" = "ऑडिओ किंवा व्हिडिओ रेकॉर्डिंग आयात करा";
 "Import Recording" = "रेकॉर्डिंग आयात करा";
 "Import Recording…" = "रेकॉर्डिंग आयात करा…";
+"Not inserted" = "घातले नाही";
+"Pasted" = "पेस्ट केले";
+"Recent dictations" = "अलीकडील श्रुतलेखन";
+"Saved encrypted on this Mac for 7 days, so you can copy a dictation again after the clipboard changes or the Mac restarts. Text meant for a password field is never kept." = "या Mac वर 7 दिवसांसाठी एन्क्रिप्ट करून जतन केले जाते, त्यामुळे क्लिपबोर्ड बदलल्यानंतर किंवा Mac रीस्टार्ट झाल्यानंतरही श्रुतलेखन पुन्हा कॉपी करता येते. पासवर्ड फील्डसाठीचा मजकूर कधीही ठेवला जात नाही.";
+"Shown in LokalBot" = "LokalBot मध्ये दाखवले";
 "Try a sample meeting" = "नमुना बैठक वापरून पहा";
 "Open the sample meeting" = "नमुना बैठक उघडा";
 "Sample meeting" = "नमुना बैठक";
@@ -1426,3 +1434,6 @@
 "Mentioned in %lld meetings" = "%lld बैठकांमध्ये उल्लेख";
 "Reopen action thread" = "कामाचा संवाद पुन्हा उघडा";
 "Mark action thread done" = "कामाचा संवाद पूर्ण म्हणून चिन्हांकित करा";
+"Names you save also teach LokalBot this voice, so it can name the person in later meetings. Voices stay encrypted on this Mac." = "तुम्ही जतन केलेली नावे LokalBot ला हा आवाजही शिकवतात, जेणेकरून पुढील मीटिंगमध्ये ते त्या व्यक्तीचे नाव ओळखू शकेल. आवाज या Mac वर एन्क्रिप्टेड राहतात.";
+"Apply Names" = "नावे लागू करा";
+"Recognized voices: %@" = "ओळखलेले आवाज: %@";

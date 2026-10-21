@@ -193,9 +193,12 @@
 "Clear search" = "অনুসন্ধান মুছুন";
 "Clear search filters" = "অনুসন্ধানের ফিল্টার সরান";
 "Clear selection" = "নির্বাচন সরান";
+"Copied" = "কপি হয়েছে";
+"Copy last dictation" = "শেষ শ্রুতিলিখন কপি করুন";
 "Dictation already uses this shortcut. Choose another." = "শ্রুতিলিখন ইতিমধ্যে এই শর্টকাট ব্যবহার করছে। অন্যটি বেছে নিন।";
 "Don't Allow" = "অনুমতি দেবেন না";
 "Hold the modifiers and press a key, like ⌃⇧ Space." = "মডিফায়ারগুলো ধরে রেখে একটি কী চাপুন, যেমন ⌃⇧ Space।";
+"Last dictation" = "শেষ শ্রুতিলিখন";
 "macOS already uses this shortcut. Choose another." = "macOS ইতিমধ্যে এই শর্টকাট ব্যবহার করছে। অন্যটি বেছে নিন।";
 "Model folder selection cleared" = "মডেল ফোল্ডারের নির্বাচন সরানো হয়েছে";
 "Clear settings search" = "সেটিংস অনুসন্ধান মুছুন";
@@ -436,6 +439,11 @@
 "Import an audio or video recording" = "অডিও বা ভিডিও রেকর্ডিং আমদানি করুন";
 "Import Recording" = "রেকর্ডিং আমদানি করুন";
 "Import Recording…" = "রেকর্ডিং আমদানি করুন…";
+"Not inserted" = "বসানো হয়নি";
+"Pasted" = "পেস্ট হয়েছে";
+"Recent dictations" = "সাম্প্রতিক শ্রুতিলিখন";
+"Saved encrypted on this Mac for 7 days, so you can copy a dictation again after the clipboard changes or the Mac restarts. Text meant for a password field is never kept." = "এই Mac-এ ৭ দিনের জন্য এনক্রিপ্ট করে রাখা হয়, যাতে ক্লিপবোর্ড বদলে গেলে বা Mac রিস্টার্ট হলেও শ্রুতিলিখনটি আবার কপি করতে পারেন। পাসওয়ার্ড ফিল্ডের জন্য লেখা কখনো রাখা হয় না।";
+"Shown in LokalBot" = "LokalBot-এ দেখানো হয়েছে";
 "Try a sample meeting" = "নমুনা মিটিং চালিয়ে দেখুন";
 "Open the sample meeting" = "নমুনা মিটিং খুলুন";
 "Sample meeting" = "নমুনা মিটিং";
@@ -1426,3 +1434,6 @@
 "Mentioned in %lld meetings" = "%lldটি মিটিংয়ে উল্লেখ আছে";
 "Reopen action thread" = "কাজের থ্রেড আবার খুলুন";
 "Mark action thread done" = "কাজের থ্রেড সম্পন্ন চিহ্নিত করুন";
+"Names you save also teach LokalBot this voice, so it can name the person in later meetings. Voices stay encrypted on this Mac." = "আপনি যে নাম সংরক্ষণ করেন তা LokalBot-কে এই কণ্ঠস্বরও শেখায়, যাতে পরের মিটিংগুলোতে সে ওই ব্যক্তির নাম দিতে পারে। কণ্ঠস্বর এই Mac-এ এনক্রিপ্ট করা থাকে।";
+"Apply Names" = "নামগুলো প্রয়োগ করুন";
+"Recognized voices: %@" = "চেনা কণ্ঠস্বর: %@";

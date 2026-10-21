@@ -195,6 +195,8 @@
 "Clear search" = "清除搜索";
 "Clear search filters" = "清除搜索筛选";
 "Clear selection" = "清除选择";
+"Copied" = "已复制";
+"Copy last dictation" = "复制上一次听写";
 "Describe what to write…" = "描述要写的内容…";
 "Dictation already uses this shortcut. Choose another." = "听写已在使用此快捷键。请选择其他快捷键。";
 "Draft a reply with my memory" = "结合我的记忆起草回复";
@@ -206,6 +208,7 @@
 "Hold the modifiers and press a key, like ⌃⇧ Space." = "请按住修饰键再按一个按键，例如 ⌃⇧ Space。";
 "Improve writing" = "润色文字";
 "Insert" = "插入";
+"Last dictation" = "上一次听写";
 "macOS already uses this shortcut. Choose another." = "macOS 已在使用此快捷键。请选择其他快捷键。";
 "Make friendlier" = "改写得更友好";
 "Make more professional" = "改写得更专业";
@@ -449,6 +452,11 @@
 "Import an audio or video recording" = "导入音频或视频录音";
 "Import Recording" = "导入录音";
 "Import Recording…" = "导入录音…";
+"Not inserted" = "未插入";
+"Pasted" = "已粘贴";
+"Recent dictations" = "最近的听写";
+"Saved encrypted on this Mac for 7 days, so you can copy a dictation again after the clipboard changes or the Mac restarts. Text meant for a password field is never kept." = "在这台 Mac 上加密保存 7 天，剪贴板被替换或 Mac 重启后你仍可再次复制听写内容。用于密码栏的文字绝不保留。";
+"Shown in LokalBot" = "已在 LokalBot 中显示";
 "Try a sample meeting" = "试用示例会议";
 "Open the sample meeting" = "打开示例会议";
 "Sample meeting" = "示例会议";
@@ -1425,3 +1433,6 @@
 "Mentioned in %lld meetings" = "在 %lld 场会议中提及";
 "Reopen action thread" = "重新打开行动项串联";
 "Mark action thread done" = "将行动项串联标记为完成";
+"Names you save also teach LokalBot this voice, so it can name the person in later meetings. Voices stay encrypted on this Mac." = "你保存的名字也会让 LokalBot 记住这个声音，以便在之后的会议中识别此人。声音会加密保存在这台 Mac 上。";
+"Apply Names" = "应用名字";
+"Recognized voices: %@" = "已识别的声音：%@";

@@ -193,9 +193,12 @@
 "Clear search" = "శోధనను తుడిచివేయండి";
 "Clear search filters" = "శోధన ఫిల్టర్‌లు తీసివేయండి";
 "Clear selection" = "ఎంపికను తీసివేయండి";
+"Copied" = "కాపీ చేయబడింది";
+"Copy last dictation" = "చివరి డిక్టేషన్‌ను కాపీ చేయండి";
 "Dictation already uses this shortcut. Choose another." = "డిక్టేషన్ ఇప్పటికే ఈ షార్ట్‌కట్‌ను వాడుతోంది. మరొకటి ఎంచుకోండి.";
 "Don't Allow" = "అనుమతించవద్దు";
 "Hold the modifiers and press a key, like ⌃⇧ Space." = "మాడిఫైయర్‌లను పట్టుకుని ఒక కీ నొక్కండి, ఉదాహరణకు ⌃⇧ Space.";
+"Last dictation" = "చివరి డిక్టేషన్";
 "macOS already uses this shortcut. Choose another." = "macOS ఇప్పటికే ఈ షార్ట్‌కట్‌ను వాడుతోంది. మరొకటి ఎంచుకోండి.";
 "Model folder selection cleared" = "మోడల్ ఫోల్డర్ ఎంపిక తీసివేయబడింది";
 "Clear settings search" = "సెట్టింగ్‌ల శోధనను తుడిచివేయండి";
@@ -436,6 +439,11 @@
 "Import an audio or video recording" = "ఆడియో లేదా వీడియో రికార్డింగ్‌ను దిగుమతి చేయండి";
 "Import Recording" = "రికార్డింగ్‌ను దిగుమతి చేయండి";
 "Import Recording…" = "రికార్డింగ్‌ను దిగుమతి చేయండి…";
+"Not inserted" = "చొప్పించబడలేదు";
+"Pasted" = "పేస్ట్ చేయబడింది";
+"Recent dictations" = "ఇటీవలి డిక్టేషన్‌లు";
+"Saved encrypted on this Mac for 7 days, so you can copy a dictation again after the clipboard changes or the Mac restarts. Text meant for a password field is never kept." = "ఈ Mac లో 7 రోజుల పాటు ఎన్‌క్రిప్ట్ చేసి సేవ్ చేయబడుతుంది, కాబట్టి క్లిప్‌బోర్డ్ మారిన తర్వాత లేదా Mac రీస్టార్ట్ అయిన తర్వాత కూడా మీరు డిక్టేషన్‌ను మళ్లీ కాపీ చేయవచ్చు. పాస్‌వర్డ్ ఫీల్డ్ కోసం ఉద్దేశించిన టెక్స్ట్ ఎప్పుడూ ఉంచబడదు.";
+"Shown in LokalBot" = "LokalBot లో చూపబడింది";
 "Try a sample meeting" = "నమూనా సమావేశాన్ని ప్రయత్నించండి";
 "Open the sample meeting" = "నమూనా సమావేశాన్ని తెరవండి";
 "Sample meeting" = "నమూనా సమావేశం";
@@ -1426,3 +1434,6 @@
 "Mentioned in %lld meetings" = "%lld సమావేశాల్లో ప్రస్తావించబడింది";
 "Reopen action thread" = "పని సంభాషణను మళ్లీ తెరవండి";
 "Mark action thread done" = "పని సంభాషణను పూర్తయినట్లు గుర్తించండి";
+"Names you save also teach LokalBot this voice, so it can name the person in later meetings. Voices stay encrypted on this Mac." = "మీరు సేవ్ చేసే పేర్లు LokalBotకు ఈ స్వరాన్ని కూడా నేర్పుతాయి, తద్వారా తరువాతి మీటింగ్‌లలో ఆ వ్యక్తిని గుర్తించగలదు. స్వరాలు ఈ Macలో ఎన్‌క్రిప్ట్ చేయబడి ఉంటాయి.";
+"Apply Names" = "పేర్లను వర్తింపజేయి";
+"Recognized voices: %@" = "గుర్తించిన స్వరాలు: %@";

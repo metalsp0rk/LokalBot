@@ -193,9 +193,12 @@
 "Clear search" = "Share bincike";
 "Clear search filters" = "Share matatun bincike";
 "Clear selection" = "Share zaɓi";
+"Copied" = "An kwafa";
+"Copy last dictation" = "Kwafa faɗa don rubutawa na ƙarshe";
 "Dictation already uses this shortcut. Choose another." = "Faɗa don rubutawa ya riga ya amfani da wannan gajeriyar hanya. Zaɓi wata.";
 "Don't Allow" = "Kada a bada izini";
 "Hold the modifiers and press a key, like ⌃⇧ Space." = "Riƙe maɓallan gyara ka danna maɓalli, kamar ⌃⇧ Space.";
+"Last dictation" = "Faɗa don rubutawa na ƙarshe";
 "macOS already uses this shortcut. Choose another." = "macOS ya riga ya amfani da wannan gajeriyar hanya. Zaɓi wata.";
 "Model folder selection cleared" = "An share zaɓin babban fayil na samfuri";
 "Clear settings search" = "Share binciken saituna";
@@ -436,6 +439,11 @@
 "Import an audio or video recording" = "Shigo da rikodin sauti ko bidiyo";
 "Import Recording" = "Shigo da rikodi";
 "Import Recording…" = "Shigo da rikodi…";
+"Not inserted" = "Ba a saka ba";
+"Pasted" = "An liƙa";
+"Recent dictations" = "Faɗa don rubutawa na baya-bayan nan";
+"Saved encrypted on this Mac for 7 days, so you can copy a dictation again after the clipboard changes or the Mac restarts. Text meant for a password field is never kept." = "Ana ajiye shi a ɓoye a wannan Mac har kwana 7, don ka iya sake kwafa faɗa don rubutawa bayan allo na kwafi ya canza ko Mac ya sake farawa. Ba a taɓa ajiye rubutun da aka nufa don filin kalmar sirri ba.";
+"Shown in LokalBot" = "An nuna a LokalBot";
 "Try a sample meeting" = "Gwada taron misali";
 "Open the sample meeting" = "Buɗe taron misali";
 "Sample meeting" = "Taron misali";
@@ -1426,3 +1434,6 @@
 "Mentioned in %lld meetings" = "An ambata a taruka %lld";
 "Reopen action thread" = "Sake buɗe tattaunawar mataki";
 "Mark action thread done" = "Sa alamar an gama tattaunawar mataki";
+"Names you save also teach LokalBot this voice, so it can name the person in later meetings. Voices stay encrypted on this Mac." = "Sunayen da ka adana suna kuma koya wa LokalBot wannan murya, don ya iya sanin mutumin a tarukan gaba. Muryoyi suna zama a ɓoye cikin wannan Mac.";
+"Apply Names" = "Yi amfani da sunaye";
+"Recognized voices: %@" = "Muryoyin da aka gane: %@";
