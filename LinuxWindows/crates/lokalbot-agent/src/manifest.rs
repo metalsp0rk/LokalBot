@@ -8,10 +8,11 @@
 //! downloaded once and hashed, and the digest matches the `digest` GitHub
 //! publishes for the asset. The binary digests are of the file inside each
 //! archive. The x64 and x64-baseline archives of this release hold the same
-//! binary, so one pin per OS serves every x86-64 CPU. The pi digests come from
+//! binary, so one pin per OS serves every x86-64 CPU. The pi digests, recorded
+//! 2026-10-21 for pi 1.3.0, come from
 //! `bun install --production --frozen-lockfile --ignore-scripts` of the bundled
 //! `package.json` + `bun.lock` on each OS; `cli.js`, `package.json` and
-//! `bun.lock` match the macOS pins byte for byte.
+//! `bun.lock` match the macOS pins byte for byte, and so does the Linux tree.
 
 /// How a release archive is packed.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -49,12 +50,12 @@ pub struct RuntimeManifest {
 }
 
 pub const BUN_VERSION: &str = "1.4.2";
-pub const PI_VERSION: &str = "1.0.3";
+pub const PI_VERSION: &str = "1.3.0";
 
 pub const PACKAGE_JSON_SHA256: &str =
-    "5a41203882920f2f8755d65edad2986716cce33763f2a609a6fdf6fc44655593";
+    "bdc29089f9460b2fda49be93cc4a804fb852bdcc88ff6915fb9bea85ce01a40b";
 pub const LOCKFILE_SHA256: &str =
-    "57e90e19397b5c26641da2ed2cf388b895dc6fed7490d06dc62cc1712d160c75";
+    "7acf67d8ff01a8118e447d5494fcd17a23d8d8ec90f2836385e99bb7f7e474ff";
 pub const PI_CLI_SHA256: &str = "e79626f2dd6f94aa45d30f3fa63cd84319a6eefcd150b353cfaf274366926774";
 
 /// The Bun build for this OS, by its release name.
@@ -69,9 +70,9 @@ mod platform {
         "15277c59ccd6c6c20f8dc9716c2b59c1776320d606b6a8658f70be8799519ca4";
     /// win32-x64 install of the bundled lockfile.
     pub const PI_TREE_SHA256: &str =
-        "01fdc41590c6a834143eacbec092bc25c4fb115fbe42425003716e3778886a4c";
-    pub const DOWNLOAD_BYTES: u64 = 70_000_000;
-    pub const INSTALLED_BYTES: u64 = 210_000_000;
+        "b08b18bf247139aeba1abac52baaea03ba7733a9877140440fce536ead545e27";
+    pub const DOWNLOAD_BYTES: u64 = 65_000_000;
+    pub const INSTALLED_BYTES: u64 = 198_000_000;
 }
 
 #[cfg(not(windows))]
@@ -83,13 +84,13 @@ mod platform {
     pub const BINARY: &str = "bun-linux-x64/bun";
     pub const BINARY_SHA256: &str =
         "a83d263767d839e4d2649ca8e35d07159c7afc99afdc96d731ced29e056dda0c";
-    /// linux-x64 install of the bundled lockfile (126 packages).
+    /// linux-x64 install of the bundled lockfile (123 packages).
     pub const PI_TREE_SHA256: &str =
-        "b7b2875329194d6928d1e46186ba6b4f3c2f87af42d9e6224ec920dab2fe261a";
-    /// 36.6 MB archive + 29.2 MB of npm packages.
-    pub const DOWNLOAD_BYTES: u64 = 66_000_000;
-    /// 79.5 MB Bun + 124.3 MB pi tree.
-    pub const INSTALLED_BYTES: u64 = 204_000_000;
+        "c9ee7086e5c6b38f6362f095704519b9a91d27200415382d0d733342f2b974be";
+    /// 36.6 MB archive + 24.4 MB of npm packages.
+    pub const DOWNLOAD_BYTES: u64 = 61_000_000;
+    /// 79.5 MB Bun + 112.6 MB pi tree.
+    pub const INSTALLED_BYTES: u64 = 192_000_000;
 }
 
 impl RuntimeManifest {
@@ -117,7 +118,7 @@ impl RuntimeManifest {
         }
     }
 
-    /// "about 66 MB", for the setup card.
+    /// "about 60 MB", for the setup card.
     pub fn download_label(&self) -> String {
         megabytes(self.approximate_download_bytes)
     }
@@ -140,7 +141,7 @@ mod tests {
     fn manifest_pins_expected_versions() {
         let manifest = RuntimeManifest::current();
         assert_eq!(BUN_VERSION, "1.4.2");
-        assert_eq!(PI_VERSION, "1.0.3");
+        assert_eq!(PI_VERSION, "1.3.0");
         assert!(manifest.bun.url.contains("bun-v1.4.2/bun-"));
         assert!(manifest.bun.url.ends_with("-x64.zip"));
         for digest in [
