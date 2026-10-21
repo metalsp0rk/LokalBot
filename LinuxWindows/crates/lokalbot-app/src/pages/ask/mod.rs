@@ -6,6 +6,7 @@ mod composer;
 mod history;
 
 pub use composer::inference as composer_inference;
+pub(crate) use history::row_timestamp;
 mod results;
 pub mod scope;
 pub mod search;

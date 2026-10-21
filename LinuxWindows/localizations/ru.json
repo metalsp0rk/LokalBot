@@ -591,6 +591,7 @@
   "Sarah": "Сара",
   "Save Moment": "Сохранить момент",
   "Saved": "Сохранено.",
+  "Saved encrypted on this computer for 7 days, so you can copy a dictation again after the clipboard changes or the computer restarts. Text dictated into a password manager is never kept.": "Хранится в зашифрованном виде на этом компьютере 7 дней, чтобы вы могли снова скопировать диктовку после того, как буфер обмена изменится или компьютер перезагрузится. Текст, надиктованный в менеджер паролей, никогда не сохраняется.",
   "Saved on this PC": "Сохранено на этом компьютере.",
   "Saved sessions…": "Сохранённые сеансы",
   "Saved the API key in the system credential store.": "Ключ API сохранен в хранилище учетных данных системы.",

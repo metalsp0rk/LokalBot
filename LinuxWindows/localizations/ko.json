@@ -591,6 +591,7 @@
   "Sarah": "사라",
   "Save Moment": "순간을 저장하세요",
   "Saved": "저장됨",
+  "Saved encrypted on this computer for 7 days, so you can copy a dictation again after the clipboard changes or the computer restarts. Text dictated into a password manager is never kept.": "이 컴퓨터에 7일 동안 암호화되어 저장되므로, 클립보드가 바뀌거나 컴퓨터를 다시 시작한 뒤에도 받아쓰기를 다시 복사할 수 있습니다. 암호 관리자에 받아쓴 텍스트는 보관하지 않습니다.",
   "Saved on this PC": "이 PC에 저장되었습니다",
   "Saved sessions…": "저장된 세션",
   "Saved the API key in the system credential store.": "시스템 자격 증명 저장소에 API 키를 저장했습니다.",

@@ -1,15 +1,17 @@
 //! Dictation: the shortcut, how it triggers, Transcribe or Compose, where the
-//! text goes, and a place to try it (`DictationSettingsControls.swift`,
-//! `DictationView.swift`). The start sound and kept audio files are not
-//! implemented on Linux and Windows, so their rows are not shown.
+//! text goes, a place to try it, and the recent dictations to copy again
+//! (`DictationSettingsControls.swift`, `DictationView.swift`,
+//! `RecentDictationsViews.swift`). The start sound and kept audio files are
+//! not implemented on Linux and Windows, so their rows are not shown.
 
 use crate::i18n::h_flex;
-use gpui_kit::component::button::Button;
+use gpui_kit::component::button::{Button, ButtonVariants as _};
 use gpui_kit::component::{Icon, Sizable as _, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{Context, FontWeight, ParentElement as _, SharedString, Styled as _, div, px};
 use lokalbot_core::Settings;
 use lokalbot_core::settings::{DictationIntent, DictationOutputMode, DictationTriggerMode};
+use lokalbot_engine::{Command, DictationCommand};
 
 use super::{Section, SettingsPage};
 use crate::state::AppEvent;
@@ -51,12 +53,13 @@ pub fn writing_profile_summary(settings: &Settings) -> &'static str {
 
 impl SettingsPage {
     pub(super) fn dictation_sections(&mut self, cx: &mut Context<Self>) -> Vec<Section> {
-        let (settings, microphones, last) = {
+        let (settings, microphones, last, recent) = {
             let data = self.data.read(cx);
             (
                 data.settings.clone(),
                 data.audio_inputs.clone(),
                 data.last_dictation.clone(),
+                data.recent_dictations.clone(),
             )
         };
         let lb = cx.lb().clone();
@@ -299,6 +302,91 @@ impl SettingsPage {
             settings_row::content_row("settings.dictationTry", try_it, false, cx),
         );
 
-        vec![dictation, try_section]
+        if recent.is_empty() {
+            return vec![dictation, try_section];
+        }
+        // Earlier results with Copy, so one left on the clipboard can be
+        // copied again after something else replaced it.
+        let now = chrono::Local::now();
+        let list = v_flex()
+            .w_full()
+            .gap(px(12.))
+            .children(recent.iter().map(|entry| {
+                let caption = [
+                    Some(crate::pages::ask::row_timestamp(entry.date, now)),
+                    entry.app_name.clone(),
+                    Some(lokalbot_i18n::tr(entry.outcome.label()).to_string()),
+                ]
+                .into_iter()
+                .flatten()
+                .collect::<Vec<_>>()
+                .join(" · ");
+                let id = entry.id;
+                h_flex()
+                    .w_full()
+                    .gap(px(10.))
+                    .items_start()
+                    .child(
+                        v_flex()
+                            .flex_1()
+                            .min_w_0()
+                            .gap(px(2.))
+                            .child(
+                                div()
+                                    .text_size(ty::BODY)
+                                    .text_color(lb.text)
+                                    .line_clamp(3)
+                                    .child(entry.text.clone()),
+                            )
+                            .child(
+                                div()
+                                    .text_size(ty::CAPTION)
+                                    .text_color(lb.text_secondary)
+                                    .child(caption),
+                            ),
+                    )
+                    .child(
+                        Button::new(SharedString::from(format!("settings-dictation-copy-{id}")))
+                            .outline()
+                            .small()
+                            .icon(Icon::new(Ico::Copy))
+                            .label(lokalbot_i18n::tr("Copy"))
+                            .on_click(move |_, _, cx| {
+                                crate::bridge::send(
+                                    Command::Dictation(DictationCommand::CopyRecent(Some(id))),
+                                    cx,
+                                )
+                            }),
+                    )
+            }))
+            .child(
+                h_flex()
+                    .w_full()
+                    .gap(px(10.))
+                    .items_center()
+                    .child(div().flex_1().min_w_0().child(settings_row::help(
+                        lokalbot_i18n::tr(
+                            "Saved encrypted on this computer for 7 days, so you can copy a dictation again after the clipboard changes or the computer restarts. Text dictated into a password manager is never kept.",
+                        ),
+                        cx,
+                    )))
+                    .child(
+                        Button::new("settings-dictation-clear-recent")
+                            .ghost()
+                            .small()
+                            .label(lokalbot_i18n::tr("Clear"))
+                            .on_click(|_, _, cx| {
+                                crate::bridge::send(
+                                    Command::Dictation(DictationCommand::ClearRecent),
+                                    cx,
+                                )
+                            }),
+                    ),
+            );
+        let recent_section = Section::new(lokalbot_i18n::tr("Recent dictations")).row(
+            "settings.dictationRecent",
+            settings_row::content_row("settings.dictationRecent", list, false, cx),
+        );
+        vec![dictation, try_section, recent_section]
     }
 }

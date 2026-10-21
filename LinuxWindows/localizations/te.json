@@ -591,6 +591,7 @@
   "Sarah": "సారా",
   "Save Moment": "క్షణం సేవ్ చేయండి",
   "Saved": "సేవ్ చేయబడింది",
+  "Saved encrypted on this computer for 7 days, so you can copy a dictation again after the clipboard changes or the computer restarts. Text dictated into a password manager is never kept.": "ఈ కంప్యూటర్‌లో 7 రోజుల పాటు ఎన్‌క్రిప్ట్ చేసి సేవ్ చేయబడుతుంది, కాబట్టి క్లిప్‌బోర్డ్ మారిన తర్వాత లేదా కంప్యూటర్ రీస్టార్ట్ అయిన తర్వాత కూడా మీరు డిక్టేషన్‌ను మళ్లీ కాపీ చేయవచ్చు. పాస్‌వర్డ్ మేనేజర్‌లో డిక్టేట్ చేసిన టెక్స్ట్ ఎప్పుడూ ఉంచబడదు.",
   "Saved on this PC": "ఈ PCలో సేవ్ చేయబడింది",
   "Saved sessions…": "సేవ్ చేసిన సెషన్‌లు",
   "Saved the API key in the system credential store.": "సిస్టమ్ క్రెడెన్షియల్ స్టోర్‌లో API కీ సేవ్ చేయబడింది.",

@@ -933,8 +933,17 @@ platform differences:
 - **Dictation** is off until you turn it on. Its audio stays in memory and is
   never written to disk. The text is pasted through the clipboard, and your
   previous clipboard comes back about 300 ms later; when pasting isn't
-  possible, the text is left on the clipboard instead. Dictated text is not
-  kept, and there is no **Learn from my dictation**.
+  possible, the text is left on the clipboard instead. **Recent dictations**
+  keeps the last 10 results (or the spoken words when Compose fails), with
+  the app each was dictated into, so one can be copied again from the tray
+  menu or Settings → Dictation: in `recent-dictations.json.enc` in the
+  library, AES-GCM encrypted with a per-install key kept in the system
+  credential store, owner-only on Linux, and flushed to the drive after each
+  dictation. Without a credential store they stay in memory until LokalBot
+  quits. A result older than 7 days is dropped when LokalBot starts or saves
+  the next dictation, and **Clear** deletes the file. Text dictated into a
+  password manager is never kept; password fields in other apps can't be
+  detected there. There is no **Learn from my dictation**.
 - **Meeting detection** looks at which apps are using the microphone
   (PulseAudio source outputs on Linux, WASAPI capture sessions on Windows) and
   by default asks with a notification before recording. System audio comes

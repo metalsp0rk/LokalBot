@@ -591,6 +591,7 @@
   "Sarah": "Sara",
   "Save Moment": "Salvar momento",
   "Saved": "Salvo",
+  "Saved encrypted on this computer for 7 days, so you can copy a dictation again after the clipboard changes or the computer restarts. Text dictated into a password manager is never kept.": "Fica salvo com criptografia neste computador por 7 dias, para que você possa copiar um ditado de novo depois que a área de transferência mudar ou o computador reiniciar. O texto ditado em um gerenciador de senhas nunca é guardado.",
   "Saved on this PC": "Salvo neste PC",
   "Saved sessions…": "Sessões salvas",
   "Saved the API key in the system credential store.": "Salvou a chave API no armazenamento de credenciais do sistema.",

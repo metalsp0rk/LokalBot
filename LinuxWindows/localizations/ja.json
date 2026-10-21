@@ -591,6 +591,7 @@
   "Sarah": "サラ",
   "Save Moment": "セーブモーメント",
   "Saved": "保存しました",
+  "Saved encrypted on this computer for 7 days, so you can copy a dictation again after the clipboard changes or the computer restarts. Text dictated into a password manager is never kept.": "このコンピュータに 7 日間暗号化して保存されるため、クリップボードが変わったりコンピュータを再起動したりした後でも音声入力をもう一度コピーできます。パスワードマネージャーへの音声入力は保持されません。",
   "Saved on this PC": "このPCに保存されました",
   "Saved sessions…": "保存済みセッション",
   "Saved the API key in the system credential store.": "API キーをシステム資格情報ストアに保存しました。",

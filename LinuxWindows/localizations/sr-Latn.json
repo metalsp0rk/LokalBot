@@ -591,6 +591,7 @@
   "Sarah": "Sarah",
   "Save Moment": "Sačuvaj trenutak",
   "Saved": "Sačuvano",
+  "Saved encrypted on this computer for 7 days, so you can copy a dictation again after the clipboard changes or the computer restarts. Text dictated into a password manager is never kept.": "Čuva se šifrovano na ovom računaru 7 dana, pa diktiranje možete ponovo kopirati i kada nešto drugo zameni sadržaj privremene memorije ili se računar ponovo pokrene. Tekst izdiktiran u menadžer lozinki se nikada ne čuva.",
   "Saved on this PC": "Sačuvano na ovom računaru",
   "Saved sessions…": "Sačuvane sesije",
   "Saved the API key in the system credential store.": "Sačuvao je ključ API u skladištu sistemskih akreditiva.",

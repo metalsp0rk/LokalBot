@@ -196,6 +196,8 @@ pub struct AppData {
     pub project_notes_running: Vec<String>,
     /// Text of the last dictation shown in LokalBot (output mode "Show in LokalBot").
     pub last_dictation: Option<SharedString>,
+    /// The latest dictations, newest first, for copying one again.
+    pub recent_dictations: Vec<lokalbot_core::dictation_history::Entry>,
     /// Microphone names for the device pickers in Settings, filled by the engine.
     pub audio_inputs: Vec<SharedString>,
     /// Settings is recording a new shortcut: global shortcuts should pause
@@ -345,6 +347,7 @@ impl AppData {
             digest_running: None,
             project_notes_running: Vec::new(),
             last_dictation: None,
+            recent_dictations: Vec::new(),
             dictation: DictationHud::Idle,
             recording_statuses: None,
             follow_up: None,
