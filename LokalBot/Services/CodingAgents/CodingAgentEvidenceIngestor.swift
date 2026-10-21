@@ -166,8 +166,14 @@ final class CodingAgentEvidenceIngestor {
         let existingByID = Dictionary(existing.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
 
         let added = fresh.filter { existingByID[$0.id] == nil }
+        // A finished day keeps the labels its digest and Dream review were
+        // written with; only changed work reopens it. On 2026-10-20 and 21,
+        // sessions that moved to another branch relabeled earlier days'
+        // bursts and rebuilt those days' digests several times a day.
+        let today = calendar.startOfDay(for: scannedAt)
         let corrected = fresh.filter { burst in
-            existingByID[burst.id].map { $0 != burst } ?? false
+            guard let stored = existingByID[burst.id], stored != burst else { return false }
+            return burst.start >= today || !stored.hasSameWork(as: burst)
         }
         // An unreadable transcript is not a deleted one.
         let removed = scan.unreadableFiles.isEmpty ? existing.filter { !freshIDs.contains($0.id) } : []
