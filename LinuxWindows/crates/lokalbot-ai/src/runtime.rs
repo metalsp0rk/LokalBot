@@ -25,8 +25,9 @@ use crate::download::{self, DownloadSpec};
 use crate::error::AiError;
 use crate::process;
 
-/// The llama.cpp release every platform runs (macOS builds the same tag).
-pub const LLAMA_BUILD: &str = "b11474";
+/// The llama.cpp release every platform runs. macOS builds the same commit
+/// from its `v0.7.0` tag.
+pub const LLAMA_BUILD: &str = "b11669";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -73,16 +74,16 @@ const ASSETS: &[RuntimeAsset] = &[
     RuntimeAsset {
         backend: LlamaBackend::Vulkan,
         tag: "win-vulkan-x64",
-        name: "llama-b11474-bin-win-vulkan-x64.zip",
-        size: 33_380_391,
-        sha256: "b3632a0615f200d89ba45526065fa298f462dc40cc8a214e058c7b30153fc869",
+        name: "llama-b11669-bin-win-vulkan-x64.zip",
+        size: 32_182_350,
+        sha256: "2c07574e7bde71321cb785282b20cc821e951132149eeceeea32ddebdbf0598e",
     },
     RuntimeAsset {
         backend: LlamaBackend::Cpu,
         tag: "win-cpu-x64",
-        name: "llama-b11474-bin-win-cpu-x64.zip",
-        size: 19_440_991,
-        sha256: "5a39102a1b27d75ab8a9d777c6cf2ce373c468265dc1797a2566dec085501a95",
+        name: "llama-b11669-bin-win-cpu-x64.zip",
+        size: 19_537_886,
+        sha256: "37b3efcf962847ca869745fd4ccf7f5e7e8dacfeff9fa3523b4ca8cdc66d632b",
     },
 ];
 
@@ -91,16 +92,16 @@ const ASSETS: &[RuntimeAsset] = &[
     RuntimeAsset {
         backend: LlamaBackend::Vulkan,
         tag: "ubuntu-vulkan-x64",
-        name: "llama-b11474-bin-ubuntu-vulkan-x64.tar.gz",
-        size: 31_684_079,
-        sha256: "ee414b7a48d7765e7d072e023cdc85dbf5c4ee582ea0058aec141030e7dad56e",
+        name: "llama-b11669-bin-ubuntu-vulkan-x64.tar.gz",
+        size: 30_497_889,
+        sha256: "e8709e5ba6c1b093dea7f3de57f4aba842f9a188fba6b465782d65d6fcfa4d9f",
     },
     RuntimeAsset {
         backend: LlamaBackend::Cpu,
         tag: "ubuntu-x64",
-        name: "llama-b11474-bin-ubuntu-x64.tar.gz",
-        size: 17_737_147,
-        sha256: "98abe0fac169db55712ce96b0e30adf99fa47fa5386fddef8fef84fe21f4a690",
+        name: "llama-b11669-bin-ubuntu-x64.tar.gz",
+        size: 17_851_611,
+        sha256: "cf07c1c112d709bd67e522017471de57ed0ec8bea031d732c5422351c07f65ac",
     },
 ];
 
@@ -1609,7 +1610,7 @@ mod tests {
             assert!(
                 asset
                     .url()
-                    .starts_with("https://github.com/ggml-org/llama.cpp/releases/download/b11474/")
+                    .starts_with("https://github.com/ggml-org/llama.cpp/releases/download/b11669/")
             );
             assert!(asset.name.contains(asset.tag));
         }

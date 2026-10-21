@@ -6,7 +6,7 @@
 // LokalBot as an extension_ui_request on stdout, answered over stdin.
 //
 // Linux and Windows port of LokalBot/Resources/pi/lokalbot-extension: paths
-// are resolved exactly as pi 1.0.3's file tools resolve them (Windows drive
+// are resolved exactly as pi 1.3.0's file tools resolve them (Windows drive
 // paths such as /c/Users, a leading "@", Unicode spaces, "~\\"), so the
 // approval card always names the file pi will touch, and PowerShell commands
 // are reviewed like Bash commands.
@@ -261,7 +261,7 @@ function isIPv4Loopback(hostname: string): boolean {
     && Number(octets[0]) === 127;
 }
 
-/** pi 1.0.3 `normalizeWindowsShellPath`: Git Bash, MSYS, Cygwin and WSL drive paths. */
+/** pi 1.3.0 `normalizeWindowsShellPath`: Git Bash, MSYS, Cygwin and WSL drive paths. */
 function normalizeWindowsShellPath(filePath: string): string {
   if (!filePath.startsWith("/") || filePath.startsWith("//") || filePath.includes("\\")) return filePath;
   const match = filePath.match(/^\/(?:mnt\/|cygdrive\/)?([a-z])(?:\/(.*))?$/i);
@@ -270,7 +270,7 @@ function normalizeWindowsShellPath(filePath: string): string {
   return `${match[1].toUpperCase()}:\\${suffix ?? ""}`;
 }
 
-/** pi 1.0.3 `normalizePath`. `forTool` adds the options its file tools pass. */
+/** pi 1.3.0 `normalizePath`. `forTool` adds the options its file tools pass. */
 function normalizeToolPath(input: string, forTool: boolean): string {
   let normalized = input;
   if (forTool) {
@@ -287,7 +287,7 @@ function normalizeToolPath(input: string, forTool: boolean): string {
   return normalized;
 }
 
-/** pi 1.0.3 `resolveToCwd`, which its write and edit tools use. */
+/** pi 1.3.0 `resolveToCwd`, which its write and edit tools use. */
 function resolveToCwd(value: string, cwd: string): string {
   const normalized = normalizeToolPath(value, true);
   return isAbsolute(normalized)
@@ -296,7 +296,7 @@ function resolveToCwd(value: string, cwd: string): string {
 }
 
 /**
- * pi 1.0.3 `resolveReadPath`: a missing file is opened through a look-alike
+ * pi 1.3.0 `resolveReadPath`: a missing file is opened through a look-alike
  * name when one exists, so a read is checked against the file pi will open.
  */
 function resolveReadPath(value: string, cwd: string): string {
