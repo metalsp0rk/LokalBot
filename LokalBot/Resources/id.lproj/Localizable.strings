@@ -1433,3 +1433,6 @@
 "Mentioned in %lld meetings" = "Disebut di %lld rapat";
 "Reopen action thread" = "Buka kembali utas tindakan";
 "Mark action thread done" = "Tandai utas tindakan selesai";
+"Names you save also teach LokalBot this voice, so it can name the person in later meetings. Voices stay encrypted on this Mac." = "Nama yang Anda simpan juga mengajarkan suara ini kepada LokalBot, sehingga ia dapat menamai orang tersebut di rapat berikutnya. Suara tetap terenkripsi di Mac ini.";
+"Apply Names" = "Terapkan Nama";
+"Recognized voices: %@" = "Suara yang dikenali: %@";
