@@ -101,6 +101,7 @@
   "Blocks appear as you use your PC (sampled every 5 s, idle-aware).": "PC를 사용할 때 블록이 나타납니다(5초마다 샘플링, 유휴 상태 인식).",
   "Built on this PC from calendar attendees, names you gave speakers, action owners, and meeting notes. Email addresses are used only to tell people apart and are never shown or shared.": "캘린더 참석자, 발표자, 작업 소유자 및 회의 메모에 부여한 이름으로 이 PC에 구축되었습니다. 이메일 주소는 사람들을 구별하는 데에만 사용되며 결코 표시되거나 공유되지 않습니다.",
   "Bun {0}": "Bun {0}",
+  "CUDA (experimental)": "CUDA (실험적)",
   "Calendar links": "캘린더 링크",
   "Calendar links start with https:// or webcal://.": "캘린더 링크는 https:// 또는 webcal://로 시작합니다.",
   "Calendar status": "캘린더 상태",

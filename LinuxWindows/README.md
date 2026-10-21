@@ -41,6 +41,38 @@ More screenshots of both apps are in [docs/screenshots](docs/screenshots).
 
 ## Think providers
 
+### NVIDIA CUDA (experimental)
+
+Settings → Models → llama.cpp offers **CUDA (experimental)** on Linux x86_64 and
+Windows x64. It accelerates the built-in Think, search and autocomplete models;
+transcription and speaker separation still use their separate CPU engines.
+
+The initial runtime uses CUDA 13.4 and requires an NVIDIA Turing or newer GPU and
+a driver reporting CUDA 13.4 support or newer. Older hardware/drivers can keep
+using Vulkan or CPU. **Automatic** continues to select Vulkan or CPU; CUDA remains
+opt-in until native NVIDIA validation supports changing the default.
+
+LokalBot first tries compatible system CUDA libraries. If the CUDA backend cannot
+use them, it downloads the pinned CUDA runtime, cuBLAS and cuBLASLt libraries into
+its own runtime folder. You do not need the CUDA compiler or full toolkit. A fresh
+download is at most about 594 MB on Linux or 578 MB on Windows; reusing system
+libraries reduces that to about 154 MB or 155 MB respectively, excluding models.
+Downloads are verified and an incomplete setup does not count as installed.
+
+Changing the backend lets in-flight requests finish; models switch when next
+loaded. Explicit CUDA reports a setup/startup error if it cannot accelerate the
+model, rather than silently labeling a CPU run as CUDA. Choose Automatic, Vulkan
+or CPU to recover. The Settings download buttons prepare the newly selected
+runtime; typing into another app never initiates a runtime download.
+
+For native NVIDIA validation, run the ignored runtime test with
+`LOKALBOT_E2E_BACKEND=cuda` and a separate `LOKALBOT_E2E_ROOT`, and run the
+`lokalbot-engine` `autocomplete_eval` example with `--backend cuda`. The runtime
+test checks actual model offload as well as text generation and embeddings.
+No CUDA/Vulkan speedup or native NVIDIA hardware validation is claimed yet.
+
+### Other Think providers
+
 Think (notes, digests, Ask, Compose) runs on the built-in model by default. On a PC without a
 supported GPU, local models are slow, so Settings → Models → Connections also offers:
 

@@ -491,9 +491,9 @@ impl ThinkClient {
     /// The built-in model runs on the CPU build (no GPU found or chosen).
     pub fn runs_on_cpu(&self) -> bool {
         match &self.inner.backend {
-            Backend::BuiltIn { runtime, .. } => {
-                runtime.active_backend() != Some(crate::runtime::LlamaBackend::Vulkan)
-            }
+            Backend::BuiltIn { runtime, .. } => !runtime
+                .active_backend()
+                .is_some_and(crate::runtime::LlamaBackend::is_gpu),
             _ => false,
         }
     }

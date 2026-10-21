@@ -101,6 +101,7 @@
   "Blocks appear as you use your PC (sampled every 5 s, idle-aware).": "Blocks dey appear as you dey use your PC (dem dey check every 5 s and notice when you no dey active).",
   "Built on this PC from calendar attendees, names you gave speakers, action owners, and meeting notes. Email addresses are used only to tell people apart and are never shown or shared.": "Dem build am for this PC from calendar attendees, names wey you give speakers, action owners, and meeting notes. Email addresses na only to tell people apart; dem no dey show or share them.",
   "Bun {0}": "Bun {0}",
+  "CUDA (experimental)": "CUDA (na test version)",
   "Calendar links": "Calendar links",
   "Calendar links start with https:// or webcal://.": "Calendar links dey start with https:// or webcal://.",
   "Calendar status": "Calendar status",

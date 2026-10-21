@@ -101,6 +101,7 @@
   "Blocks appear as you use your PC (sampled every 5 s, idle-aware).": "当您使用 PC 时会出现块（每 5 秒采样一次，空闲感知）。",
   "Built on this PC from calendar attendees, names you gave speakers, action owners, and meeting notes. Email addresses are used only to tell people apart and are never shown or shared.": "在此 PC 上构建了日历与会者、您为演讲者提供的姓名、操作所有者和会议记录。电子邮件地址仅用于区分人们，绝不会显示或共享。",
   "Bun {0}": "Bun {0}",
+  "CUDA (experimental)": "CUDA（实验性）",
   "Calendar links": "日历链接",
   "Calendar links start with https:// or webcal://.": "日历链接以 https:// 或 webcal:// 开头。",
   "Calendar status": "日历状态",

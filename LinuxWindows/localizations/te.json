@@ -101,6 +101,7 @@
   "Blocks appear as you use your PC (sampled every 5 s, idle-aware).": "మీరు మీ PCని ఉపయోగిస్తున్నప్పుడు బ్లాక్‌లు కనిపిస్తాయి (ప్రతి 5 సెకన్లకు నమూనా, నిష్క్రియ-అవేర్).",
   "Built on this PC from calendar attendees, names you gave speakers, action owners, and meeting notes. Email addresses are used only to tell people apart and are never shown or shared.": "ఈ PCలో క్యాలెండర్ హాజరైనవారు, మీరు ఇచ్చిన స్పీకర్‌ల పేర్లు, యాక్షన్ ఓనర్‌లు మరియు మీటింగ్ నోట్‌ల నుండి రూపొందించబడింది. ఇమెయిల్ చిరునామాలు వ్యక్తులను వేరు చేయడానికి మాత్రమే ఉపయోగించబడతాయి మరియు చూపబడవు లేదా భాగస్వామ్యం చేయబడవు.",
   "Bun {0}": "Bun {0}",
+  "CUDA (experimental)": "CUDA (ప్రయోగాత్మక)",
   "Calendar links": "క్యాలెండర్ లింక్‌లు",
   "Calendar links start with https:// or webcal://.": "క్యాలెండర్ లింక్‌లు https:// లేదా webcal://తో మొదలవుతాయి.",
   "Calendar status": "క్యాలెండర్ స్థితి",

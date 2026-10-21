@@ -101,6 +101,7 @@
   "Blocks appear as you use your PC (sampled every 5 s, idle-aware).": "PC を使用するとブロックが表示されます (5 秒ごとにサンプリングされ、アイドル状態を認識します)。",
   "Built on this PC from calendar attendees, names you gave speakers, action owners, and meeting notes. Email addresses are used only to tell people apart and are never shown or shared.": "カレンダーの出席者、発言者に指定した名前、アクションの所有者、および会議メモからこの PC 上に構築されます。電子メール アドレスは、人々を区別するためにのみ使用され、表示されたり共有されたりすることはありません。",
   "Bun {0}": "Bun {0}",
+  "CUDA (experimental)": "CUDA（試験的）",
   "Calendar links": "カレンダーのリンク",
   "Calendar links start with https:// or webcal://.": "カレンダーのリンクは https:// または webcal:// で始まります。",
   "Calendar status": "カレンダーの状態",

@@ -25,6 +25,8 @@ use crate::download::{self, DownloadSpec};
 use crate::error::AiError;
 use crate::process;
 
+mod cuda;
+
 /// The llama.cpp release every platform runs. macOS builds the same commit
 /// from its `v0.7.0` tag.
 pub const LLAMA_BUILD: &str = "b11669";
@@ -34,14 +36,29 @@ pub const LLAMA_BUILD: &str = "b11669";
 pub enum LlamaBackend {
     Cpu,
     Vulkan,
+    Cuda,
 }
 
 impl LlamaBackend {
+    fn preference(value: &str) -> Option<Self> {
+        match value.trim().to_ascii_lowercase().as_str() {
+            "cpu" => Some(Self::Cpu),
+            "vulkan" => Some(Self::Vulkan),
+            "cuda" => Some(Self::Cuda),
+            _ => None,
+        }
+    }
+
     pub fn label(self) -> &'static str {
         match self {
             LlamaBackend::Cpu => "CPU",
             LlamaBackend::Vulkan => "Vulkan",
+            LlamaBackend::Cuda => "CUDA",
         }
+    }
+
+    pub fn is_gpu(self) -> bool {
+        self != Self::Cpu
     }
 }
 
@@ -71,6 +88,7 @@ impl RuntimeAsset {
 
 #[cfg(windows)]
 const ASSETS: &[RuntimeAsset] = &[
+    cuda::ASSET,
     RuntimeAsset {
         backend: LlamaBackend::Vulkan,
         tag: "win-vulkan-x64",
@@ -89,6 +107,7 @@ const ASSETS: &[RuntimeAsset] = &[
 
 #[cfg(not(windows))]
 const ASSETS: &[RuntimeAsset] = &[
+    cuda::ASSET,
     RuntimeAsset {
         backend: LlamaBackend::Vulkan,
         tag: "ubuntu-vulkan-x64",
@@ -112,6 +131,21 @@ pub fn assets() -> &'static [RuntimeAsset] {
 
 pub fn asset(backend: LlamaBackend) -> Option<&'static RuntimeAsset> {
     ASSETS.iter().find(|a| a.backend == backend)
+}
+
+/// Upper bound before probing system CUDA libraries. Auto keeps its Vulkan /
+/// CPU policy until native NVIDIA validation supports changing that default.
+pub fn download_bytes(preference: &str) -> u64 {
+    match LlamaBackend::preference(preference) {
+        Some(LlamaBackend::Cuda) => cuda::ASSET.size + cuda::LIBRARIES.size,
+        Some(backend) => asset(backend).map_or(0, |a| a.size),
+        None => ASSETS
+            .iter()
+            .filter(|a| a.backend != LlamaBackend::Cuda)
+            .map(|a| a.size)
+            .max()
+            .unwrap_or(0),
+    }
 }
 
 const SERVER_BINARY: &str = if cfg!(windows) {
@@ -245,6 +279,10 @@ struct InstallRecord {
     /// Which `CONDITIONAL_FLAGS` list produced `flags`.
     #[serde(default)]
     probe: u32,
+    /// "system" after a successful device probe, or the companion archive's
+    /// pinned digest. Absent on installations predating CUDA support.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    cuda_libraries: Option<String>,
 }
 
 /// Bump when `CONDITIONAL_FLAGS` changes so installed runtimes re-probe.
@@ -304,7 +342,19 @@ impl Installer {
             }
         }
         let binary = folder.join(&record.server);
-        (record.sha256 == asset.sha256 && record.build == LLAMA_BUILD && binary.is_file())
+        let libraries_ready = backend != LlamaBackend::Cuda
+            || match record.cuda_libraries.as_deref() {
+                Some("system") => true,
+                Some(digest) if digest == cuda::LIBRARIES.sha256 => {
+                    binary.parent().is_some_and(cuda::complete)
+                }
+                _ => false,
+            };
+        (record.sha256 == asset.sha256
+            && record.build == LLAMA_BUILD
+            && record.backend == backend
+            && binary.is_file()
+            && libraries_ready)
             .then_some((record, binary))
     }
 
@@ -329,6 +379,13 @@ impl Installer {
         self.preference.lock().trim().to_ascii_lowercase()
     }
 
+    fn accepts_backend(&self, backend: LlamaBackend) -> bool {
+        match LlamaBackend::preference(&self.preference()) {
+            Some(selected) => selected == backend,
+            None => backend != LlamaBackend::Cuda,
+        }
+    }
+
     /// Downloads and unpacks one backend unless it is already installed.
     fn install(
         &self,
@@ -336,8 +393,17 @@ impl Installer {
         cancel: &AtomicBool,
         progress: &mut dyn FnMut(u64, u64),
     ) -> Result<(InstallRecord, PathBuf)> {
+        check_cancelled(cancel)?;
+        if backend == LlamaBackend::Cuda {
+            cuda::require_driver()?;
+        }
         if let Some(installed) = self.record(backend) {
-            return Ok(installed);
+            if backend != LlamaBackend::Cuda || probe_gpu(&installed.1, backend).is_ok() {
+                return Ok(installed);
+            }
+            // System libraries may have been removed or upgraded since the
+            // previous install. Repair in staging, preserving the old folder
+            // until the replacement is complete.
         }
         let asset = asset(backend).ok_or_else(|| {
             anyhow!(
@@ -353,7 +419,8 @@ impl Installer {
             size: asset.size,
             dest: archive.clone(),
         };
-        download::download(&spec, cancel, progress)
+        let total = download_bytes(backend.label());
+        download::download(&spec, cancel, &mut |done, _| progress(done, total))
             .with_context(|| format!("downloading the llama.cpp {} runtime", backend.label()))?;
 
         let folder = self.folder(asset);
@@ -362,6 +429,7 @@ impl Installer {
             .join(format!(".staging-{}", uuid::Uuid::new_v4().simple()));
         let result = (|| -> Result<(InstallRecord, PathBuf)> {
             download::extract_archive(&archive, &staging)?;
+            check_cancelled(cancel)?;
             let server = find_file(&staging, SERVER_BINARY, 4)
                 .ok_or_else(|| anyhow!("the llama.cpp archive has no {SERVER_BINARY}"))?;
             let relative = server
@@ -375,6 +443,12 @@ impl Installer {
                 perms.set_mode(perms.mode() | 0o755);
                 std::fs::set_permissions(&server, perms)?;
             }
+            let cuda_libraries = if backend == LlamaBackend::Cuda {
+                Some(self.prepare_cuda(&server, cancel, progress)?)
+            } else {
+                None
+            };
+            check_cancelled(cancel)?;
             let (version, flags) = probe_capabilities(&server);
             let record = InstallRecord {
                 build: LLAMA_BUILD.into(),
@@ -385,6 +459,7 @@ impl Installer {
                 version,
                 flags,
                 probe: PROBE_VERSION,
+                cuda_libraries,
             };
             std::fs::write(
                 staging.join("install.json"),
@@ -396,6 +471,14 @@ impl Installer {
             }
             std::fs::rename(&staging, &folder)
                 .with_context(|| format!("installing {}", folder.display()))?;
+            // A successful system-library probe avoided the companion archive.
+            let actual = asset.size
+                + if record.cuda_libraries.as_deref() == Some(cuda::LIBRARIES.sha256) {
+                    cuda::LIBRARIES.size
+                } else {
+                    0
+                };
+            progress(actual, actual);
             Ok((record, folder.join(relative)))
         })();
         if result.is_err() {
@@ -404,6 +487,44 @@ impl Installer {
         let _ = std::fs::remove_file(&archive);
         let _ = std::fs::remove_file(download::sidecar_path(&archive));
         result
+    }
+
+    fn prepare_cuda(
+        &self,
+        server: &Path,
+        cancel: &AtomicBool,
+        progress: &mut dyn FnMut(u64, u64),
+    ) -> Result<String> {
+        check_cancelled(cancel)?;
+        if probe_gpu(server, LlamaBackend::Cuda).is_ok() {
+            log::info!("llama.cpp CUDA: reusing system runtime libraries");
+            return Ok("system".into());
+        }
+        check_cancelled(cancel)?;
+        let companion = &cuda::LIBRARIES;
+        let archive = self.root().join(".downloads").join(companion.name);
+        let spec = DownloadSpec {
+            url: companion.url(),
+            sha256: companion.sha256.into(),
+            size: companion.size,
+            dest: archive.clone(),
+        };
+        download::download(&spec, cancel, &mut |done, _| {
+            progress(cuda::ASSET.size + done, cuda::ASSET.size + companion.size);
+        })?;
+        check_cancelled(cancel)?;
+        let extracted = tempfile::tempdir_in(self.root())?;
+        download::extract_archive(&archive, extracted.path())?;
+        cuda::place_libraries(
+            extracted.path(),
+            server.parent().context("runtime has no directory")?,
+        )?;
+        check_cancelled(cancel)?;
+        probe_gpu(server, LlamaBackend::Cuda)
+            .context("CUDA could not initialize even with the matching runtime libraries. This build needs an NVIDIA Turing or newer GPU and a driver supporting CUDA 13.4. Choose Vulkan or CPU if unsupported.")?;
+        let _ = std::fs::remove_file(&archive);
+        let _ = std::fs::remove_file(download::sidecar_path(&archive));
+        Ok(companion.sha256.into())
     }
 
     /// The backend to run. `auto` takes Vulkan only when the Vulkan build
@@ -428,6 +549,16 @@ impl Installer {
             }
         };
         let preference = self.preference();
+        if preference == "cuda" {
+            let (record, binary) = get(LlamaBackend::Cuda, progress)?;
+            // The no-download path (autocomplete) also checks that system
+            // libraries still work, without starting a dependency download.
+            if !allow_download {
+                probe_gpu(&binary, LlamaBackend::Cuda)?;
+            }
+            *self.active.lock() = Some(LlamaBackend::Cuda);
+            return Ok((LlamaBackend::Cuda, record, binary));
+        }
         let active = *self.active.lock();
         if let Some(active) = active
             && (preference == "auto" || preference == active.label().to_ascii_lowercase())
@@ -447,10 +578,14 @@ impl Installer {
                     } else {
                         self.record(LlamaBackend::Vulkan)
                     };
-                    match vulkan.as_ref().and_then(|(_, binary)| gpu_device(binary)) {
+                    check_cancelled(cancel)?;
+                    match vulkan
+                        .as_ref()
+                        .and_then(|(_, binary)| probe_gpu(binary, LlamaBackend::Vulkan).ok())
+                    {
                         Some(device) => {
-                            log::info!("llama.cpp: using Vulkan on {device}");
-                            self.save_choice(LlamaBackend::Vulkan, Some(device));
+                            log::info!("llama.cpp: using Vulkan on {}", device.name);
+                            self.save_choice(LlamaBackend::Vulkan, Some(device.name));
                             LlamaBackend::Vulkan
                         }
                         None => {
@@ -480,6 +615,13 @@ impl Installer {
     }
 }
 
+fn check_cancelled(cancel: &AtomicBool) -> Result<()> {
+    if cancel.load(std::sync::atomic::Ordering::Relaxed) {
+        return Err(AiError::Cancelled.into());
+    }
+    Ok(())
+}
+
 fn find_file(dir: &Path, name: &str, depth: usize) -> Option<PathBuf> {
     let entries = std::fs::read_dir(dir).ok()?;
     let mut folders = Vec::new();
@@ -504,15 +646,7 @@ fn server_command(binary: &Path) -> Command {
     let mut command = Command::new(binary);
     if let Some(dir) = binary.parent() {
         command.current_dir(dir);
-        #[cfg(target_os = "linux")]
-        {
-            let mut value = dir.as_os_str().to_os_string();
-            if let Some(existing) = std::env::var_os("LD_LIBRARY_PATH").filter(|v| !v.is_empty()) {
-                value.push(":");
-                value.push(existing);
-            }
-            command.env("LD_LIBRARY_PATH", value);
-        }
+        cuda::configure_command(&mut command, dir);
     }
     command
 }
@@ -586,34 +720,48 @@ fn vulkan_loader_present() -> bool {
     }
 }
 
-/// The first GPU the Vulkan build reports, ignoring software rasterizers.
-fn gpu_device(binary: &Path) -> Option<String> {
-    let mut command = server_command(binary);
-    command.arg("--list-devices");
-    let out = process::run_capture(command, Duration::from_secs(30)).ok()?;
-    if out.status.is_none() {
-        log::warn!("llama.cpp: listing Vulkan devices timed out; using the CPU build");
-        return None;
-    }
-    parse_gpu_devices(&format!("{}\n{}", out.stdout, out.stderr))
-        .into_iter()
-        .next()
+#[derive(Debug, PartialEq)]
+struct GpuDevice {
+    id: String,
+    name: String,
 }
 
-fn parse_gpu_devices(output: &str) -> Vec<String> {
+/// A real device from this backend, never a CPU-only successful exit.
+fn probe_gpu(binary: &Path, backend: LlamaBackend) -> Result<GpuDevice> {
+    let mut command = server_command(binary);
+    command.arg("--list-devices");
+    let out = process::run_capture(command, Duration::from_secs(30))?;
+    if !out.status.is_some_and(|s| s.success()) {
+        return Err(anyhow!(
+            "{} device detection failed or timed out: {}",
+            backend.label(),
+            out.stderr.chars().take(1000).collect::<String>()
+        ));
+    }
+    parse_gpu_devices(&format!("{}\n{}", out.stdout, out.stderr), backend)
+        .into_iter()
+        .next()
+        .with_context(|| format!("llama.cpp reported no usable {} GPU. Choose another backend or check the GPU driver.", backend.label()))
+}
+
+fn parse_gpu_devices(output: &str, backend: LlamaBackend) -> Vec<GpuDevice> {
     output
         .lines()
         .map(str::trim)
         .filter_map(|line| {
             let (name, rest) = line.split_once(':')?;
-            let is_device = name.starts_with("Vulkan")
-                && name[6..].chars().all(|c| c.is_ascii_digit())
-                && name.len() > 6;
+            let suffix = name.strip_prefix(backend.label())?;
+            let is_device = backend.is_gpu()
+                && !suffix.is_empty()
+                && suffix.chars().all(|c| c.is_ascii_digit());
             let lower = rest.to_ascii_lowercase();
             let software = ["llvmpipe", "lavapipe", "swiftshader", "software rasterizer"]
                 .iter()
                 .any(|s| lower.contains(s));
-            (is_device && !software).then(|| rest.trim().to_string())
+            (is_device && !software).then(|| GpuDevice {
+                id: name.into(),
+                name: rest.trim().into(),
+            })
         })
         .collect()
 }
@@ -636,6 +784,10 @@ pub struct ServerMarker {
     pub authentication_token: String,
     #[serde(rename = "ownerPID")]
     pub owner_pid: Option<u32>,
+    /// Only set after startup confirms model layers on the GPU. Older markers
+    /// cannot establish that a CUDA server is really accelerated.
+    #[serde(default)]
+    pub gpu_offloaded: bool,
 }
 
 pub fn marker_path(paths: &LibraryPaths, port: u16) -> PathBuf {
@@ -691,6 +843,7 @@ struct OutputTail {
     lines: Vec<String>,
     ready: bool,
     finished: bool,
+    gpu_offloaded: bool,
 }
 
 const TAIL_LINES: usize = 12;
@@ -708,6 +861,9 @@ const CRASH_MARKERS: [&str; 8] = [
 
 impl OutputTail {
     fn keep(&mut self, raw: &str) {
+        if !self.ready && confirms_gpu_offload(raw) {
+            self.gpu_offloaded = true;
+        }
         let mut line = raw.trim();
         // "0.00.077.284 E gguf_init_from_reader: …": drop the time and level.
         if let Some((stamp, rest)) = line.split_once(' ')
@@ -749,6 +905,14 @@ impl OutputTail {
             .or_else(|| self.lines.last())
             .cloned()
     }
+}
+
+fn confirms_gpu_offload(line: &str) -> bool {
+    line.split_once("offloaded ")
+        .and_then(|(_, rest)| rest.split_once('/'))
+        .is_some_and(|(count, rest)| {
+            count.trim().parse::<u32>().is_ok_and(|n| n > 0) && rest.contains(" layers to GPU")
+        })
 }
 
 struct Running {
@@ -980,7 +1144,12 @@ impl ServerInner {
         loop {
             let busy = state.leases > 0;
             let next = match &mut state.phase {
-                Phase::Running(running) if running.model_path == model_path => {
+                Phase::Running(running)
+                    if running.model_path == model_path
+                        && self.installer.accepts_backend(running.backend) =>
+                {
+                    // Existing leases finish before a preference change starts
+                    // another backend; no active generation is interrupted.
                     let alive = match running.child.as_mut() {
                         Some(child) => matches!(child.try_wait(), Ok(None)),
                         None => process::pid_alive(running.pid),
@@ -1084,7 +1253,11 @@ impl ServerInner {
         binary: &Path,
     ) -> Result<Running> {
         let paths = &self.installer.paths;
-        let extra_args = self.role.extra_args(&record.flags);
+        let mut extra_args = self.role.extra_args(&record.flags);
+        if backend == LlamaBackend::Cuda {
+            let device = probe_gpu(binary, backend)?;
+            extra_args.extend(["--device".into(), device.id]);
+        }
         let context = self.role.context_tokens();
         if let Some(running) =
             self.reclaim(model_id, model_path, binary, context, &extra_args, backend)?
@@ -1162,6 +1335,7 @@ impl ServerInner {
                 extra_args: extra_args.clone(),
                 authentication_token: token.clone(),
                 owner_pid: Some(std::process::id()),
+                gpu_offloaded: false,
             },
         );
         log::info!(
@@ -1205,6 +1379,29 @@ impl ServerInner {
                 return Err(failure("llama-server exited during startup", &tail));
             }
             if health(self.port, &token) {
+                if backend == LlamaBackend::Cuda {
+                    // The stderr reader may trail the health response briefly.
+                    for _ in 0..20 {
+                        if tail.lock().gpu_offloaded {
+                            break;
+                        }
+                        std::thread::sleep(Duration::from_millis(25));
+                    }
+                    if !tail.lock().gpu_offloaded {
+                        process::stop_child(&mut child, Duration::from_secs(2));
+                        remove_marker_if(paths, self.port, pid);
+                        return Err(failure(
+                            "CUDA server did not confirm any model layers on the GPU",
+                            &tail,
+                        ));
+                    }
+                    if let Some(mut marker) = read_marker(paths, self.port)
+                        && marker.pid == pid
+                    {
+                        marker.gpu_offloaded = true;
+                        write_marker(paths, &marker);
+                    }
+                }
                 // Startup lines only explain a failed start.
                 let mut output = tail.lock();
                 output.ready = true;
@@ -1256,6 +1453,7 @@ impl ServerInner {
             .owner_pid
             .is_some_and(|owner| owner != me && process::pid_alive(owner));
         let matches = same_file(Path::new(&marker.binary_path), binary)
+            && (backend != LlamaBackend::Cuda || marker.gpu_offloaded)
             && Path::new(&marker.model_path) == model_path
             && marker.context_tokens == context
             && marker.extra_args == extra_args
@@ -1437,7 +1635,7 @@ impl RuntimeManager {
         &self.shared.servers[index]
     }
 
-    /// Applies a changed `llamaBackend` setting (`auto`, `vulkan`, `cpu`).
+    /// Applies a changed `llamaBackend` setting (`auto`, `cuda`, `vulkan`, `cpu`).
     /// Running servers keep their backend until they restart.
     pub fn set_backend_preference(&self, preference: &str) {
         let installer = &self.shared.installer;
@@ -1467,6 +1665,9 @@ impl RuntimeManager {
     /// the one auto-detection chose, else whichever is present.
     pub fn installed_backend(&self) -> Option<String> {
         let installer = &self.shared.installer;
+        if let Some(backend) = LlamaBackend::preference(&installer.preference()) {
+            return installer.record(backend).map(|_| backend.label().into());
+        }
         let candidates = [
             *installer.active.lock(),
             installer.saved_choice().map(|c| c.backend),
@@ -1481,15 +1682,19 @@ impl RuntimeManager {
 
     /// The backend this session's servers use, once one has been resolved.
     pub fn active_backend(&self) -> Option<LlamaBackend> {
-        *self.shared.installer.active.lock()
+        self.server(Role::Main)
+            .status()
+            .backend
+            .or(*self.shared.installer.active.lock())
     }
 
     /// The installed `llama-server --version` line, if any.
     pub fn installed_version(&self) -> Option<String> {
         let installer = &self.shared.installer;
-        [LlamaBackend::Vulkan, LlamaBackend::Cpu]
-            .into_iter()
-            .find_map(|b| installer.record(b).map(|(r, _)| r.version))
+        let backend = self.installed_backend()?;
+        installer
+            .record(LlamaBackend::preference(&backend)?)
+            .map(|(r, _)| r.version)
     }
 
     /// Stops every server and removes the downloaded runtimes.
@@ -1604,7 +1809,7 @@ mod tests {
 
     #[test]
     fn pinned_assets_exist_for_this_platform() {
-        assert_eq!(assets().len(), 2);
+        assert_eq!(assets().len(), 3);
         for asset in assets() {
             assert_eq!(asset.sha256.len(), 64);
             assert!(
@@ -1633,10 +1838,217 @@ mod tests {
     fn software_vulkan_devices_are_not_gpus() {
         let output = "Available devices:\n  Vulkan0: llvmpipe (LLVM 17.0.6, 256 bits) (64000 MiB, 64000 MiB free)\n  Vulkan1: AMD Radeon RX 6600 XT (RADV NAVI23) (8176 MiB, 7900 MiB free)\n";
         assert_eq!(
-            parse_gpu_devices(output),
-            ["AMD Radeon RX 6600 XT (RADV NAVI23) (8176 MiB, 7900 MiB free)"]
+            parse_gpu_devices(output, LlamaBackend::Vulkan),
+            [GpuDevice {
+                id: "Vulkan1".into(),
+                name: "AMD Radeon RX 6600 XT (RADV NAVI23) (8176 MiB, 7900 MiB free)".into()
+            }]
         );
-        assert!(parse_gpu_devices("Available devices:\n").is_empty());
+        assert!(parse_gpu_devices("Available devices:\n", LlamaBackend::Vulkan).is_empty());
+    }
+
+    #[test]
+    fn cuda_device_detection_does_not_accept_cpu_or_vulkan_success() {
+        let output = "ggml_cuda_init: found 1 CUDA devices\nAvailable devices:\n  CPU0: CPU\n  Vulkan0: NVIDIA RTX 4090\n  CUDA0: NVIDIA RTX 4090 (24000 MiB, 23000 MiB free)\n  CUDA: malformed\n  CUDAx: malformed\n";
+        assert_eq!(
+            parse_gpu_devices(output, LlamaBackend::Cuda),
+            vec![GpuDevice {
+                id: "CUDA0".into(),
+                name: "NVIDIA RTX 4090 (24000 MiB, 23000 MiB free)".into(),
+            }]
+        );
+        assert!(
+            parse_gpu_devices(
+                "Available devices:\n  Vulkan0: NVIDIA RTX 4090\n",
+                LlamaBackend::Cuda
+            )
+            .is_empty()
+        );
+    }
+
+    #[test]
+    fn cuda_download_size_includes_libraries_without_inflating_auto() {
+        assert_eq!(
+            download_bytes("cuda"),
+            cuda::ASSET.size + cuda::LIBRARIES.size
+        );
+        assert_eq!(
+            download_bytes("auto"),
+            asset(LlamaBackend::Vulkan).unwrap().size
+        );
+        assert_eq!(
+            download_bytes("cpu"),
+            asset(LlamaBackend::Cpu).unwrap().size
+        );
+        assert_eq!(
+            serde_json::to_string(&LlamaBackend::Cuda).unwrap(),
+            "\"cuda\""
+        );
+        assert!(LlamaBackend::Cuda.is_gpu());
+        assert!(!LlamaBackend::Cpu.is_gpu());
+    }
+
+    fn fixture_record(
+        installer: &Installer,
+        backend: LlamaBackend,
+        libraries: Option<&str>,
+    ) -> PathBuf {
+        let asset = asset(backend).unwrap();
+        let folder = installer.folder(asset);
+        std::fs::create_dir_all(&folder).unwrap();
+        std::fs::write(folder.join(SERVER_BINARY), b"fixture, never executed").unwrap();
+        let record = InstallRecord {
+            build: LLAMA_BUILD.into(),
+            asset: asset.name.into(),
+            sha256: asset.sha256.into(),
+            backend,
+            server: SERVER_BINARY.into(),
+            version: "fixture version".into(),
+            flags: vec![],
+            probe: PROBE_VERSION,
+            cuda_libraries: libraries.map(String::from),
+        };
+        std::fs::write(
+            folder.join("install.json"),
+            serde_json::to_vec(&record).unwrap(),
+        )
+        .unwrap();
+        folder
+    }
+
+    #[test]
+    fn choosing_cuda_requires_its_own_complete_installation() {
+        let dir = tempfile::tempdir().unwrap();
+        let manager = RuntimeManager::new(LibraryPaths::new(dir.path()), &Settings::default());
+        let installer = &manager.shared.installer;
+        fixture_record(installer, LlamaBackend::Cpu, None);
+        installer.save_choice(LlamaBackend::Cpu, None);
+        assert_eq!(manager.installed_backend().as_deref(), Some("CPU"));
+        manager.set_backend_preference("cuda");
+        assert_eq!(manager.installed_backend(), None);
+        fixture_record(installer, LlamaBackend::Cuda, None);
+        assert_eq!(manager.installed_backend(), None);
+        fixture_record(installer, LlamaBackend::Cuda, Some(cuda::LIBRARIES.sha256));
+        assert_eq!(
+            manager.installed_backend(),
+            None,
+            "missing companion files must not count as installed"
+        );
+        fixture_record(installer, LlamaBackend::Cuda, Some("system"));
+        assert_eq!(manager.installed_backend().as_deref(), Some("CUDA"));
+        manager.set_backend_preference("auto");
+        assert_eq!(
+            manager.installed_backend().as_deref(),
+            Some("CPU"),
+            "Auto does not promote unvalidated CUDA"
+        );
+    }
+
+    #[test]
+    fn cuda_is_a_gpu_for_ask_and_notes() {
+        let dir = tempfile::tempdir().unwrap();
+        let settings = Settings::default();
+        let manager = RuntimeManager::new(LibraryPaths::new(dir.path()), &settings);
+        let think = crate::ThinkClient::new(&manager, &settings).unwrap();
+        assert!(think.runs_on_cpu());
+        *manager.shared.installer.active.lock() = Some(LlamaBackend::Cuda);
+        assert!(!think.runs_on_cpu());
+        *manager.shared.installer.active.lock() = Some(LlamaBackend::Cpu);
+        assert!(think.runs_on_cpu());
+    }
+
+    #[test]
+    fn changing_backend_invalidates_resolution_and_requires_next_lease_to_switch() {
+        let dir = tempfile::tempdir().unwrap();
+        let manager = RuntimeManager::new(LibraryPaths::new(dir.path()), &Settings::default());
+        *manager.shared.installer.active.lock() = Some(LlamaBackend::Cpu);
+        manager.set_backend_preference("cuda");
+        assert_eq!(*manager.shared.installer.active.lock(), None);
+        assert!(!manager.shared.installer.accepts_backend(LlamaBackend::Cpu));
+        assert!(manager.shared.installer.accepts_backend(LlamaBackend::Cuda));
+        manager.set_backend_preference("auto");
+        assert!(!manager.shared.installer.accepts_backend(LlamaBackend::Cuda));
+        assert!(
+            manager
+                .shared
+                .installer
+                .accepts_backend(LlamaBackend::Vulkan)
+        );
+    }
+
+    #[test]
+    fn offload_confirmation_survives_startup_log_truncation() {
+        let mut tail = OutputTail::default();
+        tail.keep("load_tensors: offloaded 0/33 layers to GPU");
+        assert!(!tail.gpu_offloaded);
+        tail.keep("load_tensors: offloaded 33/33 layers to GPU");
+        for _ in 0..100 {
+            tail.keep("other startup line");
+        }
+        assert!(tail.gpu_offloaded);
+        assert!(!confirms_gpu_offload("offloaded nope/33 layers to GPU"));
+        assert!(!confirms_gpu_offload("offloaded 33/33 layers to CPU"));
+    }
+
+    #[cfg(unix)]
+    fn fake_gpu_server(dir: &Path, exit: u8) -> PathBuf {
+        use std::os::unix::fs::PermissionsExt as _;
+        let binary = dir.join("probe-server");
+        std::fs::write(&binary, format!("#!/bin/sh\nprintf 'Available devices:\\n  CUDA0: Test NVIDIA GPU (8192 MiB, 8000 MiB free)\\n'\nexit {exit}\n")).unwrap();
+        std::fs::set_permissions(&binary, std::fs::Permissions::from_mode(0o755)).unwrap();
+        binary
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn working_system_cuda_skips_the_companion_download() {
+        let dir = tempfile::tempdir().unwrap();
+        let binary = fake_gpu_server(dir.path(), 0);
+        let manager = RuntimeManager::new(
+            LibraryPaths::new(dir.path().join("library")),
+            &Settings::default(),
+        );
+        let mut progress_called = false;
+        assert_eq!(
+            manager
+                .shared
+                .installer
+                .prepare_cuda(&binary, &AtomicBool::new(false), &mut |_, _| {
+                    progress_called = true
+                })
+                .unwrap(),
+            "system"
+        );
+        assert!(!progress_called);
+        assert!(
+            !manager.shared.installer.root().exists(),
+            "system reuse must not create downloads"
+        );
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn unsuccessful_gpu_probe_is_rejected_even_if_it_prints_a_device() {
+        let dir = tempfile::tempdir().unwrap();
+        let binary = fake_gpu_server(dir.path(), 1);
+        assert!(probe_gpu(&binary, LlamaBackend::Cuda).is_err());
+    }
+
+    #[test]
+    fn cancelled_cuda_setup_does_not_probe_or_download() {
+        let dir = tempfile::tempdir().unwrap();
+        let manager = RuntimeManager::new(LibraryPaths::new(dir.path()), &Settings::default());
+        let error = manager
+            .shared
+            .installer
+            .prepare_cuda(
+                Path::new("nonexistent"),
+                &AtomicBool::new(true),
+                &mut |_, _| panic!("download after cancellation"),
+            )
+            .unwrap_err();
+        assert!(crate::error::is_cancelled(&error));
+        assert!(!manager.shared.installer.root().exists());
     }
 
     #[test]
@@ -1689,6 +2101,7 @@ mod tests {
             extra_args: vec![],
             authentication_token: new_token(),
             owner_pid: Some(1),
+            gpu_offloaded: false,
         };
         write_marker(&paths, &marker);
         assert_eq!(read_marker(&paths, inner.port), Some(marker.clone()));

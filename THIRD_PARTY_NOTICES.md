@@ -216,6 +216,13 @@ It runs the text models with llama.cpp's `llama-server` (MIT), downloaded from
 the ggml-org release named in `LinuxWindows/crates/lokalbot-ai/src/runtime.rs`,
 and Agent Mode with Bun and pi, as in the table at the top.
 
+The optional Linux/Windows CUDA backend uses NVIDIA's CUDA Runtime, cuBLAS and
+cuBLASLt under the [NVIDIA CUDA Toolkit license](https://docs.nvidia.com/cuda/eula/index.html).
+Compatible system libraries are reused when available. Otherwise LokalBot
+downloads the companion archive from the same pinned llama.cpp release into its
+own runtime folder. The NVIDIA GPU driver remains installed and managed by the
+user's operating system; it is not included in LokalBot's downloads.
+
 ## MIT License
 
 mlx-audio portions: Copyright (c) 2024 Prince Canuma.

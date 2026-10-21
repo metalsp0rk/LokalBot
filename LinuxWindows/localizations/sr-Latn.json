@@ -101,6 +101,7 @@
   "Blocks appear as you use your PC (sampled every 5 s, idle-aware).": "Blokovi se pojavljuju dok koristite računar (uzorkovani svakih 5 s, svesni mirovanja).",
   "Built on this PC from calendar attendees, names you gave speakers, action owners, and meeting notes. Email addresses are used only to tell people apart and are never shown or shared.": "Napravljeno na ovom računaru od učesnika u kalendaru, imena koja ste dali govornicima, vlasnika akcija i beleški sa sastanaka. Adrese e-pošte se koriste samo za razlikovanje ljudi i nikada se ne prikazuju ili dele.",
   "Bun {0}": "Bun {0}",
+  "CUDA (experimental)": "CUDA (eksperimentalno)",
   "Calendar links": "Linkovi kalendara",
   "Calendar links start with https:// or webcal://.": "Linkovi kalendara počinju sa https:// ili webcal://.",
   "Calendar status": "Status kalendara",

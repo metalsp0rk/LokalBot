@@ -101,6 +101,7 @@
   "Blocks appear as you use your PC (sampled every 5 s, idle-aware).": "Vitalu huonekana unapotumia Kompyuta yako (sampuli kila baada ya sekunde 5, bila kufanya kitu).",
   "Built on this PC from calendar attendees, names you gave speakers, action owners, and meeting notes. Email addresses are used only to tell people apart and are never shown or shared.": "Imeundwa kwenye Kompyuta hii kutoka kwa waliohudhuria kalenda, majina uliyowapa wasemaji, wamiliki wa hatua na vidokezo vya mkutano. Anwani za barua pepe hutumiwa tu kuwatofautisha watu na hazionyeshwi wala kushirikiwa kamwe.",
   "Bun {0}": "Bun {0}",
+  "CUDA (experimental)": "CUDA (ya majaribio)",
   "Calendar links": "Viungo vya kalenda",
   "Calendar links start with https:// or webcal://.": "Viungo vya kalenda huanza na https:// au webcal://.",
   "Calendar status": "Hali ya kalenda",

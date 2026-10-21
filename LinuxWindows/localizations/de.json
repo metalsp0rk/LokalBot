@@ -101,6 +101,7 @@
   "Blocks appear as you use your PC (sampled every 5 s, idle-aware).": "Blöcke werden angezeigt, wenn Sie Ihren PC verwenden (alle 5 s abgetastet, inaktiv).",
   "Built on this PC from calendar attendees, names you gave speakers, action owners, and meeting notes. Email addresses are used only to tell people apart and are never shown or shared.": "Auf diesem PC aus Kalenderteilnehmern, von Ihnen angegebenen Namen, Aktionsverantwortlichen und Besprechungsnotizen erstellt. E-Mail-Adressen werden nur zur Unterscheidung von Personen verwendet und niemals angezeigt oder weitergegeben.",
   "Bun {0}": "Bun {0}",
+  "CUDA (experimental)": "CUDA (experimentell)",
   "Calendar links": "Kalender-Links",
   "Calendar links start with https:// or webcal://.": "Kalender-Links beginnen mit https:// oder webcal://.",
   "Calendar status": "Kalenderstatus",

@@ -101,6 +101,7 @@
   "Blocks appear as you use your PC (sampled every 5 s, idle-aware).": "Blok muncul saat Anda menggunakan PC (diambil sampelnya setiap 5 detik, tanpa disadari).",
   "Built on this PC from calendar attendees, names you gave speakers, action owners, and meeting notes. Email addresses are used only to tell people apart and are never shown or shared.": "Dibangun pada PC ini dari peserta kalender, nama yang Anda berikan kepada pembicara, pemilik tindakan, dan catatan rapat. Alamat email hanya digunakan untuk membedakan orang dan tidak pernah ditampilkan atau dibagikan.",
   "Bun {0}": "Bun {0}",
+  "CUDA (experimental)": "CUDA (eksperimental)",
   "Calendar links": "Tautan kalender",
   "Calendar links start with https:// or webcal://.": "Tautan kalender diawali https:// atau webcal://.",
   "Calendar status": "Status kalender",

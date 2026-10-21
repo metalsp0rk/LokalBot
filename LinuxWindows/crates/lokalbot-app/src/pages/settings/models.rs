@@ -54,17 +54,13 @@ pub fn model_name(id: &str) -> String {
 }
 
 /// Download size of a model id from its catalog. The llama.cpp runtime is
-/// counted at its larger (Vulkan) archive until a backend is installed.
-pub fn model_bytes(id: &str) -> u64 {
+/// includes the optional CUDA libraries until system reuse is established.
+pub fn model_bytes(id: &str, settings: &Settings) -> u64 {
     if let Some(entry) = lokalbot_ai::catalog::entry(id) {
         return entry.size_bytes;
     }
     if id == RUNTIME_ID {
-        return lokalbot_ai::runtime::assets()
-            .iter()
-            .map(|a| a.size)
-            .max()
-            .unwrap_or(0);
+        return lokalbot_ai::runtime::download_bytes(&settings.llama_backend);
     }
     if id == lokalbot_ai::ocr::OCR_MODEL_ID {
         return lokalbot_ai::ocr::total_size();
@@ -630,7 +626,7 @@ impl SettingsPage {
             let download: u64 = [speech, think]
                 .iter()
                 .filter(|id| !status.installed.iter().any(|installed| installed == *id))
-                .map(|id| model_bytes(id))
+                .map(|id| model_bytes(id, &settings))
                 .sum();
             let data = self.data.clone();
             presets = presets.row(
@@ -860,7 +856,7 @@ impl SettingsPage {
             ),
         );
         if !unused.is_empty() {
-            let total: u64 = unused.iter().map(|id| model_bytes(id)).sum();
+            let total: u64 = unused.iter().map(|id| model_bytes(id, &settings)).sum();
             let rows = unused.iter().map(|id| {
                 let data = self.data.clone();
                 let remove = id.clone();
@@ -886,7 +882,7 @@ impl SettingsPage {
                                     .child(format!(
                                         "{} · {}",
                                         model_purpose(id),
-                                        size_label(model_bytes(id))
+                                        size_label(model_bytes(id, &settings))
                                     )),
                             ),
                     )
@@ -1010,7 +1006,57 @@ impl SettingsPage {
             ),
         );
 
-        vec![summary, roles, presets, remote, storage, budget, also]
+        let backend_data = self.data.clone();
+        let backends = ["auto", "vulkan", "cuda", "cpu"];
+        let selected_backend = backends
+            .iter()
+            .position(|b| *b == settings.llama_backend)
+            .unwrap_or(0);
+        let runtime = Section::new("llama.cpp").row(
+            "settings.llamaBackend",
+            settings_row::content_row(
+                "settings.llamaBackend",
+                v_flex()
+                    .gap(px(8.))
+                    .child(settings_row::segmented(
+                        "settings-llama-backend",
+                        &[
+                            lokalbot_i18n::tr("Automatic"),
+                            "Vulkan",
+                            lokalbot_i18n::tr("CUDA (experimental)"),
+                            "CPU",
+                        ],
+                        selected_backend,
+                        move |index, _, cx| {
+                            backend_data.update(cx, |data, cx| {
+                                data.update_settings(
+                                    |s| s.llama_backend = backends[index].into(),
+                                    cx,
+                                )
+                            });
+                        },
+                        cx,
+                    ))
+                    .child(settings_row::help(
+                        lokalbot_i18n::format(
+                            "About {0} to download",
+                            &[(
+                                "0",
+                                size_label(lokalbot_ai::runtime::download_bytes(
+                                    &settings.llama_backend,
+                                )),
+                            )],
+                        ),
+                        cx,
+                    )),
+                self.is_focused("settings.llamaBackend"),
+                cx,
+            ),
+        );
+
+        vec![
+            summary, roles, runtime, presets, remote, storage, budget, also,
+        ]
     }
 
     fn role_row(&self, row: RoleRow, choices: RoleChoices, cx: &mut Context<Self>) -> AnyElement {
@@ -1037,7 +1083,7 @@ impl SettingsPage {
             .filter(|id| !row.installed.contains(id))
             .cloned()
             .collect();
-        let missing_bytes: u64 = missing.iter().map(|id| model_bytes(id)).sum();
+        let missing_bytes: u64 = missing.iter().map(|id| model_bytes(id, &settings)).sum();
         let status: Option<(SharedString, gpui_kit::Hsla)> =
             match (row.downloading, row.ready, &remote) {
                 (Some(fraction), _, _) => Some((
@@ -1752,7 +1798,7 @@ fn confirm_preset(
 /// Asks before deleting a downloaded model the settings don't use.
 fn confirm_remove(data: Entity<AppData>, id: String, window: &mut Window, cx: &mut App) {
     let name = model_name(&id);
-    let size = size_label(model_bytes(&id));
+    let size = size_label(model_bytes(&id, &data.read(cx).settings));
     window.open_alert_dialog(cx, move |alert, _, _| {
         let data = data.clone();
         let id = id.clone();
