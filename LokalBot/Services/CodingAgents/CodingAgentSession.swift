@@ -131,15 +131,17 @@ struct CodingAgentBurst: Equatable, Codable, Sendable {
     /// pushed, ran tests, or linked a pull request.
     var recordedOutcome: Bool { !actions.isEmpty || !pullRequests.isEmpty }
 
-    /// The same work, whatever the session's title, project, or branch.
-    /// Those labels can change after the work settled: a session is renamed,
-    /// and bursts saved before per-burst labels carry the session's.
+    /// The same requests, reply, actions, pull requests, and tool calls in
+    /// the same session. A settled burst's work never changes, but how it is
+    /// presented can: a session is renamed, and bursts saved by earlier
+    /// readers carry the session's folder and branch, file names relative to
+    /// another folder, and edges moved by activity on the other side of
+    /// midnight.
     func hasSameWork(as other: CodingAgentBurst) -> Bool {
-        var relabeled = other
-        relabeled.title = title
-        relabeled.project = project
-        relabeled.branch = branch
-        return relabeled == self
+        agent == other.agent && sessionID == other.sessionID
+            && prompts == other.prompts && promptCount == other.promptCount
+            && finalReply == other.finalReply && actions == other.actions
+            && pullRequests == other.pullRequests && toolCallCount == other.toolCallCount
     }
 
     /// Every field the digest can read, in a fixed order, for evidence

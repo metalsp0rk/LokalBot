@@ -96,10 +96,11 @@ final class CodingAgentEvidenceTests: XCTestCase {
                        "a disabled agent keeps its saved records; text past retention is never stored")
     }
 
-    /// Bursts saved before per-burst labels carry their session's latest
-    /// branch and folder. Reading them again on a later day must not reopen
-    /// that day's digest and Dream review; changed work still does.
-    func testRelabeledWorkLeavesAFinishedDayAloneButChangedWorkReopensIt() throws {
+    /// Bursts saved by earlier readers carry their session's latest branch
+    /// and folder, file names relative to another folder, and edges moved by
+    /// activity across midnight. Reading them again on a later day must not
+    /// reopen that day's digest and Dream review; changed work still does.
+    func testSameWorkReadAgainLeavesAFinishedDayAloneButChangedWorkReopensIt() throws {
         let store = makeStore()
         var revoked: [[Date]] = []
         var changed: [[Date]] = []
@@ -110,17 +111,19 @@ final class CodingAgentEvidenceTests: XCTestCase {
         try ingestor.apply(scan([saved]), configuration: configuration, scannedAt: try date("2026-09-29T20:00:00Z"))
         let nextDay = try date("2026-09-30T12:00:00Z")
 
-        var relabeled = saved
-        relabeled.title = "Renamed session"
-        relabeled.project = "Mojo"
-        relabeled.branch = "mojo-branding"
-        try ingestor.apply(scan([relabeled]), configuration: configuration, scannedAt: nextDay)
+        var reread = try burst("A", start: "2026-09-29T08:59:30Z", end: "2026-09-29T09:20:30Z")
+        reread.title = "Renamed session"
+        reread.project = "Mojo"
+        reread.branch = "mojo-branding"
+        reread.changedFiles = ["Views/DayDigestCard.swift"]
+        XCTAssertNotEqual(reread.id, saved.id, "a moved first event is a new id")
+        try ingestor.apply(scan([reread]), configuration: configuration, scannedAt: nextDay)
 
-        XCTAssertEqual(store.codingAgentBursts(in: dayInterval), [saved], "the day keeps the labels it was digested with")
+        XCTAssertEqual(store.codingAgentBursts(in: dayInterval), [saved], "the day keeps what it was digested with")
         XCTAssertTrue(revoked.isEmpty)
         XCTAssertEqual(changed, [[day]], "nothing new to report")
 
-        var continued = relabeled
+        var continued = saved
         continued.prompts.append("And the empty state")
         continued.promptCount += 1
         try ingestor.apply(scan([continued]), configuration: configuration, scannedAt: nextDay)
