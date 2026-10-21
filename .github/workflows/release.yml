@@ -603,3 +603,17 @@ jobs:
       WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
     permissions:
       contents: read
+
+  # Builds this release's upgrade fixture on a clean hosted Mac once the DMG
+  # is published and keeps it for 90 days, so the next release adds it with
+  # Scripts/upgrade-fixtures/add.sh instead of waiting for a runner
+  # (RELEASING.md step 0). Pre-releases are never a changelog base.
+  upgrade-fixture:
+    name: Upgrade fixture
+    if: github.event_name == 'push' && !contains(github.ref_name, '-')
+    needs: release
+    uses: ./.github/workflows/upgrade-fixtures.yml
+    with:
+      tag: ${{ github.ref_name }}
+    permissions:
+      contents: read

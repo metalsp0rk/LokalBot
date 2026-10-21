@@ -155,15 +155,25 @@ Run from the repo root. Replace `1.0.0` / `100` with the version you are shippin
 
 ### 0. Add the previous release's upgrade fixture
 
-Run the **Upgrade fixtures** workflow (or let it run on a PR that touches
-`Scripts/upgrade-fixtures/`). Download the previous stable version's
-`upgrade-fixture-<version>` artifact and extract its tarball into
-`LokalBotTests/Fixtures/upgrade/<version>/`. Fold the database's write-ahead log
-into it (`sqlite3 library/lokalbotv3.sqlite 'PRAGMA wal_checkpoint(TRUNCATE)'`,
-then delete any `-wal`/`-shm` files), check that it holds only the synthetic
-library, run `UpgradeMigrationTests`, and commit it.
-`release-preflight.py --candidate` refuses a release whose changelog base has
-no fixture.
+Each stable release run builds its own version's fixture on a clean hosted Mac
+once the DMG is published (the **Upgrade fixture** job, which calls
+`upgrade-fixtures.yml`) and keeps it for 90 days. Add the previous stable
+version's fixture to the candidate:
+
+```sh
+Scripts/upgrade-fixtures/add.sh 0.8.0
+```
+
+It downloads that artifact from a run of the release's tag or of `master`,
+extracts it into `LokalBotTests/Fixtures/upgrade/<version>/` with the
+database's write-ahead log folded in, and checks that its manifest names the
+version and the synthetic library. Commit the folder with the candidate; the
+Build job's `UpgradeMigrationTests` opens every fixture folder. When the
+artifact is missing or expired, build it with
+`gh workflow run upgrade-fixtures.yml --ref master -f versions=<version>` and
+run `add.sh` again once that finishes. The committed folders are the only list
+of fixture versions. `release-preflight.py --candidate` refuses a release
+whose changelog base has no fixture.
 
 ### 1. Bump the version
 
