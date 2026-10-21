@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 import NaturalLanguage
 
@@ -158,6 +159,42 @@ enum PersonalLearning {
         return lines
     }
 
+    /// "meeting=4 typed=2 dictated=0" for the log: where a day's lines came from.
+    static func lineCounts(_ lines: [Utterance]) -> String {
+        var meeting = 0, typed = 0, dictated = 0
+        for line in lines {
+            switch line.source {
+            case .meeting: meeting += 1
+            case .typed(.dictation): dictated += 1
+            case .typed: typed += 1
+            }
+        }
+        return "lines=meeting:\(meeting),typed:\(typed),dictated:\(dictated)"
+    }
+
+    /// What the pass read for a day, independent of order and handles.
+    /// Dictated lines are left out: they are deleted once read, so a later
+    /// review of the same day would otherwise always look changed.
+    static func fingerprint(_ lines: [Utterance]) -> String {
+        let material = lines.compactMap { line -> String? in
+            if case .typed(.dictation) = line.source { return nil }
+            return "\(line.label)\u{1f}\(line.text)"
+        }.sorted().joined(separator: "\u{1e}")
+        return SHA256.hash(data: Data(material.utf8)).map { String(format: "%02x", $0) }.joined()
+    }
+
+    /// Whether `lines` still contain the line a learned claim quotes, ignoring
+    /// case, accents, punctuation, and where a long line was cut off.
+    static func quoteStillSaid(_ quote: String?, in lines: [String]) -> Bool {
+        guard let quote else { return false }
+        let needle = foldedForDuplicate(quote.replacingOccurrences(of: "…", with: ""))
+        guard needle.count >= 12 else { return false }
+        return lines.contains { line in
+            let haystack = foldedForDuplicate(line.replacingOccurrences(of: "…", with: ""))
+            return haystack.contains(needle) || (haystack.count >= 12 && needle.contains(haystack))
+        }
+    }
+
     /// Letters and digits only, case- and accent-folded, so a dictation and
     /// the request it was pasted into compare equal despite punctuation.
     private static func foldedForDuplicate(_ text: String) -> String {
@@ -166,13 +203,32 @@ enum PersonalLearning {
     }
 
     /// Joins consecutive segments of the person's own speech into turns.
+    ///
+    /// Own speech is microphone speech ("me", "local", "local N", also behind
+    /// a merged recording's "source:" prefix) whose attribution is the user:
+    /// echo, overlapping voices, and voices corrected to someone else are
+    /// left out. Diarization labels the person "local 1" and leaves some of
+    /// their segments as plain "local", so those are one voice. A voice the
+    /// person confirmed as theirs wins. Otherwise, when diarization found
+    /// several voices on the microphone, the meeting counts only if one of
+    /// them clearly dominates (four times the next), and then only that
+    /// voice is used; with no clear winner the microphone was shared and the
+    /// meeting is skipped, since there is no telling which voice is the person.
     static func ownTurns(in segments: [Transcript.Segment]) -> [String] {
-        let localKeys = Set(segments.map { Transcript.canonicalSpeakerKey($0.speaker) }
-            .filter { $0 == "local" || $0.hasPrefix("local ") })
-        let sharedMicrophone = localKeys.count > 1
-        func isPerson(_ segment: Transcript.Segment) -> Bool {
-            let key = Transcript.canonicalSpeakerKey(segment.speaker)
-            return key == "me" || (key == "local" && !sharedMicrophone)
+        let keys = segments.map { Transcript.canonicalSpeakerKey($0.speaker) }
+        let mine = segments.indices.filter { isOwnSpeech(segments[$0], key: keys[$0]) }
+        let confirmed = Set(mine.filter { segments[$0].attribution?.isConfirmedUser == true }.map { keys[$0] })
+        var voices: [String: Int] = [:]
+        for index in mine where isNumberedVoice(keys[index]) { voices[keys[index], default: 0] += 1 }
+        let ranked = voices.sorted { $0.value != $1.value ? $0.value > $1.value : $0.key < $1.key }
+        let accepted: Set<Int>
+        if !confirmed.isEmpty {
+            accepted = Set(mine.filter { confirmed.contains(keys[$0]) })
+        } else if ranked.count >= 2 {
+            guard ranked[0].value >= 4 * ranked[1].value else { return [] }
+            accepted = Set(mine.filter { keys[$0] == ranked[0].key })
+        } else {
+            accepted = Set(mine)
         }
         var turns: [String] = []
         var current = ""
@@ -181,15 +237,29 @@ enum PersonalLearning {
             if text.split(whereSeparator: \.isWhitespace).count >= minimumWords { turns.append(text) }
             current = ""
         }
-        for segment in segments {
-            if isPerson(segment) {
-                current += (current.isEmpty ? "" : " ") + segment.text
+        for index in segments.indices {
+            if accepted.contains(index) {
+                current += (current.isEmpty ? "" : " ") + segments[index].text
             } else if !current.isEmpty {
                 flush()
             }
         }
         if !current.isEmpty { flush() }
         return turns
+    }
+
+    /// Microphone speech attributed to the user. Older transcripts carry no
+    /// attribution; their microphone labels follow "My microphone is me".
+    private static func isOwnSpeech(_ segment: Transcript.Segment, key: String) -> Bool {
+        guard MeetingOutcomes.isMicrophoneSpeaker(segment.speaker), !key.hasSuffix("unclear") else { return false }
+        guard segment.attribution != nil else { return SpeakerAttribution.microphoneIsUser }
+        return segment.resolvedAttribution.identity == .user
+    }
+
+    /// "local 1", "source2:local 3": one voice diarization told apart.
+    private static func isNumberedVoice(_ key: String) -> Bool {
+        let local = key.split(separator: ":").last.map(String.init) ?? key
+        return local.range(of: #"^local \d+$"#, options: .regularExpression) != nil
     }
 
     private static let selfReferences: Set<String> = [
@@ -481,6 +551,13 @@ enum PersonalLearning {
                     engine: TextEngine, embed: Embed? = nil, typed: [TypedLine] = [],
                     calendar: Calendar = .current) async throws -> [PersonalModel.LearningCandidate] {
         let lines = try utterances(day: day, storageRoot: storageRoot, typed: typed, calendar: calendar)
+        return try await run(lines: lines, known: known, revision: revision, engine: engine, embed: embed)
+    }
+
+    /// The pass over lines already gathered (`utterances`), so the caller can
+    /// first check `fingerprint` against the days already read.
+    static func run(lines: [Utterance], known: [PersonalClaim], revision: UInt64,
+                    engine: TextEngine, embed: Embed? = nil) async throws -> [PersonalModel.LearningCandidate] {
         guard !lines.isEmpty else { return [] }
         let output = try await engine.generate(
             system: system, prompt: prompt(utterances: lines, known: known), context: [],

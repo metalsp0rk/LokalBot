@@ -3,7 +3,7 @@ import Foundation
 /// Where a setting lives in Settings. Mirrors `AppState.SettingsTab` without
 /// depending on the app target, so the CLI can group and describe settings.
 enum SettingCategory: String, CaseIterable, Codable {
-    case general, recording, dayMemory, writing, dictation, models, privacy, advanced
+    case general, recording, dayMemory, personalContext, writing, dictation, models, privacy, advanced
 }
 
 /// How a terminal change to a setting is authorized once the person allows
@@ -421,13 +421,13 @@ enum SettingRegistry {
         entry("dreamingHour", .dayMemory, "Overnight review hour", hours,
               aliases: "dream time",
               summary: "Local hour (0–23) after which the overnight review may run."),
-        entry("askMemoryEnabled", .dayMemory, "Remember what I tell Ask", .bool,
+        entry("askMemoryEnabled", .personalContext, "Remember what I tell Ask", .bool,
               aliases: "about you remember memory facts preferences goals principles",
               summary: "Save \"Remember …\" statements from Ask and give the selected ones to the Think model."),
-        entry("personalLearningEnabled", .dayMemory, "Learn about me from my meetings and work", .bool, .consent,
+        entry("personalLearningEnabled", .personalContext, "Learn about me from my meetings and work", .bool, .consent,
               aliases: "learn about me automatic facts goals profile overnight",
               summary: "After the overnight review, learn facts and goals about you from your own lines in that day's meetings."),
-        entry("personalLearningFromDictation", .dayMemory, "Learn from my dictation", .bool, .consent,
+        entry("personalLearningFromDictation", .personalContext, "Learn from my dictation", .bool, .consent,
               aliases: "about you learn dictation dictated speech",
               summary: "Also learn from what you dictate; the dictated words are kept, encrypted, for at most two days."),
         entry("memoryRoutinesEnabled", .dayMemory, "Enable safe local routines", .bool, .consent,

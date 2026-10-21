@@ -29,6 +29,7 @@
 "Activity results" = "Rezultati aktivnosti";
 "Activity titles to clear" = "Naslovi aktivnosti koji se brišu";
 "Activity, captured context, daily briefs, routines, and exports." = "Aktivnost, zabeleženi kontekst, dnevni brifinzi, rutine i izvozi.";
+"What you told LokalBot, what it learns about you, and what agents can read." = "Šta ste rekli LokalBotu, šta uči o vama i šta agenti mogu da čitaju.";
 "Actual size" = "Stvarna veličina";
 "Add" = "Dodaj";
 "Add Exclusion" = "Dodaj izuzetak";
@@ -1224,7 +1225,7 @@
 "Your subscription" = "Vaša pretplata";
 "Server" = "Server";
 "In use" = "U upotrebi";
-"About you" = "O vama";
+"Personal Context" = "Lični kontekst";
 "Remember what I tell Ask" = "Pamti ono što kažem funkciji Pitaj";
 "Remembered" = "Zapamćeno";
 "Not remembered" = "Nije zapamćeno";

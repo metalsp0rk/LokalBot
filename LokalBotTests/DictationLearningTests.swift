@@ -2,7 +2,7 @@ import CryptoKit
 import XCTest
 @testable import LokalBot
 
-/// About you → Learn from my dictation: the short-lived encrypted log, which
+/// Personal Context → Learn from my dictation: the short-lived encrypted log, which
 /// pastes may be kept, and how dictated lines reach the learning pass.
 @MainActor
 final class DictationLearningLogTests: XCTestCase {
@@ -208,6 +208,6 @@ final class DictationLearningLinesTests: XCTestCase {
         XCTAssertTrue(outcome.saved.isEmpty)
         let kept = try model.confirm(id: XCTUnwrap(outcome.proposed.first?.id), now: now).get()
         XCTAssertEqual(PersonalContextProjection.Claim(kept).source, .learnedFromDictation)
-        XCTAssertFalse(AboutYouSettings.hasRemovableSource(kept))
+        XCTAssertFalse(PersonalContextSettings.hasRemovableSource(kept))
     }
 }

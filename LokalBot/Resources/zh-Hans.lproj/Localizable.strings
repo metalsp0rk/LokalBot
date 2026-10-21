@@ -29,6 +29,7 @@
 "Activity results" = "活动结果";
 "Activity titles to clear" = "将清除的活动标题";
 "Activity, captured context, daily briefs, routines, and exports." = "活动、采集的上下文、每日简报、例行任务和导出。";
+"What you told LokalBot, what it learns about you, and what agents can read." = "你告诉 LokalBot 的内容、它了解到的关于你的信息，以及智能体可以读取的内容。";
 "Actual size" = "实际大小";
 "Add" = "添加";
 "Add Exclusion" = "添加排除规则";
@@ -1247,7 +1248,7 @@
 "Your subscription" = "你的订阅";
 "Server" = "服务器";
 "In use" = "使用中";
-"About you" = "关于你";
+"Personal Context" = "个人上下文";
 "Remember what I tell Ask" = "记住我告诉 Ask 的内容";
 "Remembered" = "已记住";
 "Not remembered" = "未记住";

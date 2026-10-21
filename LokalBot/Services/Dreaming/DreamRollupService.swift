@@ -51,10 +51,16 @@ enum DreamRollupService {
         }
     }
 
+    /// New lines are written at most this often. A night that rebuilds
+    /// several reviews runs this after each one; without the gap it rewrote
+    /// the same week after every rebuilt day.
+    static let minimumGenerationInterval: TimeInterval = 20 * 60 * 60
+
     /// Removes stale lines and lines for periods the briefing no longer
-    /// shows, then writes up to `limit` due lines. The engine is made only
-    /// when something is due.
+    /// shows, then writes up to `limit` due lines, unless lines were written
+    /// within `minimumInterval`. The engine is made only when something is due.
     static func run(root: URL, now: Date, calendar: Calendar = .current, limit: Int = maximumPerNight,
+                    minimumInterval: TimeInterval = minimumGenerationInterval,
                     makeEngine: () async throws -> TextEngine) async throws -> Outcome {
         var outcome = Outcome()
         let reviews = DreamRollupFormat.reviews(root: root)
@@ -70,7 +76,9 @@ enum DreamRollupService {
         }
         let due = due(reviews: reviews, rollups: rollups, now: now, calendar: calendar).prefix(limit)
         guard !due.isEmpty else { return outcome }
+        if let last = lastGeneration(root: root), now.timeIntervalSince(last) < minimumInterval { return outcome }
         let engine = try await makeEngine()
+        recordGeneration(root: root, at: now)
         for period in due {
             try Task.checkCancellation()
             let inside = DreamRollupFormat.reviews(in: period, from: reviews)
@@ -85,6 +93,22 @@ enum DreamRollupService {
             outcome.written.append(rollup)
         }
         return outcome
+    }
+
+    private static func generationMarker(root: URL) -> URL {
+        DreamRollupFormat.rollupsDirectory(root: root).appendingPathComponent(".last-generation")
+    }
+
+    static func lastGeneration(root: URL) -> Date? {
+        guard let text = try? String(contentsOf: generationMarker(root: root), encoding: .utf8) else { return nil }
+        return ISO8601DateFormatter().date(from: text.trimmingCharacters(in: .whitespacesAndNewlines))
+    }
+
+    private static func recordGeneration(root: URL, at date: Date) {
+        let url = generationMarker(root: root)
+        try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true,
+                                                 attributes: [.posixPermissions: 0o700])
+        try? Data(ISO8601DateFormatter().string(from: date).utf8).write(to: url, options: .atomic)
     }
 
     /// Removes every line covering `dayKey`, for when that day's review is

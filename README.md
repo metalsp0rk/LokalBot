@@ -203,7 +203,7 @@ Yes. On Mac, turn on **Meeting note export** to keep a Markdown note for every m
 <details>
 <summary><strong>Does it run on Windows or Linux?</strong></summary>
 
-Yes, as an alpha. The Windows and Linux app is a native Rust app with the same pages, the same models for summaries and search, and the same library format, so a library moves between computers. Selection actions, meeting note export, About you, spoken summaries, and coding-agent sessions in day memory are Mac only for now, and on Wayland some features depend on your desktop. See [what works where](LinuxWindows/README.md#what-works-where).
+Yes, as an alpha. The Windows and Linux app is a native Rust app with the same pages, the same models for summaries and search, and the same library format, so a library moves between computers. Selection actions, meeting note export, Personal Context, spoken summaries, and coding-agent sessions in day memory are Mac only for now, and on Wayland some features depend on your desktop. See [what works where](LinuxWindows/README.md#what-works-where).
 
 </details>
 

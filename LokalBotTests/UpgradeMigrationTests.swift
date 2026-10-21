@@ -71,7 +71,7 @@ final class UpgradeMigrationTests: XCTestCase {
 
     /// Every release's chats (plain files from its seed, or sealed ones the
     /// app wrote) must still open with today's chat store.
-    /// About you is sealed with the chat key, as each release wrote it.
+    /// Personal Context is sealed with the chat key, as each release wrote it.
     /// Releases before it have no file; the first fixture with one is the
     /// release after 0.10.7.
     @MainActor
@@ -97,7 +97,7 @@ final class UpgradeMigrationTests: XCTestCase {
             checked += 1
         }
         if checked == 0 {
-            throw XCTSkip("No release fixture has About you data yet; the first is the release after 0.10.7.")
+            throw XCTSkip("No release fixture has Personal Context data yet; the first is the release after 0.10.7.")
         }
     }
 

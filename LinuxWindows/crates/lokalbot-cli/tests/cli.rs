@@ -215,7 +215,7 @@ fn settings_source() -> String {
 }
 
 /// Agents relay these hints to the user, so every `Settings → <page> →
-/// "<toggle>"` must exist in this app. The Mac's About you page and its
+/// "<toggle>"` must exist in this app. The Mac's Personal Context page and its
 /// sharing toggle do not.
 #[test]
 fn agent_text_names_only_settings_this_app_has() {
@@ -236,7 +236,7 @@ fn agent_text_names_only_settings_this_app_has() {
             .iter()
             .map(|tool| tool["description"].as_str().unwrap().to_string()),
     );
-    // A library from a Mac that shares About you but has no items written.
+    // A library from a Mac that shares Personal Context but has no items written.
     let control = LibraryPaths::new(&root).control_dir();
     std::fs::create_dir_all(&control).unwrap();
     std::fs::write(control.join(access::PERSONAL_MARKER), b"").unwrap();
@@ -246,7 +246,7 @@ fn agent_text_names_only_settings_this_app_has() {
     for text in &texts {
         for mac_only in [
             "what I shared about myself",
-            "→ About you",
+            "→ Personal Context",
             "Open LokalBot once",
             "timeline of recent days",
             "lokalbot-cli setup",

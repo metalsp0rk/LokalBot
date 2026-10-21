@@ -55,7 +55,7 @@ struct Meeting: Identifiable, Codable, Equatable, Sendable {
     /// Set on LokalBot's bundled sample meeting ("orders-api/en"): a made-up
     /// call with synthetic voices (`SampleMeeting`). Ask, search and agents
     /// still see it; personal memory (the day, digests, people, projects,
-    /// action lists, About you) leaves it out.
+    /// action lists, Personal Context) leaves it out.
     var sampleID: String?
 
     var isMergedMeeting: Bool { !(mergedSourceMeetingIDs ?? []).isEmpty }

@@ -7,7 +7,7 @@ struct PersonalContextCommand: AsyncParsableCommand {
         abstract: "Show what the user shared about themselves that is relevant to a task.",
         discussion: """
             Returns the facts, preferences, goals, and principles the user
-            marked as shared in LokalBot → Settings → Day Memory → About you,
+            marked as shared in LokalBot → Settings → Personal Context,
             most relevant to --task first. Needs the separate personal-context
             permission in Settings → Privacy. JSON by default.
             """

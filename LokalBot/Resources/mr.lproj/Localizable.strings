@@ -29,6 +29,7 @@
 "Activity results" = "हालचालींचे निकाल";
 "Activity titles to clear" = "पुसायची हालचालींची शीर्षके";
 "Activity, captured context, daily briefs, routines, and exports." = "हालचाली, कॅप्चर केलेला संदर्भ, दैनंदिन सारांश, दिनक्रम आणि निर्याती.";
+"What you told LokalBot, what it learns about you, and what agents can read." = "तुम्ही LokalBot ला काय सांगितले, ते तुमच्याबद्दल काय शिकते आणि एजंट काय वाचू शकतात.";
 "Actual size" = "मूळ आकार";
 "Add" = "जोडा";
 "Add Exclusion" = "वगळण्याचा नियम जोडा";
@@ -1224,7 +1225,7 @@
 "Your subscription" = "तुमची सदस्यता";
 "Server" = "सर्व्हर";
 "In use" = "वापरात";
-"About you" = "तुमच्याबद्दल";
+"Personal Context" = "वैयक्तिक संदर्भ";
 "Remember what I tell Ask" = "विचारा सुविधेला मी सांगितलेले लक्षात ठेवा";
 "Remembered" = "लक्षात ठेवले";
 "Not remembered" = "लक्षात ठेवले नाही";

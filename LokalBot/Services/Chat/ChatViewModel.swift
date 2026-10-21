@@ -483,7 +483,7 @@ final class ChatViewModel: ObservableObject {
     /// What the person told LokalBot about themselves. Nil in contexts that
     /// don't offer it (tests, previews).
     let personalModel: PersonalModelController?
-    /// Settings → Day Memory → About you → "Remember what I tell Ask".
+    /// Settings → Personal Context → "Remember what I tell Ask".
     private let askMemoryEnabled: () -> Bool
     private var task: Task<Void, Never>?
     private struct RetryPayload {

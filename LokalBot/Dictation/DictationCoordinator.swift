@@ -82,7 +82,7 @@ final class DictationCoordinator: ObservableObject {
     private let onError: (String) -> Void
     private let onMicPermissionDenied: () -> Void
     /// Spoken words (not Compose's draft) and the app they went to, for
-    /// About you → Learn from my dictation. Called only while that is on,
+    /// Personal Context → Learn from my dictation. Called only while that is on,
     /// after a paste into an identified field that passes the exclusions.
     private let onDictatedForLearning: (_ spokenText: String, _ appName: String) -> Void
     private var learningReadTask: Task<Void, Never>?

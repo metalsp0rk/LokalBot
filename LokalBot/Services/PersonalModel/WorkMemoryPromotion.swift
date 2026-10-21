@@ -1,6 +1,6 @@
 import Foundation
 
-/// Suggests long-running work as About you items. The overnight review keeps
+/// Suggests long-running work as Personal Context items. The overnight review keeps
 /// short-lived work memory (projects and goals that age out after 30–45
 /// days); a goal or project it keeps seeing for two weeks or more, and saw in
 /// the last week, says something durable about the person. No model call:

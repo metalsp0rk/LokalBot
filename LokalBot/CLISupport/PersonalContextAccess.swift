@@ -199,7 +199,7 @@ enum PersonalContextTool {
     static let disabledMessage =
         "Personal context access is off. The user can turn it on in LokalBot → Settings → Privacy → " +
         "\"Allow external agents to read what I shared about myself\", then choose items to share in " +
-        "Settings → Day Memory → About you."
+        "Settings → Personal Context."
     static let unavailableMessage =
         "Personal context access is on, but LokalBot hasn't written the shared items yet. " +
         "Open LokalBot once so it can prepare them."

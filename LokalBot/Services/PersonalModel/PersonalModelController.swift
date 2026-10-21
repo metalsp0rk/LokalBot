@@ -2,7 +2,7 @@ import Combine
 import Foundation
 
 /// The app's single owner of the personal model. Ask reads and adds claims
-/// through it; Settings → Day Memory → About you edits them; the overnight
+/// through it; Settings → Personal Context edits them; the overnight
 /// review adds learned ones. Loads lazily on first use so launch never
 /// touches the Keychain for it. If the saved file can't be read, every edit
 /// is refused instead of overwriting it. Learned claims are checked against
@@ -16,6 +16,11 @@ final class PersonalModelController: ObservableObject {
     private let store: PersonalModelStore
     private let now: () -> Date
     private let evidenceCheck: () -> ((DreamEvidenceProvenance) -> Bool)?
+    /// Whether a learned claim's source still has the line it quotes, and
+    /// the evidence revision to tie it to if so. Nil revision: can't tell,
+    /// so a changed source retracts the claim as before.
+    private let sourceStillQuotes: (PersonalClaim) -> Bool
+    private let currentRevision: () -> UInt64?
     private var model = PersonalModel()
     private var loaded = false
     private var writable = false
@@ -24,10 +29,14 @@ final class PersonalModelController: ObservableObject {
     var onChange: ((_ claims: [PersonalClaim]?) -> Void)?
 
     init(store: PersonalModelStore, now: @escaping () -> Date = Date.init,
-         evidenceCheck: @escaping () -> ((DreamEvidenceProvenance) -> Bool)? = { { _ in false } }) {
+         evidenceCheck: @escaping () -> ((DreamEvidenceProvenance) -> Bool)? = { { _ in false } },
+         sourceStillQuotes: @escaping (PersonalClaim) -> Bool = { _ in false },
+         currentRevision: @escaping () -> UInt64? = { nil }) {
         self.store = store
         self.now = now
         self.evidenceCheck = evidenceCheck
+        self.sourceStillQuotes = sourceStillQuotes
+        self.currentRevision = currentRevision
     }
 
     /// Newest first, the order Settings shows.
@@ -68,20 +77,28 @@ final class PersonalModelController: ObservableObject {
         return agentEligibleClaims()
     }
 
-    /// Removes learned claims whose meeting was deleted or corrected since.
-    /// False when evidence can't be checked (a revocation is pending), so
-    /// callers withhold evidence-backed claims meanwhile.
+    /// Learned claims whose source changed since they were learned keep their
+    /// place while that source still has the line they quote (a rebuilt
+    /// review, a re-read agent session, an unrelated edit to the meeting) and
+    /// are retracted once it doesn't (the meeting or session deleted, the
+    /// line corrected or no longer the person's). False when evidence can't
+    /// be checked (a revocation is pending), so callers withhold
+    /// evidence-backed claims meanwhile.
     @discardableResult
     func retractInvalidated() -> Bool {
         loadIfNeeded()
         guard model.claims.contains(where: { $0.evidence != nil }) else { return true }
         guard let check = evidenceCheck() else { return false }
+        let changed = model.claims.filter { claim in claim.evidence.map(check) ?? false }
+        guard !changed.isEmpty else { return true }
+        let revision = currentRevision()
+        var kept: Set<UUID> = []
         var stale: Set<UUID> = []
-        for claim in model.claims {
-            if let evidence = claim.evidence, check(evidence) { stale.insert(claim.id) }
+        for claim in changed {
+            if revision != nil, sourceStillQuotes(claim) { kept.insert(claim.id) } else { stale.insert(claim.id) }
         }
-        guard !stale.isEmpty else { return true }
         let result: Result<Void, PersonalModel.EditError> = mutate { model, _ in
+            if let revision { model.refreshEvidence(ids: kept, revision: revision) }
             model.retract(ids: stale)
             return .success(())
         }
@@ -159,16 +176,25 @@ final class PersonalModelController: ObservableObject {
     }
 
     /// The overnight review's findings: facts and goals are saved, preferences
-    /// become suggestions. Expired suggestions and tombstones are pruned.
+    /// become suggestions. Expired suggestions and tombstones are pruned. With
+    /// a day and fingerprint, the day is recorded as read.
     @discardableResult
-    func learn(_ candidates: [PersonalModel.LearningCandidate]) -> PersonalModel.LearningOutcome {
+    func learn(_ candidates: [PersonalModel.LearningCandidate], dayKey: String? = nil,
+               fingerprint: String? = nil) -> PersonalModel.LearningOutcome {
         var outcome = PersonalModel.LearningOutcome()
         _ = mutate { model, date in
             model.prune(now: date)
             outcome = model.learn(candidates, now: date)
+            if let dayKey, let fingerprint { model.recordLearned(dayKey: dayKey, fingerprint: fingerprint, at: date) }
             return .success(())
         }
         return outcome
+    }
+
+    /// True when the pass already read exactly these lines for this day.
+    func hasLearned(dayKey: String, fingerprint: String) -> Bool {
+        loadIfNeeded()
+        return model.hasLearned(dayKey: dayKey, fingerprint: fingerprint)
     }
 
     /// Suggests goals and projects the overnight review has kept for weeks.

@@ -29,6 +29,7 @@
 "Activity results" = "アクティビティの結果";
 "Activity titles to clear" = "消去するアクティビティのタイトル";
 "Activity, captured context, daily briefs, routines, and exports." = "アクティビティ、取得したコンテキスト、日次概要、ルーチン、エクスポート。";
+"What you told LokalBot, what it learns about you, and what agents can read." = "LokalBotに伝えたこと、LokalBotがあなたについて学ぶこと、エージェントが読めること。";
 "Actual size" = "実際のサイズ";
 "Add" = "追加";
 "Add Exclusion" = "除外を追加";
@@ -1224,7 +1225,7 @@
 "Your subscription" = "サブスクリプション";
 "Server" = "サーバー";
 "In use" = "使用中";
-"About you" = "あなたについて";
+"Personal Context" = "パーソナルコンテキスト";
 "Remember what I tell Ask" = "「質問」に伝えたことを記憶";
 "Remembered" = "記憶しました";
 "Not remembered" = "記憶しませんでした";

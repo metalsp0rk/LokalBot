@@ -29,6 +29,7 @@
 "Activity results" = "गतिविधि के नतीजे";
 "Activity titles to clear" = "मिटाने के लिए गतिविधियों के शीर्षक";
 "Activity, captured context, daily briefs, routines, and exports." = "गतिविधि, कैप्चर किया गया संदर्भ, दैनिक सार, दिनचर्याएँ और निर्यात।";
+"What you told LokalBot, what it learns about you, and what agents can read." = "आपने LokalBot को क्या बताया, यह आपके बारे में क्या सीखता है, और एजेंट क्या पढ़ सकते हैं।";
 "Actual size" = "वास्तविक आकार";
 "Add" = "जोड़ें";
 "Add Exclusion" = "अपवर्जन जोड़ें";
@@ -1224,7 +1225,7 @@
 "Your subscription" = "आपकी सदस्यता";
 "Server" = "सर्वर";
 "In use" = "इस्तेमाल में";
-"About you" = "आपके बारे में";
+"Personal Context" = "व्यक्तिगत संदर्भ";
 "Remember what I tell Ask" = "मैं पूछें को जो बताऊँ, उसे याद रखें";
 "Remembered" = "याद रखा गया";
 "Not remembered" = "याद नहीं रखा गया";

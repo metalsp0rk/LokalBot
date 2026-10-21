@@ -27,7 +27,7 @@ final class PersonalLearningLinesTests: XCTestCase {
 
     func testSharedMicrophoneIsSkippedButASingleLocalVoiceCounts() {
         let shared = PersonalLearning.ownTurns(in: [
-            segment("local", "I live in Novi Sad with my two kids."),
+            segment("local 1", "I live in Novi Sad with my two kids."),
             segment("local 2", "I have been at the company for ten years."),
         ])
         XCTAssertEqual(shared, [])

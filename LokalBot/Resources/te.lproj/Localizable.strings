@@ -29,6 +29,7 @@
 "Activity results" = "కార్యకలాప ఫలితాలు";
 "Activity titles to clear" = "తుడిచివేయాల్సిన కార్యకలాప శీర్షికలు";
 "Activity, captured context, daily briefs, routines, and exports." = "కార్యకలాపాలు, సంగ్రహించిన సందర్భం, రోజువారీ సారాంశాలు, దినచర్యలు, ఎగుమతులు.";
+"What you told LokalBot, what it learns about you, and what agents can read." = "మీరు LokalBot కి ఏమి చెప్పారు, అది మీ గురించి ఏమి నేర్చుకుంటుంది, మరియు ఏజెంట్లు ఏమి చదవగలరు.";
 "Actual size" = "అసలు పరిమాణం";
 "Add" = "జోడించండి";
 "Add Exclusion" = "మినహాయింపు జోడించండి";
@@ -1224,7 +1225,7 @@
 "Your subscription" = "మీ సభ్యత్వం";
 "Server" = "సర్వర్";
 "In use" = "వినియోగంలో";
-"About you" = "మీ గురించి";
+"Personal Context" = "వ్యక్తిగత సందర్భం";
 "Remember what I tell Ask" = "నేను అడగండికి చెప్పేది గుర్తుంచుకోండి";
 "Remembered" = "గుర్తుంచుకుంది";
 "Not remembered" = "గుర్తుంచుకోలేదు";

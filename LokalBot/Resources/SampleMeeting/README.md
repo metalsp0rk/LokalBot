@@ -27,7 +27,7 @@ the passage where the decision changes:
 
 The meeting carries `"sampleID": "orders-api/<language>"` in `meta.json`. Ask, search, the
 CLI and MCP see it, and their results mark it `"sample": true`. Day memory,
-digests, the timeline, people, projects, action lists, About you, transcription
+digests, the timeline, people, projects, action lists, Personal Context, transcription
 vocabulary, note exports and the GitHub star prompt leave it out. **Remove sample**
 deletes it in one step. The Mac bundles this folder (`project.yml`). The Windows and
 Linux app embeds the recording (`lokalbot_engine::sample`), and its CI source

@@ -150,6 +150,8 @@ struct SettingsView: View {
             "Meeting capture, detection, processing, and summaries."
         case .dayMemory:
             "Activity, captured context, daily briefs, routines, and exports."
+        case .personalContext:
+            "What you told LokalBot, what it learns about you, and what agents can read."
         case .writing:
             "Autocomplete and your writing profile."
         case .dictation:
@@ -172,7 +174,9 @@ struct SettingsView: View {
         case .recording:
             meetingsSection; processingSection; summarizationSection; meetingNoteExportSection
         case .dayMemory:
-            dayTrackingSection; routinesSection; dreamingSection; aboutYouSection
+            dayTrackingSection; routinesSection; dreamingSection
+        case .personalContext:
+            personalContextSection
         case .writing:
             AutocompleteExperienceView(server: app.cotypingServer)
             AutocompleteStatisticsView()
@@ -1071,11 +1075,11 @@ struct SettingsView: View {
         }
     }
 
-    @ViewBuilder private var aboutYouSection: some View {
-        if shows("About you", ["about", "you", "remember", "memory", "facts", "preferences", "goals",
+    @ViewBuilder private var personalContextSection: some View {
+        if shows("Personal Context", ["personal", "context", "about", "you", "remember", "memory", "facts", "preferences", "goals",
                                "principles", "values", "personal", "profile", "forget"]) {
-            Section("About you") {
-                AboutYouSettings(personalModel: app.personalModel, access: app.personalContextAccess)
+            Section("Personal Context") {
+                PersonalContextSettings(personalModel: app.personalModel, access: app.personalContextAccess)
             }
         }
     }
@@ -1591,13 +1595,13 @@ private struct PersonalContextAccessToggleRow: View {
                 get: { manager.isEnabled },
                 set: { manager.setEnabled($0) })) {
                 SettingsLabel("Allow external agents to read what I shared about myself",
-                              help: "Separate, read-only access to the About you items you mark Share with agents. Nothing else in About you is readable.")
+                              help: "Separate, read-only access to the Personal Context items you mark Share with agents. Nothing else in Personal Context is readable.")
             }
             .accessibilityIdentifier("settings.personalContextAccess")
             if manager.isEnabled {
                 LabeledContent {
                     Button("Choose items…") {
-                        app.settingsTab = .dayMemory
+                        app.settingsTab = .personalContext
                         app.focusedSettingID = "settings.askMemoryEnabled"
                     }
                     .buttonStyle(.workspaceLink)

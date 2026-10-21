@@ -12,8 +12,8 @@ Key facts:
 - Optional backends: Ollama, OpenAI-compatible servers, and the user's ChatGPT or Claude plan on every platform, plus Apple Intelligence on Mac (macOS 26+). A non-local server or plan must be explicitly approved before it receives meeting or workday context.
 - Workday memory: day tracking starts with app names and window titles only. Saved screen text and encrypted screenshots are opt-in; screenshots are deleted after 14 days by default.
 - Also includes: hold-to-talk dictation (⌥ Space on Mac, Alt+Space on Windows and Linux), optional local autocomplete, Markdown/Obsidian/Logseq export (Mac only for now), and a read-only CLI and MCP server that stay off until Agent Access is enabled.
-- About you (Mac only for now): an encrypted list of facts, preferences, goals, and principles about the user, from "Remember …" in Ask, items added in Settings, and what it learns overnight from the user's own words in meetings and typed requests. Ask uses it; agents can read only items the user shares, under a separate permission.
-- Mac only for now: selection actions, meeting note export and daily memory notes, About you, spoken summaries, coding-agent sessions in day memory, and Apple Intelligence.
+- Personal Context (Mac only for now): an encrypted list of facts, preferences, goals, and principles about the user, from "Remember …" in Ask, items added in Settings, and what it learns overnight from the user's own words in meetings and typed requests. Ask uses it; agents can read only items the user shares, under a separate permission.
+- Mac only for now: selection actions, meeting note export and daily memory notes, Personal Context, spoken summaries, coding-agent sessions in day memory, and Apple Intelligence.
 - Not supported: syncing between devices.
 
 ## Product
