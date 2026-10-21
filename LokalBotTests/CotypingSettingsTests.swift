@@ -5,6 +5,33 @@ import XCTest
 // MARK: - Settings codec
 
 final class CotypingSettingsTests: XCTestCase {
+    /// Settings saved before the option existed load with it on, like a
+    /// fresh install: Chrome-based browsers get enhanced accessibility.
+    func testChromiumEnhancedAccessibilityIsOnByDefault() throws {
+        XCTAssertTrue(AppSettings().cotypingChromiumEnhancedAccessibility)
+        var saved = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: JSONEncoder().encode(AppSettings())) as? [String: Any])
+        saved["cotypingChromiumEnhancedAccessibility"] = nil
+        let settings = try JSONDecoder().decode(
+            AppSettings.self, from: JSONSerialization.data(withJSONObject: saved))
+        XCTAssertTrue(settings.cotypingChromiumEnhancedAccessibility)
+
+        var off = AppSettings()
+        off.cotypingChromiumEnhancedAccessibility = false
+        let reloaded = try JSONDecoder().decode(AppSettings.self, from: JSONEncoder().encode(off))
+        XCTAssertFalse(reloaded.cotypingChromiumEnhancedAccessibility)
+    }
+
+    /// Chrome switched modes even though the request reported an error, so
+    /// only a timeout leaves a browser to be asked again; asking again would
+    /// raise Chrome's request count past what one release takes back.
+    func testOnlyATimeoutLeavesEnhancedAccessibilityUnasked() {
+        XCTAssertTrue(CotypingEnhancedAccessibilityRequest.wasDelivered(.success))
+        XCTAssertTrue(CotypingEnhancedAccessibilityRequest.wasDelivered(.attributeUnsupported))
+        XCTAssertTrue(CotypingEnhancedAccessibilityRequest.wasDelivered(.failure))
+        XCTAssertFalse(CotypingEnhancedAccessibilityRequest.wasDelivered(.cannotComplete))
+    }
+
     func testObsoleteHybridPreferenceIsIgnoredAndNotSaved() throws {
         let current = try JSONEncoder().encode(AppSettings())
         var legacy = try XCTUnwrap(JSONSerialization.jsonObject(with: current) as? [String: Any])

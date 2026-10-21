@@ -545,6 +545,7 @@
 "Mark Done" = "Отметить выполненным";
 "Match System" = "Как в системе";
 "Match the app font and text color" = "Использовать шрифт и цвет текста приложения";
+"Use enhanced accessibility in Chrome-based browsers" = "Использовать расширенные специальные возможности в браузерах на основе Chrome";
 "Match transcript (auto)" = "Как в расшифровке (авто)";
 "Matches this domain and its subdomains. A pasted URL applies to its whole domain." = "Соответствует этому домену и его поддоменам. Вставленный URL применяется ко всему домену.";
 "Matching settings" = "Подходящие настройки";

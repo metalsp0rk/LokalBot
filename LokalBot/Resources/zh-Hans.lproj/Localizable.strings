@@ -558,6 +558,7 @@
 "Mark Done" = "标记为完成";
 "Match System" = "跟随系统";
 "Match the app font and text color" = "匹配应用的字体和文字颜色";
+"Use enhanced accessibility in Chrome-based browsers" = "在基于 Chrome 的浏览器中使用增强辅助功能";
 "Match transcript (auto)" = "跟随转写语言（自动）";
 "Matches this domain and its subdomains. A pasted URL applies to its whole domain." = "匹配此域名及其子域名。粘贴的网址会应用于整个域名。";
 "Matching settings" = "匹配的设置";
