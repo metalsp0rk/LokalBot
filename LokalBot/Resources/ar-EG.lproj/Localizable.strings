@@ -537,6 +537,7 @@
 "Mark Done" = "علّم كمكتمل";
 "Match System" = "مطابقة النظام";
 "Match the app font and text color" = "مطابقة خط التطبيق ولون النص";
+"Use enhanced accessibility in Chrome-based browsers" = "استخدام إمكانية الوصول المحسّنة في المتصفحات المبنية على Chrome";
 "Match transcript (auto)" = "مطابقة التفريغ النصي (تلقائي)";
 "Matches this domain and its subdomains. A pasted URL applies to its whole domain." = "بيطابق الدومين ده ودوميناته الفرعية. الـ URL اللي بتلصقه بينطبق على الدومين كله.";
 "Matching settings" = "الإعدادات المطابقة";

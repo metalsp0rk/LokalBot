@@ -537,6 +537,7 @@
 "Mark Done" = "完了にする";
 "Match System" = "システムに合わせる";
 "Match the app font and text color" = "アプリのフォントと文字色に合わせる";
+"Use enhanced accessibility in Chrome-based browsers" = "Chrome ベースのブラウザで拡張アクセシビリティを使用";
 "Match transcript (auto)" = "文字起こしに合わせる（自動）";
 "Matches this domain and its subdomains. A pasted URL applies to its whole domain." = "このドメインとサブドメインが対象です。貼り付けたURLはドメイン全体に適用されます。";
 "Matching settings" = "一致する設定";

@@ -537,6 +537,7 @@
 "Mark Done" = "완료로 표시";
 "Match System" = "시스템 설정에 맞춤";
 "Match the app font and text color" = "앱의 글꼴과 텍스트 색상에 맞춤";
+"Use enhanced accessibility in Chrome-based browsers" = "Chrome 기반 브라우저에서 향상된 접근성 켜기";
 "Match transcript (auto)" = "전사문에 맞춤(자동)";
 "Matches this domain and its subdomains. A pasted URL applies to its whole domain." = "이 도메인과 하위 도메인에 적용됩니다. URL을 붙여넣으면 해당 도메인 전체에 적용됩니다.";
 "Matching settings" = "일치하는 설정";

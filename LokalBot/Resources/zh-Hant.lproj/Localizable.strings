@@ -537,6 +537,7 @@
 "Mark Done" = "標記為完成";
 "Match System" = "依照系統";
 "Match the app font and text color" = "符合 App 的字體和文字顏色";
+"Use enhanced accessibility in Chrome-based browsers" = "在以 Chrome 為基礎的瀏覽器中使用增強的輔助使用功能";
 "Match transcript (auto)" = "與逐字稿相同（自動）";
 "Matches this domain and its subdomains. A pasted URL applies to its whole domain." = "符合此網域及其子網域。貼上的網址會套用到整個網域。";
 "Matching settings" = "符合的設定";

@@ -85,6 +85,9 @@ enum CotypingAXHelper {
         var chromiumHitTest: (element: AXUIElement, pid: pid_t)?
         /// When the marker-based style read last found nothing, by process.
         var markerStyleMisses: [pid_t: TimeInterval] = [:]
+        var chromiumEnhancedAccessibility = true
+        /// Chromium browsers this process asked for enhanced accessibility.
+        var enhancedAccessibilityPIDs: Set<pid_t> = []
 
         func withLock<T>(_ operation: () -> T) -> T {
             lock.lock()
@@ -407,6 +410,7 @@ enum CotypingAXHelper {
               appReadPolicy.allows(appName: frontmost.localizedName ?? "", bundleID: frontmost.bundleIdentifier)
         else { return .none }
         primeWebAccessibilityIfNeeded(application: frontmost)
+        requestChromiumEnhancedAccessibilityIfNeeded(application: frontmost)
         guard let element = focusedElement(), let owner = owningApp(of: element),
               owner.pid == frontmost.processIdentifier,
               appReadPolicy.allows(appName: owner.name, bundleID: owner.bundleID) else { return .none }
@@ -634,6 +638,64 @@ enum CotypingAXHelper {
         default:
             break
         }
+    }
+
+    /// Whether Chrome-based browsers are asked for enhanced accessibility
+    /// (Settings → Writing → Advanced). Turning it off hands back every
+    /// browser this process asked.
+    static func configureChromiumEnhancedAccessibility(_ enabled: Bool) {
+        let turnedOff = cacheState.withLock {
+            defer { cacheState.chromiumEnhancedAccessibility = enabled }
+            return cacheState.chromiumEnhancedAccessibility && !enabled
+        }
+        if turnedOff { releaseChromiumEnhancedAccessibility() }
+    }
+
+    /// Chrome turns on its complete accessibility mode, where text markers
+    /// report the caret's exact bounds and text its font size, only for
+    /// `AXEnhancedUserInterface`; it ignores `AXManualAccessibility`. Without
+    /// it the caret was found on screen and the font size guessed, so Reddit
+    /// suggestions came out too large or in a popup over the text
+    /// (2026-10-21). Cotypist asks Chrome the same way. Chrome then also
+    /// behaves as if a screen reader were running, which costs it some speed
+    /// and can slow window-manager animations, so Settings can turn it off.
+    /// Chrome counts these requests: one is sent per browser process, and a
+    /// forced quit leaves the mode on until the browser restarts.
+    private static func requestChromiumEnhancedAccessibilityIfNeeded(application: NSRunningApplication) {
+        let pid = application.processIdentifier
+        guard pid > 0, isChromiumBrowser(bundleID: application.bundleIdentifier),
+              cacheState.withLock({
+                  cacheState.chromiumEnhancedAccessibility && !cacheState.enhancedAccessibilityPIDs.contains(pid)
+              }) else { return }
+        let result = setEnhancedAccessibility(true, processID: pid)
+        guard CotypingEnhancedAccessibilityRequest.wasDelivered(result) else { return }
+        _ = cacheState.withLock { cacheState.enhancedAccessibilityPIDs.insert(pid) }
+        _ = releaseOnTermination
+        lokalbotLog("cotyping enhanced accessibility: on app=\(application.bundleIdentifier ?? "unknown") "
+            + "result=\(result.rawValue)")
+    }
+
+    /// Hands enhanced accessibility back in every browser this process asked.
+    static func releaseChromiumEnhancedAccessibility() {
+        let pids = cacheState.withLock {
+            defer { cacheState.enhancedAccessibilityPIDs.removeAll() }
+            return cacheState.enhancedAccessibilityPIDs
+        }
+        for pid in pids { _ = setEnhancedAccessibility(false, processID: pid) }
+    }
+
+    private static let releaseOnTermination: Void = {
+        _ = NotificationCenter.default.addObserver(
+            forName: NSApplication.willTerminateNotification, object: nil, queue: nil) { _ in
+                releaseChromiumEnhancedAccessibility()
+            }
+    }()
+
+    private static func setEnhancedAccessibility(_ enabled: Bool, processID: pid_t) -> AXError {
+        let appElement = AXUIElementCreateApplication(processID)
+        AXUIElementSetMessagingTimeout(appElement, 0.05)
+        return AXUIElementSetAttributeValue(
+            appElement, "AXEnhancedUserInterface" as CFString, enabled ? kCFBooleanTrue : kCFBooleanFalse)
     }
 
     nonisolated static func needsWebAccessibilityPriming(bundleID: String?) -> Bool {

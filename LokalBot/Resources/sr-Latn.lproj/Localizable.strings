@@ -537,6 +537,7 @@
 "Mark Done" = "Označi kao završeno";
 "Match System" = "Kao u sistemu";
 "Match the app font and text color" = "Prati font i boju teksta aplikacije";
+"Use enhanced accessibility in Chrome-based browsers" = "Koristi poboljšanu pristupačnost u pregledačima zasnovanim na Chrome-u";
 "Match transcript (auto)" = "Kao transkript (automatski)";
 "Matches this domain and its subdomains. A pasted URL applies to its whole domain." = "Obuhvata ovaj domen i njegove poddomene. Nalepljeni URL važi za ceo svoj domen.";
 "Matching settings" = "Pronađena podešavanja";

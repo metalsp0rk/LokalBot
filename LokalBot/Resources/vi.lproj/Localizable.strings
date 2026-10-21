@@ -537,6 +537,7 @@
 "Mark Done" = "Đánh dấu hoàn tất";
 "Match System" = "Theo hệ thống";
 "Match the app font and text color" = "Dùng phông và màu chữ của ứng dụng";
+"Use enhanced accessibility in Chrome-based browsers" = "Dùng trợ năng nâng cao trong trình duyệt dựa trên Chrome";
 "Match transcript (auto)" = "Theo bản chép lời (tự động)";
 "Matches this domain and its subdomains. A pasted URL applies to its whole domain." = "Áp dụng cho miền này và các miền con. URL được dán áp dụng cho toàn bộ miền của nó.";
 "Matching settings" = "Cài đặt phù hợp";

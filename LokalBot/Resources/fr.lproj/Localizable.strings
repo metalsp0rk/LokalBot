@@ -537,6 +537,7 @@
 "Mark Done" = "Marquer comme terminé";
 "Match System" = "Comme le système";
 "Match the app font and text color" = "Utiliser la police et la couleur du texte de l’app";
+"Use enhanced accessibility in Chrome-based browsers" = "Utiliser l’accessibilité avancée dans les navigateurs basés sur Chrome";
 "Match transcript (auto)" = "Comme la transcription (auto)";
 "Matches this domain and its subdomains. A pasted URL applies to its whole domain." = "S’applique à ce domaine et à ses sous-domaines. Une URL collée s’applique à tout son domaine.";
 "Matching settings" = "Réglages correspondants";
