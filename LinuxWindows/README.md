@@ -69,8 +69,9 @@ For native NVIDIA validation, run the ignored runtime test with
 `LOKALBOT_E2E_BACKEND=cuda` and a separate `LOKALBOT_E2E_ROOT`, and run the
 `lokalbot-engine` `autocomplete_eval` example with `--backend cuda`. The runtime
 test checks actual model offload as well as text generation and embeddings.
-The runtime and autocomplete path have been exercised on an NVIDIA L4 under
-Ubuntu 24.04, including companion-library download and system-library reuse.
+The runtime and autocomplete path have been exercised on NVIDIA L4, RTX 3080
+and RTX 5060 Ti GPUs under Ubuntu 24.04. Both companion-library download and
+system-library reuse passed on each card.
 Native Windows CUDA execution and CUDA/Vulkan performance comparisons remain
 unverified. See the [hardware validation report](docs/cuda-validation.md).
 
