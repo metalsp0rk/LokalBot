@@ -10,6 +10,7 @@ final class CotypingFieldStyleTests: XCTestCase {
         XCTAssertFalse(CotypingFieldStyle(fontName: "Helvetica").isEmpty)
         XCTAssertFalse(CotypingFieldStyle(colorHex: "336699").isEmpty)
         XCTAssertFalse(CotypingFieldStyle(backgroundColorHex: "000000").isEmpty)
+        XCTAssertFalse(CotypingFieldStyle(fontPointSize: 16).isEmpty)
     }
 
     func testHexRoundTrip() {

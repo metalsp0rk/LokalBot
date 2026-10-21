@@ -83,6 +83,8 @@ enum CotypingAXHelper {
         var unsupportedWebAccessibilityPIDs: Set<pid_t> = []
         var lastFrontmostPrimePID: pid_t?
         var chromiumHitTest: (element: AXUIElement, pid: pid_t)?
+        /// When the marker-based style read last found nothing, by process.
+        var markerStyleMisses: [pid_t: TimeInterval] = [:]
 
         func withLock<T>(_ operation: () -> T) -> T {
             lock.lock()
@@ -450,8 +452,11 @@ enum CotypingAXHelper {
         let content = appReadPolicy.readIfAllowed(appName: appName, bundleID: bundleID) {
             let native = selectionRange(element)
             let marker = native == nil ? synthesizeMarkerSelection(on: element) : nil
-            return (native: native, marker: marker,
-                    value: marker?.text ?? stringAttribute(element, kAXValueAttribute as String))
+            let value = marker?.text ?? stringAttribute(element, kAXValueAttribute as String)
+            return (native: native.map { selection in
+                        value.map { paragraphAlignedSelection(selection, value: $0, on: element) } ?? selection
+                    },
+                    marker: marker, value: value)
         }
         guard let content else { return .none }
         let nativeSelection = content.native
@@ -513,7 +518,10 @@ enum CotypingAXHelper {
             ? cacheState.fieldStyles.valueIfReadable(forKey: focusIdentityKey) {
                 usesMarkerSelection
                     ? resolveMarkerFieldStyle(for: element)
+                    // Chromium's range-based attributed string carries no font;
+                    // its marker-based one has the size and text color.
                     : resolveFieldStyle(for: element, caretLocation: caret, textLength: nsValue.length)
+                        ?? markerFieldStyleUnlessMissed(for: element, processID: pid, caretLocation: caret)
             }
             : nil
         let isIntegratedTerminal = CotypingSurfaceClassifier.isIntegratedTerminal(
@@ -695,6 +703,22 @@ enum CotypingAXHelper {
             afterCaret: afterText)
     }
 
+    /// `selection` in `value`'s own count: Chromium reports a rich-text
+    /// field's selection without the line breaks its value has between
+    /// paragraphs (`CotypingParagraphBreakAlignment`). The text before the
+    /// caret, read with `AXStringForRange`, is counted the way the selection
+    /// is. Unchanged for one-line values and for hosts whose counts agree.
+    private static func paragraphAlignedSelection(_ selection: NSRange, value: String, on element: AXUIElement) -> NSRange {
+        guard selection.location > 0, value.contains("\n") else { return selection }
+        var cfRange = CFRange(location: 0, length: selection.location)
+        guard let parameter = AXValueCreate(.cfRange, &cfRange),
+              let before = copyOpaqueParameterized(stringForRangeAttribute, parameter: parameter, on: element) as? String,
+              (before as NSString).length == selection.location,
+              let location = CotypingParagraphBreakAlignment.caretLocation(in: value, textBeforeCaret: before)
+        else { return selection }
+        return NSRange(location: location, length: selection.length)
+    }
+
     private static func markerRange(
         from start: CFTypeRef,
         to end: CFTypeRef,
@@ -743,6 +767,26 @@ enum CotypingAXHelper {
         return extractFieldStyle(from: attributed.attributes(at: attributed.length - 1, effectiveRange: nil))
     }
 
+    /// How long an app whose marker-based style read found nothing is not
+    /// asked again. Chrome sends no font without extended accessibility, and
+    /// its fields change identity on every read, so the per-field style
+    /// cache never holds that miss.
+    private static let markerStyleMissInterval: TimeInterval = 30
+
+    private static func markerFieldStyleUnlessMissed(
+        for element: AXUIElement, processID: pid_t, caretLocation: Int
+    ) -> CotypingFieldStyle? {
+        let now = ProcessInfo.processInfo.systemUptime
+        if let missed = cacheState.withLock({ cacheState.markerStyleMisses[processID] }),
+           now - missed < markerStyleMissInterval { return nil }
+        let style = resolveMarkerFieldStyle(for: element)
+        // With no text before the caret there is no character to read a style from.
+        if caretLocation > 0 {
+            cacheState.withLock { cacheState.markerStyleMisses[processID] = style == nil ? now : nil }
+        }
+        return style
+    }
+
     private static func attributedString(forRange range: NSRange, on element: AXUIElement) -> NSAttributedString? {
         var cfRange = CFRange(location: range.location, length: range.length)
         guard let axRange = AXValueCreate(.cfRange, &cfRange) else { return nil }
@@ -755,7 +799,7 @@ enum CotypingAXHelper {
     /// Extracts a `CotypingFieldStyle` from one character's attributes, handling
     /// both the AppKit `.font`/`.foregroundColor` shapes and the AX font-dict /
     /// CGColor shapes AX returns from web content.
-    private static func extractFieldStyle(from attributes: [NSAttributedString.Key: Any]) -> CotypingFieldStyle? {
+    static func extractFieldStyle(from attributes: [NSAttributedString.Key: Any]) -> CotypingFieldStyle? {
         var fontName: String?
         var fontPointSize: CGFloat?
         if let font = attributes[.font] as? NSFont {
