@@ -23,8 +23,9 @@
 #
 # Optional:
 #   AUR_SSH_PRIVATE_KEY    SSH key of the AUR account that maintains
-#                          lokalbot-bin (aur.yml). Without it the AUR package
-#                          is checked but not pushed.
+#                          lokalbot-bin (aur.yml). Without it, or without the
+#                          AUR_PUBLISH repository variable set to true, the
+#                          AUR package is checked but not pushed.
 #   WINGET_TOKEN           classic token (public_repo) of the account whose
 #                          microsoft/winget-pkgs fork wingetcreate pushes to
 #                          (winget.yml). Without it nothing goes to winget.
@@ -572,7 +573,8 @@ jobs:
 
   # Points the lokalbot-bin AUR package at this release once its Linux archive
   # is attached, checks it in a clean Arch container and pushes it with the
-  # AUR_SSH_PRIVATE_KEY secret (skipped without it). Pre-releases stay off the
+  # AUR_SSH_PRIVATE_KEY secret (skipped without it or the AUR_PUBLISH
+  # variable). Pre-releases stay off the
   # AUR. GitHub-hosted, like every job that sees a secret.
   aur:
     name: AUR package

@@ -41,8 +41,9 @@ these files. namcap's remaining warnings on the built package are expected:
 The release workflow does this for every stable tag: its `aur` job
 (`aur.yml`) runs `scripts/update-aur.sh <version>`, checks the result as
 above, and pushes `PKGBUILD` and `.SRCINFO` to the AUR with the
-`AUR_SSH_PRIVATE_KEY` secret. Without the secret it checks and stops.
-Pre-releases are skipped.
+`AUR_SSH_PRIVATE_KEY` secret. It pushes only while the `AUR_PUBLISH`
+repository variable is `true`; without the variable or the secret it checks
+and stops. Pre-releases are skipped.
 
 The release job sets `pkgver`, `pkgrel` and the checksum and takes everything
 else from this folder, so the copy here may name an older version. To bring
@@ -94,6 +95,7 @@ These need the maintainer's own accounts, so CI cannot do them:
 
    ```bash
    gh secret set AUR_SSH_PRIVATE_KEY --repo stevyhacker/LokalBot < ~/.ssh/aur_lokalbot
+   gh variable set AUR_PUBLISH --repo stevyhacker/LokalBot --body true
    ```
 
 5. Check <https://aur.archlinux.org/packages/lokalbot-bin> and

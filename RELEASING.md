@@ -540,8 +540,10 @@ After the publish job, the `aur` job (`.github/workflows/aur.yml`) points the
 `lokalbot-bin` AUR package (`LinuxWindows/packaging/aur`) at the stable tag's
 Linux archive and its `.sha256`, builds and installs it in a clean Arch
 container with namcap, and pushes `PKGBUILD` and `.SRCINFO` to
-aur.archlinux.org with the `AUR_SSH_PRIVATE_KEY` secret. Without the secret it
-stops after the checks; pre-release tags skip it. To publish again from
+aur.archlinux.org with the `AUR_SSH_PRIVATE_KEY` secret. It pushes only while
+the `AUR_PUBLISH` repository variable is `true` (set it once an AUR account holds
+the key); without the variable or the secret it stops after the checks, and
+pre-release tags skip it. To publish again from
 master: `gh workflow run aur.yml -f tag=vX.Y.Z`. Setup, manual updates and the
 expected namcap warnings are in
 [the AUR package README](LinuxWindows/packaging/aur/README.md).
@@ -599,7 +601,8 @@ Required repo secrets:
   `LinuxWindows/scripts/release-feeds.sh` for the Linux and Windows feeds)
 
 Optional: `AUR_SSH_PRIVATE_KEY`, the AUR account's SSH key that lets the
-release push the `lokalbot-bin` AUR package ([AUR package](#aur-package)).
+release push the `lokalbot-bin` AUR package once the `AUR_PUBLISH` repository
+variable is `true` ([AUR package](#aur-package)).
 
 Set the certificate and credential secrets without pasting them into source or
 shell history. `gh secret set NAME` prompts for the value securely:
