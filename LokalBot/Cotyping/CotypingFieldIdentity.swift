@@ -21,6 +21,13 @@ enum CotypingFieldIdentity {
         fieldIdentity(for: field)
     }
 
+    /// Identity for reusing the background sampled behind a field's ghost.
+    /// Per field, not per app: a browser shows light and dark pages, and a
+    /// per-app reading from a light page drew black ghosts on dark ones.
+    static func background(for field: CotypingField) -> String {
+        fieldIdentity(for: field)
+    }
+
     private static func fieldIdentity(for field: CotypingField) -> String {
         let fieldPart: String
         if let focusIdentityKey = field.focusIdentityKey, !focusIdentityKey.isEmpty {

@@ -163,3 +163,38 @@ final class CotypingFieldStyleTests: XCTestCase {
         return ctx.makeImage()!
     }
 }
+
+// MARK: - Background behind the ghost
+
+@MainActor
+final class CotypingBackgroundSamplerTests: XCTestCase {
+    private func chromeField(focus: String, preceding: String = "draft") -> CotypingField {
+        CotypingField(
+            appName: "Google Chrome", bundleID: "com.google.Chrome", processID: 42, role: "AXTextArea",
+            focusIdentityKey: focus, precedingText: preceding, trailingText: "", selectionLength: 0,
+            caretRect: CGRect(x: 120, y: 40, width: 1, height: 18), inputFrameRect: nil,
+            isSecure: false, caretIsExact: true)
+    }
+
+    /// 2026-10-21: a reading from a light page in Chrome drew black ghosts in
+    /// a dark Reddit comment box, because readings were kept per app.
+    func testReadingFromOneFieldIsNotReusedInAnotherFieldOfTheSameApp() {
+        let sampler = CotypingBackgroundSampler()
+        let lightPage = chromeField(focus: "search-box")
+        sampler.remember(0.95, forField: CotypingFieldIdentity.background(for: lightPage))
+
+        let darkPage = chromeField(focus: "comment-box")
+        XCTAssertNil(sampler.cachedLuminance(forField: CotypingFieldIdentity.background(for: darkPage)))
+        let sameFieldLater = chromeField(focus: "search-box", preceding: "draft with more words")
+        XCTAssertEqual(sampler.cachedLuminance(forField: CotypingFieldIdentity.background(for: sameFieldLater)), 0.95)
+    }
+
+    func testReadingExpires() {
+        let sampler = CotypingBackgroundSampler()
+        let start = Date()
+        sampler.remember(0.1, forField: "field", now: start)
+
+        XCTAssertEqual(sampler.cachedLuminance(forField: "field", now: start.addingTimeInterval(60)), 0.1)
+        XCTAssertNil(sampler.cachedLuminance(forField: "field", now: start.addingTimeInterval(301)))
+    }
+}
