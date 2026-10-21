@@ -11,6 +11,7 @@ pub mod access;
 pub mod actions;
 pub mod calendar;
 pub mod demo;
+pub mod dictation_history;
 pub mod digest;
 pub mod due;
 pub mod embeddings;

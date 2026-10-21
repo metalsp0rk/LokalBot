@@ -194,9 +194,12 @@
 "Clear search" = "Suche leeren";
 "Clear search filters" = "Suchfilter zurücksetzen";
 "Clear selection" = "Auswahl aufheben";
+"Copied" = "Kopiert";
+"Copy last dictation" = "Letztes Diktat kopieren";
 "Dictation already uses this shortcut. Choose another." = "Diktat verwendet dieses Kürzel bereits. Wähle ein anderes.";
 "Don't Allow" = "Nicht erlauben";
 "Hold the modifiers and press a key, like ⌃⇧ Space." = "Halte die Zusatztasten und drücke eine Taste, etwa ⌃⇧ Leertaste.";
+"Last dictation" = "Letztes Diktat";
 "macOS already uses this shortcut. Choose another." = "macOS verwendet dieses Kürzel bereits. Wähle ein anderes.";
 "Model folder selection cleared" = "Modellordner-Auswahl aufgehoben";
 "Clear settings search" = "Einstellungssuche leeren";
@@ -437,6 +440,11 @@
 "Import an audio or video recording" = "Audio- oder Videoaufnahme importieren";
 "Import Recording" = "Aufnahme importieren";
 "Import Recording…" = "Aufnahme importieren…";
+"Not inserted" = "Nicht eingefügt";
+"Pasted" = "Eingefügt";
+"Recent dictations" = "Letzte Diktate";
+"Saved encrypted on this Mac for 7 days, so you can copy a dictation again after the clipboard changes or the Mac restarts. Text meant for a password field is never kept." = "Wird 7 Tage lang verschlüsselt auf diesem Mac gespeichert, damit du ein Diktat erneut kopieren kannst, nachdem sich die Zwischenablage geändert hat oder der Mac neu gestartet wurde. Text für ein Passwortfeld wird nie aufbewahrt.";
+"Shown in LokalBot" = "In LokalBot angezeigt";
 "Try a sample meeting" = "Beispielbesprechung ausprobieren";
 "Open the sample meeting" = "Beispielbesprechung öffnen";
 "Sample meeting" = "Beispielbesprechung";
@@ -538,6 +546,7 @@
 "Mark Done" = "Als erledigt markieren";
 "Match System" = "Systemeinstellung verwenden";
 "Match the app font and text color" = "Schrift und Textfarbe der App übernehmen";
+"Use enhanced accessibility in Chrome-based browsers" = "Erweiterte Bedienungshilfen in Chrome-basierten Browsern verwenden";
 "Match transcript (auto)" = "Wie Transkript (automatisch)";
 "Matches this domain and its subdomains. A pasted URL applies to its whole domain." = "Erfasst diese Domain und ihre Subdomains. Eine eingefügte URL gilt für die gesamte Domain.";
 "Matching settings" = "Passende Einstellungen";

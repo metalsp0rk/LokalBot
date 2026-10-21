@@ -194,9 +194,12 @@
 "Clear search" = "खोज मिटाएँ";
 "Clear search filters" = "खोज फ़िल्टर हटाएँ";
 "Clear selection" = "चयन हटाएँ";
+"Copied" = "कॉपी किया गया";
+"Copy last dictation" = "आख़िरी डिक्टेशन कॉपी करें";
 "Dictation already uses this shortcut. Choose another." = "डिक्टेशन पहले से इस शॉर्टकट का उपयोग करता है। दूसरा चुनें।";
 "Don't Allow" = "अनुमति न दें";
 "Hold the modifiers and press a key, like ⌃⇧ Space." = "मॉडिफ़ायर दबाए रखें और कोई कुंजी दबाएँ, जैसे ⌃⇧ Space।";
+"Last dictation" = "आख़िरी डिक्टेशन";
 "macOS already uses this shortcut. Choose another." = "macOS पहले से इस शॉर्टकट का उपयोग करता है। दूसरा चुनें।";
 "Model folder selection cleared" = "मॉडल फ़ोल्डर का चयन हटा दिया गया";
 "Clear settings search" = "सेटिंग्स की खोज मिटाएँ";
@@ -437,6 +440,11 @@
 "Import an audio or video recording" = "ऑडियो या वीडियो रिकॉर्डिंग आयात करें";
 "Import Recording" = "रिकॉर्डिंग आयात करें";
 "Import Recording…" = "रिकॉर्डिंग आयात करें…";
+"Not inserted" = "डाला नहीं गया";
+"Pasted" = "पेस्ट किया गया";
+"Recent dictations" = "हाल के डिक्टेशन";
+"Saved encrypted on this Mac for 7 days, so you can copy a dictation again after the clipboard changes or the Mac restarts. Text meant for a password field is never kept." = "इस Mac पर 7 दिनों तक एन्क्रिप्ट करके सहेजा जाता है, ताकि क्लिपबोर्ड बदलने या Mac रीस्टार्ट होने के बाद भी आप डिक्टेशन फिर से कॉपी कर सकें। पासवर्ड फ़ील्ड के लिए बोला गया टेक्स्ट कभी नहीं रखा जाता।";
+"Shown in LokalBot" = "LokalBot में दिखाया गया";
 "Try a sample meeting" = "नमूना मीटिंग आज़माएँ";
 "Open the sample meeting" = "नमूना मीटिंग खोलें";
 "Sample meeting" = "नमूना मीटिंग";
@@ -538,6 +546,7 @@
 "Mark Done" = "पूरा चिह्नित करें";
 "Match System" = "सिस्टम जैसा";
 "Match the app font and text color" = "ऐप के फ़ॉन्ट और टेक्स्ट के रंग से मिलाएँ";
+"Use enhanced accessibility in Chrome-based browsers" = "Chrome-आधारित ब्राउज़र में उन्नत सुलभता का उपयोग करें";
 "Match transcript (auto)" = "लिप्यंतरण से मिलाएँ (स्वचालित)";
 "Matches this domain and its subdomains. A pasted URL applies to its whole domain." = "इस डोमेन और इसके सबडोमेन से मेल खाता है। पेस्ट किया गया URL उसके पूरे डोमेन पर लागू होता है।";
 "Matching settings" = "मेल खाती सेटिंग्स";

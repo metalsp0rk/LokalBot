@@ -129,6 +129,7 @@ struct SettingDescriptor: Identifiable {
         .init(id: "settings.cotypingSuggestInIntegratedTerminals", title: "Suggest in integrated terminals", category: .writing, aliases: "cotypingSuggestInIntegratedTerminals"),
         .init(id: "settings.cotypingInProcessRuntime", title: "Use fast in-process runtime", category: .writing, aliases: "cotypingInProcessRuntime"),
         .init(id: "settings.cotypingMatchHostStyle", title: "Match the app font and text color", category: .writing, aliases: "cotypingMatchHostStyle"),
+        .init(id: "settings.cotypingChromiumEnhancedAccessibility", title: "Use enhanced accessibility in Chrome-based browsers", category: .writing, aliases: "cotypingChromiumEnhancedAccessibility"),
         .init(id: "settings.cotypingAutocorrect", title: "Autocorrect the current word", category: .writing, aliases: "cotypingAutocorrect"),
         .init(id: "settings.cotypingEmoji", title: "Emoji autocomplete", category: .writing, aliases: "cotypingEmoji"),
         .init(id: "settings.cotypingMacros", title: "Macros", category: .writing, aliases: "cotypingMacros"),

@@ -49,6 +49,10 @@ app names and duration totals remain. Saved moments remain until you unsave or d
 audio is deleted after transcription by default. Dictated text is not kept,
 except briefly for learning while **Learn from my dictation** is on (see Personal
 Context below). You can delete an individual
+audio is deleted after transcription by default. Dictated text is kept only as
+the last 10 results for 7 days, encrypted, so you can copy one again (see
+**Recent dictations** below), and briefly for learning while **Learn from my
+dictation** is on (see About you below). You can delete an individual
 meeting in the app or remove the entire LokalBot Application Support directory.
 
 **Read coding agent sessions** is on by default. On a new install, setup shows
@@ -804,6 +808,18 @@ field that cannot be read is left unchecked. When the text is missing, the
 dictation overlay offers to copy it. The chosen dictation microphone is stored as
 a device identifier in Settings.
 
+**Recent dictations** keeps the last 10 dictation results (the delivered text,
+or the spoken words when Compose fails), with the time and the app each was
+dictated into, so one can be copied again after the clipboard changes or the
+Mac restarts: from the menu bar, **Recent dictations** on the Dictation page,
+or the **Copy last dictation** command. They are saved in the library folder as
+`recent-dictations.json.enc`, AES-GCM encrypted with the same per-install key
+as saved Ask conversations, readable only by your account (0600), and flushed
+to the drive after each dictation so a crash or power cut doesn't lose them.
+A result older than 7 days is dropped when LokalBot starts or saves the next
+dictation, and any beyond the newest 10 right away; **Clear** deletes the file. They are never logged or sent anywhere. Text meant
+for a password field is never kept.
+
 Selection actions are off by default (Settings → General → Shortcut). When
 enabled, pressing their shortcut reads the text selected in the frontmost app
 once, through Accessibility. Apps on the shared exclusion list and secure
@@ -927,8 +943,17 @@ platform differences:
 - **Dictation** is off until you turn it on. Its audio stays in memory and is
   never written to disk. The text is pasted through the clipboard, and your
   previous clipboard comes back about 300 ms later; when pasting isn't
-  possible, the text is left on the clipboard instead. Dictated text is not
-  kept, and there is no **Learn from my dictation**.
+  possible, the text is left on the clipboard instead. **Recent dictations**
+  keeps the last 10 results (or the spoken words when Compose fails), with
+  the app each was dictated into, so one can be copied again from the tray
+  menu or Settings → Dictation: in `recent-dictations.json.enc` in the
+  library, AES-GCM encrypted with a per-install key kept in the system
+  credential store, owner-only on Linux, and flushed to the drive after each
+  dictation. Without a credential store they stay in memory until LokalBot
+  quits. A result older than 7 days is dropped when LokalBot starts or saves
+  the next dictation, and **Clear** deletes the file. Text dictated into a
+  password manager is never kept; password fields in other apps can't be
+  detected there. There is no **Learn from my dictation**.
 - **Meeting detection** looks at which apps are using the microphone
   (PulseAudio source outputs on Linux, WASAPI capture sessions on Windows) and
   by default asks with a notification before recording. System audio comes

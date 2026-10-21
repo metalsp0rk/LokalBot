@@ -194,9 +194,12 @@
 "Clear search" = "Clear search";
 "Clear search filters" = "Clear search filters";
 "Clear selection" = "Clear wetin you choose";
+"Copied" = "E don copy";
+"Copy last dictation" = "Copy last dictation";
 "Dictation already uses this shortcut. Choose another." = "Dictation dey use this shortcut already. Choose another one.";
 "Don't Allow" = "No allow";
 "Hold the modifiers and press a key, like ⌃⇧ Space." = "Hold the modifier keys and press one key, like ⌃⇧ Space.";
+"Last dictation" = "Last dictation";
 "macOS already uses this shortcut. Choose another." = "macOS dey use this shortcut already. Choose another one.";
 "Model folder selection cleared" = "Model folder choice don clear";
 "Clear settings search" = "Clear settings search";
@@ -437,6 +440,11 @@
 "Import an audio or video recording" = "Import audio or video recording";
 "Import Recording" = "Import Recording";
 "Import Recording…" = "Import Recording…";
+"Not inserted" = "E no enter";
+"Pasted" = "E don paste";
+"Recent dictations" = "Recent dictations";
+"Saved encrypted on this Mac for 7 days, so you can copy a dictation again after the clipboard changes or the Mac restarts. Text meant for a password field is never kept." = "E dey saved, encrypted, for this Mac for 7 days, so you fit copy dictation again after clipboard don change or the Mac restart. Text wey suppose go password field, we no dey keep am at all.";
+"Shown in LokalBot" = "E show for LokalBot";
 "Try a sample meeting" = "Try sample meeting";
 "Open the sample meeting" = "Open the sample meeting";
 "Sample meeting" = "Sample meeting";
@@ -538,6 +546,7 @@
 "Mark Done" = "Mark As Done";
 "Match System" = "Match System";
 "Match the app font and text color" = "Match the app font and text colour";
+"Use enhanced accessibility in Chrome-based browsers" = "Use enhanced accessibility for Chrome-based browsers";
 "Match transcript (auto)" = "Match transcript (by itself)";
 "Matches this domain and its subdomains. A pasted URL applies to its whole domain." = "E match this domain and im subdomains. URL wey you paste dey apply to im whole domain.";
 "Matching settings" = "Settings wey match";

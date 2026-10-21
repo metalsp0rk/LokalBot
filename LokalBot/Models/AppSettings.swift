@@ -624,6 +624,9 @@ struct AppSettings: Codable, Equatable {
     /// Match the host field's font and text color so ghost text reads as a
     /// continuation. On by default; reads via Accessibility (cached per field).
     var cotypingMatchHostStyle: Bool = true
+    /// Ask Chrome-based browsers for their complete accessibility mode, so
+    /// the caret and font size come from the page instead of the screen.
+    var cotypingChromiumEnhancedAccessibility: Bool = true
     /// How ghost text is shown: inline at the caret, or a popup when geometry is
     /// unreliable / the caret is mid-line. `.auto` defers to caret quality.
     var cotypingMirrorPreference: CotypingMirrorPreference = .auto
@@ -979,6 +982,7 @@ struct AppSettings: Codable, Equatable {
         case cotypingUseMeetingMemory
         case cotypingUseScreenMemory
         case cotypingMatchHostStyle
+        case cotypingChromiumEnhancedAccessibility
         case cotypingMirrorPreference
         case cotypingAutocorrect
         case cotypingEmoji
@@ -1190,6 +1194,7 @@ struct AppSettings: Codable, Equatable {
         try c.encode(cotypingUseMeetingMemory, forKey: .cotypingUseMeetingMemory)
         try c.encode(cotypingUseScreenMemory, forKey: .cotypingUseScreenMemory)
         try c.encode(cotypingMatchHostStyle, forKey: .cotypingMatchHostStyle)
+        try c.encode(cotypingChromiumEnhancedAccessibility, forKey: .cotypingChromiumEnhancedAccessibility)
         try c.encode(cotypingMirrorPreference, forKey: .cotypingMirrorPreference)
         try c.encode(cotypingAutocorrect, forKey: .cotypingAutocorrect)
         try c.encode(cotypingEmoji, forKey: .cotypingEmoji)
@@ -1407,6 +1412,8 @@ struct AppSettings: Codable, Equatable {
         cotypingUseMeetingMemory = decode(.cotypingUseMeetingMemory, defaults.cotypingUseMeetingMemory)
         cotypingUseScreenMemory = decode(.cotypingUseScreenMemory, defaults.cotypingUseScreenMemory)
         cotypingMatchHostStyle = decode(.cotypingMatchHostStyle, defaults.cotypingMatchHostStyle)
+        cotypingChromiumEnhancedAccessibility = decode(
+            .cotypingChromiumEnhancedAccessibility, defaults.cotypingChromiumEnhancedAccessibility)
         cotypingMirrorPreference = decode(
             .cotypingMirrorPreference, defaults.cotypingMirrorPreference)
         cotypingAutocorrect = decode(.cotypingAutocorrect, defaults.cotypingAutocorrect)

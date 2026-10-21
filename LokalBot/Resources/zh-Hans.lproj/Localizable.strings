@@ -196,6 +196,8 @@
 "Clear search" = "清除搜索";
 "Clear search filters" = "清除搜索筛选";
 "Clear selection" = "清除选择";
+"Copied" = "已复制";
+"Copy last dictation" = "复制上一次听写";
 "Describe what to write…" = "描述要写的内容…";
 "Dictation already uses this shortcut. Choose another." = "听写已在使用此快捷键。请选择其他快捷键。";
 "Draft a reply with my memory" = "结合我的记忆起草回复";
@@ -207,6 +209,7 @@
 "Hold the modifiers and press a key, like ⌃⇧ Space." = "请按住修饰键再按一个按键，例如 ⌃⇧ Space。";
 "Improve writing" = "润色文字";
 "Insert" = "插入";
+"Last dictation" = "上一次听写";
 "macOS already uses this shortcut. Choose another." = "macOS 已在使用此快捷键。请选择其他快捷键。";
 "Make friendlier" = "改写得更友好";
 "Make more professional" = "改写得更专业";
@@ -450,6 +453,11 @@
 "Import an audio or video recording" = "导入音频或视频录音";
 "Import Recording" = "导入录音";
 "Import Recording…" = "导入录音…";
+"Not inserted" = "未插入";
+"Pasted" = "已粘贴";
+"Recent dictations" = "最近的听写";
+"Saved encrypted on this Mac for 7 days, so you can copy a dictation again after the clipboard changes or the Mac restarts. Text meant for a password field is never kept." = "在这台 Mac 上加密保存 7 天，剪贴板被替换或 Mac 重启后你仍可再次复制听写内容。用于密码栏的文字绝不保留。";
+"Shown in LokalBot" = "已在 LokalBot 中显示";
 "Try a sample meeting" = "试用示例会议";
 "Open the sample meeting" = "打开示例会议";
 "Sample meeting" = "示例会议";
@@ -551,6 +559,7 @@
 "Mark Done" = "标记为完成";
 "Match System" = "跟随系统";
 "Match the app font and text color" = "匹配应用的字体和文字颜色";
+"Use enhanced accessibility in Chrome-based browsers" = "在基于 Chrome 的浏览器中使用增强辅助功能";
 "Match transcript (auto)" = "跟随转写语言（自动）";
 "Matches this domain and its subdomains. A pasted URL applies to its whole domain." = "匹配此域名及其子域名。粘贴的网址会应用于整个域名。";
 "Matching settings" = "匹配的设置";

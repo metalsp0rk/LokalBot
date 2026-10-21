@@ -194,9 +194,12 @@
 "Clear search" = "Очистить поиск";
 "Clear search filters" = "Сбросить фильтры поиска";
 "Clear selection" = "Снять выделение";
+"Copied" = "Скопировано";
+"Copy last dictation" = "Скопировать последнюю диктовку";
 "Dictation already uses this shortcut. Choose another." = "Это сочетание уже используется диктовкой. Выберите другое.";
 "Don't Allow" = "Не разрешать";
 "Hold the modifiers and press a key, like ⌃⇧ Space." = "Удерживайте модификаторы и нажмите клавишу, например ⌃⇧ Пробел.";
+"Last dictation" = "Последняя диктовка";
 "macOS already uses this shortcut. Choose another." = "Это сочетание уже используется macOS. Выберите другое.";
 "Model folder selection cleared" = "Выбор папки модели сброшен";
 "Clear settings search" = "Очистить поиск настроек";
@@ -437,6 +440,11 @@
 "Import an audio or video recording" = "Импортировать аудио- или видеозапись";
 "Import Recording" = "Импортировать запись";
 "Import Recording…" = "Импортировать запись…";
+"Not inserted" = "Не вставлено";
+"Pasted" = "Вставлено";
+"Recent dictations" = "Недавние диктовки";
+"Saved encrypted on this Mac for 7 days, so you can copy a dictation again after the clipboard changes or the Mac restarts. Text meant for a password field is never kept." = "Хранится в зашифрованном виде на этом Mac 7 дней, чтобы вы могли снова скопировать диктовку после того, как буфер обмена изменится или Mac перезагрузится. Текст для поля пароля никогда не сохраняется.";
+"Shown in LokalBot" = "Показано в LokalBot";
 "Try a sample meeting" = "Попробовать пример встречи";
 "Open the sample meeting" = "Открыть пример встречи";
 "Sample meeting" = "Пример встречи";
@@ -538,6 +546,7 @@
 "Mark Done" = "Отметить выполненным";
 "Match System" = "Как в системе";
 "Match the app font and text color" = "Использовать шрифт и цвет текста приложения";
+"Use enhanced accessibility in Chrome-based browsers" = "Использовать расширенные специальные возможности в браузерах на основе Chrome";
 "Match transcript (auto)" = "Как в расшифровке (авто)";
 "Matches this domain and its subdomains. A pasted URL applies to its whole domain." = "Соответствует этому домену и его поддоменам. Вставленный URL применяется ко всему домену.";
 "Matching settings" = "Подходящие настройки";

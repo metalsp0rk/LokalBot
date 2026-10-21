@@ -194,9 +194,12 @@
 "Clear search" = "امسح البحث";
 "Clear search filters" = "امسح عوامل تصفية البحث";
 "Clear selection" = "امسح التحديد";
+"Copied" = "اتنسخ";
+"Copy last dictation" = "انسخ آخر إملاء";
 "Dictation already uses this shortcut. Choose another." = "الإملاء بيستخدم الاختصار ده بالفعل. اختار غيره.";
 "Don't Allow" = "متسمحش";
 "Hold the modifiers and press a key, like ⌃⇧ Space." = "فضل ضاغط على مفاتيح التعديل واضغط مفتاح، زي ⌃⇧ Space.";
+"Last dictation" = "آخر إملاء";
 "macOS already uses this shortcut. Choose another." = "macOS بيستخدم الاختصار ده بالفعل. اختار غيره.";
 "Model folder selection cleared" = "اختيار فولدر النموذج اتمسح";
 "Clear settings search" = "امسح البحث في الإعدادات";
@@ -437,6 +440,11 @@
 "Import an audio or video recording" = "استورد تسجيل صوت أو فيديو";
 "Import Recording" = "استورد تسجيل";
 "Import Recording…" = "استورد تسجيل…";
+"Not inserted" = "ما اتحطش";
+"Pasted" = "اتلصق";
+"Recent dictations" = "آخر الإملاءات";
+"Saved encrypted on this Mac for 7 days, so you can copy a dictation again after the clipboard changes or the Mac restarts. Text meant for a password field is never kept." = "بيتحفظ متشفّر على الماك ده لمدة 7 أيام، عشان تقدر تنسخ الإملاء تاني بعد ما الحافظة تتغير أو الماك يعيد التشغيل. النص اللي كان رايح لخانة باسورد عمره ما بيتحفظ.";
+"Shown in LokalBot" = "اتعرض في LokalBot";
 "Try a sample meeting" = "جرّب اجتماع تجريبي";
 "Open the sample meeting" = "افتح الاجتماع التجريبي";
 "Sample meeting" = "اجتماع تجريبي";
@@ -538,6 +546,7 @@
 "Mark Done" = "علّم كمكتمل";
 "Match System" = "مطابقة النظام";
 "Match the app font and text color" = "مطابقة خط التطبيق ولون النص";
+"Use enhanced accessibility in Chrome-based browsers" = "استخدام إمكانية الوصول المحسّنة في المتصفحات المبنية على Chrome";
 "Match transcript (auto)" = "مطابقة التفريغ النصي (تلقائي)";
 "Matches this domain and its subdomains. A pasted URL applies to its whole domain." = "بيطابق الدومين ده ودوميناته الفرعية. الـ URL اللي بتلصقه بينطبق على الدومين كله.";
 "Matching settings" = "الإعدادات المطابقة";

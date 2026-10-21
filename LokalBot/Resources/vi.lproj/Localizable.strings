@@ -194,9 +194,12 @@
 "Clear search" = "Xóa tìm kiếm";
 "Clear search filters" = "Xóa bộ lọc tìm kiếm";
 "Clear selection" = "Bỏ chọn";
+"Copied" = "Đã sao chép";
+"Copy last dictation" = "Sao chép lần đọc chính tả cuối";
 "Dictation already uses this shortcut. Choose another." = "Đọc chính tả đang dùng phím tắt này. Hãy chọn phím khác.";
 "Don't Allow" = "Không cho phép";
 "Hold the modifiers and press a key, like ⌃⇧ Space." = "Giữ các phím bổ trợ rồi nhấn một phím, như ⌃⇧ Space.";
+"Last dictation" = "Lần đọc chính tả cuối";
 "macOS already uses this shortcut. Choose another." = "macOS đang dùng phím tắt này. Hãy chọn phím khác.";
 "Model folder selection cleared" = "Đã bỏ chọn thư mục mô hình";
 "Clear settings search" = "Xóa tìm kiếm cài đặt";
@@ -437,6 +440,11 @@
 "Import an audio or video recording" = "Nhập bản ghi âm hoặc bản ghi video";
 "Import Recording" = "Nhập bản ghi âm";
 "Import Recording…" = "Nhập bản ghi âm…";
+"Not inserted" = "Chưa chèn";
+"Pasted" = "Đã dán";
+"Recent dictations" = "Các lần đọc chính tả gần đây";
+"Saved encrypted on this Mac for 7 days, so you can copy a dictation again after the clipboard changes or the Mac restarts. Text meant for a password field is never kept." = "Được lưu mã hóa trên máy Mac này trong 7 ngày, để bạn có thể sao chép lại nội dung đọc chính tả sau khi bảng nhớ tạm thay đổi hoặc máy Mac khởi động lại. Văn bản dành cho trường mật khẩu không bao giờ được giữ lại.";
+"Shown in LokalBot" = "Hiển thị trong LokalBot";
 "Try a sample meeting" = "Thử một cuộc họp mẫu";
 "Open the sample meeting" = "Mở cuộc họp mẫu";
 "Sample meeting" = "Cuộc họp mẫu";
@@ -538,6 +546,7 @@
 "Mark Done" = "Đánh dấu hoàn tất";
 "Match System" = "Theo hệ thống";
 "Match the app font and text color" = "Dùng phông và màu chữ của ứng dụng";
+"Use enhanced accessibility in Chrome-based browsers" = "Dùng trợ năng nâng cao trong trình duyệt dựa trên Chrome";
 "Match transcript (auto)" = "Theo bản chép lời (tự động)";
 "Matches this domain and its subdomains. A pasted URL applies to its whole domain." = "Áp dụng cho miền này và các miền con. URL được dán áp dụng cho toàn bộ miền của nó.";
 "Matching settings" = "Cài đặt phù hợp";

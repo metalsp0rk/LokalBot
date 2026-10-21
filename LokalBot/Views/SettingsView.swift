@@ -510,6 +510,9 @@ struct SettingsView: View {
                     Toggle("Match the app font and text color",
                            isOn: $app.settings.cotypingMatchHostStyle)
                     .settingTarget("settings.cotypingMatchHostStyle", selected: app.focusedSettingID)
+                    Toggle("Use enhanced accessibility in Chrome-based browsers",
+                           isOn: $app.settings.cotypingChromiumEnhancedAccessibility)
+                    .settingTarget("settings.cotypingChromiumEnhancedAccessibility", selected: app.focusedSettingID)
                     Toggle("Autocorrect the current word",
                            isOn: $app.settings.cotypingAutocorrect)
                     .settingTarget("settings.cotypingAutocorrect", selected: app.focusedSettingID)

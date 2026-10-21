@@ -196,6 +196,8 @@
 "Clear search" = "Clear search";
 "Clear search filters" = "Clear search filters";
 "Clear selection" = "Clear selection";
+"Copied" = "Copied";
+"Copy last dictation" = "Copy last dictation";
 "Describe what to write…" = "Describe what to write…";
 "Dictation already uses this shortcut. Choose another." = "Dictation already uses this shortcut. Choose another.";
 "Draft a reply with my memory" = "Draft a reply with my memory";
@@ -207,6 +209,7 @@
 "Hold the modifiers and press a key, like ⌃⇧ Space." = "Hold the modifiers and press a key, like ⌃⇧ Space.";
 "Improve writing" = "Improve writing";
 "Insert" = "Insert";
+"Last dictation" = "Last dictation";
 "macOS already uses this shortcut. Choose another." = "macOS already uses this shortcut. Choose another.";
 "Make friendlier" = "Make friendlier";
 "Make more professional" = "Make more professional";
@@ -450,6 +453,11 @@
 "Import an audio or video recording" = "Import an audio or video recording";
 "Import Recording" = "Import Recording";
 "Import Recording…" = "Import Recording…";
+"Not inserted" = "Not inserted";
+"Pasted" = "Pasted";
+"Recent dictations" = "Recent dictations";
+"Saved encrypted on this Mac for 7 days, so you can copy a dictation again after the clipboard changes or the Mac restarts. Text meant for a password field is never kept." = "Saved encrypted on this Mac for 7 days, so you can copy a dictation again after the clipboard changes or the Mac restarts. Text meant for a password field is never kept.";
+"Shown in LokalBot" = "Shown in LokalBot";
 "Try a sample meeting" = "Try a sample meeting";
 "Open the sample meeting" = "Open the sample meeting";
 "Sample meeting" = "Sample meeting";
@@ -551,6 +559,7 @@
 "Mark Done" = "Mark Done";
 "Match System" = "Match System";
 "Match the app font and text color" = "Match the app font and text color";
+"Use enhanced accessibility in Chrome-based browsers" = "Use enhanced accessibility in Chrome-based browsers";
 "Match transcript (auto)" = "Match transcript (auto)";
 "Matches this domain and its subdomains. A pasted URL applies to its whole domain." = "Matches this domain and its subdomains. A pasted URL applies to its whole domain.";
 "Matching settings" = "Matching settings";

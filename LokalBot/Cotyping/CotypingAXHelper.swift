@@ -83,6 +83,11 @@ enum CotypingAXHelper {
         var unsupportedWebAccessibilityPIDs: Set<pid_t> = []
         var lastFrontmostPrimePID: pid_t?
         var chromiumHitTest: (element: AXUIElement, pid: pid_t)?
+        /// When the marker-based style read last found nothing, by process.
+        var markerStyleMisses: [pid_t: TimeInterval] = [:]
+        var chromiumEnhancedAccessibility = true
+        /// Chromium browsers this process asked for enhanced accessibility.
+        var enhancedAccessibilityPIDs: Set<pid_t> = []
 
         func withLock<T>(_ operation: () -> T) -> T {
             lock.lock()
@@ -371,7 +376,9 @@ enum CotypingAXHelper {
 
         guard let content = appReadPolicy.readIfAllowed(
             appName: frontmost.localizedName ?? "", bundleID: frontmost.bundleIdentifier, {
-                boundedAcceptanceContent(on: element, withinDeadline: withinDeadline)
+                cachedField.selectionSkipsParagraphBreaks
+                    ? paragraphAlignedAcceptanceContent(on: element, withinDeadline: withinDeadline)
+                    : boundedAcceptanceContent(on: element, withinDeadline: withinDeadline)
             }), withinDeadline() else {
             return unavailable
         }
@@ -403,6 +410,7 @@ enum CotypingAXHelper {
               appReadPolicy.allows(appName: frontmost.localizedName ?? "", bundleID: frontmost.bundleIdentifier)
         else { return .none }
         primeWebAccessibilityIfNeeded(application: frontmost)
+        requestChromiumEnhancedAccessibilityIfNeeded(application: frontmost)
         guard let element = focusedElement(), let owner = owningApp(of: element),
               owner.pid == frontmost.processIdentifier,
               appReadPolicy.allows(appName: owner.name, bundleID: owner.bundleID) else { return .none }
@@ -450,8 +458,12 @@ enum CotypingAXHelper {
         let content = appReadPolicy.readIfAllowed(appName: appName, bundleID: bundleID) {
             let native = selectionRange(element)
             let marker = native == nil ? synthesizeMarkerSelection(on: element) : nil
-            return (native: native, marker: marker,
-                    value: marker?.text ?? stringAttribute(element, kAXValueAttribute as String))
+            let value = marker?.text ?? stringAttribute(element, kAXValueAttribute as String)
+            let aligned = native.flatMap { selection in
+                value.map { paragraphAlignedSelection(selection, value: $0, on: element) }
+            }
+            return (native: aligned?.selection ?? native, marker: marker, value: value,
+                    skipsBreaks: aligned?.skipsBreaks ?? false)
         }
         guard let content else { return .none }
         let nativeSelection = content.native
@@ -486,7 +498,9 @@ enum CotypingAXHelper {
             caretLocation: caret,
             fieldText: value,
             isRightToLeft: CotypingTextDirectionDetector.isRightToLeft(preceding),
-            allowBoundsForRange: !usesMarkerSelection)
+            // Range-based geometry counts the way the selection does, not the
+            // value; text markers place the caret there instead.
+            allowBoundsForRange: !usesMarkerSelection && !content.skipsBreaks)
         let inputFrameRect = CotypingAXGeometryResolver.elementFrame(element).map {
             CotypingAXGeometryResolver.cocoaRect(fromAX: $0)
         }
@@ -513,7 +527,10 @@ enum CotypingAXHelper {
             ? cacheState.fieldStyles.valueIfReadable(forKey: focusIdentityKey) {
                 usesMarkerSelection
                     ? resolveMarkerFieldStyle(for: element)
+                    // Chromium's range-based attributed string carries no font;
+                    // its marker-based one has the size and text color.
                     : resolveFieldStyle(for: element, caretLocation: caret, textLength: nsValue.length)
+                        ?? markerFieldStyleUnlessMissed(for: element, processID: pid, caretLocation: caret)
             }
             : nil
         let isIntegratedTerminal = CotypingSurfaceClassifier.isIntegratedTerminal(
@@ -532,6 +549,7 @@ enum CotypingAXHelper {
                 ? cacheState.learningScopes.value(forKey: focusIdentityKey) {
                     learningScopeKey(near: element, bundleID: bundleID)
                 } : nil)
+        field.selectionSkipsParagraphBreaks = content.skipsBreaks
         if includeVisibleContext, !isIntegratedTerminal {
             let policy = cacheState.withLock { cacheState.visibleContextPolicy }
             field.visibleContextWasRequested = true
@@ -622,6 +640,64 @@ enum CotypingAXHelper {
         }
     }
 
+    /// Whether Chrome-based browsers are asked for enhanced accessibility
+    /// (Settings → Writing → Advanced). Turning it off hands back every
+    /// browser this process asked.
+    static func configureChromiumEnhancedAccessibility(_ enabled: Bool) {
+        let turnedOff = cacheState.withLock {
+            defer { cacheState.chromiumEnhancedAccessibility = enabled }
+            return cacheState.chromiumEnhancedAccessibility && !enabled
+        }
+        if turnedOff { releaseChromiumEnhancedAccessibility() }
+    }
+
+    /// Chrome turns on its complete accessibility mode, where text markers
+    /// report the caret's exact bounds and text its font size, only for
+    /// `AXEnhancedUserInterface`; it ignores `AXManualAccessibility`. Without
+    /// it the caret was found on screen and the font size guessed, so Reddit
+    /// suggestions came out too large or in a popup over the text
+    /// (2026-10-21). Cotypist asks Chrome the same way. Chrome then also
+    /// behaves as if a screen reader were running, which costs it some speed
+    /// and can slow window-manager animations, so Settings can turn it off.
+    /// Chrome counts these requests: one is sent per browser process, and a
+    /// forced quit leaves the mode on until the browser restarts.
+    private static func requestChromiumEnhancedAccessibilityIfNeeded(application: NSRunningApplication) {
+        let pid = application.processIdentifier
+        guard pid > 0, isChromiumBrowser(bundleID: application.bundleIdentifier),
+              cacheState.withLock({
+                  cacheState.chromiumEnhancedAccessibility && !cacheState.enhancedAccessibilityPIDs.contains(pid)
+              }) else { return }
+        let result = setEnhancedAccessibility(true, processID: pid)
+        guard CotypingEnhancedAccessibilityRequest.wasDelivered(result) else { return }
+        _ = cacheState.withLock { cacheState.enhancedAccessibilityPIDs.insert(pid) }
+        _ = releaseOnTermination
+        lokalbotLog("cotyping enhanced accessibility: on app=\(application.bundleIdentifier ?? "unknown") "
+            + "result=\(result.rawValue)")
+    }
+
+    /// Hands enhanced accessibility back in every browser this process asked.
+    static func releaseChromiumEnhancedAccessibility() {
+        let pids = cacheState.withLock {
+            defer { cacheState.enhancedAccessibilityPIDs.removeAll() }
+            return cacheState.enhancedAccessibilityPIDs
+        }
+        for pid in pids { _ = setEnhancedAccessibility(false, processID: pid) }
+    }
+
+    private static let releaseOnTermination: Void = {
+        _ = NotificationCenter.default.addObserver(
+            forName: NSApplication.willTerminateNotification, object: nil, queue: nil) { _ in
+                releaseChromiumEnhancedAccessibility()
+            }
+    }()
+
+    private static func setEnhancedAccessibility(_ enabled: Bool, processID: pid_t) -> AXError {
+        let appElement = AXUIElementCreateApplication(processID)
+        AXUIElementSetMessagingTimeout(appElement, 0.05)
+        return AXUIElementSetAttributeValue(
+            appElement, "AXEnhancedUserInterface" as CFString, enabled ? kCFBooleanTrue : kCFBooleanFalse)
+    }
+
     nonisolated static func needsWebAccessibilityPriming(bundleID: String?) -> Bool {
         isChromiumBrowser(bundleID: bundleID) || isElectronEditor(bundleID: bundleID)
     }
@@ -695,6 +771,37 @@ enum CotypingAXHelper {
             afterCaret: afterText)
     }
 
+    /// `selection` in `value`'s own count: Chromium reports a rich-text
+    /// field's selection without the line breaks its value has between
+    /// paragraphs (`CotypingParagraphBreakAlignment`). The text before the
+    /// caret, read with `AXStringForRange`, is counted the way the selection
+    /// is. Unchanged for one-line values and for hosts whose counts agree.
+    /// `skipsBreaks` when the app's range text ends short of its value, as
+    /// Chromium's does when the value has paragraph breaks; only then is the
+    /// text before the caret read and the selection moved.
+    private static func paragraphAlignedSelection(
+        _ selection: NSRange, value: String, on element: AXUIElement
+    ) -> (selection: NSRange, skipsBreaks: Bool) {
+        let nsValue = value as NSString
+        guard nsValue.length > 0, value.contains("\n") else { return (selection, false) }
+        let lastCharacter = NSRange(location: nsValue.length - 1, length: 1)
+        guard rangeString(lastCharacter, on: element) != nsValue.substring(with: lastCharacter) else {
+            return (selection, false)
+        }
+        guard selection.location > 0,
+              let before = rangeString(NSRange(location: 0, length: selection.location), on: element),
+              (before as NSString).length == selection.location,
+              let location = CotypingParagraphBreakAlignment.caretLocation(in: value, textBeforeCaret: before)
+        else { return (selection, true) }
+        return (NSRange(location: location, length: selection.length), true)
+    }
+
+    private static func rangeString(_ range: NSRange, on element: AXUIElement) -> String? {
+        var cfRange = CFRange(location: range.location, length: range.length)
+        guard let parameter = AXValueCreate(.cfRange, &cfRange) else { return nil }
+        return copyOpaqueParameterized(stringForRangeAttribute, parameter: parameter, on: element) as? String
+    }
+
     private static func markerRange(
         from start: CFTypeRef,
         to end: CFTypeRef,
@@ -743,6 +850,26 @@ enum CotypingAXHelper {
         return extractFieldStyle(from: attributed.attributes(at: attributed.length - 1, effectiveRange: nil))
     }
 
+    /// How long an app whose marker-based style read found nothing is not
+    /// asked again. Chrome sends no font without extended accessibility, and
+    /// its fields change identity on every read, so the per-field style
+    /// cache never holds that miss.
+    private static let markerStyleMissInterval: TimeInterval = 30
+
+    private static func markerFieldStyleUnlessMissed(
+        for element: AXUIElement, processID: pid_t, caretLocation: Int
+    ) -> CotypingFieldStyle? {
+        let now = ProcessInfo.processInfo.systemUptime
+        if let missed = cacheState.withLock({ cacheState.markerStyleMisses[processID] }),
+           now - missed < markerStyleMissInterval { return nil }
+        let style = resolveMarkerFieldStyle(for: element)
+        // With no text before the caret there is no character to read a style from.
+        if caretLocation > 0 {
+            cacheState.withLock { cacheState.markerStyleMisses[processID] = style == nil ? now : nil }
+        }
+        return style
+    }
+
     private static func attributedString(forRange range: NSRange, on element: AXUIElement) -> NSAttributedString? {
         var cfRange = CFRange(location: range.location, length: range.length)
         guard let axRange = AXValueCreate(.cfRange, &cfRange) else { return nil }
@@ -755,7 +882,7 @@ enum CotypingAXHelper {
     /// Extracts a `CotypingFieldStyle` from one character's attributes, handling
     /// both the AppKit `.font`/`.foregroundColor` shapes and the AX font-dict /
     /// CGColor shapes AX returns from web content.
-    private static func extractFieldStyle(from attributes: [NSAttributedString.Key: Any]) -> CotypingFieldStyle? {
+    static func extractFieldStyle(from attributes: [NSAttributedString.Key: Any]) -> CotypingFieldStyle? {
         var fontName: String?
         var fontPointSize: CGFloat?
         if let font = attributes[.font] as? NSFont {
@@ -1074,6 +1201,26 @@ enum CotypingAXHelper {
         return boundedMarkerAcceptanceContent(
             on: element,
             withinDeadline: withinDeadline)
+    }
+
+    /// The text around the caret read the way `resolveFocus` reads it, for a
+    /// field whose app counts its selection without the value's paragraph
+    /// breaks: `AXStringForRange` windows have no breaks there, so they never
+    /// match the snapshot the suggestion was made from, and an accept would
+    /// be refused whenever the caret has paragraphs around it.
+    private static func paragraphAlignedAcceptanceContent(
+        on element: AXUIElement,
+        withinDeadline: () -> Bool
+    ) -> BoundedAcceptanceContent? {
+        guard let selection = selectionRange(element), selection.length == 0, withinDeadline(),
+              let value = stringAttribute(element, kAXValueAttribute as String), withinDeadline() else {
+            return nil
+        }
+        let aligned = paragraphAlignedSelection(selection, value: value, on: element).selection
+        let caret = max(0, min(aligned.location, (value as NSString).length))
+        guard withinDeadline(), let context = CotypingAcceptanceContentBounds.context(
+            in: value, selection: NSRange(location: caret, length: 0)) else { return nil }
+        return BoundedAcceptanceContent(context: context)
     }
 
     private static func boundedNativeAcceptanceContent(

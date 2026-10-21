@@ -658,6 +658,10 @@ enum SettingRegistry {
               summary: "Similar accepted completions added to each request."),
         entry("cotypingMatchHostStyle", .writing, "Match the app font and text color", .bool,
               summary: "Draw suggestions in the field's font and color."),
+        entry("cotypingChromiumEnhancedAccessibility", .writing, "Use enhanced accessibility in Chrome-based browsers", .bool,
+              aliases: "chrome arc brave edge accessibility caret font",
+              summary: "Turn on the full accessibility mode of Chrome, Arc, Brave and Edge, as screen readers do, "
+                + "so suggestions sit at the caret in the page's font size. The browser may run a little slower."),
         entry("cotypingMirrorPreference", .writing, "Suggestion display",
               .choice(["auto", "alwaysInline", "alwaysMirror"]),
               summary: "Show suggestions inline at the caret, in a popup, or choose automatically."),

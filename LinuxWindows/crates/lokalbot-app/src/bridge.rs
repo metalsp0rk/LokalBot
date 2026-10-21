@@ -301,6 +301,7 @@ fn apply(data: &mut AppData, event: EngineEvent, cx: &mut Context<AppData>) {
         EngineEvent::LivePreview(preview) => data.live_preview = preview,
         EngineEvent::Screen(status) => data.screen = status,
         EngineEvent::Calendar(snapshot) => data.calendar = snapshot,
+        EngineEvent::RecentDictations(entries) => data.recent_dictations = entries,
         EngineEvent::MeetingPreparation(preparation) => {
             data.meeting_preparation = Some(preparation)
         }

@@ -194,9 +194,12 @@
 "Clear search" = "অনুসন্ধান মুছুন";
 "Clear search filters" = "অনুসন্ধানের ফিল্টার সরান";
 "Clear selection" = "নির্বাচন সরান";
+"Copied" = "কপি হয়েছে";
+"Copy last dictation" = "শেষ শ্রুতিলিখন কপি করুন";
 "Dictation already uses this shortcut. Choose another." = "শ্রুতিলিখন ইতিমধ্যে এই শর্টকাট ব্যবহার করছে। অন্যটি বেছে নিন।";
 "Don't Allow" = "অনুমতি দেবেন না";
 "Hold the modifiers and press a key, like ⌃⇧ Space." = "মডিফায়ারগুলো ধরে রেখে একটি কী চাপুন, যেমন ⌃⇧ Space।";
+"Last dictation" = "শেষ শ্রুতিলিখন";
 "macOS already uses this shortcut. Choose another." = "macOS ইতিমধ্যে এই শর্টকাট ব্যবহার করছে। অন্যটি বেছে নিন।";
 "Model folder selection cleared" = "মডেল ফোল্ডারের নির্বাচন সরানো হয়েছে";
 "Clear settings search" = "সেটিংস অনুসন্ধান মুছুন";
@@ -437,6 +440,11 @@
 "Import an audio or video recording" = "অডিও বা ভিডিও রেকর্ডিং আমদানি করুন";
 "Import Recording" = "রেকর্ডিং আমদানি করুন";
 "Import Recording…" = "রেকর্ডিং আমদানি করুন…";
+"Not inserted" = "বসানো হয়নি";
+"Pasted" = "পেস্ট হয়েছে";
+"Recent dictations" = "সাম্প্রতিক শ্রুতিলিখন";
+"Saved encrypted on this Mac for 7 days, so you can copy a dictation again after the clipboard changes or the Mac restarts. Text meant for a password field is never kept." = "এই Mac-এ ৭ দিনের জন্য এনক্রিপ্ট করে রাখা হয়, যাতে ক্লিপবোর্ড বদলে গেলে বা Mac রিস্টার্ট হলেও শ্রুতিলিখনটি আবার কপি করতে পারেন। পাসওয়ার্ড ফিল্ডের জন্য লেখা কখনো রাখা হয় না।";
+"Shown in LokalBot" = "LokalBot-এ দেখানো হয়েছে";
 "Try a sample meeting" = "নমুনা মিটিং চালিয়ে দেখুন";
 "Open the sample meeting" = "নমুনা মিটিং খুলুন";
 "Sample meeting" = "নমুনা মিটিং";
@@ -538,6 +546,7 @@
 "Mark Done" = "সম্পন্ন চিহ্নিত করুন";
 "Match System" = "সিস্টেমের সঙ্গে মেলান";
 "Match the app font and text color" = "অ্যাপের ফন্ট ও পাঠ্যের রঙের সঙ্গে মেলান";
+"Use enhanced accessibility in Chrome-based browsers" = "Chrome-ভিত্তিক ব্রাউজারে উন্নত অ্যাক্সেসিবিলিটি ব্যবহার করুন";
 "Match transcript (auto)" = "প্রতিলিপির সঙ্গে মেলান (স্বয়ংক্রিয়)";
 "Matches this domain and its subdomains. A pasted URL applies to its whole domain." = "এই ডোমেইন ও এর সাবডোমেইন মেলে। পেস্ট করা URL তার পুরো ডোমেইনে প্রযোজ্য হয়।";
 "Matching settings" = "মিলে যাওয়া সেটিংস";

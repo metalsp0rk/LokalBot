@@ -79,6 +79,10 @@ pub enum DictationCommand {
     Stop,
     Toggle,
     Cancel,
+    /// Puts a recent dictation, the newest by default, on the clipboard.
+    CopyRecent(Option<Uuid>),
+    /// Forgets the recent dictations and deletes their file.
+    ClearRecent,
 }
 
 /// Sources and date range for a question in Ask.
@@ -124,6 +128,8 @@ pub enum EngineEvent {
         title: String,
     },
     Dictation(DictationUpdate),
+    /// The recent dictations, newest first, after each change.
+    RecentDictations(Vec<lokalbot_core::dictation_history::Entry>),
     FollowUp(FollowUpUpdate),
     Autocomplete(AutocompleteUpdate),
     /// The whole live transcript preview, sent on every change.

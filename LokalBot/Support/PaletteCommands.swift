@@ -122,7 +122,7 @@ enum PaletteCommandCatalog {
                 dictationIcon = "xmark.circle"
             }
         }
-        return [
+        var commands: [PaletteCommand] = [
             .init(id: "record", icon: app.isRecording ? "stop.circle.fill" : "record.circle",
                   title: app.isRecording ? "Stop recording" : "Record now",
                   subtitle: "Recording", placement: .background, action: {
@@ -164,5 +164,15 @@ enum PaletteCommandCatalog {
             .init(id: "nav.settings", icon: "gearshape", title: "Go to Settings",
                   subtitle: "Settings", action: { app.openSettings() }),
         ]
+        // From the system-wide window this hands focus back, ready to paste.
+        if !app.dictation.history.entries.isEmpty,
+           let index = commands.firstIndex(where: { $0.id == "dictation" }) {
+            commands.insert(
+                .init(id: "dictation.copyLast", icon: "doc.on.clipboard", title: "Copy last dictation",
+                      subtitle: "Dictation", placement: .background,
+                      action: { _ = app.dictation.copyFromHistory() }),
+                at: index + 1)
+        }
+        return commands
     }
 }

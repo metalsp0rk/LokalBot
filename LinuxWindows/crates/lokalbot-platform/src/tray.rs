@@ -51,6 +51,8 @@ pub struct TrayMenuState {
     pub day_memory_paused: bool,
     /// Screen context is on: offer "Capture Screen Now".
     pub screen_capture: bool,
+    /// A recent dictation can be copied again.
+    pub recent_dictation: bool,
     /// A newer LokalBot is on offer.
     pub update: Option<TrayUpdate>,
 }
@@ -79,6 +81,7 @@ pub enum TrayUpdateAction {
 pub mod item_ids {
     pub const RECORD: &str = "record";
     pub const STOP_RECORDING: &str = "stop-recording";
+    pub const COPY_LAST_DICTATION: &str = "copy-last-dictation";
     pub const ASK: &str = "ask";
     pub const OPEN: &str = "open";
     pub const SETTINGS: &str = "settings";
@@ -92,7 +95,7 @@ pub mod item_ids {
 }
 
 /// The macOS menu bar extra as a menu: status, Record Now / Stop Recording,
-/// Ask, Open LokalBot, Settings…, Pause/Resume day memory, Capture Screen
+/// Copy last dictation once there is one, Ask, Open LokalBot, Settings…, Pause/Resume day memory, Capture Screen
 /// Now while screen context is on, the update on offer, Quit LokalBot.
 pub fn standard_items(state: &TrayMenuState) -> Vec<TrayItem> {
     use item_ids::*;
@@ -114,6 +117,12 @@ pub fn standard_items(state: &TrayMenuState) -> Vec<TrayItem> {
     } else {
         TrayItem::action(RECORD, tr("Record Now"))
     });
+    if state.recent_dictation {
+        items.push(TrayItem::action(
+            COPY_LAST_DICTATION,
+            tr("Copy last dictation"),
+        ));
+    }
     items.push(TrayItem::Separator);
     items.push(TrayItem::action(ASK, tr("Ask")));
     items.push(TrayItem::action(OPEN, tr("Open LokalBot")));
@@ -670,6 +679,21 @@ mod tests {
             item_ids::CAPTURE_SCREEN,
             "Capture Screen Now"
         )));
+    }
+
+    #[test]
+    fn a_recent_dictation_can_be_copied_from_the_menu() {
+        let copy = TrayItem::action(item_ids::COPY_LAST_DICTATION, "Copy last dictation");
+        assert!(!standard_items(&TrayMenuState::default()).contains(&copy));
+        let items = standard_items(&TrayMenuState {
+            recent_dictation: true,
+            ..Default::default()
+        });
+        let record = items
+            .iter()
+            .position(|item| *item == TrayItem::action(item_ids::RECORD, "Record Now"))
+            .unwrap();
+        assert_eq!(items[record + 1], copy);
     }
 
     #[test]

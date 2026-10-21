@@ -194,9 +194,12 @@
 "Clear search" = "검색 지우기";
 "Clear search filters" = "검색 필터 지우기";
 "Clear selection" = "선택 해제";
+"Copied" = "복사됨";
+"Copy last dictation" = "마지막 받아쓰기 복사";
 "Dictation already uses this shortcut. Choose another." = "받아쓰기가 이미 이 단축키를 사용합니다. 다른 단축키를 선택하세요.";
 "Don't Allow" = "허용 안 함";
 "Hold the modifiers and press a key, like ⌃⇧ Space." = "⌃⇧ Space처럼 보조 키를 누른 채 키를 누르세요.";
+"Last dictation" = "마지막 받아쓰기";
 "macOS already uses this shortcut. Choose another." = "macOS가 이미 이 단축키를 사용합니다. 다른 단축키를 선택하세요.";
 "Model folder selection cleared" = "모델 폴더 선택이 해제됨";
 "Clear settings search" = "설정 검색 지우기";
@@ -437,6 +440,11 @@
 "Import an audio or video recording" = "녹음 또는 녹화 가져오기";
 "Import Recording" = "녹음 가져오기";
 "Import Recording…" = "녹음 가져오기…";
+"Not inserted" = "삽입되지 않음";
+"Pasted" = "붙여넣음";
+"Recent dictations" = "최근 받아쓰기";
+"Saved encrypted on this Mac for 7 days, so you can copy a dictation again after the clipboard changes or the Mac restarts. Text meant for a password field is never kept." = "이 Mac에 7일 동안 암호화되어 저장되므로, 클립보드가 바뀌거나 Mac을 재시동한 뒤에도 받아쓰기를 다시 복사할 수 있습니다. 암호 필드용 텍스트는 보관하지 않습니다.";
+"Shown in LokalBot" = "LokalBot에 표시됨";
 "Try a sample meeting" = "샘플 회의 체험하기";
 "Open the sample meeting" = "샘플 회의 열기";
 "Sample meeting" = "샘플 회의";
@@ -538,6 +546,7 @@
 "Mark Done" = "완료로 표시";
 "Match System" = "시스템 설정에 맞춤";
 "Match the app font and text color" = "앱의 글꼴과 텍스트 색상에 맞춤";
+"Use enhanced accessibility in Chrome-based browsers" = "Chrome 기반 브라우저에서 향상된 접근성 켜기";
 "Match transcript (auto)" = "전사문에 맞춤(자동)";
 "Matches this domain and its subdomains. A pasted URL applies to its whole domain." = "이 도메인과 하위 도메인에 적용됩니다. URL을 붙여넣으면 해당 도메인 전체에 적용됩니다.";
 "Matching settings" = "일치하는 설정";

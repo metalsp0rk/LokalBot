@@ -194,9 +194,12 @@
 "Clear search" = "Obriši pretragu";
 "Clear search filters" = "Obriši filtere pretrage";
 "Clear selection" = "Poništi izbor";
+"Copied" = "Kopirano";
+"Copy last dictation" = "Kopiraj poslednje diktiranje";
 "Dictation already uses this shortcut. Choose another." = "Ovu prečicu već koristi diktiranje. Izaberite drugu.";
 "Don't Allow" = "Ne dozvoli";
 "Hold the modifiers and press a key, like ⌃⇧ Space." = "Držite modifikatorske tastere i pritisnite taster, na primer ⌃⇧ razmaknica.";
+"Last dictation" = "Poslednje diktiranje";
 "macOS already uses this shortcut. Choose another." = "macOS već koristi ovu prečicu. Izaberite drugu.";
 "Model folder selection cleared" = "Izbor fascikle za modele je poništen";
 "Clear settings search" = "Obriši pretragu podešavanja";
@@ -437,6 +440,11 @@
 "Import an audio or video recording" = "Uvezi audio ili video snimak";
 "Import Recording" = "Uvezi snimak";
 "Import Recording…" = "Uvezi snimak…";
+"Not inserted" = "Nije umetnuto";
+"Pasted" = "Nalepljeno";
+"Recent dictations" = "Nedavna diktiranja";
+"Saved encrypted on this Mac for 7 days, so you can copy a dictation again after the clipboard changes or the Mac restarts. Text meant for a password field is never kept." = "Čuva se šifrovano na ovom Mac računaru 7 dana, pa diktiranje možete ponovo kopirati i kada nešto drugo zameni sadržaj privremene memorije ili se Mac ponovo pokrene. Tekst namenjen polju za lozinku se nikada ne čuva.";
+"Shown in LokalBot" = "Prikazano u aplikaciji LokalBot";
 "Try a sample meeting" = "Isprobaj primer sastanka";
 "Open the sample meeting" = "Otvori primer sastanka";
 "Sample meeting" = "Primer sastanka";
@@ -538,6 +546,7 @@
 "Mark Done" = "Označi kao završeno";
 "Match System" = "Kao u sistemu";
 "Match the app font and text color" = "Prati font i boju teksta aplikacije";
+"Use enhanced accessibility in Chrome-based browsers" = "Koristi poboljšanu pristupačnost u pregledačima zasnovanim na Chrome-u";
 "Match transcript (auto)" = "Kao transkript (automatski)";
 "Matches this domain and its subdomains. A pasted URL applies to its whole domain." = "Obuhvata ovaj domen i njegove poddomene. Nalepljeni URL važi za ceo svoj domen.";
 "Matching settings" = "Pronađena podešavanja";
