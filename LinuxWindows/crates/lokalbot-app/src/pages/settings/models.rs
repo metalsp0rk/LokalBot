@@ -1012,6 +1012,34 @@ impl SettingsPage {
             .iter()
             .position(|b| *b == settings.llama_backend)
             .unwrap_or(0);
+        let runtime_progress = downloads.get(RUNTIME_ID);
+        let runtime_downloading = runtime_progress.is_some_and(|d| d.error.is_none());
+        let runtime_detail = match runtime_progress {
+            Some(progress) if progress.error.is_some() => progress
+                .error
+                .as_ref()
+                .map(ToString::to_string)
+                .unwrap_or_default(),
+            Some(progress) => lokalbot_i18n::format(
+                "Downloading · {0}%",
+                &[("0", format!("{}", (progress.fraction() * 100.).round()))],
+            ),
+            None if status.runtime_backend.is_some() => format!(
+                "{} · {}",
+                lokalbot_i18n::tr("Ready"),
+                status.runtime_backend.as_ref().unwrap()
+            ),
+            None => lokalbot_i18n::format(
+                "About {0} to download",
+                &[(
+                    "0",
+                    size_label(lokalbot_ai::runtime::download_bytes(
+                        &settings.llama_backend,
+                    )),
+                )],
+            ),
+        };
+        let runtime_data = self.data.clone();
         let runtime = Section::new("llama.cpp").row(
             "settings.llamaBackend",
             settings_row::content_row(
@@ -1037,18 +1065,38 @@ impl SettingsPage {
                         },
                         cx,
                     ))
-                    .child(settings_row::help(
-                        lokalbot_i18n::format(
-                            "About {0} to download",
-                            &[(
-                                "0",
-                                size_label(lokalbot_ai::runtime::download_bytes(
-                                    &settings.llama_backend,
-                                )),
-                            )],
-                        ),
-                        cx,
-                    )),
+                    .child(
+                        h_flex()
+                            .gap(px(12.))
+                            .items_center()
+                            .child(div().flex_1().child(settings_row::help(runtime_detail, cx)))
+                            .child(
+                                Button::new("settings-runtime-download")
+                                    .outline()
+                                    .small()
+                                    .label(if runtime_downloading {
+                                        lokalbot_i18n::tr("Cancel")
+                                    } else {
+                                        lokalbot_i18n::tr("Download")
+                                    })
+                                    .disabled(
+                                        status.runtime_backend.is_some()
+                                            && runtime_progress.is_none(),
+                                    )
+                                    .on_click(move |_, _, cx| {
+                                        runtime_data.update(cx, |data, cx| {
+                                            data.request(
+                                                if runtime_downloading {
+                                                    AppEvent::CancelDownload(RUNTIME_ID.into())
+                                                } else {
+                                                    AppEvent::DownloadModel(RUNTIME_ID.into())
+                                                },
+                                                cx,
+                                            )
+                                        });
+                                    }),
+                            ),
+                    ),
                 self.is_focused("settings.llamaBackend"),
                 cx,
             ),

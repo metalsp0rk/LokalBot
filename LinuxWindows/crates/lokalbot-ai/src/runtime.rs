@@ -1680,8 +1680,8 @@ impl RuntimeManager {
             .map(|_| ())
     }
 
-    /// "Vulkan" or "CPU" when a runtime is installed: the one in use, else
-    /// the one auto-detection chose, else whichever is present.
+    /// The selected backend when installed. Auto considers Vulkan and CPU;
+    /// an explicit choice must have its own complete installation.
     pub fn installed_backend(&self) -> Option<String> {
         let installer = &self.shared.installer;
         if let Some(backend) = LlamaBackend::preference(&installer.preference()) {

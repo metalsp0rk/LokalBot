@@ -293,7 +293,7 @@ pub struct ModelStatus {
     pub embeddings_ready: bool,
     /// The screen text recognition (OCR) models are downloaded.
     pub screen_text_ready: bool,
-    /// "Vulkan" or "CPU" for the built-in llama.cpp runtime, once installed.
+    /// "CUDA", "Vulkan" or "CPU" for the selected built-in runtime, once installed.
     pub runtime_backend: Option<SharedString>,
 }
 
