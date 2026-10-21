@@ -1275,7 +1275,21 @@ impl ServerInner {
         let mut extra_args = self.role.extra_args(&record.flags);
         if backend == LlamaBackend::Cuda {
             let device = probe_gpu(binary, backend)?;
-            extra_args.extend(["--device".into(), device.id]);
+            // b11669 hides the model's offload summary at default verbosity 3.
+            // Keep it on stderr in plain text even if the parent enables JSON
+            // or colored logs, so startup can establish actual GPU execution.
+            extra_args.extend(
+                [
+                    "--device",
+                    &device.id,
+                    "--log-verbosity",
+                    "4",
+                    "--log-colors",
+                    "off",
+                    "--no-log-jsonl",
+                ]
+                .map(String::from),
+            );
         }
         let context = self.role.context_tokens();
         if let Some(running) =
@@ -2001,7 +2015,8 @@ mod tests {
         let mut tail = OutputTail::default();
         tail.keep("load_tensors: offloaded 0/33 layers to GPU");
         assert!(!tail.gpu_offloaded);
-        tail.keep("load_tensors: offloaded 33/33 layers to GPU");
+        // Captured from b11669 on an NVIDIA L4 with --log-verbosity 4.
+        tail.keep("0.02.021.855 I load_tensors: offloaded 25/25 layers to GPU");
         for _ in 0..100 {
             tail.keep("other startup line");
         }

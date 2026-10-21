@@ -157,7 +157,13 @@ fn installs_runtime_downloads_models_and_answers() {
     assert_eq!(query.len(), catalog::EMBEDDING_DIMENSIONS);
     assert!(dot(&query, &documents[0]) > dot(&query, &documents[1]));
     for status in runtime.statuses() {
-        if settings.llama_backend == "cuda" && status.running {
+        if settings.llama_backend == "cuda"
+            && matches!(
+                status.role,
+                lokalbot_ai::runtime::Role::Main | lokalbot_ai::runtime::Role::Embedder
+            )
+        {
+            assert!(status.running, "both exercised CUDA roles must be running");
             assert_eq!(status.backend, Some(lokalbot_ai::LlamaBackend::Cuda));
             assert!(
                 lokalbot_ai::runtime::read_marker(&paths, status.port)
@@ -165,6 +171,7 @@ fn installs_runtime_downloads_models_and_answers() {
                     .gpu_offloaded,
                 "CUDA validation must establish model offload, not just a healthy CPU server"
             );
+            eprintln!("confirmed GPU model offload for {:?}", status.role);
         }
         eprintln!(
             "server {:?}: running={} model={:?} backend={:?}",
