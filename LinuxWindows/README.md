@@ -74,9 +74,10 @@ release has none yet, use a CI run's artifacts (`lokalbot-linux-x86_64`, `lokalb
   The same release has packages that install into `/usr/bin` with their dependencies:
   `LokalBot-<version>-linux-amd64.deb` (Debian, Ubuntu: `sudo apt install ./LokalBot-…deb`),
   `LokalBot-<version>-linux-x86_64.rpm` (Fedora, openSUSE: `sudo dnf install ./LokalBot-…rpm`) and
-  `LokalBot-<version>-linux-x86_64.pkg.tar.zst` (Arch: `sudo pacman -U ./LokalBot-…zst`). These packages
-  come from no repository, so when a newer version is out LokalBot asks you to download the new package and
-  install it the same way.
+  `LokalBot-<version>-linux-x86_64.pkg.tar.zst` (Arch: `sudo pacman -U ./LokalBot-…zst`). Installing the
+  `.deb`, or the `.rpm` on Fedora, also adds the LokalBot repository at `pkg.lokalbot.com`, so
+  `sudo apt upgrade` or `sudo dnf upgrade` brings later versions. The Arch package comes from no repository,
+  so when a newer version is out LokalBot asks you to download the new package and install it the same way.
 - **Windows** 10/11 (x64): run `LokalBot-<version>-windows-x86_64-setup.exe`. It installs for your user into
   `%LOCALAPPDATA%\Programs\LokalBot` without administrator rights, adds a Start menu shortcut (which also
   lets notifications show LokalBot's name) and an Installed apps entry; uninstalling keeps your library. Or
@@ -141,11 +142,21 @@ its old file is removed on a later start. Your library is never touched.
 
 When LokalBot cannot replace its own files, it says how to update instead. It asks the package database
 which package installed it (`pacman -Qo`, `dpkg-query -S`, `rpm -qf`). A package from a repository, such as
-an AUR package, updates with your package manager (for example `yay -Syu`). The release's own `.deb`, `.rpm`
-and Arch packages have no repository, so Settings shows the command that installs the downloaded package
-(for example `sudo apt install ./LokalBot-<version>-linux-amd64.deb`) next to **Download**. Other copies
+an AUR package, or a `.deb` or `.rpm` that added the LokalBot repository (below), updates with your package
+manager (for example `yay -Syu` or `sudo apt upgrade`). The release's Arch package, and a `.deb` or `.rpm`
+installed before the repository existed, have no repository, so Settings shows the command that installs the
+downloaded package (for example `sudo pacman -U ./LokalBot-<version>-linux-x86_64.pkg.tar.zst`) next to
+**Download**. Other copies
 (`/usr`, `/opt`, Program Files, a folder you cannot write) get the download from GitHub. Debug builds never
 update.
+
+The `.deb` and `.rpm` update with your package manager, from the LokalBot repository they add:
+`/etc/apt/sources.list.d/lokalbot.sources` with its key in `/usr/share/keyrings`, or
+`/etc/yum.repos.d/lokalbot.repo` with its key in `/etc/pki/rpm-gpg`. apt and dnf check the repository's
+signature and each package's. Your edits to those files survive upgrades; add `Enabled: no` or set
+`enabled=0` to stop updates from it. The repository has the newest three stable versions, never pre-releases.
+openSUSE's zypper doesn't read `/etc/yum.repos.d`, so there the `.rpm` is told about updates like the Arch
+package.
 
 On first launch LokalBot asks what to remember and downloads the models you choose: about 4 GB for the
 default transcription, Think and search models.
