@@ -50,7 +50,7 @@ transcription and speaker separation still use their separate CPU engines.
 The initial runtime uses CUDA 13.4 and requires an NVIDIA Turing or newer GPU and
 a driver reporting CUDA 13.4 support or newer. Older hardware/drivers can keep
 using Vulkan or CPU. **Automatic** continues to select Vulkan or CPU; CUDA remains
-opt-in until native NVIDIA validation supports changing the default.
+opt-in pending broader hardware validation and performance comparisons.
 
 LokalBot first tries compatible system CUDA libraries. If the CUDA backend cannot
 use them, it downloads the pinned CUDA runtime, cuBLAS and cuBLASLt libraries into
@@ -69,7 +69,10 @@ For native NVIDIA validation, run the ignored runtime test with
 `LOKALBOT_E2E_BACKEND=cuda` and a separate `LOKALBOT_E2E_ROOT`, and run the
 `lokalbot-engine` `autocomplete_eval` example with `--backend cuda`. The runtime
 test checks actual model offload as well as text generation and embeddings.
-No CUDA/Vulkan speedup or native NVIDIA hardware validation is claimed yet.
+The runtime and autocomplete path have been exercised on an NVIDIA L4 under
+Ubuntu 24.04, including companion-library download and system-library reuse.
+Native Windows CUDA execution and CUDA/Vulkan performance comparisons remain
+unverified. See the [hardware validation report](docs/cuda-validation.md).
 
 ### Other Think providers
 
