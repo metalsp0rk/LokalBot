@@ -1425,3 +1425,6 @@
 "Mentioned in %lld meetings" = "在 %lld 場會議中提及";
 "Reopen action thread" = "重新開啟行動項串聯";
 "Mark action thread done" = "將行動項串聯標記為完成";
+"Names you save also teach LokalBot this voice, so it can name the person in later meetings. Voices stay encrypted on this Mac." = "你儲存的名稱也會讓 LokalBot 記住這個聲音，以便在之後的會議中辨識此人。聲音會加密儲存在這台 Mac 上。";
+"Apply Names" = "套用名稱";
+"Recognized voices: %@" = "已辨識的聲音：%@";

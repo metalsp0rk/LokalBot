@@ -178,17 +178,14 @@ final class SettingsUITests: XCTestCase {
 
     /// Hosted/remote Mac only, like the rest of this suite. No live capture or
     /// enrollment is performed; the app uses an isolated synthetic library.
-    func testRememberingSpeakersIsAnOptInWithoutMeetNaming() {
+    func testRememberingSpeakersIsAlwaysOnWithoutMeetNaming() {
         UITestHarness.clickSidebar("sidebar.settings", in: app)
         UITestHarness.selectSettingsCategory("Meetings", in: app)
-        let remembering = app.switches["settings.rememberSpeakers"]
-        UITestHarness.scrollTo(remembering, in: app)
-        XCTAssertTrue(remembering.waitForExistence(timeout: 6))
-        XCTAssertEqual(remembering.label, "Remember speakers on this Mac")
-        XCTAssertEqual(String(describing: remembering.value ?? ""), "0")
-        XCTAssertFalse(app.switches["settings.speakerVisuals"].exists, "Meet speaker naming was removed")
         let manage = app.buttons["Manage remembered people…"]
         UITestHarness.scrollTo(manage, in: app)
+        XCTAssertTrue(manage.waitForExistence(timeout: 6))
+        XCTAssertFalse(app.switches["settings.rememberSpeakers"].exists, "Remembering speakers has no off switch")
+        XCTAssertFalse(app.switches["settings.speakerVisuals"].exists, "Meet speaker naming was removed")
         manage.click()
         XCTAssertTrue(UITestHarness.staticText(containing: "No remembered voices yet", in: app).waitForExistence(timeout: 4))
         app.buttons["Done"].click()

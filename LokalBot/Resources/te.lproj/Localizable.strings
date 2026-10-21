@@ -1425,3 +1425,6 @@
 "Mentioned in %lld meetings" = "%lld సమావేశాల్లో ప్రస్తావించబడింది";
 "Reopen action thread" = "పని సంభాషణను మళ్లీ తెరవండి";
 "Mark action thread done" = "పని సంభాషణను పూర్తయినట్లు గుర్తించండి";
+"Names you save also teach LokalBot this voice, so it can name the person in later meetings. Voices stay encrypted on this Mac." = "మీరు సేవ్ చేసే పేర్లు LokalBotకు ఈ స్వరాన్ని కూడా నేర్పుతాయి, తద్వారా తరువాతి మీటింగ్‌లలో ఆ వ్యక్తిని గుర్తించగలదు. స్వరాలు ఈ Macలో ఎన్‌క్రిప్ట్ చేయబడి ఉంటాయి.";
+"Apply Names" = "పేర్లను వర్తింపజేయి";
+"Recognized voices: %@" = "గుర్తించిన స్వరాలు: %@";

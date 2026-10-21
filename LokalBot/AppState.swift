@@ -1383,6 +1383,7 @@ final class AppState: ObservableObject {
             self.meetings = merged
             self.libraryReady = true
             self.speakerIdentity.maintainRetention(meetings: { [weak self] in self?.meetings ?? [] })
+            self.learnSpeakerVoices(after: .seconds(60))
             Task { await self.outcomeIndex.refreshInBackground(meetings: merged) }
             self.pipeline.resumePending(meetings: merged)
             if self.settings.autoTranscribe {
@@ -1996,6 +1997,36 @@ final class AppState: ObservableObject {
     /// from this path.
     func processMeetingsWaitingForModels() {
         pipeline.retryJobsWaitingForModels()
+    }
+
+    private var speakerVoiceLearning: Task<Void, Never>?
+
+    /// Remembers the voices named in saved meetings and suggests names for
+    /// speakers in recent meetings. Runs after any earlier pass, waits while
+    /// LokalBot records or processes, and never downloads the voice model.
+    func learnSpeakerVoices(after delay: Duration = .seconds(2)) {
+        guard !Self.isUnitTesting, !UITestRuntime.isEnabled else { return }
+        let previous = speakerVoiceLearning
+        speakerVoiceLearning = Task { [weak self] in
+            await previous?.value
+            try? await Task.sleep(for: delay)
+            guard let self, !Task.isCancelled else { return }
+            let access = MeetingSpeakerIdentityService.SavedMeetings(
+                transcript: { [weak self] meeting in
+                    guard let self else { return nil }
+                    return try? self.pipeline.loadTranscript(from: meeting.folderURL(in: self.storage))
+                },
+                callSamples: { [weak self] meeting, transcript in
+                    guard let self else { return [] }
+                    return try await self.pipeline.savedCallVoiceSamples(for: meeting, transcript: transcript)
+                },
+                isBusy: { [weak self] meeting in
+                    guard let self else { return true }
+                    return self.pipeline.captureActive || self.pipeline.stages[meeting.id] != nil
+                })
+            await self.speakerIdentity.learnFromSavedMeetings(self.meetings,
+                recentSince: Date().addingTimeInterval(-14 * 86_400), using: access)
+        }
     }
 
     func saveTranscript(_ transcript: Transcript, for meeting: Meeting) throws {
