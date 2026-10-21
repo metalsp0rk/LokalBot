@@ -216,6 +216,35 @@ final class CotypingParagraphBreakAlignmentTests: XCTestCase {
         XCTAssertNil(CotypingParagraphBreakAlignment.caretLocation(
             in: "Hello\nworld", textBeforeCaret: "Help"))
     }
+
+    /// Tab is checked against a second read of the field. Read the way the
+    /// suggestion's snapshot was, it matches; the `AXStringForRange` windows
+    /// the accept used to read have no paragraph breaks and never match when
+    /// paragraphs surround the caret, so Tab was refused there.
+    func testAnAcceptReadLikeTheSnapshotMatchesIt() throws {
+        let location = try XCTUnwrap(CotypingParagraphBreakAlignment.caretLocation(
+            in: value, textBeforeCaret: plainBeforeCaret))
+        let snapshot = try XCTUnwrap(context(at: location))
+        let session = CotypingSession(field: chromeField(snapshot), fullText: "ate blog post about")
+
+        XCTAssertTrue(CotypingSessionReconciler.isAcceptanceContinuation(
+            of: session, liveField: chromeField(snapshot), pendingInsertionConsumedCount: nil))
+
+        let plain = value.replacingOccurrences(of: "\n", with: "")
+        let windows = try XCTUnwrap(CotypingAcceptanceContentBounds.context(
+            in: plain, selection: NSRange(location: (plainBeforeCaret as NSString).length, length: 0)))
+        XCTAssertFalse(CotypingSessionReconciler.isAcceptanceContinuation(
+            of: session, liveField: chromeField(windows), pendingInsertionConsumedCount: nil))
+    }
+
+    private func chromeField(_ context: CotypingTextContext) -> CotypingField {
+        var field = CotypingField(
+            appName: "Google Chrome", bundleID: "com.google.Chrome", processID: 42, role: "AXTextArea",
+            focusIdentityKey: nil, precedingText: context.preceding, trailingText: context.trailing,
+            selectionLength: 0, caretRect: .zero, isSecure: false, caretIsExact: true)
+        field.selectionSkipsParagraphBreaks = true
+        return field
+    }
 }
 
 // MARK: - Field style from web text attributes

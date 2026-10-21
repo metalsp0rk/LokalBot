@@ -373,7 +373,9 @@ enum CotypingAXHelper {
 
         guard let content = appReadPolicy.readIfAllowed(
             appName: frontmost.localizedName ?? "", bundleID: frontmost.bundleIdentifier, {
-                boundedAcceptanceContent(on: element, withinDeadline: withinDeadline)
+                cachedField.selectionSkipsParagraphBreaks
+                    ? paragraphAlignedAcceptanceContent(on: element, withinDeadline: withinDeadline)
+                    : boundedAcceptanceContent(on: element, withinDeadline: withinDeadline)
             }), withinDeadline() else {
             return unavailable
         }
@@ -453,10 +455,11 @@ enum CotypingAXHelper {
             let native = selectionRange(element)
             let marker = native == nil ? synthesizeMarkerSelection(on: element) : nil
             let value = marker?.text ?? stringAttribute(element, kAXValueAttribute as String)
-            return (native: native.map { selection in
-                        value.map { paragraphAlignedSelection(selection, value: $0, on: element) } ?? selection
-                    },
-                    marker: marker, value: value)
+            let aligned = native.flatMap { selection in
+                value.map { paragraphAlignedSelection(selection, value: $0, on: element) }
+            }
+            return (native: aligned?.selection ?? native, marker: marker, value: value,
+                    skipsBreaks: aligned?.skipsBreaks ?? false)
         }
         guard let content else { return .none }
         let nativeSelection = content.native
@@ -491,7 +494,9 @@ enum CotypingAXHelper {
             caretLocation: caret,
             fieldText: value,
             isRightToLeft: CotypingTextDirectionDetector.isRightToLeft(preceding),
-            allowBoundsForRange: !usesMarkerSelection)
+            // Range-based geometry counts the way the selection does, not the
+            // value; text markers place the caret there instead.
+            allowBoundsForRange: !usesMarkerSelection && !content.skipsBreaks)
         let inputFrameRect = CotypingAXGeometryResolver.elementFrame(element).map {
             CotypingAXGeometryResolver.cocoaRect(fromAX: $0)
         }
@@ -540,6 +545,7 @@ enum CotypingAXHelper {
                 ? cacheState.learningScopes.value(forKey: focusIdentityKey) {
                     learningScopeKey(near: element, bundleID: bundleID)
                 } : nil)
+        field.selectionSkipsParagraphBreaks = content.skipsBreaks
         if includeVisibleContext, !isIntegratedTerminal {
             let policy = cacheState.withLock { cacheState.visibleContextPolicy }
             field.visibleContextWasRequested = true
@@ -708,15 +714,30 @@ enum CotypingAXHelper {
     /// paragraphs (`CotypingParagraphBreakAlignment`). The text before the
     /// caret, read with `AXStringForRange`, is counted the way the selection
     /// is. Unchanged for one-line values and for hosts whose counts agree.
-    private static func paragraphAlignedSelection(_ selection: NSRange, value: String, on element: AXUIElement) -> NSRange {
-        guard selection.location > 0, value.contains("\n") else { return selection }
-        var cfRange = CFRange(location: 0, length: selection.location)
-        guard let parameter = AXValueCreate(.cfRange, &cfRange),
-              let before = copyOpaqueParameterized(stringForRangeAttribute, parameter: parameter, on: element) as? String,
+    /// `skipsBreaks` when the app's range text ends short of its value, as
+    /// Chromium's does when the value has paragraph breaks; only then is the
+    /// text before the caret read and the selection moved.
+    private static func paragraphAlignedSelection(
+        _ selection: NSRange, value: String, on element: AXUIElement
+    ) -> (selection: NSRange, skipsBreaks: Bool) {
+        let nsValue = value as NSString
+        guard nsValue.length > 0, value.contains("\n") else { return (selection, false) }
+        let lastCharacter = NSRange(location: nsValue.length - 1, length: 1)
+        guard rangeString(lastCharacter, on: element) != nsValue.substring(with: lastCharacter) else {
+            return (selection, false)
+        }
+        guard selection.location > 0,
+              let before = rangeString(NSRange(location: 0, length: selection.location), on: element),
               (before as NSString).length == selection.location,
               let location = CotypingParagraphBreakAlignment.caretLocation(in: value, textBeforeCaret: before)
-        else { return selection }
-        return NSRange(location: location, length: selection.length)
+        else { return (selection, true) }
+        return (NSRange(location: location, length: selection.length), true)
+    }
+
+    private static func rangeString(_ range: NSRange, on element: AXUIElement) -> String? {
+        var cfRange = CFRange(location: range.location, length: range.length)
+        guard let parameter = AXValueCreate(.cfRange, &cfRange) else { return nil }
+        return copyOpaqueParameterized(stringForRangeAttribute, parameter: parameter, on: element) as? String
     }
 
     private static func markerRange(
@@ -1118,6 +1139,26 @@ enum CotypingAXHelper {
         return boundedMarkerAcceptanceContent(
             on: element,
             withinDeadline: withinDeadline)
+    }
+
+    /// The text around the caret read the way `resolveFocus` reads it, for a
+    /// field whose app counts its selection without the value's paragraph
+    /// breaks: `AXStringForRange` windows have no breaks there, so they never
+    /// match the snapshot the suggestion was made from, and an accept would
+    /// be refused whenever the caret has paragraphs around it.
+    private static func paragraphAlignedAcceptanceContent(
+        on element: AXUIElement,
+        withinDeadline: () -> Bool
+    ) -> BoundedAcceptanceContent? {
+        guard let selection = selectionRange(element), selection.length == 0, withinDeadline(),
+              let value = stringAttribute(element, kAXValueAttribute as String), withinDeadline() else {
+            return nil
+        }
+        let aligned = paragraphAlignedSelection(selection, value: value, on: element).selection
+        let caret = max(0, min(aligned.location, (value as NSString).length))
+        guard withinDeadline(), let context = CotypingAcceptanceContentBounds.context(
+            in: value, selection: NSRange(location: caret, length: 0)) else { return nil }
+        return BoundedAcceptanceContent(context: context)
     }
 
     private static func boundedNativeAcceptanceContent(
