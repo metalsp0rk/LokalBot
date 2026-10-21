@@ -51,6 +51,15 @@ const LIBRARY_NAMES: [&str; 3] = ["cudart64_13.dll", "cublas64_13.dll", "cublasL
 #[cfg(not(windows))]
 const LIBRARY_NAMES: [&str; 3] = ["libcudart.so.13", "libcublas.so.13", "libcublasLt.so.13"];
 
+pub(super) fn is_runtime_dir(dir: &Path) -> bool {
+    dir.join(if cfg!(windows) {
+        "ggml-cuda.dll"
+    } else {
+        "libggml-cuda.so"
+    })
+    .is_file()
+}
+
 pub(super) fn complete(dir: &Path) -> bool {
     LIBRARY_NAMES.iter().all(|name| {
         dir.join(name)

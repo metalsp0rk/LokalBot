@@ -397,14 +397,14 @@ impl Installer {
         if backend == LlamaBackend::Cuda {
             cuda::require_driver()?;
         }
-        if let Some(installed) = self.record(backend) {
-            if backend != LlamaBackend::Cuda || probe_gpu(&installed.1, backend).is_ok() {
-                return Ok(installed);
-            }
-            // System libraries may have been removed or upgraded since the
-            // previous install. Repair in staging, preserving the old folder
-            // until the replacement is complete.
+        if let Some(installed) = self.record(backend)
+            && (backend != LlamaBackend::Cuda || probe_gpu(&installed.1, backend).is_ok())
+        {
+            return Ok(installed);
         }
+        // System libraries may have been removed or upgraded since the
+        // previous install. Repair in staging, preserving the old folder
+        // until the replacement is complete.
         let asset = asset(backend).ok_or_else(|| {
             anyhow!(
                 "llama.cpp has no {} build for this platform",
@@ -561,7 +561,7 @@ impl Installer {
         }
         let active = *self.active.lock();
         if let Some(active) = active
-            && (preference == "auto" || preference == active.label().to_ascii_lowercase())
+            && self.accepts_backend(active)
         {
             let (record, binary) = get(active, progress)?;
             return Ok((active, record, binary));
@@ -570,7 +570,12 @@ impl Installer {
             "cpu" => LlamaBackend::Cpu,
             "vulkan" => LlamaBackend::Vulkan,
             _ => match self.saved_choice() {
-                Some(choice) if self.record(choice.backend).is_some() => choice.backend,
+                Some(choice)
+                    if choice.backend != LlamaBackend::Cuda
+                        && self.record(choice.backend).is_some() =>
+                {
+                    choice.backend
+                }
                 _ if !vulkan_loader_present() => LlamaBackend::Cpu,
                 _ => {
                     let vulkan = if allow_download {
@@ -646,7 +651,21 @@ fn server_command(binary: &Path) -> Command {
     let mut command = Command::new(binary);
     if let Some(dir) = binary.parent() {
         command.current_dir(dir);
-        cuda::configure_command(&mut command, dir);
+        if cuda::is_runtime_dir(dir) {
+            cuda::configure_command(&mut command, dir);
+        } else {
+            #[cfg(target_os = "linux")]
+            {
+                let mut value = dir.as_os_str().to_os_string();
+                if let Some(existing) =
+                    std::env::var_os("LD_LIBRARY_PATH").filter(|v| !v.is_empty())
+                {
+                    value.push(":");
+                    value.push(existing);
+                }
+                command.env("LD_LIBRARY_PATH", value);
+            }
+        }
     }
     command
 }
@@ -1676,6 +1695,7 @@ impl RuntimeManager {
             .into_iter()
             .flatten()
             .chain([LlamaBackend::Vulkan, LlamaBackend::Cpu])
+            .filter(|backend| *backend != LlamaBackend::Cuda)
             .find(|backend| installer.record(*backend).is_some())
             .map(|backend| backend.label().to_string())
     }
