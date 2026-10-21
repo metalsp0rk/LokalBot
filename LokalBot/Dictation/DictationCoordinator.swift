@@ -40,6 +40,9 @@ final class DictationCoordinator: ObservableObject {
     @Published private(set) var lastComposedText: String?
     @Published private(set) var lastEngine: String?
     @Published private(set) var lastContextUse: DictationContextUse?
+    /// Recent results, so one left on the clipboard can be copied again after
+    /// something else replaced it, even after a crash or restart.
+    @Published private(set) var history = DictationHistory()
     /// Pasted text that the target field did not show afterwards.
     @Published private(set) var deliveryNotice: DictationDeliveryNotice?
     private var insertionCheckTask: Task<Void, Never>?
@@ -68,6 +71,7 @@ final class DictationCoordinator: ObservableObject {
     private static let modelPreparationGracePeriod: Duration = .milliseconds(600)
 
     private let storageRoot: URL
+    private let historyStore: DictationHistoryStore
     private let settingsProvider: () -> AppSettings
     private let makeTextEngine: (AppSettings) async throws -> TextEngine
     private let screenContextProvider:
@@ -147,6 +151,7 @@ final class DictationCoordinator: ObservableObject {
         }
     ) {
         self.storageRoot = storageRoot
+        self.historyStore = DictationHistoryStore(root: storageRoot)
         self.settingsStore = settingsStore
         self.recorder = MicRecorder(
             makeInput: { [settingsStore] in
@@ -183,6 +188,7 @@ final class DictationCoordinator: ObservableObject {
             return self.isStarting || self.state.isRecording
         }
         Self.sweepOrphanedPreviewFiles(storageRoot: storageRoot)
+        history = historyStore.load()
     }
 
     var elapsed: TimeInterval {
@@ -776,6 +782,9 @@ final class DictationCoordinator: ObservableObject {
             // the coordinator by the time it returns.
             guard generation == session else { return }
             let insertedInto = deliveryTarget
+            if let outcome = DictationHistory.outcome(for: delivery) {
+                keepInHistory(text, outcome: outcome)
+            }
             switch delivery {
             case .inserted:
                 if let insertedInto {
@@ -808,6 +817,10 @@ final class DictationCoordinator: ObservableObject {
             complete()
         } catch {
             guard generation == session else { return }
+            // Compose failing must not lose minutes of transcribed speech.
+            if let lastTranscript {
+                keepInHistory(lastTranscript, outcome: .notInserted)
+            }
             let prefix: String
             if case .composing = state {
                 prefix = "Could not compose dictation"
@@ -996,6 +1009,43 @@ final class DictationCoordinator: ObservableObject {
         NSPasteboard.general.setString(notice.text, forType: .string)
         deliveryNotice?.copied = true
         scheduleNoticeDismissal(after: .seconds(2))
+    }
+
+    /// Puts a kept dictation, the newest by default, back on the clipboard.
+    @discardableResult
+    func copyFromHistory(_ id: DictationHistoryEntry.ID? = nil) -> Bool {
+        let entry = id == nil ? history.entries.first : history.entries.first { $0.id == id }
+        guard let entry else { return false }
+        NSPasteboard.general.clearContents()
+        return NSPasteboard.general.setString(entry.text, forType: .string)
+    }
+
+    /// Forgets the kept dictations, and the last result the Dictation page shows.
+    func clearHistory() {
+        history.removeAll()
+        historyStore.deleteAll()
+        guard state == .idle, !isStarting else { return }
+        lastTranscript = nil
+        lastComposedText = nil
+        lastEngine = nil
+        lastContextUse = nil
+    }
+
+    private func keepInHistory(_ text: String, outcome: DictationHistoryEntry.Outcome) {
+        history.record(text, outcome: outcome, appName: dictatedAppName)
+        do {
+            try historyStore.save(history.entries)
+        } catch {
+            lokalbotLog("recent dictations save FAILED: \(error.localizedDescription)")
+        }
+    }
+
+    /// The app dictation started in, for the history. LokalBot itself (Try
+    /// here) is left unnamed.
+    private var dictatedAppName: String? {
+        guard let processID = deliveryTarget?.processID ?? contextTarget?.processID,
+              processID != ProcessInfo.processInfo.processIdentifier else { return nil }
+        return NSRunningApplication(processIdentifier: processID)?.localizedName ?? contextTarget?.appName
     }
 
     func dismissDeliveryNotice() {

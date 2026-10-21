@@ -193,9 +193,12 @@
 "Clear search" = "Futa utafutaji";
 "Clear search filters" = "Ondoa vichujio vya utafutaji";
 "Clear selection" = "Ondoa uteuzi";
+"Copied" = "Imenakiliwa";
+"Copy last dictation" = "Nakili imla ya mwisho";
 "Dictation already uses this shortcut. Choose another." = "Imla tayari hutumia njia hii ya mkato. Chagua nyingine.";
 "Don't Allow" = "Usiruhusu";
 "Hold the modifiers and press a key, like ⌃⇧ Space." = "Shikilia vitufe vya kurekebisha na ubonyeze kitufe, kama ⌃⇧ Space.";
+"Last dictation" = "Imla ya mwisho";
 "macOS already uses this shortcut. Choose another." = "macOS tayari hutumia njia hii ya mkato. Chagua nyingine.";
 "Model folder selection cleared" = "Uteuzi wa folda ya modeli umeondolewa";
 "Clear settings search" = "Futa utafutaji wa mipangilio";
@@ -436,6 +439,11 @@
 "Import an audio or video recording" = "Ingiza rekodi ya sauti au video";
 "Import Recording" = "Ingiza Rekodi";
 "Import Recording…" = "Ingiza Rekodi…";
+"Not inserted" = "Haikuingizwa";
+"Pasted" = "Imebandikwa";
+"Recent dictations" = "Imla za karibuni";
+"Saved encrypted on this Mac for 7 days, so you can copy a dictation again after the clipboard changes or the Mac restarts. Text meant for a password field is never kept." = "Huhifadhiwa kwa usimbaji fiche kwenye Mac hii kwa siku 7, ili uweze kunakili imla tena baada ya ubao wa kunakili kubadilika au Mac kuwashwa upya. Maandishi yaliyokusudiwa sehemu ya nenosiri hayahifadhiwi kamwe.";
+"Shown in LokalBot" = "Imeonyeshwa kwenye LokalBot";
 "Try a sample meeting" = "Jaribu mkutano wa mfano";
 "Open the sample meeting" = "Fungua mkutano wa mfano";
 "Sample meeting" = "Mkutano wa mfano";

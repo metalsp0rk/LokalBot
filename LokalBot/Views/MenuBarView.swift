@@ -379,6 +379,13 @@ struct MenuBarView: View {
             SectionHeader(text: "Tools")
             VStack(spacing: 0) {
                 dictationRow
+                if !dictation.history.entries.isEmpty {
+                    Divider().padding(.leading, 28)
+                    LastDictationMenuRow(
+                        entries: dictation.history.entries,
+                        localized: { app.settings.appLanguage.localized($0) },
+                        copy: { dictation.copyFromHistory($0) })
+                }
                 Divider().padding(.leading, 28)
                 cotypingRow
             }

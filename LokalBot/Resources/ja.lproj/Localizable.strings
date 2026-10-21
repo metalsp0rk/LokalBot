@@ -193,9 +193,12 @@
 "Clear search" = "検索を消去";
 "Clear search filters" = "検索フィルタを解除";
 "Clear selection" = "選択を解除";
+"Copied" = "コピーしました";
+"Copy last dictation" = "最後の音声入力をコピー";
 "Dictation already uses this shortcut. Choose another." = "音声入力がすでにこのショートカットを使っています。別のものを選んでください。";
 "Don't Allow" = "許可しない";
 "Hold the modifiers and press a key, like ⌃⇧ Space." = "修飾キーを押しながら、⌃⇧ Spaceなどのキーを押してください。";
+"Last dictation" = "最後の音声入力";
 "macOS already uses this shortcut. Choose another." = "macOSがすでにこのショートカットを使っています。別のものを選んでください。";
 "Model folder selection cleared" = "モデルフォルダの選択を解除しました";
 "Clear settings search" = "設定の検索を消去";
@@ -436,6 +439,11 @@
 "Import an audio or video recording" = "録音または録画をインポート";
 "Import Recording" = "録音をインポート";
 "Import Recording…" = "録音をインポート…";
+"Not inserted" = "挿入されていません";
+"Pasted" = "ペーストしました";
+"Recent dictations" = "最近の音声入力";
+"Saved encrypted on this Mac for 7 days, so you can copy a dictation again after the clipboard changes or the Mac restarts. Text meant for a password field is never kept." = "この Mac に 7 日間暗号化して保存されるため、クリップボードが変わったり Mac を再起動したりした後でも音声入力をもう一度コピーできます。パスワード欄向けのテキストは保持されません。";
+"Shown in LokalBot" = "LokalBot に表示";
 "Try a sample meeting" = "サンプル会議を試す";
 "Open the sample meeting" = "サンプル会議を開く";
 "Sample meeting" = "サンプル会議";

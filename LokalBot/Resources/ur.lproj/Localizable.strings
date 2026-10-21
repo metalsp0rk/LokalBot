@@ -193,9 +193,12 @@
 "Clear search" = "تلاش صاف کریں";
 "Clear search filters" = "تلاش کے فلٹر صاف کریں";
 "Clear selection" = "انتخاب صاف کریں";
+"Copied" = "نقل ہو گیا";
+"Copy last dictation" = "آخری صوتی املا نقل کریں";
 "Dictation already uses this shortcut. Choose another." = "صوتی املا پہلے سے یہ شارٹ کٹ استعمال کرتا ہے۔ دوسرا منتخب کریں۔";
 "Don't Allow" = "اجازت نہ دیں";
 "Hold the modifiers and press a key, like ⌃⇧ Space." = "ترمیمی کلیدیں دبائے رکھیں اور کوئی کلید دبائیں، مثلاً ⌃⇧ Space۔";
+"Last dictation" = "آخری صوتی املا";
 "macOS already uses this shortcut. Choose another." = "macOS پہلے سے یہ شارٹ کٹ استعمال کرتا ہے۔ دوسرا منتخب کریں۔";
 "Model folder selection cleared" = "ماڈل کے فولڈر کا انتخاب صاف کر دیا گیا";
 "Clear settings search" = "ترتیبات کی تلاش صاف کریں";
@@ -436,6 +439,11 @@
 "Import an audio or video recording" = "آڈیو یا ویڈیو ریکارڈنگ درآمد کریں";
 "Import Recording" = "ریکارڈنگ درآمد کریں";
 "Import Recording…" = "ریکارڈنگ درآمد کریں…";
+"Not inserted" = "داخل نہیں ہوا";
+"Pasted" = "چسپاں ہو گیا";
+"Recent dictations" = "حالیہ صوتی املا";
+"Saved encrypted on this Mac for 7 days, so you can copy a dictation again after the clipboard changes or the Mac restarts. Text meant for a password field is never kept." = "اس Mac پر 7 دن تک خفیہ کاری کے ساتھ محفوظ رہتا ہے، تاکہ کلپ بورڈ بدلنے یا Mac دوبارہ شروع ہونے کے بعد بھی آپ صوتی املا دوبارہ نقل کر سکیں۔ پاس ورڈ فیلڈ کے لیے متن کبھی نہیں رکھا جاتا۔";
+"Shown in LokalBot" = "LokalBot میں دکھایا گیا";
 "Try a sample meeting" = "نمونہ اجلاس آزمائیں";
 "Open the sample meeting" = "نمونہ اجلاس کھولیں";
 "Sample meeting" = "نمونہ اجلاس";

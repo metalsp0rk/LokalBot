@@ -193,9 +193,12 @@
 "Clear search" = "Cancella ricerca";
 "Clear search filters" = "Cancella filtri di ricerca";
 "Clear selection" = "Deseleziona";
+"Copied" = "Copiato";
+"Copy last dictation" = "Copia l’ultima dettatura";
 "Dictation already uses this shortcut. Choose another." = "Questa abbreviazione è già usata dalla dettatura. Scegline un’altra.";
 "Don't Allow" = "Non consentire";
 "Hold the modifiers and press a key, like ⌃⇧ Space." = "Tieni premuti i tasti modificatori e premi un tasto, ad esempio ⌃⇧ barra spaziatrice.";
+"Last dictation" = "Ultima dettatura";
 "macOS already uses this shortcut. Choose another." = "Questa abbreviazione è già usata da macOS. Scegline un’altra.";
 "Model folder selection cleared" = "Selezione della cartella dei modelli cancellata";
 "Clear settings search" = "Cancella ricerca nelle impostazioni";
@@ -436,6 +439,11 @@
 "Import an audio or video recording" = "Importa una registrazione audio o video";
 "Import Recording" = "Importa registrazione";
 "Import Recording…" = "Importa registrazione…";
+"Not inserted" = "Non inserito";
+"Pasted" = "Incollato";
+"Recent dictations" = "Dettature recenti";
+"Saved encrypted on this Mac for 7 days, so you can copy a dictation again after the clipboard changes or the Mac restarts. Text meant for a password field is never kept." = "Salvato in forma cifrata su questo Mac per 7 giorni, così puoi copiare di nuovo una dettatura dopo che gli Appunti sono cambiati o il Mac è stato riavviato. Il testo destinato a un campo password non viene mai conservato.";
+"Shown in LokalBot" = "Mostrato in LokalBot";
 "Try a sample meeting" = "Prova una riunione di esempio";
 "Open the sample meeting" = "Apri la riunione di esempio";
 "Sample meeting" = "Riunione di esempio";

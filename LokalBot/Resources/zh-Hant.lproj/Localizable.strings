@@ -193,9 +193,12 @@
 "Clear search" = "清除搜尋";
 "Clear search filters" = "清除搜尋篩選條件";
 "Clear selection" = "清除選取";
+"Copied" = "已拷貝";
+"Copy last dictation" = "拷貝上一次聽寫";
 "Dictation already uses this shortcut. Choose another." = "聽寫已在使用此快速鍵。請選擇其他快速鍵。";
 "Don't Allow" = "不允許";
 "Hold the modifiers and press a key, like ⌃⇧ Space." = "請按住修飾鍵再按一個按鍵，例如 ⌃⇧ Space。";
+"Last dictation" = "上一次聽寫";
 "macOS already uses this shortcut. Choose another." = "macOS 已在使用此快速鍵。請選擇其他快速鍵。";
 "Model folder selection cleared" = "已清除模型資料夾選擇";
 "Clear settings search" = "清除設定搜尋";
@@ -436,6 +439,11 @@
 "Import an audio or video recording" = "匯入音訊或影片錄音";
 "Import Recording" = "匯入錄音";
 "Import Recording…" = "匯入錄音…";
+"Not inserted" = "未插入";
+"Pasted" = "已貼上";
+"Recent dictations" = "最近的聽寫";
+"Saved encrypted on this Mac for 7 days, so you can copy a dictation again after the clipboard changes or the Mac restarts. Text meant for a password field is never kept." = "在這台 Mac 上加密保存 7 天，剪貼簿被取代或 Mac 重新啟動後你仍可再次拷貝聽寫內容。用於密碼欄位的文字絕不保留。";
+"Shown in LokalBot" = "已在 LokalBot 中顯示";
 "Try a sample meeting" = "試用範例會議";
 "Open the sample meeting" = "開啟範例會議";
 "Sample meeting" = "範例會議";
