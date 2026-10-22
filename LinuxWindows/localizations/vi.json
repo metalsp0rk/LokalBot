@@ -841,6 +841,7 @@
   "just now": "vừa rồi",
   "last met {date}": "gặp lần cuối {date}",
   "last {date}": "{date} cuối cùng",
+  "llama.cpp": "llama.cpp",
   "on this PC": "trên máy tính này",
   "on {date}": "trên {date}",
   "on {location}": "trên {location}",

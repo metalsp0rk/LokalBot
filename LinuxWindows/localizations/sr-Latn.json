@@ -841,6 +841,7 @@
   "just now": "upravo sada",
   "last met {date}": "poslednji sastanak: {date}",
   "last {date}": "poslednji put: {date}",
+  "llama.cpp": "llama.cpp",
   "on this PC": "na ovom računaru",
   "on {date}": "dana {date}",
   "on {location}": "na {location}",
