@@ -372,6 +372,7 @@ No edits to the DMG after this point — the signature covers these exact bytes:
 ```sh
 python3 Scripts/generate_appcast.py \
   --archive build/LokalBot.dmg \
+  --archive-filename LokalBot-1.0.0-macos-arm64.dmg \
   --app build/export/LokalBot.app \
   --repo stevyhacker/lokalbot \
   --output build/appcast.xml
@@ -381,7 +382,9 @@ python3 Scripts/generate_appcast.py \
 The script reads `CFBundleShortVersionString` / `CFBundleVersion` from the app,
 locates `sign_update` (via `--sign-update-tool`, `$SPARKLE_BIN`, your PATH,
 `xcrun`, or DerivedData), signs the DMG, and renders `appcast.xml` with the
-enclosure URL `https://github.com/stevyhacker/lokalbot/releases/download/v1.0.0/LokalBot.dmg`.
+enclosure URL `https://github.com/stevyhacker/lokalbot/releases/download/v1.0.0/LokalBot-1.0.0-macos-arm64.dmg`.
+The DMG is published as `LokalBot-<version>-macos-arm64.dmg`, like the Linux and
+Windows files, so `--archive-filename` must match the name you upload in step 7.
 
 The download URL's tag defaults to `v<short-version>`. If you're publishing
 under a pre-release tag (step 7), pass it explicitly — e.g.
@@ -390,13 +393,16 @@ actually uploads to.
 
 ### 7. Publish the GitHub Release
 
-Upload **both** the DMG and the appcast as release assets so the feed at
-`releases/latest/download/appcast.xml` resolves:
+Upload the DMG under its versioned name, its checksum and the appcast as release
+assets so the feed at `releases/latest/download/appcast.xml` resolves:
 
 ```sh
+cp build/LokalBot.dmg build/LokalBot-1.0.0-macos-arm64.dmg
+(cd build && shasum -a 256 -b LokalBot-1.0.0-macos-arm64.dmg > LokalBot-1.0.0-macos-arm64.dmg.sha256)
 git tag v1.0.0 && git push origin v1.0.0
 gh release create v1.0.0 \
-  build/LokalBot.dmg \
+  build/LokalBot-1.0.0-macos-arm64.dmg \
+  build/LokalBot-1.0.0-macos-arm64.dmg.sha256 \
   build/appcast.xml \
   --title "LokalBot 1.0.0" \
   --notes-file Scripts/release-notes/v1.0.0.md
@@ -586,7 +592,8 @@ temporary keychain exists only while Xcode exports and seals the finished app,
 then is deleted. The DMG uses a separate short-lived keychain that is deleted
 immediately after `codesign`, before notarization. The workflow then notarizes
 and staples, downloads the Sparkle tarball for `sign_update`, runs
-`generate_appcast.py`, and uploads `LokalBot.dmg` + `appcast.xml` to the Release.
+`generate_appcast.py`, and uploads `LokalBot-<version>-macos-arm64.dmg`, its
+`.sha256` and `appcast.xml` to the Release.
 Jobs beside it build, sign and attach the Linux and Windows archives and feeds
 ([Linux and Windows](#linux-and-windows)); the manual steps above cover macOS
 only.

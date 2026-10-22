@@ -287,7 +287,7 @@ GUIDES = [
         <ul>
           <li><strong>Mac:</strong> Apple Silicon — M1 or later.</li>
           <li><strong>Operating system:</strong> macOS 15.0 or later.</li>
-          <li><strong>Install:</strong> download <a href="https://github.com/stevyhacker/lokalbot/releases/latest/download/LokalBot.dmg">LokalBot.dmg</a>, or run <code>brew install --cask stevyhacker/tap/lokalbot</code>.</li>
+          <li><strong>Install:</strong> download <a href="https://github.com/stevyhacker/lokalbot/releases/latest" data-asset="mac">the DMG</a>, or run <code>brew install --cask stevyhacker/tap/lokalbot</code>.</li>
           <li><strong>Disk:</strong> room for the app, recordings, and selected models.</li>
           <li><strong>Internet:</strong> required for the initial app and model downloads; optional for the built-in workflow after setup.</li>
           <li><strong>Library:</strong> <code>~/Library/Application Support/me.dotenv.LokalBot</code>.</li>
