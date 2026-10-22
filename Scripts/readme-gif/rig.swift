@@ -66,6 +66,8 @@ struct Shot: Decodable {
     var size: [Double]                // outer window size, points
     var background: String?           // #RRGGBB fill behind the window; RIG_BACKGROUND overrides
     var margin: Double?               // points captured around the window
+    var bottom: Double?               // window bottom this far above the visible screen bottom; default centred
+    var below: Double?                // points captured below the window, e.g. LokalBot's dictation overlay
     var settle: Double?               // seconds between placing and recording
     var pre: Double?                  // seconds recorded before the first action
     var post: Double?                 // seconds recorded after the last action
@@ -216,10 +218,10 @@ final class Subject {
         frame = axFrame(window) ?? .zero
     }
 
-    func place(size: [Double], on display: Display) {
+    func place(size: [Double], on display: Display, bottom: Double? = nil) {
         let w = size[0], h = size[1]
-        let rect = CGRect(x: (display.visible.midX - w / 2).rounded(), y: (display.visible.midY - h / 2).rounded(),
-                          width: w, height: h)
+        let y = bottom.map { display.visible.maxY - $0 - h } ?? display.visible.midY - h / 2
+        let rect = CGRect(x: (display.visible.midX - w / 2).rounded(), y: y.rounded(), width: w, height: h)
         front()
         axSetFrame(window, rect)
         Thread.sleep(forTimeInterval: 0.3)
@@ -503,7 +505,9 @@ func configuration(for rect: CGRect, display: Display, background: String) -> SC
 // MARK: - Commands
 
 func captureRect(_ subject: Subject, _ shot: Shot) -> CGRect {
-    subject.frame.insetBy(dx: -(shot.margin ?? 0), dy: -(shot.margin ?? 0))
+    var rect = subject.frame.insetBy(dx: -(shot.margin ?? 0), dy: -(shot.margin ?? 0))
+    if let below = shot.below { rect.size.height += below }
+    return rect
 }
 
 /// Places the window, runs the shot's setup, places it again (setup can change
@@ -513,12 +517,12 @@ func prepare(_ shot: Shot) -> (Subject, Display) {
     guard CGPreflightScreenCaptureAccess() else { die("Screen Recording permission is required") }
     let display = Display.filming()
     let subject = Subject(bundle: shot.bundle, title: shot.title)
-    subject.place(size: shot.size, on: display)
+    subject.place(size: shot.size, on: display, bottom: shot.bottom)
     if let setup = shot.setup, !setup.isEmpty {
         var log: [[String: Any]] = []
         run(setup, subject: subject, capture: nil, rect: .zero, log: &log, startedAt: Date())
         pause(0.6)
-        subject.place(size: shot.size, on: display)
+        subject.place(size: shot.size, on: display, bottom: shot.bottom)
     }
     pause(shot.settle ?? 1.2)
     subject.front()
