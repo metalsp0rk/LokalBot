@@ -9,8 +9,8 @@
 # runs on a fresh fictional library with its own settings suite; TextEdit
 # documents are plain text, created in a temporary folder and closed without
 # saving. Plain text keeps TextEdit's format bar, whose labels autocomplete
-# would read as context, out of the window. Each document's text is set to
-# Helvetica Neue 22 pt once open; TextEdit's own preferences are not changed.
+# would read as context, out of the window. Documents keep TextEdit's
+# plain-text font; the GIF scales the window up. TextEdit's preferences are not changed.
 # Dictation plays its line through the speakers with a macOS voice, so the
 # MacBook's own microphone must be the input and the room fairly quiet.
 set -euo pipefail
@@ -65,10 +65,10 @@ document() {  # document <take>: the file each take types into
     dictation) printf 'team-update' ;;
   esac
 }
-opening() {  # opening <take>: the first line, a blank line, and the space the typed line is styled from
+opening() {  # opening <take>: what the document holds before the take types into it
   case $1 in
-    autocomplete) printf 'Hi all,\n\n ' ;;
-    dictation) printf ' ' ;;
+    autocomplete) printf 'Hi all,\n\n' ;;
+    dictation) printf '' ;;
   esac
 }
 

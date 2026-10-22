@@ -1,9 +1,9 @@
 {
   "bundle": "com.apple.TextEdit",
   "title": "launch-email.txt",
-  "size": [600, 190],
+  "size": [520, 110],
   "settle": 1.2,
-  "park": [720, 300],
+  "park": [640, 200],
   "pre": 0.6,
   "post": 1.2,
   "also": ["me.dotenv.LokalBot"],

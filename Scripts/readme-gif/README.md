@@ -51,8 +51,8 @@ instead.
 
 The last two scenes show the same meeting decision reused in another app:
 autocomplete in TextEdit finishes "…the Team plan will be $15" with "per seat,
-billed annually.", and dictation turns "Write a one-line team update with the
-launch pricing." into a line with that price. Both are recorded live, light
+billed annually.", and dictation turns "Write a short team update with the
+launch pricing." into an update with that price. Both are recorded live, light
 only. The shipped GIF is light only and serves both appearances.
 
 | File | Role |
@@ -61,6 +61,11 @@ only. The shipped GIF is light only and serves both appearances.
 | `prepare_filming.py` | Seeds the fictional library for the filming copy, clones the models it needs from the installed app (APFS clones), turns on agent access, and writes an isolated settings suite with everything that could capture or learn turned off. |
 | `film_live.sh` | Quits the installed LokalBot, runs the filming copy on that library, records the autocomplete and dictation takes in TextEdit, and reopens the installed app, also on failure. Dictation plays its line through the speakers with the `Samantha` voice into the built-in microphone. |
 | `shots/autocomplete.json`, `shots/dictation.json` | The takes. Autocomplete pauses after the meeting name so its saved facts are looked up before the price is typed. The TextEdit window is small and `edit.json` scales it up, since plain text types in Menlo 11 pt. |
+
+Dictation uses `bottom` to place TextEdit above its live overlay and `below`
+to include the overlay in the capture. TextEdit keeps its default plain-text
+font throughout; do not style a leading space with a larger font, which makes
+the line metrics inconsistent with subsequently typed text.
 
 ```sh
 Scripts/readme-gif/build_filming_app.sh "$WORK"

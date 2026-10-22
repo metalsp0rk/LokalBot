@@ -1,12 +1,12 @@
 # README hero
 
 The root [README](../../README.md) opens with [lokalbot-demo-light.gif](lokalbot-demo-light.gif),
-a 28-second loop of one fictional story: a team set launch pricing on a call,
+a 30-second loop of one fictional story: a team set launch pricing on a call,
 and the decision turns up wherever it is needed. Five scenes: a Quick Recall
 search for "pricing" that finds screen text and the meeting, a summary decision
 that opens the transcript at its source line, an Ask answer with its sources,
 autocomplete in TextEdit finishing "the Team plan will be $15" with "per seat,
-billed annually.", and a dictated request ("Write a one-line team update with
+billed annually.", and a dictated request ("Write a short team update with
 the launch pricing.") written into TextEdit with that price. There is one
 light version for both appearances.
 
@@ -30,13 +30,16 @@ settings were not used, and no UI tests were run.
   E2B with meeting memory, and dictation is Parakeet TDT 0.6B v3 transcribing
   a macOS voice (Samantha) through the built-in microphone, then Compose with
   Qwen3.5 4B. TextEdit types plain text in its default monospace font.
+  The dictation scene includes the live recording/transcription and Compose
+  overlay before the result appears. TextEdit uses one uniform default font
+  so autocomplete aligns with the typed line.
 
 [Scripts/readme-gif/README.md](../../Scripts/readme-gif/README.md) explains how
 to record and rebuild it.
 
 | File | Dimensions | Length | Bytes | SHA-256 |
 | --- | --- | --- | --- | --- |
-| `lokalbot-demo-light.gif` | 1840 × 1344 | 28.4 s at 20 fps | 1,345,291 | `0e1f8286db8bb0fb1126e6225d6d438661da7b3ccb1bf6b50521e29d7229e35a` |
+| `lokalbot-demo-light.gif` | 1840 × 1344 | 30.2 s at 20 fps | 1,583,832 | `29ccf35b39563c58c16e733df763631662503012412b3251ccb7a91eb8cfb84e` |
 
 ## Still composite
 
