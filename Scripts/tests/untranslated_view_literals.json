@@ -1,7 +1,6 @@
 {
   "missing": {
     "PersonalContextSettings.swift": [
-      "1 suggestion to review",
       "Add to Personal Context",
       "Add…",
       "Always Use",
@@ -9,8 +8,7 @@
       "Forget Everything",
       "Forget everything…",
       "Privacy settings…",
-      "Stop Always Using",
-      "\\(…) suggestions to review"
+      "Stop Always Using"
     ],
     "ActionEvidencePassages.swift": [
       "Pause",
