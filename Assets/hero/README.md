@@ -1,9 +1,40 @@
 # README hero
 
-The root [README](../../README.md) opens with [lokalbot-hero-light.png](lokalbot-hero-light.png)
-or [lokalbot-hero-dark.png](lokalbot-hero-dark.png), whichever matches the
-viewer's appearance. Each is a composite: two unedited captures of the native
-SwiftUI views on a drawn background, under the tagline, with "saw" and "said"
+The root [README](../../README.md) opens with [lokalbot-demo-light.gif](lokalbot-demo-light.gif)
+or [lokalbot-demo-dark.gif](lokalbot-demo-dark.gif), whichever matches the
+viewer's appearance. Both are 14-second loops of the real app in three scenes:
+a Quick Recall search for "pricing" that finds screen text and a meeting, a
+decision in the meeting summary that opens the transcript at its source line,
+and an Ask answer whose evidence lists its sources.
+
+Each scene is a recording of the LokalBot UI Test Host window driven by real
+keyboard and pointer events; the window's pixels are unchanged apart from
+cropping and scaling. The caption above each scene, the footer, and the ring
+drawn where a click landed were added afterwards. The library is the fictional
+one in `Scripts/readme-gif/seed_library.py`. The isolated host suppresses
+capture and inference, so the transcript, summary, decisions and the Ask answer
+are fixtures; the search results are the app's own search over that library.
+
+The recordings were made on **October 22, 2026** from the `v0.11.2` release
+commit [`749987d`](https://github.com/stevyhacker/lokalbot/tree/749987d60be964dcbf154707e225ae3fcc95d0cf),
+built as the UI Test Host with `CODE_SIGNING_ALLOWED=NO`, with a temporary
+library and UserDefaults suite for every take. The installed app and user
+library were not used, and no UI tests were run.
+[Scripts/readme-gif/README.md](../../Scripts/readme-gif/README.md) explains how
+to record and rebuild them.
+
+| File | Dimensions | Length | Bytes | SHA-256 |
+| --- | --- | --- | --- | --- |
+| `lokalbot-demo-light.gif` | 1840 × 1344 | 14 s at 20 fps | 1,355,517 | `ce5db8cb3435c0d37b480ca4889ef637ca904469c6d5c94095555f03b9dbed2d` |
+| `lokalbot-demo-dark.gif` | 1840 × 1344 | 14 s at 20 fps | 1,111,335 | `b57f74bebf7e0b295b89ddd1b1f53a59147818cae76fb0dae1df62e3e20b6d75` |
+
+## Still composite
+
+The earlier README hero, [lokalbot-hero-light.png](lokalbot-hero-light.png)
+and [lokalbot-hero-dark.png](lokalbot-hero-dark.png), stays for the social
+preview card (`Assets/social-preview/social-preview.html`). Each is a composite:
+two unedited captures of the native SwiftUI views on a drawn background, under
+the tagline, with "saw" and "said"
 labels beside Quick Recall's Screens and Meetings groups. Nothing inside the
 captures was retouched. All content is fictional demo data from
 `Scripts/seed_demo_library.py --profile studio`. Both images pair the holiday
