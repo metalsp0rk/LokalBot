@@ -22,7 +22,7 @@ More screenshots of both apps are in [docs/screenshots](docs/screenshots).
 | --- | --- | --- | --- |
 | Meetings: record mic + system audio | ✓ (PulseAudio/PipeWire monitor) | ✓ (WASAPI loopback) | No bot joins the call. Tracks are 16 kHz WAV files; meetings recorded on macOS (AAC `.m4a`) play and transcribe too. A recording cut short by a crash or power loss is closed at its last audio when LokalBot starts again, then processed as usual. |
 | On-device transcription | ✓ | ✓ | sherpa-onnx: Qwen3-ASR 0.6B by default; Parakeet v3, SenseVoice and Whisper turbo optional. Speakers are separated with pyannote segmentation and TitaNet embeddings. |
-| Notes, actions, decisions, day digest, project notes, follow-up drafts | ✓ | ✓ | The macOS prompts, run by the built-in llama.cpp server (Vulkan or CPU), Ollama, an OpenAI-compatible server you approve, or your own ChatGPT or Claude plan (see [Think providers](#think-providers)). Follow-ups are written only by a model on your computer, and LokalBot never sends them. |
+| Notes, actions, decisions, day digest, project notes, follow-up drafts | ✓ | ✓ | The macOS prompts, run by the built-in llama.cpp server (Vulkan, experimental CUDA or CPU), Ollama, an OpenAI-compatible server you approve, or your own ChatGPT or Claude plan (see [Think providers](#think-providers)). Follow-ups are written only by a model on your computer, and LokalBot never sends them. |
 | Ask with citations | ✓ | ✓ | As on macOS, the model looks things up with tools (search, list and read meetings, action items, screen text, app activity) and answers once it has enough; each citation must match a source a tool returned. A Think model running on the CPU, or one with a context window under 16K tokens, instead gets the relevant meetings found first (keyword and meaning search) and answers in one turn. |
 | Keyword and meaning search, Quick Recall | ✓ | ✓ | SQLite FTS5 plus EmbeddingGemma vectors, kept up to date in the background. |
 | Day memory (app and window activity) | X11, Hyprland, Sway, KDE; GNOME with the Window Calls extension | ✓ | Window titles are cleared after the retention window in Privacy settings. |
@@ -76,11 +76,14 @@ For native NVIDIA validation, run the ignored runtime test with
 `LOKALBOT_E2E_BACKEND=cuda` and a separate `LOKALBOT_E2E_ROOT`, and run the
 `lokalbot-engine` `autocomplete_eval` example with `--backend cuda`. The runtime
 test checks actual model offload as well as text generation and embeddings.
-The runtime and autocomplete path have been exercised on NVIDIA L4, RTX 3080
-and RTX 5060 Ti GPUs under Ubuntu 24.04. Both companion-library download and
-system-library reuse passed on each card.
-Native Windows CUDA execution and CUDA/Vulkan performance comparisons remain
-unverified. See the [hardware validation report](docs/cuda-validation.md).
+The runtime and autocomplete path have been exercised on NVIDIA L4, RTX 3080,
+RTX 5060 Ti and RTX 5090 GPUs under Ubuntu 24.04. The RTX 5090 additionally passed
+bundled libraries, system-library reuse and in-place repair on a CUDA 13.2 driver.
+On that card, three release-mode autocomplete runs per backend measured pooled
+p50/p95 of 180/210 ms for CUDA versus 218/346 ms for Vulkan, including the
+160 ms debounce. Both produced 57/60 suggestions; this is one synthetic model
+workload, not a general performance guarantee. Native Windows CUDA execution
+remains unverified. See the [hardware validation report](docs/cuda-validation.md).
 
 ### Other Think providers
 

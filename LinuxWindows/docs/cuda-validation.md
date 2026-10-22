@@ -1,4 +1,41 @@
-# CUDA hardware validation — 2026-10-21
+# CUDA hardware validation
+
+## RTX 5090: review fixes, older driver and matched timings — 2026-10-22
+
+Revision `4b63346556f15776d441cf3e8c42a8ce2a7c15f6` passed real CUDA inference
+on Ubuntu 24.04 with NVIDIA driver **595.58.03 / CUDA driver API 13.2**, using
+the pinned CUDA 13.4 runtime. The earlier gate would have rejected this driver;
+it now accepts CUDA 13.0+ through NVIDIA's minor-version compatibility while
+retaining device and model-offload checks. Exact R580 hardware remains untested.
+
+Bundled libraries, system-library reuse and repair after removing the system
+libraries all passed text, JSON, streaming and embedding tests, with both roles
+confirmed on the GPU. Repair preserved the server inode and SHA-256 and removed
+completed download archives. The host also passed 293 release-mode AI unit tests.
+
+Three alternating release-mode runs per configuration on the **same physical
+RTX 5090**, using LFM2.5 1.2B Q4_K_M, context 4096, debounce 160 ms and 140 ms keys:
+
+| Build / backend | Suggestions | Pooled p50 | Pooled p95 | Maximum |
+| --- | --- | --- | --- | --- |
+| Master `a70373f` / Vulkan | 57/60 | 211 ms | 338 ms | 671 ms |
+| PR `4b63346` / Vulkan | 57/60 | 218 ms | 346 ms | 385 ms |
+| PR `4b63346` / CUDA | 57/60 | 180 ms | 210 ms | 217 ms |
+
+CUDA reduced median latency by **17.4%** and p95 by **39.3%** versus PR Vulkan
+in this workload. Times include debounce and cover successful suggestions only.
+This is a headless engine benchmark, not a test of desktop insertion or quality.
+The host had 15,790 MiB of pre-existing VRAM usage and no other visible process;
+idle utilization was 0%. Driver/filesystem caches were not cleared between runs.
+
+The original master-only rental had already been destroyed, so master was rerun
+on this comparison card. The original card's 217/319 ms pooled p50/p95 remains a
+separate baseline. All temporary rentals have been destroyed.
+
+[Full comparison, per-run results, reproduction scripts and sanitized evidence](../../Benchmarks/AutocompleteRTX5090/2026-10-22-pr354-4b63346/report.md).
+[Original master baseline](../../Benchmarks/AutocompleteRTX5090/2026-10-22-master-a70373f/report.md).
+
+## Earlier three-card CUDA validation — 2026-10-21
 
 The validation used synthetic prompts and the repository's fictional demo library.
 The L4 run tested `f4425e736abf2f73905badebfa465aee71a6c010`; the RTX 3080 and
@@ -101,7 +138,7 @@ insertion into a real desktop application.
 
 - Native Windows NVIDIA execution remains untested; Windows compilation,
   workspace tests, packaging and hosted desktop checks run separately in CI.
-- No CUDA/Vulkan speedup is claimed. The L4 container's Vulkan ICD failed
-  to initialize. The RTX follow-up runs tested CUDA only.
+- The earlier L4/RTX 3080/RTX 5060 Ti runs tested CUDA only and establish no
+  cross-backend speedup. The newer 5090 comparison above is separate.
 - No performance claim is made for other GPUs, models, larger contexts or
   simultaneous workloads. Automatic remains Vulkan/CPU; CUDA is opt-in.
