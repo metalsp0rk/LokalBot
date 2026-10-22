@@ -1,5 +1,59 @@
 # CUDA hardware validation
 
+## Build selection, native Windows and backend fallback — 2026-10-22
+
+The review fixes add a CUDA 12 build (12.8 on Linux, 12.4 on Windows) next to
+CUDA 13.4 and pick between them from the driver's CUDA version and each GPU's
+compute capability. They also keep built-in models on Automatic's Vulkan/CPU
+runtime until CUDA setup succeeds. Release test binaries from one source tree
+ran on rented GPUs; every library was a fresh download.
+
+| GPU (compute capability) | OS / driver (CUDA) | Selected build | Result |
+| --- | --- | --- | --- |
+| RTX 3060 (8.6) | Ubuntu 24.04 container / 595.71 (13.2) | CUDA 13.4 | Full runtime test passed, offload confirmed on Main and Embedder |
+| Titan Xp (6.1, Pascal) | Ubuntu 24.04 container / 570.158 (12.8) | CUDA 12.8 | Full runtime test passed, offload confirmed |
+| GTX 1660 (7.5, Turing) | Ubuntu 24.04 container / 580.95 (13.0) | CUDA 12.8 | Full runtime test passed, offload confirmed |
+| GTX 1660, build forced to 13.4 | Ubuntu 24.04 container / 580.95 (13.0) | CUDA 13.4 | Setup's device check passed, then model start failed: "the provided PTX was compiled with an unsupported toolchain" |
+| L4 (8.9) | Windows Server 2022 / 596.86 (13.2) | CUDA 13.4 | Full runtime test passed, offload confirmed |
+| L4 (8.9), build forced to 12.4 | Windows Server 2022 / 596.86 (13.2) | CUDA 12.4 | Full runtime test passed, offload confirmed |
+
+A separate scenario test ran on each GPU: Automatic first, then CUDA selected
+without setup, then CUDA setup. Think and embeddings kept answering on the
+automatic backend (CPU in the Linux containers, Vulkan on the Windows L4) with
+no server restart, and after setup both roles moved to CUDA with confirmed
+offload. Without an NVIDIA driver (the OVH Ubuntu box, and the AMD RX 6600 XT
+Windows PC on Vulkan), setup failed at once with the driver message and the
+models kept answering on CPU or Vulkan.
+
+The forced row shows why selection matters: the previous CUDA 13.0 driver gate
+would have installed CUDA 13.4 on that GPU and failed at model start.
+
+On GPUs without prebuilt kernels the driver compiles PTX on the first CUDA
+start after setup: the first reply took 47.9 s on the Titan Xp and 177 s on the
+GTX 1660, then 2.7 s and 4.6 s on the next cold start from a 59 MB and 104 MB
+compute cache. CUDA servers now get 10 minutes to start; other backends keep 2.
+
+Prompt processing and generation with `llama-bench` (3 repetitions, all
+layers on the GPU), same llama.cpp b11669, CUDA 13.4 build versus Vulkan build:
+
+| GPU | Workload | CUDA | Vulkan | CUDA vs Vulkan |
+| --- | --- | --- | --- | --- |
+| RTX 3060, Linux | Qwen3.5 4B Q4_K_M, 4,096-token prompt | 3,088 t/s | 2,146 t/s | +44% |
+| RTX 3060, Linux | Qwen3.5 4B Q4_K_M, generation | 88.0 t/s | 80.6 t/s | +9% |
+| RTX 3060, Linux | EmbeddingGemma 2 Q8_0, 2,048-token batch | 19,944 t/s | 12,981 t/s | +54% |
+| L4, Windows Server 2022 | Qwen3.5 4B Q4_K_M, 4,096-token prompt | 4,502 t/s | 3,401 t/s | +32% |
+| L4, Windows Server 2022 | Qwen3.5 4B Q4_K_M, generation | 64.6 t/s | 65.2 t/s | −1% |
+| L4, Windows Server 2022 | EmbeddingGemma 2 Q8_0, 2,048-token batch | 22,769 t/s | 19,130 t/s | +19% |
+
+Prompt-heavy work (notes, digests, Ask, indexing) gains the most; generation
+speed is close. The embedding rows vary by up to ±30% between repetitions.
+
+Environment problems found along the way, outside the CUDA code: upstream
+`llama-server` needs `libgomp.so.1` (OpenMP) on Linux and the Microsoft Visual
+C++ 2015–2022 runtime on Windows. A minimal container and a fresh Windows
+Server image had neither, so every backend, CPU included, failed to start until
+they were installed.
+
 ## RTX 5090: review fixes, older driver and matched timings — 2026-10-22
 
 Revision `4b63346556f15776d441cf3e8c42a8ce2a7c15f6` passed real CUDA inference
@@ -136,9 +190,13 @@ insertion into a real desktop application.
 
 ## Remaining coverage
 
-- Native Windows NVIDIA execution remains untested; Windows compilation,
-  workspace tests, packaging and hosted desktop checks run separately in CI.
+- Native Windows was tested on a data-center L4 under Windows Server 2022 only;
+  consumer Windows 10/11 GeForce systems and the Game Ready driver remain untested.
+- No host offered a CUDA 13.4+ driver, so the CUDA 13.4 build was not run on
+  Turing, A100 or H100; selection gives those GPUs CUDA 12 until such a driver.
+- Maxwell and Volta, multi-GPU PCs and system-library reuse with the CUDA 12
+  builds were not exercised on hardware.
 - The earlier L4/RTX 3080/RTX 5060 Ti runs tested CUDA only and establish no
-  cross-backend speedup. The newer 5090 comparison above is separate.
+  cross-backend speedup. The 5090 and llama-bench comparisons above are separate.
 - No performance claim is made for other GPUs, models, larger contexts or
   simultaneous workloads. Automatic remains Vulkan/CPU; CUDA is opt-in.

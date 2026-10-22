@@ -109,8 +109,9 @@ and 12.4 builds, and the CUDA 12.8 build passed on a Pascal Titan Xp with a CUDA
 12.8 driver. With `llama-bench`, CUDA read a 4,096-token prompt into the default
 Qwen3.5 4B model 44% faster than Vulkan on an RTX 3060 (Linux) and 32% faster on
 the L4 (Windows); generation speed was within 9%. On GPUs without prebuilt CUDA
-kernels, the first CUDA start after setup can take about a minute while the
-driver compiles them; later starts reuse its cache. See the
+kernels (Maxwell to Turing, A100, H100), the first CUDA reply after setup took
+1–3 minutes in testing while the driver compiled them; later starts reuse its
+cache. See the
 [hardware validation report](docs/cuda-validation.md).
 
 ### Other Think providers
