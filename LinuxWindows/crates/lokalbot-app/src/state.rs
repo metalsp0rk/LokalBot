@@ -295,6 +295,8 @@ pub struct ModelStatus {
     pub screen_text_ready: bool,
     /// "CUDA", "Vulkan" or "CPU" for the selected built-in runtime, once installed.
     pub runtime_backend: Option<SharedString>,
+    /// CUDA is downloaded, but its setup GPU check has not passed.
+    pub runtime_needs_check: bool,
     pub runtime_storage: Vec<lokalbot_ai::runtime::RuntimeStorage>,
 }
 

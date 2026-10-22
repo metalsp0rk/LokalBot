@@ -47,20 +47,35 @@ Settings → Models → llama.cpp offers **CUDA (experimental)** on Linux x86_64
 Windows x64. It accelerates the built-in Think, search and autocomplete models;
 transcription and speaker separation still use their separate CPU engines.
 
-The initial runtime uses CUDA 13.4 and requires an NVIDIA Turing or newer GPU and
-a driver reporting CUDA 13.0 support or newer (the R580 family or later).
+Setup picks one of two pinned llama.cpp CUDA builds from the driver's CUDA
+version and each GPU's compute capability (read with `nvidia-smi`):
+
+| Build | Prebuilt kernels | Other GPUs (compiled from PTX) |
+| --- | --- | --- |
+| CUDA 13.4 | RTX 30, 40 and 50 (compute capability 8.6, 8.9, 12.x) on a CUDA 13.0+ driver (R580+) | Turing, A100, H100 and newer with a CUDA 13.4+ driver |
+| CUDA 12.8 (Linux) / 12.4 (Windows) | RTX 30 and 40 on a CUDA 12.0+ driver (R525+) | Maxwell, Pascal, Volta, Turing and newer with a CUDA 12.8 / 12.4+ driver |
+
 [NVIDIA's minor-version compatibility](https://docs.nvidia.com/deploy/cuda-compatibility/minor-version-compatibility.html)
-allows CUDA 13.x libraries on these drivers, but newer PTX or driver features
-can still require a driver update. Actual device detection and model offload
-must succeed. Older hardware/drivers can keep using Vulkan or CPU. **Automatic** continues to select Vulkan or CPU; CUDA remains
-opt-in pending broader hardware validation and performance comparisons.
+lets a driver run prebuilt kernels from any toolkit of its CUDA major version,
+but it compiles PTX only from a toolkit no newer than itself. So a Turing GPU
+on an R580 driver gets the CUDA 12 build, and a GTX 10-series GPU works with a
+CUDA 12.8 (Linux) or 12.4 (Windows) driver. LokalBot takes the newest build
+that every NVIDIA GPU in the PC can run; without `nvidia-smi` it takes one whose
+PTX the driver can compile. `LOKALBOT_CUDA_RUNTIME=13.4`, `12.8` or `12.4` forces
+a build for troubleshooting. Actual device detection and model offload must
+still succeed. Kepler and older GPUs, and drivers older than CUDA 12.0, can keep
+using Vulkan or CPU. **Automatic** continues to select Vulkan or CPU; CUDA
+remains opt-in pending broader hardware validation and performance comparisons.
 
 LokalBot first tries compatible system CUDA libraries. If the CUDA backend cannot
 use them, it downloads the pinned CUDA runtime, cuBLAS and cuBLASLt libraries into
 its own runtime folder. You do not need the CUDA compiler or full toolkit. A fresh
-download is at most about 594 MB on Linux or 578 MB on Windows; reusing system
-libraries reduces that to about 154 MB or 155 MB respectively, excluding models.
-Downloads are verified and an incomplete setup does not count as installed.
+download is at most about 594 MB (CUDA 13.4) or 767 MB (CUDA 12.8) on Linux, and
+578 MB (CUDA 13.4) or 658 MB (CUDA 12.4) on Windows. Reusing system libraries
+reduces that to the server archive: about 154 MB for CUDA 13.4, 173 MB for
+CUDA 12.8 and 267 MB for CUDA 12.4, excluding models. Settings estimates the CUDA
+13.4 size until setup has picked a build. Downloads are verified and an
+incomplete setup does not count as installed.
 
 Changing the backend lets in-flight requests finish; models switch when next
 loaded. Selecting CUDA does not stop the built-in models: they keep using the
@@ -68,11 +83,12 @@ Vulkan or CPU runtime Automatic would choose until CUDA setup succeeds, and no
 background role starts a CUDA download. Download under Settings → Models →
 llama.cpp prepares CUDA. If setup downloads everything but the final GPU check
 fails, for example because another app has filled GPU memory, the verified files
-are kept and the next Download repeats only the check. Once CUDA is set up,
-explicit CUDA reports a startup error if it cannot accelerate the model, rather
-than silently labeling a CPU run as CUDA. Choose Automatic, Vulkan or CPU to
-recover. Download stays available for CUDA so it can retry detection and repair
-missing system libraries without reinstalling the server. Transient GPU failures
+are kept, Settings shows "Not ready · CUDA", and **Check again** repeats only the
+check. Once CUDA is set up, explicit CUDA reports a startup error if it cannot
+accelerate the model, rather than silently labeling a CPU run as CUDA. Choose
+Automatic, Vulkan or CPU to recover. **Check again** stays available for CUDA so
+it can retry detection and repair missing system libraries without reinstalling
+the server. Transient GPU failures
 preserve installed files. Device probes are cached for the session, and healthy
 helpers are reused before probing. Model Storage lists runtime folders even
 after switching backends.
@@ -87,8 +103,15 @@ bundled libraries, system-library reuse and in-place repair on a CUDA 13.2 drive
 On that card, three release-mode autocomplete runs per backend measured pooled
 p50/p95 of 180/210 ms for CUDA versus 218/346 ms for Vulkan, including the
 160 ms debounce. Both produced 57/60 suggestions; this is one synthetic model
-workload, not a general performance guarantee. Native Windows CUDA execution
-remains unverified. See the [hardware validation report](docs/cuda-validation.md).
+workload, not a general performance guarantee. Native Windows CUDA passed the
+runtime test on an NVIDIA L4 under Windows Server 2022 with both the CUDA 13.4
+and 12.4 builds, and the CUDA 12.8 build passed on a Pascal Titan Xp with a CUDA
+12.8 driver. With `llama-bench`, CUDA read a 4,096-token prompt into the default
+Qwen3.5 4B model 44% faster than Vulkan on an RTX 3060 (Linux) and 32% faster on
+the L4 (Windows); generation speed was within 9%. On GPUs without prebuilt CUDA
+kernels, the first CUDA start after setup can take about a minute while the
+driver compiles them; later starts reuse its cache. See the
+[hardware validation report](docs/cuda-validation.md).
 
 ### Other Think providers
 

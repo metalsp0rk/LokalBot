@@ -1040,8 +1040,9 @@ impl SettingsPage {
         let backends = ["auto", "vulkan", "cuda", "cpu"];
         let selected_backend = backends
             .iter()
-            .position(|b| *b == settings.llama_backend)
+            .position(|b| settings.llama_backend.trim().eq_ignore_ascii_case(b))
             .unwrap_or(0);
+        let cuda_selected = selected_backend == 2;
         let runtime_progress = downloads.get(RUNTIME_ID);
         let runtime_downloading = runtime_progress.is_some_and(|d| d.error.is_none());
         let runtime_detail = match runtime_progress {
@@ -1059,6 +1060,10 @@ impl SettingsPage {
                 lokalbot_i18n::tr("Ready"),
                 status.runtime_backend.as_ref().unwrap()
             ),
+            // Downloaded, but the setup GPU check failed: no download is left.
+            None if status.runtime_needs_check => {
+                format!("{} · CUDA", lokalbot_i18n::tr("Not ready"))
+            }
             None => lokalbot_i18n::format(
                 "About {0} to download",
                 &[(
@@ -1106,12 +1111,19 @@ impl SettingsPage {
                                     .small()
                                     .label(if runtime_downloading {
                                         lokalbot_i18n::tr("Cancel")
+                                    } else if cuda_selected
+                                        && (status.runtime_backend.is_some()
+                                            || status.runtime_needs_check)
+                                    {
+                                        // Setup repeats the GPU check and repairs
+                                        // missing libraries without a full download.
+                                        lokalbot_i18n::tr("Check again")
                                     } else {
                                         lokalbot_i18n::tr("Download")
                                     })
                                     .disabled(
                                         status.runtime_backend.is_some()
-                                            && settings.llama_backend != "cuda"
+                                            && !cuda_selected
                                             && runtime_progress.is_none(),
                                     )
                                     .on_click(move |_, _, cx| {

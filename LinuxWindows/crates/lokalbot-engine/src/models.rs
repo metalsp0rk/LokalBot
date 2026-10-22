@@ -154,6 +154,7 @@ impl Models {
             embeddings_ready: ready(self.embedding_requirements()),
             screen_text_ready,
             runtime_backend,
+            runtime_needs_check: self.shared.runtime.runtime_needs_check(),
             runtime_storage: self.shared.runtime.storage(),
             installed,
         };

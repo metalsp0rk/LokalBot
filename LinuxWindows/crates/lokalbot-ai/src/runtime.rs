@@ -11,7 +11,7 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
-use std::sync::atomic::AtomicBool;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Weak};
 use std::time::{Duration, Instant};
 
@@ -89,7 +89,8 @@ impl RuntimeAsset {
 
 #[cfg(windows)]
 const ASSETS: &[RuntimeAsset] = &[
-    cuda::ASSET,
+    cuda::SERVERS[0],
+    cuda::SERVERS[1],
     RuntimeAsset {
         backend: LlamaBackend::Vulkan,
         tag: "win-vulkan-x64",
@@ -108,7 +109,8 @@ const ASSETS: &[RuntimeAsset] = &[
 
 #[cfg(not(windows))]
 const ASSETS: &[RuntimeAsset] = &[
-    cuda::ASSET,
+    cuda::SERVERS[0],
+    cuda::SERVERS[1],
     RuntimeAsset {
         backend: LlamaBackend::Vulkan,
         tag: "ubuntu-vulkan-x64",
@@ -149,12 +151,10 @@ pub fn download_bytes(preference: &str) -> u64 {
 }
 
 fn backend_download_bytes(backend: LlamaBackend) -> u64 {
+    if backend == LlamaBackend::Cuda {
+        return cuda::likely().download_bytes();
+    }
     asset(backend).map_or(0, |a| a.size)
-        + if backend == LlamaBackend::Cuda {
-            cuda::LIBRARIES.size
-        } else {
-            0
-        }
 }
 
 const SERVER_BINARY: &str = if cfg!(windows) {
@@ -329,6 +329,9 @@ struct Installer {
     /// Cache successes and failures until repair, a backend change, or a failed launch.
     /// Holding this lock during detection also coalesces simultaneous role starts.
     devices: Mutex<HashMap<PathBuf, std::result::Result<GpuDevice, String>>>,
+    /// A backend change while a probe holds `devices` (up to 30 s) marks the
+    /// cache stale instead of blocking the settings thread.
+    devices_stale: AtomicBool,
     lock: Mutex<()>,
 }
 
@@ -341,8 +344,16 @@ impl Installer {
         self.root().join(asset.folder())
     }
 
+    /// The installed build of `backend`. CUDA has one per toolkit.
     fn record(&self, backend: LlamaBackend) -> Option<(InstallRecord, PathBuf)> {
-        let asset = asset(backend)?;
+        ASSETS
+            .iter()
+            .filter(|asset| asset.backend == backend)
+            .find_map(|asset| self.installed(asset))
+    }
+
+    fn installed(&self, asset: &RuntimeAsset) -> Option<(InstallRecord, PathBuf)> {
+        let backend = asset.backend;
         let folder = self.folder(asset);
         let mut record: InstallRecord =
             serde_json::from_slice(&std::fs::read(folder.join("install.json")).ok()?).ok()?;
@@ -361,10 +372,13 @@ impl Installer {
         }
         let binary = folder.join(&record.server);
         let libraries_ready = backend != LlamaBackend::Cuda
-            || match record.cuda_libraries.as_deref() {
-                Some("system") => true,
-                Some(digest) if digest == cuda::LIBRARIES.sha256 => {
-                    binary.parent().is_some_and(cuda::complete)
+            || match (
+                record.cuda_libraries.as_deref(),
+                cuda::build_for(asset.name),
+            ) {
+                (Some("system"), Some(_)) => true,
+                (Some(digest), Some(build)) if digest == build.libraries.sha256 => {
+                    binary.parent().is_some_and(|dir| build.complete(dir))
                 }
                 _ => false,
             };
@@ -434,25 +448,28 @@ impl Installer {
         if let Some(installed) = self.record(backend) {
             return Ok(installed);
         }
-        if backend == LlamaBackend::Cuda {
-            cuda::require_driver()?;
-        }
-        self.download_and_unpack(backend, cancel, progress)
+        let asset = if backend == LlamaBackend::Cuda {
+            &cuda::select()?.server
+        } else {
+            asset(backend).ok_or_else(|| {
+                anyhow!(
+                    "llama.cpp has no {} build for this platform",
+                    backend.label()
+                )
+            })?
+        };
+        self.download_and_unpack(asset, cancel, progress)
     }
 
-    /// [`Self::install`] after its checks for an existing install and a driver.
+    /// [`Self::install`] after it found no installation and chose `asset`.
     fn download_and_unpack(
         &self,
-        backend: LlamaBackend,
+        asset: &RuntimeAsset,
         cancel: &AtomicBool,
         progress: &mut dyn FnMut(u64, u64),
     ) -> Result<(InstallRecord, PathBuf)> {
-        let asset = asset(backend).ok_or_else(|| {
-            anyhow!(
-                "llama.cpp has no {} build for this platform",
-                backend.label()
-            )
-        })?;
+        let backend = asset.backend;
+        let cuda_build = cuda::build_for(asset.name);
         let downloads = self.root().join(".downloads");
         let archive = downloads.join(asset.name);
         let spec = DownloadSpec {
@@ -461,7 +478,7 @@ impl Installer {
             size: asset.size,
             dest: archive.clone(),
         };
-        let total = backend_download_bytes(backend);
+        let total = cuda_build.map_or(asset.size, cuda::Build::download_bytes);
         download::download(&spec, cancel, &mut |done, _| progress(done, total))
             .with_context(|| format!("downloading the llama.cpp {} runtime", backend.label()))?;
 
@@ -485,8 +502,8 @@ impl Installer {
                 perms.set_mode(perms.mode() | 0o755);
                 std::fs::set_permissions(&server, perms)?;
             }
-            let (cuda_libraries, cuda_unverified) = if backend == LlamaBackend::Cuda {
-                let (libraries, checked) = self.prepare_cuda(&server, cancel, progress)?;
+            let (cuda_libraries, cuda_unverified) = if let Some(build) = cuda_build {
+                let (libraries, checked) = self.prepare_cuda(&server, build, cancel, progress)?;
                 // A GPU filled by another app fails only the final check. Keep
                 // the verified files: setup reports the failure, and a retry
                 // repeats the check without downloading them again.
@@ -523,11 +540,11 @@ impl Installer {
                 .with_context(|| format!("installing {}", folder.display()))?;
             // A successful system-library probe avoided the companion archive.
             let actual = asset.size
-                + if record.cuda_libraries.as_deref() == Some(cuda::LIBRARIES.sha256) {
-                    cuda::LIBRARIES.size
-                } else {
-                    0
-                };
+                + cuda_build
+                    .filter(|build| {
+                        record.cuda_libraries.as_deref() == Some(build.libraries.sha256)
+                    })
+                    .map_or(0, |build| build.libraries.size);
             progress(actual, actual);
             let installed_binary = folder.join(relative);
             let mut devices = self.devices.lock();
@@ -554,6 +571,7 @@ impl Installer {
     fn prepare_cuda(
         &self,
         server: &Path,
+        build: &cuda::Build,
         cancel: &AtomicBool,
         progress: &mut dyn FnMut(u64, u64),
     ) -> Result<(String, Result<()>)> {
@@ -563,7 +581,7 @@ impl Installer {
             return Ok(("system".into(), Ok(())));
         }
         check_cancelled(cancel)?;
-        let companion = &cuda::LIBRARIES;
+        let companion = &build.libraries;
         let archive = self.root().join(".downloads").join(companion.name);
         let spec = DownloadSpec {
             url: companion.url(),
@@ -572,7 +590,7 @@ impl Installer {
             dest: archive.clone(),
         };
         download::download(&spec, cancel, &mut |done, _| {
-            progress(cuda::ASSET.size + done, cuda::ASSET.size + companion.size);
+            progress(build.server.size + done, build.download_bytes());
         })?;
         // A completed companion archive is temporary, including when extraction
         // or the final GPU probe fails. Interrupted downloads can still resume.
@@ -580,7 +598,7 @@ impl Installer {
         check_cancelled(cancel)?;
         let extracted = tempfile::tempdir_in(self.root())?;
         download::extract_archive(&archive, extracted.path())?;
-        cuda::place_libraries(
+        build.place_libraries(
             extracted.path(),
             server.parent().context("runtime has no directory")?,
         )?;
@@ -595,6 +613,9 @@ impl Installer {
 
     fn device(&self, binary: &Path, backend: LlamaBackend) -> Result<GpuDevice> {
         let mut devices = self.devices.lock();
+        if self.devices_stale.swap(false, Ordering::AcqRel) {
+            devices.clear();
+        }
         devices
             .entry(binary.to_path_buf())
             .or_insert_with(|| probe_gpu(binary, backend).map_err(|err| format!("{err:#}")))
@@ -620,6 +641,8 @@ impl Installer {
         progress: &mut dyn FnMut(u64, u64),
     ) -> Result<()> {
         check_cancelled(cancel)?;
+        let build = cuda::build_for(&record.asset)
+            .with_context(|| format!("{} is not a CUDA runtime", record.asset))?;
         let before = record.clone();
         let checked = match self.device(binary, LlamaBackend::Cuda) {
             Ok(_) => Ok(()),
@@ -627,14 +650,14 @@ impl Installer {
                 Err(error.context(CUDA_UNAVAILABLE))
             }
             Err(_) => {
-                cuda::require_driver()?;
+                cuda::driver_version()?;
                 // Replace only the optional math libraries. The server folder
                 // may be in use by another role, particularly on Windows.
-                let prepared = self.prepare_cuda(binary, cancel, progress);
-                if binary.parent().is_some_and(cuda::complete) {
+                let prepared = self.prepare_cuda(binary, build, cancel, progress);
+                if binary.parent().is_some_and(|dir| build.complete(dir)) {
                     // File completeness and GPU availability are different states.
                     // Keep newly repaired files even if this GPU is currently busy.
-                    record.cuda_libraries = Some(cuda::LIBRARIES.sha256.into());
+                    record.cuda_libraries = Some(build.libraries.sha256.into());
                 }
                 prepared.and_then(|(_, checked)| checked)
             }
@@ -644,7 +667,7 @@ impl Installer {
             record.cuda_unverified = false;
         }
         if record != before {
-            let path = self.folder(&cuda::ASSET).join("install.json");
+            let path = self.folder(&build.server).join("install.json");
             lokalbot_core::library::write_atomic(&path, &serde_json::to_vec_pretty(&record)?)?;
         }
         checked
@@ -1434,7 +1457,9 @@ impl ServerInner {
                     return Ok(running);
                 }
             }
-            let device = self.installer.device(binary, backend)?;
+            let device = self.installer.device(binary, backend).context(
+                "CUDA found no usable GPU. Press Check again under Settings → Models → llama.cpp, or choose Automatic, Vulkan or CPU.",
+            )?;
             extra_args.extend(cuda_launch_args(&device.id));
         }
         if let Some(running) =
@@ -1549,8 +1574,15 @@ impl ServerInner {
             };
             AiError::ServerStart(message).into()
         };
-        // Loading a large model can take a while.
-        for _ in 0..240 {
+        // Loading a large model can take a while. On GPUs without prebuilt
+        // CUDA kernels the driver first compiles PTX, ~50 s on a Titan Xp;
+        // later starts reuse its cache.
+        let attempts = if backend == LlamaBackend::Cuda {
+            1200
+        } else {
+            240
+        };
+        for _ in 0..attempts {
             std::thread::sleep(Duration::from_millis(500));
             if !matches!(child.try_wait(), Ok(None)) {
                 remove_marker_if(paths, self.port, pid);
@@ -1816,6 +1848,7 @@ impl RuntimeManager {
             preference: Mutex::new(settings.llama_backend.clone()),
             active: Mutex::new(None),
             devices: Mutex::new(HashMap::new()),
+            devices_stale: AtomicBool::new(false),
             lock: Mutex::new(()),
         });
         let server = |role: Role| LlamaServer {
@@ -1863,7 +1896,10 @@ impl RuntimeManager {
         if current.trim() != preference.trim() {
             *current = preference.to_string();
             *installer.active.lock() = None;
-            installer.devices.lock().clear();
+            match installer.devices.try_lock() {
+                Some(mut devices) => devices.clear(),
+                None => installer.devices_stale.store(true, Ordering::Release),
+            }
         }
     }
 
@@ -1899,6 +1935,15 @@ impl RuntimeManager {
             Some(backend) => installer.record(backend).map(|_| backend.label().into()),
             None => self.automatic_backend(),
         }
+    }
+
+    /// CUDA is selected and downloaded, but its setup GPU check has not passed.
+    pub fn runtime_needs_check(&self) -> bool {
+        let installer = &self.shared.installer;
+        LlamaBackend::preference(&installer.preference()) == Some(LlamaBackend::Cuda)
+            && installer
+                .record(LlamaBackend::Cuda)
+                .is_some_and(|(record, _)| record.cuda_unverified)
     }
 
     /// The backend built-in models can run on now without a download. CUDA
@@ -1950,7 +1995,10 @@ impl RuntimeManager {
             let path = installer.folder(asset);
             if path.is_dir() {
                 stored.push(RuntimeStorage {
-                    name: asset.backend.label().into(),
+                    name: cuda::build_for(asset.name).map_or_else(
+                        || asset.backend.label().into(),
+                        |build| format!("CUDA {}", build.version),
+                    ),
                     bytes: directory_bytes(&path),
                     path,
                 });
@@ -2081,7 +2129,7 @@ mod tests {
 
     #[test]
     fn pinned_assets_exist_for_this_platform() {
-        assert_eq!(assets().len(), 3);
+        assert_eq!(assets().len(), 4);
         for asset in assets() {
             assert_eq!(asset.sha256.len(), 64);
             assert!(
@@ -2142,7 +2190,7 @@ mod tests {
     fn cuda_download_size_includes_libraries_without_inflating_auto() {
         assert_eq!(
             download_bytes("cuda"),
-            cuda::ASSET.size + cuda::LIBRARIES.size
+            cuda::BUILDS[0].server.size + cuda::BUILDS[0].libraries.size
         );
         assert_eq!(
             download_bytes("auto"),
@@ -2253,7 +2301,11 @@ mod tests {
         assert_eq!(manager.installed_backend(), None);
         fixture_record(installer, LlamaBackend::Cuda, None);
         assert_eq!(manager.installed_backend(), None);
-        fixture_record(installer, LlamaBackend::Cuda, Some(cuda::LIBRARIES.sha256));
+        fixture_record(
+            installer,
+            LlamaBackend::Cuda,
+            Some(cuda::BUILDS[0].libraries.sha256),
+        );
         assert_eq!(
             manager.installed_backend(),
             None,
@@ -2377,32 +2429,35 @@ mod tests {
         let manager = RuntimeManager::new(LibraryPaths::new(dir.path()), &settings);
         let installer = &manager.shared.installer;
         let downloads = installer.root().join(".downloads");
+        // The CUDA 12 build, which older GPUs and drivers select.
+        let build = &cuda::BUILDS[1];
         // Exits with an error, like a GPU with no memory free for a new context.
         let busy = probe_script(1);
         seed_archive(
             &downloads,
-            &cuda::ASSET,
+            &build.server,
             &[
                 (SERVER_BINARY, busy.as_bytes()),
                 ("libggml-cuda.so", b"fixture"),
             ],
         );
-        let libraries: Vec<(&str, &[u8])> = cuda::LIBRARY_NAMES
+        let libraries: Vec<(&str, &[u8])> = build
+            .library_names
             .iter()
             .map(|name| (*name, b"fixture library".as_slice()))
             .collect();
-        seed_archive(&downloads, &cuda::LIBRARIES, &libraries);
+        seed_archive(&downloads, &build.libraries, &libraries);
 
         // `install` checks the NVIDIA driver first; no test machine has one.
         let (record, binary) = installer
-            .download_and_unpack(LlamaBackend::Cuda, &AtomicBool::new(false), &mut |_, _| {})
+            .download_and_unpack(&build.server, &AtomicBool::new(false), &mut |_, _| {})
             .unwrap();
         assert!(record.cuda_unverified);
         assert_eq!(
             record.cuda_libraries.as_deref(),
-            Some(cuda::LIBRARIES.sha256)
+            Some(build.libraries.sha256)
         );
-        assert!(binary.parent().is_some_and(cuda::complete));
+        assert!(binary.parent().is_some_and(|dir| build.complete(dir)));
         assert_eq!(
             std::fs::read_dir(&downloads).unwrap().count(),
             0,
@@ -2443,9 +2498,12 @@ mod tests {
         let (libraries, checked) = manager
             .shared
             .installer
-            .prepare_cuda(&binary, &AtomicBool::new(false), &mut |_, _| {
-                progress_called = true
-            })
+            .prepare_cuda(
+                &binary,
+                &cuda::BUILDS[0],
+                &AtomicBool::new(false),
+                &mut |_, _| progress_called = true,
+            )
             .unwrap();
         assert_eq!(libraries, "system");
         assert!(checked.is_ok());
@@ -2473,6 +2531,7 @@ mod tests {
             .installer
             .prepare_cuda(
                 Path::new("nonexistent"),
+                &cuda::BUILDS[0],
                 &AtomicBool::new(true),
                 &mut |_, _| panic!("download after cancellation"),
             )
@@ -2677,7 +2736,7 @@ mod tests {
         assert_eq!(manager.installed_backend(), None);
         let stored = manager.storage();
         assert_eq!(stored.len(), 1);
-        assert_eq!(stored[0].name, "CUDA");
+        assert_eq!(stored[0].name, "CUDA 13.4");
         assert!(stored[0].bytes > 0);
         manager.uninstall().unwrap();
         assert!(manager.storage().is_empty());
