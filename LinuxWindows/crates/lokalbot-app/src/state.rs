@@ -295,6 +295,7 @@ pub struct ModelStatus {
     pub screen_text_ready: bool,
     /// "CUDA", "Vulkan" or "CPU" for the selected built-in runtime, once installed.
     pub runtime_backend: Option<SharedString>,
+    pub runtime_storage: Vec<lokalbot_ai::runtime::RuntimeStorage>,
 }
 
 /// Sources and date range for a question in Ask.

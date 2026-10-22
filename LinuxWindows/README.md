@@ -48,8 +48,11 @@ Windows x64. It accelerates the built-in Think, search and autocomplete models;
 transcription and speaker separation still use their separate CPU engines.
 
 The initial runtime uses CUDA 13.4 and requires an NVIDIA Turing or newer GPU and
-a driver reporting CUDA 13.4 support or newer. Older hardware/drivers can keep
-using Vulkan or CPU. **Automatic** continues to select Vulkan or CPU; CUDA remains
+a driver reporting CUDA 13.0 support or newer (the R580 family or later).
+[NVIDIA's minor-version compatibility](https://docs.nvidia.com/deploy/cuda-compatibility/minor-version-compatibility.html)
+allows CUDA 13.x libraries on these drivers, but newer PTX or driver features
+can still require a driver update. Actual device detection and model offload
+must succeed. Older hardware/drivers can keep using Vulkan or CPU. **Automatic** continues to select Vulkan or CPU; CUDA remains
 opt-in pending broader hardware validation and performance comparisons.
 
 LokalBot first tries compatible system CUDA libraries. If the CUDA backend cannot
@@ -63,7 +66,11 @@ Changing the backend lets in-flight requests finish; models switch when next
 loaded. Explicit CUDA reports a setup/startup error if it cannot accelerate the
 model, rather than silently labeling a CPU run as CUDA. Choose Automatic, Vulkan
 or CPU to recover. The Settings download buttons prepare the newly selected
-runtime; typing into another app never initiates a runtime download.
+runtime; no background CUDA role initiates a runtime download. Download stays
+available for CUDA so it can retry detection and repair missing system libraries
+without reinstalling the server. Transient GPU failures preserve installed files.
+Device probes are cached for the session, and healthy helpers are reused before
+probing. Model Storage lists runtime folders even after switching backends.
 
 For native NVIDIA validation, run the ignored runtime test with
 `LOKALBOT_E2E_BACKEND=cuda` and a separate `LOKALBOT_E2E_ROOT`, and run the

@@ -152,6 +152,7 @@ impl Models {
             embeddings_ready: ready(self.embedding_requirements()),
             screen_text_ready,
             runtime_backend,
+            runtime_storage: self.shared.runtime.storage(),
             installed,
         };
         self.shared.emit(EngineEvent::Models(status));

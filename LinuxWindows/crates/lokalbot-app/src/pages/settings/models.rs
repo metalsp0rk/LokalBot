@@ -855,6 +855,36 @@ impl SettingsPage {
                 cx,
             ),
         );
+        for runtime in &status.runtime_storage {
+            let path = runtime.path.clone();
+            let id = SharedString::from(format!("settings-runtime-storage-{}", runtime.name));
+            storage = storage.row(
+                "settings.modelStorage",
+                settings_row::content_row(
+                    id.clone(),
+                    h_flex()
+                        .gap(px(12.))
+                        .items_center()
+                        .child(div().flex_1().child(settings_row::help(
+                            format!(
+                                "llama.cpp · {} · {}",
+                                lokalbot_i18n::tr(&runtime.name),
+                                size_label(runtime.bytes)
+                            ),
+                            cx,
+                        )))
+                        .child(
+                            Button::new(id)
+                                .outline()
+                                .small()
+                                .label(lokalbot_i18n::tr("Show in Folder"))
+                                .on_click(move |_, _, cx| cx.open_with_system(&path)),
+                        ),
+                    false,
+                    cx,
+                ),
+            );
+        }
         if !unused.is_empty() {
             let total: u64 = unused.iter().map(|id| model_bytes(id, &settings)).sum();
             let rows = unused.iter().map(|id| {
@@ -1081,6 +1111,7 @@ impl SettingsPage {
                                     })
                                     .disabled(
                                         status.runtime_backend.is_some()
+                                            && settings.llama_backend != "cuda"
                                             && runtime_progress.is_none(),
                                     )
                                     .on_click(move |_, _, cx| {

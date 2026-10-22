@@ -345,6 +345,7 @@ pub struct ModelStatus {
     /// The screen text recognition (OCR) models are downloaded.
     pub screen_text_ready: bool,
     pub runtime_backend: Option<String>,
+    pub runtime_storage: Vec<lokalbot_ai::runtime::RuntimeStorage>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

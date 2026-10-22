@@ -2,7 +2,6 @@
 //! math libraries are reused from the system when the actual backend loads.
 
 use std::path::{Path, PathBuf};
-use std::process::Command;
 
 use anyhow::{Context as _, Result, bail};
 
@@ -68,7 +67,7 @@ pub(super) fn complete(dir: &Path) -> bool {
     })
 }
 
-/// Both upstream archives use their own layout. Copy only the three pinned
+/// Both upstream archives use their own layout. Move only the three pinned
 /// runtime libraries next to llama-server, never a driver or a system file.
 pub(super) fn place_libraries(extracted: &Path, server_dir: &Path) -> Result<()> {
     let files: Vec<_> = LIBRARY_NAMES
@@ -79,7 +78,7 @@ pub(super) fn place_libraries(extracted: &Path, server_dir: &Path) -> Result<()>
         })
         .collect::<Result<_>>()?;
     for (source, name) in files.iter().zip(LIBRARY_NAMES) {
-        std::fs::copy(source, server_dir.join(name))?;
+        std::fs::rename(source, server_dir.join(name))?;
     }
     Ok(())
 }
@@ -112,11 +111,12 @@ pub(super) fn require_driver() -> Result<()> {
 }
 
 fn validate_driver_version(version: i32) -> Result<()> {
-    // Conservative because upstream includes PTX kernels. A generic CUDA 13
-    // minimum driver is insufficient to guarantee CUDA 13.4 PTX compilation.
-    if version < 13_040 {
+    // NVIDIA supports minor compatibility within CUDA 13.x (R580+). New PTX
+    // or driver features can still fail, so device and model execution must pass.
+    // https://docs.nvidia.com/deploy/cuda-compatibility/minor-version-compatibility.html
+    if version < 13_000 {
         bail!(
-            "This runtime needs an NVIDIA driver supporting CUDA 13.4 or newer (driver reports {}.{}). Update the driver or choose Auto, Vulkan or CPU.",
+            "This runtime needs an NVIDIA driver supporting CUDA 13.0 or newer (driver reports {}.{}). Update the driver or choose Auto, Vulkan or CPU.",
             version / 1000,
             (version % 1000) / 10
         );
@@ -157,28 +157,14 @@ pub(super) fn library_dirs() -> Vec<PathBuf> {
     dirs
 }
 
-pub(super) fn configure_command(command: &mut Command, server_dir: &Path) {
-    #[cfg(windows)]
-    let key = "PATH";
-    #[cfg(not(windows))]
-    let key = "LD_LIBRARY_PATH";
-    let mut paths = vec![server_dir.to_path_buf()];
-    paths.extend(library_dirs());
-    if let Some(existing) = std::env::var_os(key) {
-        paths.extend(std::env::split_paths(&existing).filter(|p| !p.as_os_str().is_empty()));
-    }
-    if let Ok(value) = std::env::join_paths(paths) {
-        command.env(key, value);
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn driver_must_support_the_ptx_toolkit_version() {
-        assert!(validate_driver_version(13_000).is_err());
+    fn driver_accepts_cuda_13_minor_compatibility() {
+        assert!(validate_driver_version(13_000).is_ok());
+        assert!(validate_driver_version(13_020).is_ok());
         assert!(validate_driver_version(12_080).is_err());
         assert!(validate_driver_version(13_040).is_ok());
         assert!(validate_driver_version(14_000).is_ok());
@@ -197,6 +183,7 @@ mod tests {
         }
         place_libraries(&extracted, &server_dir).unwrap();
         assert!(complete(&server_dir));
+        assert!(LIBRARY_NAMES.iter().all(|name| !nested.join(name).exists()));
         std::fs::remove_file(server_dir.join(LIBRARY_NAMES[0])).unwrap();
         assert!(!complete(&server_dir));
     }

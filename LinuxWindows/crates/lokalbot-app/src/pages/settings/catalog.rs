@@ -452,7 +452,7 @@ pub const ENTRIES: &[Entry] = &[
     },
     Entry {
         id: "settings.llamaBackend",
-        title: "CUDA (experimental)",
+        title: "llama.cpp",
         category: Models,
         aliases: "nvidia gpu acceleration vulkan cpu llama runtime",
         value: |s| s.llama_backend.clone(),
