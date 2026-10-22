@@ -56,6 +56,9 @@ struct Action: Decodable {
     var park: [Double]?       // window-relative; warps the pointer without motion
     var press: Target?        // AXPress without moving the pointer
     var focus: Target?        // give an element keyboard focus without moving the pointer
+    var hold: [String]?       // modifier keys held down while `during` runs, e.g. ["control", "option"]
+    var during: [Action]?
+    var run: [String]?        // a command started in the background, e.g. a voice line; not waited for
 }
 
 struct Shot: Decodable {
@@ -70,6 +73,8 @@ struct Shot: Decodable {
     var setup: [Action]?              // runs before recording starts
     var park: [Double]?               // window-relative pointer position while recording starts
     var actions: [Action]
+    var also: [String]?               // bundle ids whose windows are captured too, e.g. an overlay
+    var title: String?                // capture the window whose title contains this; default: the widest
 }
 
 func loadShot(_ path: String) -> Shot {
@@ -189,13 +194,16 @@ final class Subject {
     let window: AXUIElement
     var frame: CGRect
 
-    init(bundle: String) {
+    init(bundle: String, title: String? = nil) {
         let deadline = Date().addingTimeInterval(45)
         var found: (NSRunningApplication, AXUIElement, AXUIElement)?
         while found == nil, Date() < deadline {
             if let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundle).first {
                 let element = AXUIElementCreateApplication(app.processIdentifier)
-                let windows: [AXUIElement] = axValue(element, kAXWindowsAttribute) ?? []
+                var windows: [AXUIElement] = axValue(element, kAXWindowsAttribute) ?? []
+                if let title {
+                    windows = windows.filter { (axValue($0, kAXTitleAttribute) as String? ?? "").contains(title) }
+                }
                 if let window = windows.max(by: { (axFrame($0)?.width ?? 0) < (axFrame($1)?.width ?? 0) }) {
                     found = (app, element, window)
                     break
@@ -334,6 +342,51 @@ func key(_ code: CGKeyCode, text: String?, flags f: CGEventFlags) {
     }
 }
 
+let modifierKeys: [String: (code: CGKeyCode, flag: CGEventFlags)] = [
+    "option": (58, .maskAlternate), "control": (59, .maskControl), "shift": (56, .maskShift), "cmd": (55, .maskCommand),
+]
+
+/// Presses and holds keys in order, e.g. ["option", "space"], and returns the
+/// release. Push-to-talk shortcuts need the key held, not tapped.
+func holdDown(_ names: [String]) -> () -> Void {
+    var held: CGEventFlags = []
+    var keys: [CGKeyCode] = []
+    for name in names {
+        if let modifier = modifierKeys[name] {
+            held.insert(modifier.flag)
+            let event = CGEvent(keyboardEventSource: source, virtualKey: modifier.code, keyDown: true)
+            event?.type = .flagsChanged
+            event?.flags = held
+            post(event)
+        } else if let code = namedKeys[name] {
+            let event = CGEvent(keyboardEventSource: source, virtualKey: code, keyDown: true)
+            event?.flags = held
+            post(event)
+            keys.append(code)
+        } else {
+            die("unknown key \(name)")
+        }
+        Thread.sleep(forTimeInterval: 0.03)
+    }
+    return {
+        for code in keys.reversed() {
+            let event = CGEvent(keyboardEventSource: source, virtualKey: code, keyDown: false)
+            event?.flags = held
+            post(event)
+            Thread.sleep(forTimeInterval: 0.03)
+        }
+        for name in names.reversed() {
+            guard let modifier = modifierKeys[name] else { continue }
+            held.remove(modifier.flag)
+            let event = CGEvent(keyboardEventSource: source, virtualKey: modifier.code, keyDown: false)
+            event?.type = .flagsChanged
+            event?.flags = held
+            post(event)
+            Thread.sleep(forTimeInterval: 0.03)
+        }
+    }
+}
+
 /// Deterministic jitter so retakes type with the same rhythm.
 var rhythm: UInt64 = 0x9E3779B97F4A7C15
 func jitter() -> Double {
@@ -406,16 +459,24 @@ final class Capture: NSObject, SCStreamOutput {
     func drain() { group.wait() }
 }
 
-/// The display with every other window left out. Naming the subject's app as
-/// the shared content instead makes macOS badge its windows with the purple
-/// "window is being shared" capsule in place of the window controls.
-func filter(for subject: Subject, display: Display) async -> SCContentFilter {
+/// The display with every window left out except the subject's and those of
+/// the `also` apps. Windows are listed when capture starts, so an overlay app
+/// must already be running then; panels it opens later belong to no excluded
+/// window and are captured. Naming the subject's app as the shared content
+/// instead makes macOS badge its windows with the purple "window is being
+/// shared" capsule in place of the window controls.
+func filter(for subject: Subject, display: Display, also: [String]) async -> SCContentFilter {
     do {
         let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false)
         guard let scDisplay = content.displays.first(where: { $0.displayID == display.id }) else { die("display not shareable") }
         let pid = subject.app.processIdentifier
         guard content.windows.contains(where: { $0.owningApplication?.processID == pid }) else { die("app not shareable") }
-        let others = content.windows.filter { $0.owningApplication?.processID != pid }
+        let kept = Set([pid] + also.flatMap { NSRunningApplication.runningApplications(withBundleIdentifier: $0) }
+            .map(\.processIdentifier))
+        let others = content.windows.filter { window in
+            guard let owner = window.owningApplication?.processID else { return true }
+            return !kept.contains(owner)
+        }
         return SCContentFilter(display: scDisplay, excludingWindows: others)
     } catch {
         die("screen capture unavailable: \(error)")
@@ -451,7 +512,7 @@ func prepare(_ shot: Shot) -> (Subject, Display) {
     guard AXIsProcessTrusted() else { die("Accessibility permission is required") }
     guard CGPreflightScreenCaptureAccess() else { die("Screen Recording permission is required") }
     let display = Display.filming()
-    let subject = Subject(bundle: shot.bundle)
+    let subject = Subject(bundle: shot.bundle, title: shot.title)
     subject.place(size: shot.size, on: display)
     if let setup = shot.setup, !setup.isEmpty {
         var log: [[String: Any]] = []
@@ -526,6 +587,18 @@ func run(_ actions: [Action], subject: Subject, capture: Capture?, rect: CGRect,
         } else if let target = action.focus {
             guard let element = axFind(subject.window, target) else { die("no element for \(target)") }
             AXUIElementSetAttributeValue(element, kAXFocusedAttribute as CFString, kCFBooleanTrue)
+        } else if let names = action.hold {
+            record("hold", nil, ["keys": names])
+            let release = holdDown(names)
+            run(action.during ?? [], subject: subject, capture: capture, rect: rect, log: &log, startedAt: startedAt)
+            release()
+            record("release", nil, ["keys": names])
+        } else if let command = action.run, let tool = command.first {
+            record("run", nil, ["command": command.joined(separator: " ")])
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: tool)
+            process.arguments = Array(command.dropFirst())
+            do { try process.run() } catch { die("cannot run \(tool): \(error)") }
         } else if let mark = action.mark {
             record("mark", nil, ["name": mark])
         }
@@ -555,7 +628,7 @@ func take(_ shot: Shot, out: URL) async {
     }
     let frames = out.appendingPathComponent("frames")
     let capture = Capture(dir: frames)
-    let stream = SCStream(filter: await filter(for: subject, display: display),
+    let stream = SCStream(filter: await filter(for: subject, display: display, also: shot.also ?? []),
                           configuration: configuration(for: rect, display: display, background: fill(shot)),
                           delegate: nil)
     do {
@@ -594,7 +667,7 @@ func still(_ shot: Shot, out: URL) async {
     let rect = captureRect(subject, shot)
     do {
         let image = try await SCScreenshotManager.captureImage(
-            contentFilter: await filter(for: subject, display: display),
+            contentFilter: await filter(for: subject, display: display, also: shot.also ?? []),
             configuration: configuration(for: rect, display: display, background: fill(shot)))
         guard let dest = CGImageDestinationCreateWithURL(out as CFURL, UTType.png.identifier as CFString, 1, nil) else {
             die("cannot write \(out.path)")

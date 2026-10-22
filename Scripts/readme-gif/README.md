@@ -46,3 +46,26 @@ answer are fixtures. On the Mac this was made on, macOS replaces a window's
 controls with a purple sharing indicator when its app is named as the shared
 content, so `rig` captures the display and leaves every other window out
 instead.
+
+## Autocomplete, dictation and Claude Code (not yet in the GIF)
+
+These takes show the same meeting decision reused elsewhere: autocomplete in
+TextEdit finishes "…the Team plan will be $15" with "per seat, billed
+annually.", dictation turns "Write a one-line team update with the launch
+pricing." into that line, and Claude Code edits a pricing page after reading
+the meeting over LokalBot's MCP server. They are recorded but not yet cut into
+`edit.json`, so the published GIFs still show only the three app scenes.
+
+| File | Role |
+| --- | --- |
+| `build_filming_app.sh` | Builds a copy of a release with one change: the autocomplete suggestion panel is visible to screen capture (it ships hidden). It is signed with the installed app's designated requirement so the installed app's Accessibility and Input Monitoring grants apply. Never ship or commit it. |
+| `prepare_filming.py` | Seeds the fictional library for the filming copy, clones the models it needs from the installed app (APFS clones), turns on agent access, and writes an isolated settings suite with everything that could capture or learn turned off. |
+| `film_live.sh` | Quits the installed LokalBot, runs the filming copy on that library, records the autocomplete and dictation takes in TextEdit, and reopens the installed app, also on failure. Dictation plays its line through the speakers with the `Samantha` voice into the built-in microphone. |
+| `prepare_claude.py`, `claude_scene.sh`, `open_terminal.applescript` | An isolated Claude Code workspace whose only MCP server is `lokalbot-cli` on the fictional library, run in a styled Terminal window. It signs in with the Claude subscription login from the keychain. |
+| `shots/autocomplete.json`, `shots/dictation.json`, `shots/claude.json` | The takes. Autocomplete pauses after the meeting name so its saved facts are looked up before the price is typed. |
+
+What is left before these scenes can go into the GIF:
+
+- TextEdit's plain-text documents type in Menlo 11 pt, too small at README width; rich-text documents keep the font but show a format bar whose labels reach autocomplete as context. A larger editor font or another editor is needed.
+- The Claude Code take needs an account that can run an interactive session: the API key used here is refused for lack of prepaid credit, and the subscription had reached its weekly limit.
+- No dark takes have been recorded, and `edit.json` has no entries for the new takes.
