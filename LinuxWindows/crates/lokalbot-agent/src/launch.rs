@@ -6,7 +6,9 @@
 //! `PI_SKIP_VERSION_CHECK`, since pi ships update checks and install
 //! telemetry on by default). Context files are disabled because pi's upward
 //! discovery is not confined to the working folder; workspace files stay
-//! readable through the read tool, which the extension gates.
+//! readable through the read tool, which the extension gates. LokalBot's own
+//! system prompt replaces pi's coding-agent prompt; the extension appends the
+//! per-run environment.
 //!
 //! Additions on Linux and Windows: Bun runs with `--no-install` so a missing
 //! import can never be fetched from npm at run time; Bun's transpiler cache
@@ -42,14 +44,36 @@ pub enum SessionChoice {
     Saved(PathBuf),
 }
 
+/// What the working folder is, for the extension's environment prompt section
+/// (`AgentWorkspaceKind` in `PiLaunchPlanner.swift`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum WorkspaceKind {
+    /// The app's own Agent Workspace.
+    AgentWorkspace,
+    /// A folder the user picked.
+    ChosenFolder,
+}
+
+impl WorkspaceKind {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::AgentWorkspace => "agent-workspace",
+            Self::ChosenFolder => "chosen-folder",
+        }
+    }
+}
+
 pub struct PlanInputs<'a> {
     pub bun: &'a Path,
     pub pi_cli: &'a Path,
     pub extension_dir: &'a Path,
     pub skill_dir: Option<&'a Path>,
+    /// Replaces pi's default system prompt (`--system-prompt`).
+    pub system_prompt: Option<&'a Path>,
     pub session_dir: &'a Path,
     pub pi_config_dir: &'a Path,
     pub workspace: &'a Path,
+    pub workspace_kind: Option<WorkspaceKind>,
     pub library_root: &'a Path,
     pub endpoint: &'a LlmEndpoint,
     pub reasoning_level_file: Option<&'a Path>,
@@ -70,6 +94,7 @@ pub const ENV_DIALECT: &str = "LOKALBOT_LLM_REASONING_DIALECT";
 pub const ENV_REASONING_FILE: &str = "LOKALBOT_LLM_REASONING_FILE";
 pub const ENV_PRIVATE_ROOTS: &str = "LOKALBOT_AGENT_PRIVATE_ROOTS";
 pub const ENV_API_KEY: &str = "LOKALBOT_LLM_API_KEY";
+pub const ENV_WORKSPACE_KIND: &str = "LOKALBOT_AGENT_WORKSPACE_KIND";
 
 pub fn plan(inputs: PlanInputs<'_>) -> LaunchPlan {
     let mut arguments = vec![
@@ -97,6 +122,10 @@ pub fn plan(inputs: PlanInputs<'_>) -> LaunchPlan {
     if let Some(skill) = inputs.skill_dir {
         arguments.push("--skill".into());
         arguments.push(path_string(skill));
+    }
+    if let Some(prompt) = inputs.system_prompt {
+        arguments.push("--system-prompt".into());
+        arguments.push(path_string(prompt));
     }
     arguments.extend([
         "--no-prompt-templates".into(),
@@ -131,6 +160,11 @@ pub fn plan(inputs: PlanInputs<'_>) -> LaunchPlan {
         &mut env,
         ENV_REASONING_FILE,
         inputs.reasoning_level_file.map(path_string),
+    );
+    set(
+        &mut env,
+        ENV_WORKSPACE_KIND,
+        inputs.workspace_kind.map(|kind| kind.as_str().into()),
     );
     let roots: Vec<String> = inputs
         .private_roots
@@ -273,9 +307,11 @@ mod tests {
             ),
             extension_dir: Path::new("/rt/lokalbot-extension"),
             skill_dir: options.skill.then_some(Path::new("/rt/lokalbot-cli-skill")),
+            system_prompt: Some(Path::new("/rt/lokalbot-system-prompt.md")),
             session_dir: Path::new("/store/agent/sessions"),
             pi_config_dir: Path::new("/store/agent/pi-config"),
             workspace: Path::new("/work"),
+            workspace_kind: Some(WorkspaceKind::AgentWorkspace),
             library_root: Path::new("/store"),
             endpoint: &endpoint,
             reasoning_level_file: options.reasoning_file.as_deref(),
@@ -307,6 +343,8 @@ mod tests {
                 "--no-skills",
                 "--skill",
                 "/rt/lokalbot-cli-skill",
+                "--system-prompt",
+                "/rt/lokalbot-system-prompt.md",
                 "--no-prompt-templates",
                 "--no-context-files",
                 "--no-approve",
@@ -328,6 +366,7 @@ mod tests {
         assert_eq!(env["PI_TELEMETRY"], "0");
         assert_eq!(env["BUN_RUNTIME_TRANSPILER_CACHE_PATH"], "0");
         assert_eq!(env["JITI_FS_CACHE"], "false");
+        assert_eq!(env[ENV_WORKSPACE_KIND], "agent-workspace");
         assert_eq!(env["PI_CODING_AGENT_DIR"], "/store/agent/pi-config");
         assert_eq!(env[lokalbot_core::paths::STORAGE_ROOT_ENV], "/store");
         let separator = if cfg!(windows) { ";" } else { ":" };

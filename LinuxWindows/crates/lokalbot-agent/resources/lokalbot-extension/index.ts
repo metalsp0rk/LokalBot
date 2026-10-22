@@ -1,5 +1,6 @@
 // LokalBot pi extension: registers the app-configured local LLM as a
-// provider and gates every tool except workspace reads behind the host UI.
+// provider, gates every tool except workspace reads behind the host UI, and
+// adds the per-run facts that LokalBot's system prompt refers to.
 //
 // Runs inside pi (RPC mode) under Bun. The env contract comes from the launch
 // planner (lokalbot-agent/src/launch.rs); the confirm() below surfaces in
@@ -145,6 +146,36 @@ export default function lokalbotExtension(pi: ExtensionAPI) {
     }
     return undefined;
   });
+
+  pi.on("before_agent_start", (event) => {
+    event.systemPromptOptions.sections.environment = environmentSection(
+      new Date(), process.env.LOKALBOT_AGENT_WORKSPACE_KIND, model, endpoint, loopback);
+  });
+}
+
+/// The facts LokalBot's system prompt points to: today's date, what the
+/// working folder is, and which model answers. It is the last prompt section,
+/// and pi folds a changed section into the leading system message for this
+/// provider, so the date only changes the cached prompt once a day.
+export function environmentSection(
+  now: Date,
+  workspaceKind: string | undefined,
+  model: string,
+  endpoint: URL,
+  local: boolean,
+): string {
+  const day = [now.getFullYear(), now.getMonth() + 1, now.getDate()]
+    .map((part) => String(part).padStart(2, "0")).join("-");
+  const weekday = now.toLocaleDateString("en-US", { weekday: "long" });
+  const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const lines = [`Today is ${weekday}, ${day} (${zone}). Run \`date\` for the exact time.`];
+  if (workspaceKind === "agent-workspace") {
+    lines.push("The working folder is the Agent Workspace, a folder LokalBot keeps for these tasks. The user's own documents are elsewhere.");
+  } else if (workspaceKind === "chosen-folder") {
+    lines.push("The working folder is one the user chose for this task.");
+  }
+  lines.push(`You run on the model ${model}, served ${local ? "on this computer" : `by ${endpoint.host}`}.`);
+  return lines.join("\n");
 }
 
 /// A launched Agent task has approval for one origin. Reject redirects before

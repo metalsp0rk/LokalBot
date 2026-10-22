@@ -9,7 +9,7 @@ import { mkdir, mkdtemp, readFile, realpath, rm, stat, symlink, writeFile } from
 import { homedir, tmpdir } from "node:os";
 import { resolve, join } from "node:path";
 import lokalbotExtension, {
-  applyReasoningLevel, inferenceFetchForOrigin, readReasoningLevel, retryRejectedReasoning,
+  applyReasoningLevel, environmentSection, inferenceFetchForOrigin, readReasoningLevel, retryRejectedReasoning,
 } from "../lokalbot-extension/index";
 
 const runtime = process.env.LOKALBOT_PINNED_RUNTIME_ROOT;
@@ -261,6 +261,7 @@ test("arguments of a tool without a preview must fit in full before approval", a
 async function piTurn(options: {
   workspace: string; toolCall: { name: string; arguments: unknown }; approved: boolean;
   extensions?: string[]; piConfig?: string; beforeAnswer?: (payload: any) => Promise<void>;
+  launchArguments?: string[]; environment?: Record<string, string>;
 }) {
   const requests: any[] = [];
   const server = Bun.serve({
@@ -293,10 +294,11 @@ async function piTurn(options: {
     ...(options.extensions ?? []).flatMap(extension => ["-e", extension]),
     "--no-skills", "--no-prompt-templates", "--no-context-files", "--no-approve",
     "--session-dir", join(options.workspace, "sessions"), "--offline",
+    ...(options.launchArguments ?? []),
   ], {
     cwd: options.workspace, stdin: "pipe", stdout: "pipe", stderr: "pipe",
     // Windows processes need SystemRoot, TEMP and the rest of the system set.
-    env: { ...(windows ? process.env : {}), PATH: process.env.PATH, HOME: options.workspace,
+    env: { ...(windows ? process.env : {}), ...options.environment, PATH: process.env.PATH, HOME: options.workspace,
       PI_SKIP_VERSION_CHECK: "1", PI_TELEMETRY: "0",
       // As in the launch plan: no transpiler caches outside the runtime.
       BUN_RUNTIME_TRANSPILER_CACHE_PATH: "0", JITI_FS_CACHE: "false",
@@ -425,6 +427,77 @@ for (const approved of [false, true]) {
     }
   }, 25_000);
 }
+
+const systemPromptFile = join(resources, "system-prompt.md");
+const promptArguments = ["--skill", join(resources, "lokalbot-cli-skill"), "--system-prompt", systemPromptFile];
+
+test("the environment section names the day, the working folder and the model", () => {
+  const now = new Date(2026, 9, 22, 23, 59);
+  const local = environmentSection(now, "agent-workspace", "qwen3.5-4b", new URL("http://127.0.0.1:17872/v1"), true);
+  expect(local).toStartWith("Today is Thursday, 2026-10-22 (");
+  expect(local).toContain("The working folder is the Agent Workspace");
+  expect(local).toEndWith("You run on the model qwen3.5-4b, served on this computer.");
+  const remote = environmentSection(
+    new Date(2027, 0, 3, 0, 0), "chosen-folder", "claude-opus-5-5", new URL("https://api.anthropic.com/v1"), false);
+  expect(remote).toStartWith("Today is Sunday, 2027-01-03 (");
+  expect(remote).toContain("The working folder is one the user chose for this task.");
+  expect(remote).toEndWith("served by api.anthropic.com.");
+  expect(environmentSection(now, undefined, "m", new URL("http://127.0.0.1/v1"), true)).not.toContain("working folder");
+});
+
+test.skipIf(!runtime)("Pi sends LokalBot's prompt, skill and environment instead of its coding prompt", async () => {
+  const workspace = await realpath(await mkdtemp(join(tmpdir(), "lokalbot-pi-prompt-")));
+  try {
+    await writeFile(join(workspace, "notes.txt"), "synthetic notes");
+    const turn = await piTurn({ workspace, approved: true,
+      toolCall: { name: "read", arguments: { path: "notes.txt" } },
+      launchArguments: promptArguments,
+      environment: { LOKALBOT_AGENT_WORKSPACE_KIND: "agent-workspace" } });
+    expect(turn.reply).toBe(true);
+    const prompt = (await readFile(systemPromptFile, "utf8")).trimEnd();
+    for (const request of turn.requests) {
+      const systems = request.messages.filter((message: any) => message.role === "system");
+      expect(systems).toHaveLength(1);
+      expect(request.messages[0]).toBe(systems[0]);
+      const text: string = systems[0].content;
+      expect(text.startsWith(prompt)).toBe(true);
+      expect(text).not.toContain("coding agent harness");
+      expect(text).not.toContain("Pi documentation");
+      expect(text).toContain("<name>lokalbot-library</name>");
+      expect(text).toMatch(/<environment>\nToday is [A-Z][a-z]+day, \d{4}-\d\d-\d\d \(/);
+      expect(text).toContain("The working folder is the Agent Workspace");
+      expect(text).toEndWith("You run on the model stub-model, served on this computer.\n</environment>");
+    }
+  } finally {
+    await rm(workspace, { recursive: true, force: true });
+  }
+}, 25_000);
+
+test.skipIf(!runtime)("a task saved with Pi's coding prompt resumes with LokalBot's prompt as its only system message", async () => {
+  const workspace = await realpath(await mkdtemp(join(tmpdir(), "lokalbot-pi-prompt-resume-")));
+  try {
+    await writeFile(join(workspace, "notes.txt"), "synthetic notes");
+    const toolCall = { name: "read", arguments: { path: "notes.txt" } };
+    const before = await piTurn({ workspace, approved: true, toolCall });
+    expect(before.requests[0].messages[0].content).toContain("Pi documentation");
+    const after = await piTurn({ workspace, approved: true, toolCall,
+      launchArguments: ["--continue", ...promptArguments],
+      environment: { LOKALBOT_AGENT_WORKSPACE_KIND: "chosen-folder" } });
+    expect(after.reply).toBe(true);
+    const request = after.requests[0];
+    // Small local models' chat templates reject a system message after the
+    // first; Pi folds the changed prompt into the leading one instead.
+    expect(request.messages.filter((message: any) => message.role === "system")).toHaveLength(1);
+    expect(request.messages[0].role).toBe("system");
+    const text: string = request.messages[0].content;
+    expect(text.startsWith((await readFile(systemPromptFile, "utf8")).trimEnd())).toBe(true);
+    expect(text).not.toContain("Pi documentation");
+    expect(text).toContain("The working folder is one the user chose for this task.");
+    expect(JSON.stringify(request.messages)).toContain("synthetic notes");
+  } finally {
+    await rm(workspace, { recursive: true, force: true });
+  }
+}, 50_000);
 
 test("Pi resumes append-only context edits without overwriting visible history", async () => {
   const workspace = await mkdtemp(join(tmpdir(), "lokalbot-pi-context-upgrade-"));

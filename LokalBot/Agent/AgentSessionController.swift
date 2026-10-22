@@ -751,6 +751,9 @@ final class AgentSessionController: ObservableObject {
             ?? URL(fileURLWithPath: "pi/lokalbot-extension")
         let skillDir = resources?.appendingPathComponent("pi/lokalbot-cli-skill")
         let skillExists = skillDir.map { FileManager.default.fileExists(atPath: $0.path) } ?? false
+        // pi takes a missing path as the prompt text itself.
+        let systemPrompt = resources?.appendingPathComponent("pi/system-prompt.md")
+        let systemPromptExists = systemPrompt.map { FileManager.default.fileExists(atPath: $0.path) } ?? false
         let helpers = Bundle.main.bundleURL.appendingPathComponent("Contents/Helpers")
         let sessions = sessionsDirectory
         try? FileManager.default.createDirectory(at: sessions, withIntermediateDirectories: true)
@@ -759,8 +762,11 @@ final class AgentSessionController: ObservableObject {
             piCLI: AgentRuntimeLayout.piCLI(under: runtimeRoot),
             extensionDirectory: extensionDir,
             skillDirectory: skillExists ? skillDir : nil,
+            systemPrompt: systemPromptExists ? systemPrompt : nil,
             sessionDirectory: sessions,
             workspace: workspace,
+            workspaceKind: workspace.standardizedFileURL == defaultWorkspace.standardizedFileURL
+                ? .agentWorkspace : .chosenFolder,
             endpoint: endpoint,
             reasoningLevelFile: reasoningLevelFile,
             helpersDirectory: FileManager.default.fileExists(atPath: helpers.path) ? helpers : nil,
