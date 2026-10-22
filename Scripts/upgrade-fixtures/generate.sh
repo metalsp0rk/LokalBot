@@ -43,6 +43,11 @@ LOKALBOT_STORAGE_ROOT="$LIB" "$WORK/LokalBot.app/Contents/MacOS/LokalBot" --sear
 
 mkdir -p "$OUT"
 rsync -a --exclude models --exclude debug.log --exclude 'debug.log.*' "$LIB/" "$OUT/library/"
+# Fold the write-ahead log into the database so the fixture commits as is.
+for db in "$OUT"/library/*.sqlite; do
+  sqlite3 "$db" 'PRAGMA wal_checkpoint(TRUNCATE)' >/dev/null
+  rm -f "$db-wal" "$db-shm"
+done
 defaults export "$DOMAIN" "$OUT/defaults.plist"
 python3 - "$VERSION" "$OUT/manifest.json" <<'PY'
 import json, sys, datetime

@@ -23,8 +23,9 @@
 #
 # Optional:
 #   AUR_SSH_PRIVATE_KEY    SSH key of the AUR account that maintains
-#                          lokalbot-bin (aur.yml). Without it the AUR package
-#                          is checked but not pushed.
+#                          lokalbot-bin (aur.yml). Without it, or without the
+#                          AUR_PUBLISH repository variable set to true, the
+#                          AUR package is checked but not pushed.
 #   WINGET_TOKEN           classic token (public_repo) of the account whose
 #                          microsoft/winget-pkgs fork wingetcreate pushes to
 #                          (winget.yml). Without it nothing goes to winget.
@@ -50,6 +51,7 @@ concurrency:
 permissions:
   contents: write # create the Release and upload DMG + appcast
   actions: read # verify validation provenance and retrieve trusted preparation
+  pull-requests: read # find the merged pull request whose UI run covers the candidate
 
 defaults:
   run:
@@ -80,7 +82,7 @@ jobs:
           CANDIDATE_VERSION: ${{ inputs.version }}
         run: python3 Scripts/ci/release-candidate.py prepare
 
-      - name: Require all five exact-commit release gates
+      - name: Require all five release gates
         if: github.event_name == 'push'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -572,7 +574,8 @@ jobs:
 
   # Points the lokalbot-bin AUR package at this release once its Linux archive
   # is attached, checks it in a clean Arch container and pushes it with the
-  # AUR_SSH_PRIVATE_KEY secret (skipped without it). Pre-releases stay off the
+  # AUR_SSH_PRIVATE_KEY secret (skipped without it or the AUR_PUBLISH
+  # variable). Pre-releases stay off the
   # AUR. GitHub-hosted, like every job that sees a secret.
   aur:
     name: AUR package
@@ -599,5 +602,19 @@ jobs:
       tag: ${{ github.ref_name }}
     secrets:
       WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
+    permissions:
+      contents: read
+
+  # Builds this release's upgrade fixture on a clean hosted Mac once the DMG
+  # is published and keeps it for 90 days, so the next release adds it with
+  # Scripts/upgrade-fixtures/add.sh instead of waiting for a runner
+  # (RELEASING.md step 0). Pre-releases are never a changelog base.
+  upgrade-fixture:
+    name: Upgrade fixture
+    if: github.event_name == 'push' && !contains(github.ref_name, '-')
+    needs: release
+    uses: ./.github/workflows/upgrade-fixtures.yml
+    with:
+      tag: ${{ github.ref_name }}
     permissions:
       contents: read
