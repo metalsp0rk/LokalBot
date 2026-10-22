@@ -46,9 +46,11 @@ pub(super) const LIBRARIES: RuntimeAsset = RuntimeAsset {
 };
 
 #[cfg(windows)]
-const LIBRARY_NAMES: [&str; 3] = ["cudart64_13.dll", "cublas64_13.dll", "cublasLt64_13.dll"];
+pub(super) const LIBRARY_NAMES: [&str; 3] =
+    ["cudart64_13.dll", "cublas64_13.dll", "cublasLt64_13.dll"];
 #[cfg(not(windows))]
-const LIBRARY_NAMES: [&str; 3] = ["libcudart.so.13", "libcublas.so.13", "libcublasLt.so.13"];
+pub(super) const LIBRARY_NAMES: [&str; 3] =
+    ["libcudart.so.13", "libcublas.so.13", "libcublasLt.so.13"];
 
 pub(super) fn is_runtime_dir(dir: &Path) -> bool {
     dir.join(if cfg!(windows) {

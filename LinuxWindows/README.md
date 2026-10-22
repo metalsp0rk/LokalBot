@@ -63,14 +63,19 @@ libraries reduces that to about 154 MB or 155 MB respectively, excluding models.
 Downloads are verified and an incomplete setup does not count as installed.
 
 Changing the backend lets in-flight requests finish; models switch when next
-loaded. Explicit CUDA reports a setup/startup error if it cannot accelerate the
-model, rather than silently labeling a CPU run as CUDA. Choose Automatic, Vulkan
-or CPU to recover. The Settings download buttons prepare the newly selected
-runtime; no background CUDA role initiates a runtime download. Download stays
-available for CUDA so it can retry detection and repair missing system libraries
-without reinstalling the server. Transient GPU failures preserve installed files.
-Device probes are cached for the session, and healthy helpers are reused before
-probing. Model Storage lists runtime folders even after switching backends.
+loaded. Selecting CUDA does not stop the built-in models: they keep using the
+Vulkan or CPU runtime Automatic would choose until CUDA setup succeeds, and no
+background role starts a CUDA download. Download under Settings → Models →
+llama.cpp prepares CUDA. If setup downloads everything but the final GPU check
+fails, for example because another app has filled GPU memory, the verified files
+are kept and the next Download repeats only the check. Once CUDA is set up,
+explicit CUDA reports a startup error if it cannot accelerate the model, rather
+than silently labeling a CPU run as CUDA. Choose Automatic, Vulkan or CPU to
+recover. Download stays available for CUDA so it can retry detection and repair
+missing system libraries without reinstalling the server. Transient GPU failures
+preserve installed files. Device probes are cached for the session, and healthy
+helpers are reused before probing. Model Storage lists runtime folders even
+after switching backends.
 
 For native NVIDIA validation, run the ignored runtime test with
 `LOKALBOT_E2E_BACKEND=cuda` and a separate `LOKALBOT_E2E_ROOT`, and run the

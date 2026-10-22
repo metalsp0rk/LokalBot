@@ -292,6 +292,10 @@ struct InstallRecord {
     /// pinned digest. Absent on installations predating CUDA support.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     cuda_libraries: Option<String>,
+    /// Setup kept complete, verified files although its final device check
+    /// failed. Background starts skip CUDA until explicit setup confirms one.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    cuda_unverified: bool,
 }
 
 /// Bump when `CONDITIONAL_FLAGS` changes so installed runtimes re-probe.
@@ -314,6 +318,8 @@ const CONDITIONAL_FLAGS: [&str; 5] = [
     "--no-webui",
     "--jinja",
 ];
+
+const CUDA_UNAVAILABLE: &str = "CUDA could not initialize with the matching runtime libraries. Check available GPU memory and the NVIDIA driver; newer PTX or driver features may require a driver update. Choose Vulkan or CPU if unsupported.";
 
 struct Installer {
     paths: LibraryPaths,
@@ -391,10 +397,27 @@ impl Installer {
         self.preference.lock().trim().to_ascii_lowercase()
     }
 
+    /// A CUDA installation background starts may use: complete, and confirmed
+    /// by a device check during setup.
+    fn cuda_ready(&self) -> bool {
+        self.record(LlamaBackend::Cuda)
+            .is_some_and(|(record, _)| !record.cuda_unverified)
+    }
+
+    /// Whether auto-detection picks the backend: `auto`, and CUDA until its
+    /// setup succeeds, so selecting CUDA never stops working built-in models.
+    fn automatic(&self) -> bool {
+        match LlamaBackend::preference(&self.preference()) {
+            None => true,
+            Some(LlamaBackend::Cuda) => !self.cuda_ready(),
+            Some(_) => false,
+        }
+    }
+
     fn accepts_backend(&self, backend: LlamaBackend) -> bool {
         match LlamaBackend::preference(&self.preference()) {
-            Some(selected) => selected == backend,
-            None => backend != LlamaBackend::Cuda,
+            Some(selected) if selected == backend => true,
+            _ => backend != LlamaBackend::Cuda && self.automatic(),
         }
     }
 
@@ -414,6 +437,16 @@ impl Installer {
         if backend == LlamaBackend::Cuda {
             cuda::require_driver()?;
         }
+        self.download_and_unpack(backend, cancel, progress)
+    }
+
+    /// [`Self::install`] after its checks for an existing install and a driver.
+    fn download_and_unpack(
+        &self,
+        backend: LlamaBackend,
+        cancel: &AtomicBool,
+        progress: &mut dyn FnMut(u64, u64),
+    ) -> Result<(InstallRecord, PathBuf)> {
         let asset = asset(backend).ok_or_else(|| {
             anyhow!(
                 "llama.cpp has no {} build for this platform",
@@ -452,10 +485,17 @@ impl Installer {
                 perms.set_mode(perms.mode() | 0o755);
                 std::fs::set_permissions(&server, perms)?;
             }
-            let cuda_libraries = if backend == LlamaBackend::Cuda {
-                Some(self.prepare_cuda(&server, cancel, progress)?)
+            let (cuda_libraries, cuda_unverified) = if backend == LlamaBackend::Cuda {
+                let (libraries, checked) = self.prepare_cuda(&server, cancel, progress)?;
+                // A GPU filled by another app fails only the final check. Keep
+                // the verified files: setup reports the failure, and a retry
+                // repeats the check without downloading them again.
+                if let Err(error) = &checked {
+                    log::warn!("llama.cpp CUDA: keeping the downloaded runtime; {error:#}");
+                }
+                (Some(libraries), checked.is_err())
             } else {
-                None
+                (None, false)
             };
             check_cancelled(cancel)?;
             let (version, flags) = probe_capabilities(&server);
@@ -469,6 +509,7 @@ impl Installer {
                 flags,
                 probe: PROBE_VERSION,
                 cuda_libraries,
+                cuda_unverified,
             };
             std::fs::write(
                 staging.join("install.json"),
@@ -506,16 +547,20 @@ impl Installer {
         result
     }
 
+    /// Reuses system CUDA libraries that pass a device check, else places the
+    /// pinned companion libraries beside `server`. Returns what to record and,
+    /// separately, the final device check, so callers can keep complete,
+    /// verified files when only that check fails.
     fn prepare_cuda(
         &self,
         server: &Path,
         cancel: &AtomicBool,
         progress: &mut dyn FnMut(u64, u64),
-    ) -> Result<String> {
+    ) -> Result<(String, Result<()>)> {
         check_cancelled(cancel)?;
         if self.device(server, LlamaBackend::Cuda).is_ok() {
             log::info!("llama.cpp CUDA: reusing system runtime libraries");
-            return Ok("system".into());
+            return Ok(("system".into(), Ok(())));
         }
         check_cancelled(cancel)?;
         let companion = &cuda::LIBRARIES;
@@ -541,9 +586,11 @@ impl Installer {
         )?;
         check_cancelled(cancel)?;
         self.devices.lock().remove(server);
-        self.device(server, LlamaBackend::Cuda)
-            .context("CUDA could not initialize with the matching runtime libraries. Check available GPU memory and the NVIDIA driver; newer PTX or driver features may require a driver update. Choose Vulkan or CPU if unsupported.")?;
-        Ok(companion.sha256.into())
+        let checked = self
+            .device(server, LlamaBackend::Cuda)
+            .map(|_| ())
+            .context(CUDA_UNAVAILABLE);
+        Ok((companion.sha256.into(), checked))
     }
 
     fn device(&self, binary: &Path, backend: LlamaBackend) -> Result<GpuDevice> {
@@ -573,9 +620,12 @@ impl Installer {
         progress: &mut dyn FnMut(u64, u64),
     ) -> Result<()> {
         check_cancelled(cancel)?;
-        match self.device(binary, LlamaBackend::Cuda) {
+        let before = record.clone();
+        let checked = match self.device(binary, LlamaBackend::Cuda) {
             Ok(_) => Ok(()),
-            Err(error) if record.cuda_libraries.as_deref() != Some("system") => Err(error),
+            Err(error) if record.cuda_libraries.as_deref() != Some("system") => {
+                Err(error.context(CUDA_UNAVAILABLE))
+            }
             Err(_) => {
                 cuda::require_driver()?;
                 // Replace only the optional math libraries. The server folder
@@ -585,15 +635,19 @@ impl Installer {
                     // File completeness and GPU availability are different states.
                     // Keep newly repaired files even if this GPU is currently busy.
                     record.cuda_libraries = Some(cuda::LIBRARIES.sha256.into());
-                    let path = self.folder(&cuda::ASSET).join("install.json");
-                    lokalbot_core::library::write_atomic(
-                        &path,
-                        &serde_json::to_vec_pretty(&record)?,
-                    )?;
                 }
-                prepared.map(|_| ())
+                prepared.and_then(|(_, checked)| checked)
             }
+        };
+        // Only a confirmed device lets background starts switch to CUDA.
+        if checked.is_ok() {
+            record.cuda_unverified = false;
         }
+        if record != before {
+            let path = self.folder(&cuda::ASSET).join("install.json");
+            lokalbot_core::library::write_atomic(&path, &serde_json::to_vec_pretty(&record)?)?;
+        }
+        checked
     }
 
     /// The backend to run. `auto` takes Vulkan only when the Vulkan build
@@ -618,13 +672,16 @@ impl Installer {
             }
         };
         let preference = self.preference();
-        if preference == "cuda" {
+        // Explicit setup installs CUDA. Until it succeeds, background starts
+        // keep the automatic choice below instead of failing.
+        if preference == "cuda" && (allow_download || self.cuda_ready()) {
             let (record, binary) = get(LlamaBackend::Cuda, progress)?;
             *self.active.lock() = Some(LlamaBackend::Cuda);
             return Ok((LlamaBackend::Cuda, record, binary));
         }
         let active = *self.active.lock();
         if let Some(active) = active
+            && active != LlamaBackend::Cuda
             && self.accepts_backend(active)
         {
             let (record, binary) = get(active, progress)?;
@@ -1327,7 +1384,7 @@ impl ServerInner {
             installer.resolve(allow_download, &never, &mut |_, _| {})?;
         match self.launch(model_id, model_path, backend, &record, &binary) {
             Ok(running) => Ok(running),
-            Err(err) if backend == LlamaBackend::Vulkan && installer.preference() == "auto" => {
+            Err(err) if backend == LlamaBackend::Vulkan && installer.automatic() => {
                 log::warn!(
                     "llama-server {} failed on Vulkan ({err:#}); falling back to the CPU build",
                     self.role.label()
@@ -1833,12 +1890,29 @@ impl RuntimeManager {
     }
 
     /// The selected backend when installed. Auto considers Vulkan and CPU;
-    /// an explicit choice must have its own complete installation.
+    /// an explicit choice must have its own complete installation, and CUDA
+    /// a setup whose device check succeeded.
     pub fn installed_backend(&self) -> Option<String> {
         let installer = &self.shared.installer;
-        if let Some(backend) = LlamaBackend::preference(&installer.preference()) {
-            return installer.record(backend).map(|_| backend.label().into());
+        match LlamaBackend::preference(&installer.preference()) {
+            Some(LlamaBackend::Cuda) => installer.cuda_ready().then(|| "CUDA".into()),
+            Some(backend) => installer.record(backend).map(|_| backend.label().into()),
+            None => self.automatic_backend(),
         }
+    }
+
+    /// The backend built-in models can run on now without a download. CUDA
+    /// keeps the automatic choice until its setup succeeds.
+    pub fn usable_backend(&self) -> Option<String> {
+        if self.shared.installer.automatic() {
+            self.automatic_backend()
+        } else {
+            self.installed_backend()
+        }
+    }
+
+    fn automatic_backend(&self) -> Option<String> {
+        let installer = &self.shared.installer;
         let candidates = [
             *installer.active.lock(),
             installer.saved_choice().map(|c| c.backend),
@@ -2105,6 +2179,7 @@ mod tests {
             flags: vec![],
             probe: PROBE_VERSION,
             cuda_libraries: libraries.map(String::from),
+            cuda_unverified: false,
         };
         std::fs::write(
             folder.join("install.json"),
@@ -2112,6 +2187,58 @@ mod tests {
         )
         .unwrap();
         folder
+    }
+
+    fn set_cuda_unverified(folder: &Path, unverified: bool) {
+        let path = folder.join("install.json");
+        let mut record: InstallRecord =
+            serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+        record.cuda_unverified = unverified;
+        std::fs::write(&path, serde_json::to_vec(&record).unwrap()).unwrap();
+    }
+
+    #[test]
+    fn cuda_selection_keeps_the_automatic_backend_until_setup_succeeds() {
+        let dir = tempfile::tempdir().unwrap();
+        let manager = RuntimeManager::new(LibraryPaths::new(dir.path()), &Settings::default());
+        let installer = &manager.shared.installer;
+        fixture_record(installer, LlamaBackend::Cpu, None);
+        installer.save_choice(LlamaBackend::Cpu, None);
+        let never = AtomicBool::new(false);
+        let background = || {
+            installer
+                .resolve(false, &never, &mut |_, _| panic!("background download"))
+                .unwrap()
+                .0
+        };
+        manager.set_backend_preference("cuda");
+        assert_eq!(background(), LlamaBackend::Cpu);
+        assert!(
+            installer.accepts_backend(LlamaBackend::Cpu),
+            "running servers stay"
+        );
+        assert_eq!(manager.usable_backend().as_deref(), Some("CPU"));
+        assert_eq!(
+            manager.installed_backend(),
+            None,
+            "Settings still offers CUDA setup"
+        );
+
+        // Files kept after a failed final device check do not switch roles.
+        let folder = fixture_record(installer, LlamaBackend::Cuda, Some("system"));
+        set_cuda_unverified(&folder, true);
+        assert_eq!(background(), LlamaBackend::Cpu);
+        assert!(installer.accepts_backend(LlamaBackend::Cpu));
+        assert_eq!(manager.usable_backend().as_deref(), Some("CPU"));
+        assert_eq!(manager.installed_backend(), None);
+
+        // A confirmed CUDA setup takes over when servers next restart.
+        set_cuda_unverified(&folder, false);
+        assert!(!installer.accepts_backend(LlamaBackend::Cpu));
+        assert!(installer.accepts_backend(LlamaBackend::Cuda));
+        assert_eq!(background(), LlamaBackend::Cuda);
+        assert_eq!(manager.usable_backend().as_deref(), Some("CUDA"));
+        assert_eq!(manager.installed_backend().as_deref(), Some("CUDA"));
     }
 
     #[test]
@@ -2162,8 +2289,18 @@ mod tests {
         *manager.shared.installer.active.lock() = Some(LlamaBackend::Cpu);
         manager.set_backend_preference("cuda");
         assert_eq!(*manager.shared.installer.active.lock(), None);
-        assert!(!manager.shared.installer.accepts_backend(LlamaBackend::Cpu));
+        // CUDA is not set up yet, so a running CPU server keeps serving.
+        assert!(manager.shared.installer.accepts_backend(LlamaBackend::Cpu));
         assert!(manager.shared.installer.accepts_backend(LlamaBackend::Cuda));
+        fixture_record(
+            &manager.shared.installer,
+            LlamaBackend::Cuda,
+            Some("system"),
+        );
+        assert!(!manager.shared.installer.accepts_backend(LlamaBackend::Cpu));
+        manager.set_backend_preference("vulkan");
+        assert!(!manager.shared.installer.accepts_backend(LlamaBackend::Cpu));
+        assert!(!manager.shared.installer.accepts_backend(LlamaBackend::Cuda));
         manager.set_backend_preference("auto");
         assert!(!manager.shared.installer.accepts_backend(LlamaBackend::Cuda));
         assert!(
@@ -2190,12 +2327,107 @@ mod tests {
     }
 
     #[cfg(unix)]
+    fn probe_script(exit: u8) -> String {
+        format!(
+            "#!/bin/sh\nprintf 'Available devices:\\n  CUDA0: Test NVIDIA GPU (8192 MiB, 8000 MiB free)\\n'\nexit {exit}\n"
+        )
+    }
+
+    #[cfg(unix)]
     fn fake_gpu_server(dir: &Path, exit: u8) -> PathBuf {
         use std::os::unix::fs::PermissionsExt as _;
         let binary = dir.join("probe-server");
-        std::fs::write(&binary, format!("#!/bin/sh\nprintf 'Available devices:\\n  CUDA0: Test NVIDIA GPU (8192 MiB, 8000 MiB free)\\n'\nexit {exit}\n")).unwrap();
+        std::fs::write(&binary, probe_script(exit)).unwrap();
         std::fs::set_permissions(&binary, std::fs::Permissions::from_mode(0o755)).unwrap();
         binary
+    }
+
+    /// Stands in for a downloaded release archive: `download` accepts a file
+    /// of the pinned size whose digest sidecar matches, and nothing reads the
+    /// sparse padding after the gzip stream.
+    #[cfg(unix)]
+    fn seed_archive(dir: &Path, asset: &RuntimeAsset, files: &[(&str, &[u8])]) {
+        std::fs::create_dir_all(dir).unwrap();
+        let path = dir.join(asset.name);
+        let mut builder = tar::Builder::new(flate2::write::GzEncoder::new(
+            std::fs::File::create(&path).unwrap(),
+            flate2::Compression::fast(),
+        ));
+        for (name, contents) in files {
+            let mut header = tar::Header::new_gnu();
+            header.set_size(contents.len() as u64);
+            header.set_mode(0o755);
+            builder
+                .append_data(&mut header, format!("upstream/{name}"), *contents)
+                .unwrap();
+        }
+        let file = builder.into_inner().unwrap().finish().unwrap();
+        file.set_len(asset.size).unwrap();
+        download::write_sidecar(&path, asset.sha256).unwrap();
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn fresh_cuda_files_survive_a_failed_final_probe() {
+        let dir = tempfile::tempdir().unwrap();
+        let settings = Settings {
+            llama_backend: "cuda".into(),
+            ..Settings::default()
+        };
+        let manager = RuntimeManager::new(LibraryPaths::new(dir.path()), &settings);
+        let installer = &manager.shared.installer;
+        let downloads = installer.root().join(".downloads");
+        // Exits with an error, like a GPU with no memory free for a new context.
+        let busy = probe_script(1);
+        seed_archive(
+            &downloads,
+            &cuda::ASSET,
+            &[
+                (SERVER_BINARY, busy.as_bytes()),
+                ("libggml-cuda.so", b"fixture"),
+            ],
+        );
+        let libraries: Vec<(&str, &[u8])> = cuda::LIBRARY_NAMES
+            .iter()
+            .map(|name| (*name, b"fixture library".as_slice()))
+            .collect();
+        seed_archive(&downloads, &cuda::LIBRARIES, &libraries);
+
+        // `install` checks the NVIDIA driver first; no test machine has one.
+        let (record, binary) = installer
+            .download_and_unpack(LlamaBackend::Cuda, &AtomicBool::new(false), &mut |_, _| {})
+            .unwrap();
+        assert!(record.cuda_unverified);
+        assert_eq!(
+            record.cuda_libraries.as_deref(),
+            Some(cuda::LIBRARIES.sha256)
+        );
+        assert!(binary.parent().is_some_and(cuda::complete));
+        assert_eq!(
+            std::fs::read_dir(&downloads).unwrap().count(),
+            0,
+            "completed archives are removed"
+        );
+        assert!(!installer.cuda_ready());
+        assert_eq!(manager.installed_backend(), None);
+
+        // Retrying setup repeats only the device check.
+        let retry = |manager: &RuntimeManager| {
+            manager.ensure_runtime(&settings, &AtomicBool::new(false), &mut |_, _| {
+                panic!("downloaded again")
+            })
+        };
+        let error = retry(&manager).unwrap_err();
+        assert!(
+            format!("{error:#}").contains("CUDA could not initialize"),
+            "{error:#}"
+        );
+        assert!(!installer.cuda_ready());
+        std::fs::write(&binary, probe_script(0)).unwrap();
+        retry(&manager).unwrap();
+        assert!(installer.cuda_ready());
+        assert_eq!(manager.installed_backend().as_deref(), Some("CUDA"));
+        assert_eq!(manager.usable_backend().as_deref(), Some("CUDA"));
     }
 
     #[test]
@@ -2208,16 +2440,15 @@ mod tests {
             &Settings::default(),
         );
         let mut progress_called = false;
-        assert_eq!(
-            manager
-                .shared
-                .installer
-                .prepare_cuda(&binary, &AtomicBool::new(false), &mut |_, _| {
-                    progress_called = true
-                })
-                .unwrap(),
-            "system"
-        );
+        let (libraries, checked) = manager
+            .shared
+            .installer
+            .prepare_cuda(&binary, &AtomicBool::new(false), &mut |_, _| {
+                progress_called = true
+            })
+            .unwrap();
+        assert_eq!(libraries, "system");
+        assert!(checked.is_ok());
         assert!(!progress_called);
         assert!(
             !manager.shared.installer.root().exists(),
