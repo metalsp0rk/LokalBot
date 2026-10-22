@@ -5,7 +5,7 @@ description: Look up the user's LokalBot memory with lokalbot-cli, which reads r
 
 # LokalBot library
 
-`lokalbot-cli` is on PATH. It reads the user's LokalBot library and never changes it. Output is JSON; add `--table` for plain text.
+`lokalbot-cli` is on PATH. It reads the user's LokalBot library and never changes it. Output is JSON; `list`, `search`, `actions`, `people`, and `personal-context` take `--table` for plain text.
 
 ## Start here
 
