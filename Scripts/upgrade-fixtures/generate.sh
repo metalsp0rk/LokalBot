@@ -33,7 +33,10 @@ for account in screenshot-key chat-key; do
     -X "$(python3 "$ROOT_DIR/Scripts/upgrade-fixtures/settings.py" key "$account")"
 done
 
-gh release download "v$VERSION" --repo stevyhacker/LokalBot --pattern LokalBot.dmg --dir "$WORK"
+# Releases before 0.11.2 only have LokalBot.dmg; later ones add the version.
+gh release download "v$VERSION" --repo stevyhacker/LokalBot \
+  --pattern "LokalBot-$VERSION-macos-arm64.dmg" --output "$WORK/LokalBot.dmg" 2>/dev/null \
+  || gh release download "v$VERSION" --repo stevyhacker/LokalBot --pattern LokalBot.dmg --dir "$WORK"
 MOUNT=$(hdiutil attach -nobrowse -readonly "$WORK/LokalBot.dmg" | tail -1 | awk -F'\t' '{print $NF}')
 cp -R "$MOUNT/LokalBot.app" "$WORK/LokalBot.app"
 hdiutil detach "$MOUNT" -quiet
