@@ -11,7 +11,7 @@ use lokalbot_core::LibraryPaths;
 use lokalbot_core::settings::SummarizerBackend;
 
 use crate::endpoint::{self, LlmEndpoint, ReasoningDialect, Resolution};
-use crate::launch::{self, PlanInputs};
+use crate::launch::{self, PlanInputs, WorkspaceKind};
 use crate::layout::{AgentDirectories, RuntimeLayout};
 use crate::manifest::RuntimeManifest;
 use crate::process::PiProcess;
@@ -75,7 +75,7 @@ impl PiLauncher {
         };
 
         let spawned = (|| -> Result<Launched, LaunchError> {
-            let (extension, skill) = crate::resources::materialize(&self.layout)
+            let files = crate::resources::materialize(&self.layout)
                 .map_err(|err| LaunchError::Other(format!("{err:#}")))?;
             let shell = self.shell.clone().unwrap_or_else(ShellChoice::detect);
             shell
@@ -86,14 +86,23 @@ impl PiLauncher {
                 .map_err(|err| LaunchError::Other(err.to_string()))?;
             crate::fsutil::create_private_dir(&self.dirs.pi_config())
                 .map_err(|err| LaunchError::Other(err.to_string()))?;
+            let in_agent_workspace =
+                crate::policy::same_path(&request.workspace, &self.dirs.default_workspace());
+            let workspace_kind = if in_agent_workspace {
+                WorkspaceKind::AgentWorkspace
+            } else {
+                WorkspaceKind::ChosenFolder
+            };
             let plan = launch::plan(PlanInputs {
                 bun: &self.layout.bun(),
                 pi_cli: &self.layout.pi_cli(),
-                extension_dir: &extension,
-                skill_dir: Some(&skill),
+                extension_dir: &files.extension_dir,
+                skill_dir: Some(&files.skill_dir),
+                system_prompt: Some(&files.system_prompt),
                 session_dir: &sessions,
                 pi_config_dir: &self.dirs.pi_config(),
                 workspace: &request.workspace,
+                workspace_kind: Some(workspace_kind),
                 library_root: self.paths.root(),
                 endpoint: &endpoint,
                 reasoning_level_file: Some(&request.reasoning_level_file),

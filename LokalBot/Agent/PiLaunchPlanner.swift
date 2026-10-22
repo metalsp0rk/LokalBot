@@ -8,6 +8,14 @@ struct PiLaunchPlan: Equatable {
     let workingDirectory: URL
 }
 
+/// What the working folder is, for the extension's environment prompt section.
+enum AgentWorkspaceKind: String {
+    case agentWorkspace = "agent-workspace"
+    case chosenFolder = "chosen-folder"
+
+    static let environmentKey = "LOKALBOT_AGENT_WORKSPACE_KIND"
+}
+
 /// Builds the exact pi launch contract from the 2026-07-09 spec. pi is
 /// fully isolated from the user's ~/.pi and any repo-local pi config
 /// (--no-extensions/-e, --no-skills/--skill, --no-prompt-templates,
@@ -16,15 +24,18 @@ struct PiLaunchPlan: Equatable {
 /// Context files are disabled because pi's upward discovery is not confined
 /// to the selected workspace. Workspace files remain available through the
 /// read tool, whose extension hook canonicalizes paths and asks before any
-/// out-of-workspace access.
+/// out-of-workspace access. LokalBot's own system prompt replaces pi's
+/// coding-agent prompt; the extension appends the per-run environment.
 enum PiLaunchPlanner {
 
     static func plan(bun: URL,
                      piCLI: URL,
                      extensionDirectory: URL,
                      skillDirectory: URL?,
+                     systemPrompt: URL? = nil,
                      sessionDirectory: URL,
                      workspace: URL,
+                     workspaceKind: AgentWorkspaceKind? = nil,
                      endpoint: AgentLLMEndpoint,
                      reasoningLevelFile: URL? = nil,
                      helpersDirectory: URL?,
@@ -49,6 +60,9 @@ enum PiLaunchPlanner {
         if let skillDirectory {
             arguments += ["--skill", skillDirectory.path]
         }
+        if let systemPrompt {
+            arguments += ["--system-prompt", systemPrompt.path]
+        }
         arguments += [
             "--no-prompt-templates",
             "--no-context-files",
@@ -65,6 +79,7 @@ enum PiLaunchPlanner {
         // The host rewrites this file when the Agent reasoning level changes;
         // the extension reads it for every model request. Absent: Automatic.
         environment["LOKALBOT_LLM_REASONING_FILE"] = reasoningLevelFile?.path
+        environment[AgentWorkspaceKind.environmentKey] = workspaceKind?.rawValue
         let privateRootsJSON = try? JSONEncoder().encode(privateRoots.map { $0.standardizedFileURL.path })
         // An encoding failure must stop the extension at startup, never omit
         // the protected roots. `null` is rejected by its launch validation.
