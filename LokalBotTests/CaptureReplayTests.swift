@@ -367,6 +367,47 @@ final class CaptureReplayTests: XCTestCase {
                        "the tap goes on the helper that carries the call")
     }
 
+    /// #363: Webex's media helper is outside its host's dot-separated bundle
+    /// namespace. A manual recording must verify the call and select its audio.
+    func testManualRecordingCapturesAWebexCallOnItsMediaHelper() async throws {
+        let replay = try replay("webex-call-on-media-helper")
+        await replay.clock.advance(to: 10)
+        let webex = MeetingDetector.DetectedApp(name: "Webex", bundleID: "Cisco-Systems.Spark", pid: 900)
+        let unbound = Meeting.CaptureIntent(systemAudioRequested: true)
+        XCTAssertEqual(RecordingSystemAudioSource.find(for: unbound), .verified(webex))
+        XCTAssertEqual(MeetingDetector.currentCaptureTargetProcess(for: webex)?.id, 910,
+                       "the silent host must not take the remote participants' track")
+    }
+
+    /// The same process-family mapping must work before speech starts, through
+    /// a quiet pause, and when recovery sees a replacement helper with a new PID.
+    func testWebexCaptureFollowsItsMediaHelperAcrossSilenceAndRestart() async throws {
+        let replay = try replay("webex-call-on-media-helper")
+        let webex = MeetingDetector.DetectedApp(name: "Webex", bundleID: "Cisco-Systems.Spark", pid: 900)
+        let bound = Meeting.CaptureIntent(systemAudioRequested: true, appBundleID: webex.bundleID)
+        for (second, pid) in [(0.0, pid_t(910)), (10, 910), (20, 910), (30, 920), (40, 920)] {
+            await replay.clock.advance(to: second)
+            XCTAssertEqual(RecordingSystemAudioSource.find(for: bound), .verified(webex))
+            XCTAssertEqual(MeetingDetector.currentCaptureTargetProcess(
+                for: webex, excluding: second >= 30 ? [910] : [])?.id, pid,
+                "capture must follow the media helper at t=\(second), even before it emits audio")
+        }
+    }
+
+    func testWebexCallOnItsMediaHelperStartsDetectionOnlyWhenAudioRuns() async throws {
+        let replay = try replay("webex-call-on-media-helper")
+        let detector = MeetingDetector()
+        var started: [MeetingDetector.DetectedApp] = []
+        detector.onMeetingStarted = { context in
+            if let app = context.detectedApp { started.append(app) }
+        }
+        await detector.tickForTesting()
+        XCTAssertTrue(started.isEmpty, "a present but quiet helper is not evidence of a call")
+        await replay.clock.advance(to: 10)
+        await detector.tickForTesting()
+        XCTAssertEqual(started, [.init(name: "Webex", bundleID: "Cisco-Systems.Spark", pid: 900)])
+    }
+
     /// Every scripted browser trace must replay to at least one text capture.
     func testScriptedBrowserTracesReplayToACapture() async throws {
         let folder = try XCTUnwrap(Bundle(for: Self.self).url(
