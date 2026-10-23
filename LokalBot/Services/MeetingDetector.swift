@@ -1004,6 +1004,7 @@ final class MeetingDetector {
     nonisolated static let foreignHelperHosts: [String: String] = [
         "com.bytedance.lark.helper": "com.electron.lark",
         "com.alibaba.dingtalk-helper": "com.alibaba.dingtalkmac",
+        "cisco-systems.sparkhelper": "cisco-systems.spark",
     ]
 
     /// Whether an audio process belongs to the detected meeting application's
