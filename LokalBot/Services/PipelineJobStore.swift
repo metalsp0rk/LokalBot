@@ -152,6 +152,18 @@ final class PipelineJobStore {
         }
     }
 
+    /// Return the attempt `markStarted` took when the user quit while the job
+    /// ran. A clean quit is not a crash, so repeated quits during a long
+    /// transcription must not park the job at the auto-resume cap.
+    @discardableResult
+    func markInterrupted(meetingID: UUID) -> Bool {
+        write("mark interrupted") { database in
+            try database.runChecked(
+                "UPDATE pipeline_jobs SET attempts = MAX(attempts - 1, 0) WHERE meeting_id = ?1",
+                bind: [meetingID.uuidString])
+        }
+    }
+
     /// Persist the transcription phase immediately after the transcript
     /// commit. Crash recovery must use this marker rather than the existence of
     /// a transcript that may predate the current request.

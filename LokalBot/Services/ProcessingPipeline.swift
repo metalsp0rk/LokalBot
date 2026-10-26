@@ -199,6 +199,9 @@ final class ProcessingPipeline: ObservableObject {
     /// The currently running job is retained separately from the queue-drain
     /// loop so deletion can cancel and await it before removing source files.
     private var activeProcessingTask: Task<Void, Never>?
+    /// Set once the app is quitting: no job starts, and the running one is
+    /// recorded as interrupted rather than failed.
+    private var isTerminating = false
     /// Revocation survives cancellation-unaware engine work. Any continuation
     /// that resumes after deletion must fail its commit checks and callbacks.
     private var revokedMeetingIDs: Set<Meeting.ID> = []
@@ -549,11 +552,39 @@ final class ProcessingPipeline: ObservableObject {
         return queued
     }
 
+    /// Quit: stop starting jobs, cancel the running one, and wait for it to
+    /// unwind, so no engine work is in flight when AppKit calls `exit()`.
+    /// MLX tears its Metal command encoders down in a C++ static destructor;
+    /// `exit()` during a decode commits a buffer another thread is still
+    /// encoding, and Metal validation aborts (SIGABRT, 2026-10-23). The
+    /// durable job row stays, so the next launch resumes from the saved
+    /// checkpoints. Cancellation lands at the next token, or after one
+    /// encoder/prefill pass at most. Returns false when the job outlasts
+    /// `timeout`, so a stuck engine cannot hold Quit forever.
+    @discardableResult
+    func suspendForTermination(timeout: Duration = .seconds(15)) async -> Bool {
+        isTerminating = true
+        queue.removeAll()
+        activeProcessingTask?.cancel()
+        // Poll rather than race two tasks: a task group (or a continuation
+        // fed by `task.value`) cannot return while the stuck job's waiter is
+        // still pending, which would defeat the timeout.
+        let deadline = ContinuousClock.now + timeout
+        while isDraining, ContinuousClock.now < deadline {
+            try? await Task.sleep(for: .milliseconds(20))
+        }
+        guard !isDraining else {
+            lokalbotLog("pipeline still running \(timeout) after quit was requested; exiting anyway")
+            return false
+        }
+        return true
+    }
+
     private func drain() {
-        guard !isDraining, !captureActive else { return }
+        guard !isDraining, !captureActive, !isTerminating else { return }
         isDraining = true
         Task {
-            while !queue.isEmpty, !captureActive {
+            while !queue.isEmpty, !captureActive, !isTerminating {
                 let job = queue.removeFirst()
                 guard !revokedMeetingIDs.contains(job.meeting.id) else { continue }
                 activeMeetingID = job.meeting.id
@@ -870,6 +901,15 @@ final class ProcessingPipeline: ObservableObject {
             }
         } catch {
             guard !revokedMeetingIDs.contains(meeting.id) else { return }
+            if isTerminating, Task.isCancelled {
+                // Quit asked this job to stop. It is unfinished, not failed:
+                // keep the durable row (the next launch resumes it from its
+                // checkpoints) and give back the attempt this run took.
+                jobStore?.markInterrupted(meetingID: meeting.id)
+                stages[meeting.id] = .queued
+                lokalbotLog("pipeline interrupted by quit meeting=\(meeting.id)")
+                return
+            }
             // The persisted job row stays — the next launch re-enqueues it
             // (until the attempt cap) so a crash or transient failure never
             // silently drops a meeting. The message is persisted so a job

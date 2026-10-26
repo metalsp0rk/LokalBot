@@ -66,6 +66,66 @@ final class ProcessingPipelineAutomationGateTests: XCTestCase {
         XCTAssertTrue(pipeline.stages.isEmpty)
     }
 
+    /// Quit during a 36-minute meeting's transcription aborted the app: `exit()`
+    /// ran MLX's static destructors while the Qwen decode was still encoding a
+    /// Metal command buffer (SIGABRT, 2026-10-23). Quit now waits for the job to
+    /// unwind first, and the job stays resumable instead of counting as failed.
+    func testQuitCancelsTheRunningJobAndLeavesItResumable() async throws {
+        let root = try makeRoot()
+        let jobs = PipelineJobStore(databaseURL: root.appendingPathComponent("jobs.sqlite"))
+        let starts = StartedMeetings()
+        let pipeline = ProcessingPipeline(
+            storage: StorageManager(rootURL: root),
+            jobStore: jobs,
+            settings: { AppSettings() },
+            transcriptionStarted: { id in
+                starts.ids.append(id)
+                // Stands in for the decode loop: parked until cancelled.
+                try? await Task.sleep(for: .seconds(60))
+            })
+        let running = makeMeeting()
+        let queuedBehind = makeMeeting()
+        pipeline.enqueue(running, transcribe: true, summarize: true)
+        pipeline.enqueue(queuedBehind, transcribe: true, summarize: true)
+        await waitUntil { starts.ids.count == 1 }
+        XCTAssertEqual(try XCTUnwrap(jobs.job(meetingID: running.id)).attempts, 1)
+
+        let settled = await pipeline.suspendForTermination(timeout: .seconds(5))
+
+        XCTAssertTrue(settled, "the running job stops when asked, so Quit can proceed")
+        XCTAssertFalse(pipeline.hasActiveWork, "nothing may be mid-decode when exit() runs")
+        XCTAssertEqual(starts.ids, [running.id], "the queue behind it never starts")
+        XCTAssertFalse(pipeline.stages[running.id]?.isFailure ?? false,
+                       "quitting is not a processing failure")
+        XCTAssertEqual(try XCTUnwrap(jobs.job(meetingID: running.id)).attempts, 0,
+                       "a clean quit must not use up the launch-resume attempts")
+        XCTAssertNotNil(jobs.job(meetingID: queuedBehind.id), "the next launch still has both jobs")
+
+        pipeline.enqueue(makeMeeting(), transcribe: true, summarize: true)
+        try await Task.sleep(for: .milliseconds(50))
+        XCTAssertEqual(starts.ids, [running.id], "no job starts once the app is quitting")
+    }
+
+    func testQuitStopsWaitingWhenAnEngineIgnoresCancellation() async throws {
+        let root = try makeRoot()
+        let gate = AsyncGate()
+        let pipeline = ProcessingPipeline(
+            storage: StorageManager(rootURL: root),
+            settings: { AppSettings() },
+            transcriptionStarted: { _ in await gate.suspend() })
+        pipeline.enqueue(makeMeeting(), transcribe: true, summarize: true)
+        await gate.waitUntilStarted()
+
+        let settled = await pipeline.suspendForTermination(timeout: .milliseconds(100))
+
+        XCTAssertFalse(settled, "a stuck engine cannot hold Quit forever")
+        await gate.release()
+    }
+
+    private final class StartedMeetings {
+        var ids: [Meeting.ID] = []
+    }
+
     private func makeRoot() throws -> URL {
         let root = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
             .appendingPathComponent(UUID().uuidString, isDirectory: true)

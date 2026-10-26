@@ -1565,6 +1565,10 @@ final class AppState: ObservableObject {
             // Keep the application usable when a stopped recording still has
             // unsaved metadata or processing intent. A later Quit retries it.
             guard recording.prepareForTermination() else { return false }
+            // Before anything below stops the llama servers or unloads
+            // models: a running transcription or summary must wind down
+            // first, or MLX's exit-time teardown aborts the process.
+            await pipeline.suspendForTermination()
             interactive = false
             settingsStore.flush()
             settingsControl.stop()
